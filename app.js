@@ -34,6 +34,7 @@ const defaultData = () => ({
 let state = load();
 let activePage = 'dashboard';
 let activePanelTab = 'period';
+let lastDeletedOperation = null;
 
 const pages = [
   ['dashboard', '🏠', 'Главная'],
@@ -114,6 +115,28 @@ function monthOps(monthKey = state.settings.currentMonth) { return state.operati
 function expenseOps(monthKey = state.settings.currentMonth) { return monthOps(monthKey).filter(o => o.type === 'expense'); }
 function incomeOps(monthKey = state.settings.currentMonth) { return monthOps(monthKey).filter(o => o.type === 'income'); }
 function total(list) { return list.reduce((s, x) => s + num(x.amount), 0); }
+function operationTypeLabel(type) { return type === 'income' ? 'Доход' : 'Расход'; }
+function operationLabel(o) { return `${operationTypeLabel(o.type)} ${money(o.amount)}${o.category ? ' / ' + o.category : ''}${o.date ? ' / ' + o.date : ''}`; }
+function deleteOperation(id) {
+  const op = state.operations.find(o => o.id === id);
+  if (!op) return;
+  const msg = `Удалить операцию: ${operationLabel(op)}?`;
+  if (!confirm(msg)) return;
+  lastDeletedOperation = { ...op, deletedAt: new Date().toISOString() };
+  state.operations = state.operations.filter(o => o.id !== id);
+  save();
+  render();
+  toast('Операция удалена. Можно восстановить на странице Деньги.');
+}
+function undoLastDelete() {
+  if (!lastDeletedOperation) return toast('Нет операции для восстановления');
+  const { deletedAt, ...op } = lastDeletedOperation;
+  state.operations.push(op);
+  lastDeletedOperation = null;
+  save();
+  render();
+  toast('Операция восстановлена');
+}
 function monthSummary(monthKey = state.settings.currentMonth) {
   const income = total(incomeOps(monthKey));
   const expenses = total(expenseOps(monthKey));
@@ -268,6 +291,13 @@ function dashboard() {
           <div><span class="tag warn">Сегодня задач: ${t.today}</span></div>
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+        <h3>🧾 Последние операции</h3>
+        <button class="soft-btn" data-page-jump="finance">Открыть журнал</button>
+      </div>
+      ${recentOperationsTable(8)}
     </div>`;
 }
 function scoreText(sc) {
@@ -291,19 +321,37 @@ function quick() {
       <button class="soft-btn" data-open-modal="wantBuy">🛒 Хочу купить</button>
     </div></div>
     <div class="card"><h3>📌 Сегодня достаточно</h3><div class="pill-list"><span class="tag">Записать расходы</span><span class="tag">Отметить привычки</span><span class="tag">Закрыть день</span></div><p class="sub" style="margin-top:14px">Не надо вести всё идеально. Система должна помогать, а не давить.</p></div>
+    <div class="card"><h3>🧾 Последние записи</h3>${recentOperationsTable(6)}</div>
   </div>`;
 }
 
 function finance() {
   const rows = [...state.operations].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,80);
   const s = monthSummary();
+  const undo = lastDeletedOperation ? `<div class="card" style="margin-top:16px;background:#fff8eb"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>↩️ Последнее удаление</h3><p class="sub">${operationLabel(lastDeletedOperation)}</p></div><button class="soft-btn" data-action="undoDeleteOp">Восстановить</button></div></div>` : '';
   return `<div class="grid cards">
     ${kpi('💰','Доход месяца', money(s.income), 'Факт по операциям')}
     ${kpi('💸','Расход месяца', money(s.expenses), 'Факт по операциям')}
     ${kpi('🏦','Сбережения 10%', money(s.savings), 'Автораспределение')}
     ${kpi('🎯','Финцель 10%', money(s.goal), 'Автораспределение')}
   </div>
-  <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>💸 Операции</h3><div class="actions-row" style="margin:0"><button class="soft-btn" data-open-modal="csvImport">📥 CSV импорт</button><button class="primary-btn" data-open-modal="quickExpense">Добавить</button></div></div>${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(o => [o.date, o.type === 'income' ? 'Доход' : 'Расход', money(o.amount), o.category || '', o.note || '', `<button class="ghost-btn" data-delete-op="${o.id}">Удалить</button>`]))}</div>`;
+  ${undo}
+  <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>💸 Операции</h3><div class="actions-row" style="margin:0"><button class="soft-btn" data-open-modal="csvImport">📥 CSV импорт</button><button class="primary-btn" data-open-modal="quickExpense">Добавить</button></div></div>${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))}</div>`;
+}
+
+function operationRow(o) {
+  return [
+    o.date,
+    operationTypeLabel(o.type),
+    money(o.amount),
+    o.category || '',
+    o.note || '',
+    `<button class="danger-btn" data-delete-op="${o.id}">Удалить</button>`
+  ];
+}
+function recentOperationsTable(limit = 8) {
+  const rows = [...state.operations].sort((a,b)=>b.date.localeCompare(a.date)).slice(0, limit);
+  return table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow));
 }
 
 function panel(opts = {}) {
@@ -313,7 +361,7 @@ function panel(opts = {}) {
   const cats = categoryTotals(from, to);
   const ops = state.operations.filter(o => dateBetween(o.date, from, to) && (!search || JSON.stringify(o).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date));
   return `<div class="card"><h3>🎛 Панель управления</h3><p class="sub">Подними любой период, посмотри категории и найди старые операции.</p><div class="form-grid"><label>С даты<input id="panelFrom" type="date" value="${from}"></label><label>По дату<input id="panelTo" type="date" value="${to}"></label></div><div class="actions-row"><button class="primary-btn" data-action="applyPeriod">Показать период</button><button class="soft-btn" data-action="currentMonthPeriod">Текущий месяц</button><button class="soft-btn" data-open-modal="weeklyReport">📅 Собрать неделю</button></div></div>
-  <div class="grid two" style="margin-top:16px"><div class="card"><h3>Категории периода</h3>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Нет расходов')}</div><div class="card"><h3>Поиск операций</h3><input id="panelSearch" class="search" style="width:100%" placeholder="Например: кафе, ozon, такси" value="${search}"><div style="margin-top:12px">${table(['Дата','Тип','Сумма','Категория','Комментарий'], ops.slice(0,20).map(o=>[o.date, o.type, money(o.amount), o.category || '', o.note || '']))}</div></div></div>`;
+  <div class="grid two" style="margin-top:16px"><div class="card"><h3>Категории периода</h3>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Нет расходов')}</div><div class="card"><h3>Поиск операций</h3><input id="panelSearch" class="search" style="width:100%" placeholder="Например: кафе, ozon, такси" value="${search}"><div style="margin-top:12px">${table(['Дата','Тип','Сумма','Категория','Комментарий',''], ops.slice(0,20).map(operationRow))}</div></div></div>`;
 }
 
 function goals() {
@@ -408,7 +456,7 @@ function table(headers, rows) {
 function bindView() {
   document.querySelectorAll('[data-page-jump]').forEach(b => b.onclick = () => { activePage = b.dataset.pageJump; render(); });
   document.querySelectorAll('[data-open-modal]').forEach(b => b.onclick = () => openModal(b.dataset.openModal));
-  document.querySelectorAll('[data-delete-op]').forEach(b => b.onclick = () => { state.operations = state.operations.filter(o=>o.id!==b.dataset.deleteOp); save(); render(); });
+  document.querySelectorAll('[data-delete-op]').forEach(b => b.onclick = () => deleteOperation(b.dataset.deleteOp));
   document.querySelectorAll('[data-delete-goal]').forEach(b => b.onclick = () => { const g = state.goals.find(x=>x.id===b.dataset.deleteGoal); if(g) g.status = 'Отменена'; save(); render(); });
   document.querySelectorAll('[data-hide-habit]').forEach(b => b.onclick = () => { const h = state.habits.find(x=>x.id===b.dataset.hideHabit); if(h) h.active = false; save(); render(); });
   document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => { const t = state.tasks.find(x=>x.id===b.dataset.toggleTask); if(t) t.status = t.status === 'Готово' ? 'В работе' : 'Готово'; save(); render(); });
@@ -428,6 +476,7 @@ function actionHandler(e) {
   const a = e.currentTarget.dataset.action;
   if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom').value); localStorage.setItem('panel.to', document.getElementById('panelTo').value); render(); }
   if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); render(); }
+  if (a === 'undoDeleteOp') undoLastDelete();
   if (a === 'saveSettings') saveSettings();
   if (a === 'backup') exportBackup();
   if (a === 'resetAll') { if(confirm('Точно очистить все данные?')) { state = defaultData(); save(); render(); } }

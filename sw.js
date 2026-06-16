@@ -1,5 +1,5 @@
-const CACHE = 'second-brain-os-v1';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'second-brain-os-v2-delete-ops';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './cloud-sync.js', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();
