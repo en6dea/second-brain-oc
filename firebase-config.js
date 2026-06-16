@@ -1,8 +1,9 @@
 window.SECOND_BRAIN_FIREBASE_CONFIG = {
-  apiKey: "PASTE_API_KEY_HERE",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyAuxWvGfr_0cReaEQdIkvPIUoEjurDcabY",
+  authDomain: "second-brain-os-7e27d.firebaseapp.com",
+  projectId: "second-brain-os-7e27d",
+  storageBucket: "second-brain-os-7e27d.firebasestorage.app",
+  messagingSenderId: "792312226609",
+  appId: "1:792312226609:web:8ffb6c2b04df69c2670610",
+  measurementId: "G-HKHTED5VBZ"
 };
