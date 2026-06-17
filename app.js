@@ -3137,6 +3137,87 @@ function createWeekReport() {
   toast('Недельный отчёт пока недоступен');
 }
 
+
+
+/* PREMIUM UI V7 — visual polish only + clear manual allocation logic.
+   Не ломаем бизнес-логику: меняем только тексты/разметку Today и ручного распределения. */
+function premiumMiniKpi(icon, title, value, sub, action = '', tone = '') {
+  const tag = action ? 'button' : 'div';
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  return `<${tag} class="premium-today-card ${tone || ''}"${actionAttr}>
+    <span class="premium-card-icon">${icon}</span>
+    <div class="premium-card-copy"><b>${value}</b><small>${escapeHtml(title)}</small><em>${escapeHtml(sub)}</em></div>
+  </${tag}>`;
+}
+
+function allocationStatusCard() {
+  const a = manualAllocationStatus();
+  const segments = [
+    ['Сбережения', a.savings || 0, 'save'],
+    ['Подушка', a.cushion || 0, 'cushion'],
+    ['Финцель', a.goal || 0, 'goal']
+  ];
+  const totalPlan = Math.max(1, a.allocations || 1);
+  const tone = a.done ? 'green' : a.overdue ? 'danger' : a.today ? 'warn' : 'blue';
+  const title = a.done ? 'Распределение уже учтено' : a.overdue ? 'Нужно распределить деньги' : a.today ? 'Сегодня день распределения' : 'Ручное распределение';
+  const body = a.done
+    ? `Система уже нашла переводы в категории накоплений и вычла их из доступного остатка. Это помогает не потратить деньги, которые ты решил отложить.`
+    : `Это не автоперевод. Это контрольный блок: в день зарплаты ты сам вносишь суммы, а приложение сразу пересчитывает безопасный остаток и лимит дня.`;
+  return `<div class="card allocation-card premium-allocation ${tone}">
+    <div class="allocation-main">
+      <div class="allocation-eyebrow"><span class="tag ${tone}">${title}</span><span class="allocation-date">контрольная дата: ${a.due}</span></div>
+      <h3>🏦 Сейф-распределение</h3>
+      <p class="sub">${body}</p>
+      <div class="allocation-segments">
+        ${segments.map(([name, amount, cls]) => `<div class="alloc-segment ${cls}"><span>${name}</span><b>${money(amount)}</b><i style="width:${clamp(amount / totalPlan * 100, 5, 100)}%"></i></div>`).join('')}
+      </div>
+    </div>
+    <div class="allocation-side">
+      <div class="alloc-total"><span>Уже отложено</span><b>${money(a.allocations || 0)}</b><small>эта сумма уже не входит в свободный остаток</small></div>
+      <button class="primary-btn" data-open-modal="manualAllocation">Внести переводы</button>
+    </div>
+  </div>`;
+}
+
+function todayView() {
+  const s = monthSummary();
+  const date = todayKey();
+  const habits = state.habits.filter(h => h.active);
+  const todayTasks = tasksForDay(date).slice(0, 5);
+  const cats = categoryTotals(date, date).slice(0, 4);
+  const st = state.states.find(x => x.date === date);
+  const ts = tasksStats();
+  const rb = rewardBalance ? rewardBalance() : { points: 0, rub: 0 };
+  const overdueTone = ts.overdue ? 'danger' : '';
+  return `<div class="today-screen premium-today-screen">
+    <div class="today-hero premium-hero">
+      <div>
+        <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+        <h2>Сегодня</h2>
+        <p>Держи ритм: деньги, 1–3 задачи, привычки и короткое закрытие дня.</p>
+      </div>
+      <div class="today-score-ring"><span>${lifeScore()}</span><small>Life Score</small></div>
+    </div>
+    <div class="today-kpi-grid">
+      ${premiumMiniKpi('📆','Лимит сегодня', money(s.dailyLimit), 'нажми — покажу расчёт', 'todayLimit')}
+      ${premiumMiniKpi('📌','Задачи', `${todayTasks.length}`, `${ts.overdue} просрочено`, 'jumpOverdueTasks', overdueTone)}
+      ${premiumMiniKpi('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'открыть привычки', 'jumpHabits')}
+      ${premiumMiniKpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
+    </div>
+    ${allocationStatusCard()}
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : empty('Нет задач на сегодня. Выбери 1 главный фокус.')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area)}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+    </div>
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Сегодня ещё нет расходов')}</div>
+      <div class="card close-day-card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод. Это даст нормальную аналитику по жизни.</p><div class="pill-list"><span class="tag green">🎮 ${rb.points || 0} баллов</span><span class="tag blue">${money(rb.rub || 0)} на себя</span></div><button class="primary-btn" data-open-modal="closeDay" style="width:100%;margin-top:12px">Закрыть день</button></div>
+    </div>
+  </div>`;
+}
+
+console.log('Second Brain PREMIUM UI V7 visual layer loaded');
+
 window.SecondBrainApp = {
   getState: () => state,
   setStateFromCloud: (cloudState) => {
@@ -3154,7 +3235,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain BUTTONS V6 RESCUE app.js loaded');
+console.log('Second Brain PREMIUM UI V7 app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {

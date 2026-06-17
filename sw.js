@@ -1,5 +1,5 @@
 // Second Brain OS — BUTTONS V5 FIX service worker
-const CACHE_NAME = 'second-brain-os-buttons-v5-callstack-fix-20260618';
+const CACHE_NAME = 'second-brain-os-premium-ui-v7-20260618';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
