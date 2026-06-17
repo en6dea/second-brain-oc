@@ -10,7 +10,8 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=auth-stable-20260618" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.pro.nuclear.css?v=auth-nuclear-v2-20260618" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -49,12 +50,14 @@
   <button id="fabAdd" class="fab-add" aria-label="Быстро добавить">＋</button>
   <div id="modalRoot"></div>
   <div id="toast" class="toast"></div>
-  <script src="firebase-config.js?v=auth-stable-20260618"></script>
+  
+  <div id="authBuildBadge" style="position:fixed;left:10px;bottom:10px;z-index:99999;padding:7px 10px;border-radius:999px;background:#3f332b;color:#fff;font:12px system-ui;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:.72">AUTH v2</div>
+  <script src="sb-firebase-config.nuclear.js?v=auth-nuclear-v2-20260618"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="cloud-sync.js?v=auth-stable-20260618"></script>
+  <script src="sb-cloud-sync.nuclear.js?v=auth-nuclear-v2-20260618"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=auth-stable-20260618"></script>
+  <script src="app.goal.nuclear.js?v=auth-nuclear-v2-20260618"></script>
 </body>
 </html>
