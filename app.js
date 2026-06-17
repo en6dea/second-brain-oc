@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=final-repair-v3-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=buttons-v4-20260618').catch(console.warn);
   }
 }
 function renderNav() {
@@ -2944,6 +2944,207 @@ function actionHandler(e) {
   return __baseActionHandler(e);
 }
 
+
+
+/* =========================
+   FINAL BUTTONS + UX REPAIR V4
+   Единый слой кликов: кнопки больше не зависят от старых bindView/onClick.
+   ========================= */
+
+function toDateKey(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey() { return toDateKey(new Date()); }
+
+function safeCall(label, fn) {
+  try { return fn(); }
+  catch (err) {
+    console.error('Second Brain action error:', label, err);
+    toast('Ошибка действия: ' + label + '. Открой консоль, если повторится.');
+  }
+}
+
+function goPage(page, message) {
+  activePage = page;
+  render();
+  if (message) setTimeout(() => toast(message), 50);
+}
+
+function explainTodayLimit() {
+  const s = monthSummary();
+  const planned = plannedSummary ? plannedSummary(state.settings.currentMonth) : { total: 0, mandatory: 0 };
+  const leftAfterPlanned = Math.max(0, num(s.left) - num(planned.mandatory));
+  const limitAfterPlanned = Math.floor(leftAfterPlanned / daysLeftInMonth());
+  openCustomModal('📆 Почему лимит на сегодня такой', `
+    <div class="grid cards">
+      <div class="mini-kpi"><span>Остаток месяца</span><b>${money(s.left)}</b></div>
+      <div class="mini-kpi"><span>Дней до конца</span><b>${daysLeftInMonth()}</b></div>
+      <div class="mini-kpi"><span>Лимит без плановых</span><b>${money(s.dailyLimit)}</b></div>
+      <div class="mini-kpi"><span>Обязательные платежи</span><b>${money(planned.mandatory)}</b></div>
+    </div>
+    <p class="sub" style="margin-top:12px">Базовый лимит = остаток денег на месяц / количество дней до конца месяца.</p>
+    <p class="sub">Если учитывать обязательные платежи, безопасный лимит примерно: <b>${money(limitAfterPlanned)}</b> в день.</p>
+    <div class="actions-row"><button class="primary-btn" data-page-jump="finance">Открыть деньги</button><button class="soft-btn" data-open-modal="plannedExpense">+ Плановый расход</button></div>
+  `);
+}
+
+function jumpOverdueTasks() {
+  localStorage.setItem('task.focus', 'overdue');
+  goPage('tasks', 'Открыл задачи. Просрочки — первый блок сверху.');
+}
+
+const __baseTodayView_V4 = todayView;
+function todayKpiButton(icon, title, value, sub, action, tone='') {
+  return `<button class="kpi clickable-kpi ${tone}" data-action="${action}"><span>${icon}</span><b>${value}</b><small>${escapeHtml(title)}</small><em>${escapeHtml(sub)}</em></button>`;
+}
+function todayView() {
+  const s = monthSummary();
+  const date = todayKey();
+  const habits = state.habits.filter(h => h.active);
+  const todayTasks = tasksForDay(date).slice(0, 5);
+  const cats = categoryTotals(date, date).slice(0, 4);
+  const st = state.states.find(x => x.date === date);
+  const ts = tasksStats();
+  const rb = rewardBalance ? rewardBalance() : { points: 0, rub: 0 };
+  const overdueTone = ts.overdue ? 'danger' : '';
+  return `<div class="today-screen">
+    <div class="today-hero">
+      <div>
+        <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+        <h2>Сегодня</h2>
+        <p>${todayIntro()}</p>
+      </div>
+      <div class="today-score-ring"><span>${lifeScore()}</span><small>Life Score</small></div>
+    </div>
+    <div class="grid cards" style="margin-top:16px">
+      ${todayKpiButton('📆','Лимит сегодня', money(s.dailyLimit), 'нажми — покажу расчёт', 'todayLimit')}
+      ${todayKpiButton('📌','Задачи', `${todayTasks.length}`, `${ts.overdue} просрочено`, 'jumpOverdueTasks', overdueTone)}
+      ${todayKpiButton('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'открыть привычки', 'jumpHabits')}
+      ${kpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
+    </div>
+    ${allocationStatusCard()}
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : empty('Нет задач на сегодня. Выбери 1 главный фокус.')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area)}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Сегодня ещё нет расходов')}</div>
+      <div class="card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод. Это даст нормальную аналитику по жизни.</p><div class="pill-list"><span class="tag green">🎮 ${rb.points || 0} баллов</span><span class="tag blue">${money(rb.rub || 0)} на себя</span></div><button class="primary-btn" data-open-modal="closeDay" style="width:100%;margin-top:12px">Закрыть день</button></div>
+    </div>
+  </div>`;
+}
+
+const __baseBindViewBeforeV4 = bindView;
+bindView = function() {
+  // Только поля и чекбоксы. Все клики ловит единый обработчик ниже.
+  safeCall('bindView/base', () => __baseBindViewBeforeV4());
+  document.querySelectorAll('[data-habit]').forEach(ch => ch.onchange = () => {
+    pushUndo?.('отметка привычки');
+    const key = todayKey();
+    state.habitLogs[key] = state.habitLogs[key] || {};
+    state.habitLogs[key][ch.dataset.habit] = ch.checked;
+    save(); toast('Привычка обновлена');
+  });
+  const panelSearch = document.getElementById('panelSearch');
+  if (panelSearch) panelSearch.oninput = (e) => { const gs = document.getElementById('globalSearch'); if (gs) gs.value = e.target.value; render({ search: e.target.value }); };
+  const backupInput = document.getElementById('backupInput');
+  if (backupInput) backupInput.onchange = importBackup;
+  const bankFile = document.getElementById('bankCsvFile');
+  if (bankFile) bankFile.onchange = () => toast('Файл выбран. Нажми «Разобрать файл»');
+  if (typeof bindFinanceControls === 'function') bindFinanceControls();
+  if (typeof bindImportControls === 'function') bindImportControls();
+};
+
+function actionHandler(e) {
+  const el = e.currentTarget || e.target?.closest?.('[data-action]');
+  const a = el?.dataset?.action;
+  if (!a) return;
+  return routeAction(a, el, e);
+}
+
+function routeAction(a, el, e) {
+  return safeCall(a, () => {
+    if (a === 'quick') return goPage('quick');
+    if (a === 'backup') return exportBackup();
+    if (a === 'todayLimit') return explainTodayLimit();
+    if (a === 'jumpOverdueTasks') return jumpOverdueTasks();
+    if (a === 'jumpHabits') return goPage('habits', 'Открыл привычки.');
+    if (a === 'jumpTasks') return goPage('tasks');
+    if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom')?.value || ''); localStorage.setItem('panel.to', document.getElementById('panelTo')?.value || ''); return render(); }
+    if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); return render(); }
+    if (a === 'financePrev') { financeView.page = Math.max(1, (financeView.page || 1) - 1); return render(); }
+    if (a === 'financeNext') { financeView.page = (financeView.page || 1) + 1; return render(); }
+    if (a === 'parseBankFile') return parseBankFile();
+    if (a === 'transferBankRows') return transferBankRows();
+    if (a === 'clearBankImport') { pushUndo?.('очистка импорта'); return clearBankImport(); }
+    if (a === 'selectBankRows') return selectBankRows();
+    if (a === 'unselectBankRows') return unselectBankRows();
+    if (a === 'applyBulkCategory') return applyBulkCategory();
+    if (a === 'applySuggestionsAll') return applySuggestionsAll();
+    if (a === 'selectSimilarImport') return selectSimilarImport();
+    if (a === 'rememberRulesForSelected') return rememberRulesForSelected();
+    if (a === 'undoDeleteOp') return undoLastDelete();
+    if (a === 'undoLastAction') return undoLastAction();
+    if (a === 'saveSettings') return saveSettings();
+    if (a === 'resetAll') { if(confirm('Точно очистить все данные?')) { pushUndo?.('полная очистка'); state = defaultData(); enhanceGoalGameState?.(); save(); render(); } return; }
+    if (a === 'repair') { enhanceGoalGameState?.(); save(); toast('Система проверена и мигрирована'); return render(); }
+    if (a === 'cloudRegister') return cloudRegister();
+    if (a === 'cloudLogin') return cloudLogin();
+    if (a === 'cloudLogout') return window.SecondBrainCloud?.logout();
+    if (a === 'cloudPush') return window.SecondBrainCloud?.pushNow(state);
+    if (a === 'cloudPull') return window.SecondBrainCloud?.pullNow();
+    if (a === 'cloudRefresh') { window.SecondBrainCloud?.refreshStatus(); return render(); }
+    if (a === 'antiChaos') return openAntiChaos();
+    if (a === 'fabQuick') return openModal('quickExpense');
+    if (a === 'openDebtModal') return openDebtModal();
+    if (a === 'repayDebt') return openRepayDebtModal(el.dataset.debtId);
+    if (a === 'setTheme') { state.settings.theme = el.dataset.themeValue || 'latte'; save(); return render(); }
+    if (a === 'resetCategoryRules') { if(confirm('Сбросить все обученные правила категорий?')) { pushUndo?.('сброс правил категорий'); state.settings.categoryRules = []; save(); render(); toast('Правила категорий сброшены'); } return; }
+    if (a === 'monthCleanup') return monthCleanup(true);
+    if (a === 'createMonthlyReport') return createMonthlyReport();
+    if (a === 'goalAction') return openGoalActionModal(el.dataset.goalId);
+    if (a === 'goalSmartPlan') return openSmartGoalActionsModal(el.dataset.goalId);
+    if (a === 'goalNote') return openGoalNoteModal(el.dataset.goalId);
+    if (a === 'goalProgress') return openGoalProgressModal(el.dataset.goalId);
+    if (a === 'completeGoal') {
+      const g = state.goals.find(x=>x.id===el.dataset.goalId);
+      if (g) { pushUndo?.('статус цели'); const done = g.status !== 'Готово'; g.status = done ? 'Готово' : 'В работе'; if (done) addReward?.(20, 'Цель закрыта', 'goal-' + g.id); save(); render(); }
+      return;
+    }
+    if (a === 'createInsightReport') return createInsightReport();
+    if (a === 'setInsightPeriod') { localStorage.setItem('panel.from', document.getElementById('insightFrom')?.value || `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', document.getElementById('insightTo')?.value || `${state.settings.currentMonth}-31`); return render(); }
+    toast('Действие пока не подключено: ' + a);
+  });
+}
+
+function installUniversalClickRouter() {
+  if (window.__SECOND_BRAIN_V4_CLICK_ROUTER__) return;
+  window.__SECOND_BRAIN_V4_CLICK_ROUTER__ = true;
+  document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-page-jump],[data-open-modal],[data-action],[data-delete-op],[data-delete-category],[data-delete-goal],[data-hide-habit],[data-toggle-task],[data-edit-task],[data-calendar-task],[data-cleanup-page]');
+    if (!target) return;
+    if (target.matches('a[href]') && !target.dataset.action && !target.dataset.calendarTask) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    safeCall('universal-click', () => {
+      if (target.dataset.pageJump) return goPage(target.dataset.pageJump);
+      if (target.dataset.openModal) return openModal(target.dataset.openModal);
+      if (target.dataset.deleteOp) return deleteOperation(target.dataset.deleteOp);
+      if (target.dataset.deleteCategory) { const type = target.dataset.deleteCategory; const name = target.dataset.categoryName; if (!confirm(`Удалить категорию «${name}» из списка? Старые операции останутся как есть.`)) return; pushUndo?.('удаление категории'); removeCategory(type, name); save(); render(); return; }
+      if (target.dataset.deleteGoal) { const g = state.goals.find(x=>x.id===target.dataset.deleteGoal); if(g) { pushUndo?.('скрытие цели'); g.status = 'Отменена'; save(); render(); } return; }
+      if (target.dataset.hideHabit) { const h = state.habits.find(x=>x.id===target.dataset.hideHabit); if(h) { pushUndo?.('скрытие привычки'); h.active = false; save(); render(); } return; }
+      if (target.dataset.toggleTask) { const t = state.tasks.find(x=>x.id===target.dataset.toggleTask); if(t) { pushUndo?.('изменение статуса задачи'); const wasDone = t.status === 'Готово'; t.status = wasDone ? 'В работе' : 'Готово'; if (!wasDone) addReward?.(t.goalId ? 5 : 2, t.goalId ? 'Действие по цели выполнено' : 'Задача выполнена', 'task-' + t.id); save(); render(); } return; }
+      if (target.dataset.editTask) return openEditTaskModal(target.dataset.editTask);
+      if (target.dataset.calendarTask) { const t = state.tasks.find(x=>x.id===target.dataset.calendarTask); if(t) { t.calendarAdded = true; t.calendarLink = buildGoogleCalendarUrl(t); save(); setTimeout(render, 500); } return; }
+      if (target.dataset.cleanupPage) { closeModal(); return goPage(target.dataset.cleanupPage); }
+      if (target.dataset.action) return routeAction(target.dataset.action, target, e);
+    });
+  }, true);
+}
+installUniversalClickRouter();
+
 window.SecondBrainApp = {
   getState: () => state,
   setStateFromCloud: (cloudState) => {
@@ -2961,7 +3162,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain FINAL REPAIR V3 app.js loaded');
+console.log('Second Brain BUTTONS V4 app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {
