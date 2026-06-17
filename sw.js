@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'second-brain-os-auth-inline-final-20260618';
+const CACHE_VERSION = 'second-brain-os-auth-callstack-fix-20260618';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
