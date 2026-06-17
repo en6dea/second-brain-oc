@@ -2572,11 +2572,382 @@ function actionHandler(e) {
 }
 
 
+
+
+/* =========================
+   GOALS GAME & FORECAST PACK
+   ========================= */
+
+function enhanceGoalGameState() {
+  enhanceDelightState();
+  state.goalNotes = Array.isArray(state.goalNotes) ? state.goalNotes : [];
+  state.insightReports = Array.isArray(state.insightReports) ? state.insightReports : [];
+  state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+  state.rewardLedger = Array.isArray(state.rewardLedger) ? state.rewardLedger : [];
+  state.rewards = state.rewards || { points: 0, rubPerPoint: 100, spent: 0 };
+  state.rewards.points = Number(state.rewards.points || 0);
+  state.rewards.rubPerPoint = Number(state.rewards.rubPerPoint || 100);
+  state.rewards.spent = Number(state.rewards.spent || 0);
+  state.settings.expenseCategories = uniqueClean([...(state.settings.expenseCategories || []), 'Запланированные расходы','Обязательные платежи','Бонус себе']);
+  state.goals.forEach(g => {
+    g.status = g.status || 'В работе';
+    g.notes = g.notes || '';
+    g.rewardPoints = Number(g.rewardPoints || 0);
+  });
+}
+
+enhanceGoalGameState();
+
+function rewardBalance() {
+  enhanceGoalGameState();
+  const earned = state.rewardLedger.filter(x => x.type !== 'spend').reduce((s,x)=>s+num(x.points),0);
+  const spentPts = state.rewardLedger.filter(x => x.type === 'spend').reduce((s,x)=>s+num(x.points),0);
+  state.rewards.points = Math.max(0, earned - spentPts);
+  state.rewards.spent = spentPts;
+  return { points: state.rewards.points, rub: state.rewards.points * (state.rewards.rubPerPoint || 100), earned, spentPts };
+}
+function addReward(points, reason, sourceId = '') {
+  points = Number(points || 0);
+  if (!points) return;
+  enhanceGoalGameState();
+  if (sourceId && state.rewardLedger.some(x => x.sourceId === sourceId && x.reason === reason)) return;
+  state.rewardLedger.unshift({ id: uid(), date: todayKey(), points, reason, sourceId, type: 'earn', createdAt: new Date().toISOString() });
+  state.rewardLedger = state.rewardLedger.slice(0, 500);
+  rewardBalance();
+}
+function spendReward(points, note) {
+  points = Number(points || 0);
+  const bal = rewardBalance();
+  if (!points || points > bal.points) return toast('Недостаточно бонусов');
+  pushUndo('списание бонусов');
+  state.rewardLedger.unshift({ id: uid(), date: todayKey(), points, reason: note || 'Бонус себе', type:'spend', createdAt: new Date().toISOString() });
+  state.operations.push({ id: uid(), date: todayKey(), type:'expense', amount: points * (state.rewards.rubPerPoint || 100), category:'Бонус себе', note: note || 'Материальная награда за прогресс', emotion:'Награда' });
+  rewardBalance(); save(); closeModal(); render(); toast('Бонус списан и добавлен как расход');
+}
+function rewardsCard() {
+  const b = rewardBalance();
+  return `<div class="card rewards-card"><div class="section-head"><div><h3>🎮 Бонусы за прогресс</h3><p class="sub">Выполняешь действия по целям, закрываешь дни и долги — копишь баллы. Баллы можно конвертировать в сумму на себя.</p></div><span class="tag green">${b.points} баллов</span></div><div class="reward-hero"><div><div class="metric">${money(b.rub)}</div><p class="sub">Доступно на себя · курс ${money(state.rewards.rubPerPoint || 100)} за 1 балл</p></div><div class="actions-row"><button class="primary-btn" data-open-modal="spendReward">Потратить на себя</button><button class="soft-btn" data-open-modal="rewardSettings">Настроить курс</button></div></div>${state.rewardLedger.length ? `<div class="reward-log">${state.rewardLedger.slice(0,6).map(r=>`<div><span>${r.type==='spend'?'−':'+'}${r.points}</span><b>${escapeHtml(r.reason)}</b><small>${r.date}</small></div>`).join('')}</div>` : empty('Бонусы появятся после выполнения задач и закрытия дней.')}</div>`;
+}
+
+function goalTasks(goalId) { return state.tasks.filter(t => t.goalId === goalId && t.status !== 'Отменена'); }
+function goalNotes(goalId) { return (state.goalNotes || []).filter(n => n.goalId === goalId).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))); }
+function goalProgressDetails(goal) {
+  const tasks = goalTasks(goal.id);
+  const doneTasks = tasks.filter(t => t.status === 'Готово').length;
+  const taskPct = tasks.length ? Math.round(doneTasks / tasks.length * 100) : 0;
+  const metricPct = num(goal.targetValue) ? Math.round(clamp(num(goal.currentValue) / Math.max(1, num(goal.targetValue)) * 100)) : null;
+  let pct = metricPct === null ? taskPct : (tasks.length ? Math.round(metricPct * .65 + taskPct * .35) : metricPct);
+  pct = clamp(pct);
+  const missing = [];
+  if (!tasks.length) missing.push('нет задач');
+  if (!String(goal.nextAction || '').trim()) missing.push('нет следующего действия');
+  if (!goal.deadline) missing.push('нет срока');
+  return { pct, taskPct, metricPct, tasks: tasks.length, doneTasks, missing };
+}
+function smartGoalSuggestions(goal) {
+  const title = goal.title || 'цель';
+  const due = goal.deadline || '';
+  const area = goal.area || 'Личное';
+  const base = [
+    `Сформулировать результат по цели «${title}» в 1 строку`,
+    `Разбить цель «${title}» на 3 маленьких шага`,
+    `Сделать первое действие по цели «${title}»`,
+    `Проверить прогресс цели «${title}»`,
+    `Записать следующий шаг по цели «${title}»`
+  ];
+  if (area === 'Финансы' || /долг|накоп|день|фин|кредит/i.test(title)) {
+    base.splice(2,0,`Запланировать сумму/платёж по цели «${title}»`);
+  }
+  if (area === 'Здоровье') base.splice(2,0,`Назначить минимальное действие на 15 минут по цели «${title}»`);
+  return base.slice(0,6).map((x,i)=>({ title:x, due: due || toDateKey(new Date(Date.now() + (i+1)*86400000)), area }));
+}
+
+function goalsStats() {
+  const active = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+  const avg = active.length ? Math.round(active.reduce((s,g)=>s+goalProgressDetails(g).pct,0)/active.length) : 0;
+  return { active: active.length, avg, done: state.goals.filter(g=>g.status==='Готово').length };
+}
+
+function goals() {
+  enhanceGoalGameState();
+  const active = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+  const done = state.goals.filter(g => g.status === 'Готово');
+  const needs = active.filter(g => goalProgressDetails(g).missing.length);
+  return `${undoBar()}<div class="goals-pro-layout">
+    <div class="grid cards">${kpi('🎯','Активные цели', active.length, `${goalsStats().avg}% средний прогресс`)}${kpi('🪜','Действия по целям', state.tasks.filter(t=>t.goalId && t.status!=='Отменена').length, 'задачи привязаны к целям')}${kpi('⚠️','Требуют внимания', needs.length, 'нет задачи/шага/срока')}${kpi('🏁','Закрыто', done.length, 'целей')}</div>
+    <div style="margin-top:16px">${rewardsCard()}</div>
+    <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>🎯 SMART-цели</h3><p class="sub">Цель не должна жить одна: у неё должны быть действия, задачи, заметки и прогресс.</p></div><button class="primary-btn" data-open-modal="quickGoal">+ Цель</button></div>${active.length ? active.map(goalCardPro).join('') : empty('Добавь первую цель и сразу создай действия.')}</div>
+    <div class="card" style="margin-top:16px"><h3>📦 Архив целей</h3>${done.length ? done.map(goalCardPro).join('') : empty('Закрытых целей пока нет')}</div>
+  </div>`;
+}
+function goalCardPro(g) {
+  const p = goalProgressDetails(g);
+  const tasks = goalTasks(g.id);
+  const notes = goalNotes(g.id);
+  const danger = p.missing.length;
+  return `<article class="goal-pro-card ${danger?'warn-zone':''}">
+    <div class="section-head"><div><div class="goal-title-row"><b>${escapeHtml(g.title || 'Без названия')}</b><span class="tag ${danger?'warn':'green'}">${p.pct}%</span></div><p class="sub">${escapeHtml(g.area || 'Личное')} · ${g.deadline ? 'до ' + g.deadline : 'без срока'} · ${escapeHtml(g.metric || 'метрика не задана')}</p></div><button class="soft-btn" data-action="completeGoal" data-goal-id="${g.id}">${g.status==='Готово'?'Вернуть':'Закрыть'}</button></div>
+    <div class="progress"><span style="width:${p.pct}%"></span></div>
+    <div class="goal-meta-grid"><span>Метрика: ${p.metricPct===null?'—':p.metricPct+'%'}</span><span>Действия: ${p.doneTasks}/${p.tasks}</span><span>Заметки: ${notes.length}</span></div>
+    ${p.missing.length ? `<div class="attention-item warn"><b>Нужно усилить</b><span>${p.missing.join(' · ')}</span></div>` : ''}
+    ${g.why ? `<p class="goal-note-preview"><b>Зачем:</b> ${escapeHtml(g.why)}</p>` : ''}
+    ${g.nextAction ? `<p class="goal-note-preview"><b>Следующий шаг:</b> ${escapeHtml(g.nextAction)}</p>` : ''}
+    ${notes[0] ? `<div class="goal-last-note"><small>Последняя заметка</small><span>${escapeHtml(notes[0].text)}</span></div>` : ''}
+    <div class="goal-task-strip">${tasks.slice(0,4).map(t=>`<button class="goal-task-pill ${t.status==='Готово'?'done':''}" data-edit-task="${t.id}">${t.status==='Готово'?'✓':'•'} ${escapeHtml(t.title)}</button>`).join('')}${tasks.length>4?`<span class="tag">+${tasks.length-4}</span>`:''}</div>
+    <div class="actions-row"><button class="soft-btn" data-action="goalAction" data-goal-id="${g.id}">+ Действие</button><button class="soft-btn" data-action="goalSmartPlan" data-goal-id="${g.id}">🪜 SMART-план</button><button class="soft-btn" data-action="goalNote" data-goal-id="${g.id}">📝 Заметка</button><button class="soft-btn" data-action="goalProgress" data-goal-id="${g.id}">📈 Прогресс</button></div>
+  </article>`;
+}
+
+function debts() {
+  const sum = debtSummary();
+  const items = debtItems();
+  const active = items.filter(d => d.status !== 'Закрыт').sort((a,b)=>(a.due || '9999-99-99').localeCompare(b.due || '9999-99-99'));
+  const closed = items.filter(d => d.status === 'Закрыт').sort((a,b)=>(b.due || b.createdAt || '').localeCompare(a.due || a.createdAt || ''));
+  const owe = active.filter(d => d.direction === 'owe');
+  const receivable = active.filter(d => d.direction === 'receivable');
+  return `${undoBar()}<div class="grid cards">
+    ${kpi('📉','Я должен', money(sum.openOwe), `${sum.oweCount} активных`)}
+    ${kpi('📈','Мне должны', money(sum.openReceivable), `${sum.receivableCount} активных`)}
+    ${kpi('⏰','Ближайшие 7 дней', sum.dueSoon.length, 'возвратов рядом')}
+    ${kpi('✅','В архиве', closed.length, 'закрытых долгов')}
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>💳 Долговой центр</h3><p class="sub">Активные долги всегда сверху. Закрытые уходят в архив, чтобы не мешать.</p></div><button class="primary-btn" data-action="openDebtModal">+ Добавить долг</button></div></div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h3>Я должен</h3>${owe.length ? owe.map(debtCard).join('') : empty('Нет открытых долгов')}</div>
+    <div class="card"><h3>Мне должны</h3>${receivable.length ? receivable.map(debtCard).join('') : empty('Нет долгов в твою пользу')}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>🗂 Архив закрытых долгов</h3>${closed.length ? closed.slice(0,30).map(debtCard).join('') : empty('Закрытых долгов пока нет')}</div>`;
+}
+
+function plannedForMonth(monthKey = state.settings.currentMonth) {
+  enhanceGoalGameState();
+  return state.plannedExpenses.filter(p => p.active !== false && (p.recurring || p.month === monthKey));
+}
+function plannedSummary(monthKey = state.settings.currentMonth) {
+  const list = plannedForMonth(monthKey);
+  return { list, total: list.reduce((s,x)=>s+num(x.amount),0), mandatory: list.filter(x=>x.mandatory).reduce((s,x)=>s+num(x.amount),0) };
+}
+function nextMonthKey(monthKey = state.settings.currentMonth) {
+  const [y,m] = monthKey.split('-').map(Number);
+  return toMonthKey(new Date(y, m, 1));
+}
+function plannedExpensesCard() {
+  const cur = plannedSummary();
+  const next = plannedSummary(nextMonthKey());
+  return `<div class="card planned-card"><div class="section-head"><div><h3>📌 Запланированные расходы</h3><p class="sub">Обязательные платежи и прогноз следующего месяца без сложного планирования.</p></div><button class="primary-btn" data-open-modal="plannedExpense">+ Плановый расход</button></div><div class="grid cards"><div class="mini-kpi"><span>Этот месяц</span><b>${money(cur.total)}</b><small>${cur.list.length} платежей</small></div><div class="mini-kpi"><span>Следующий месяц</span><b>${money(next.total)}</b><small>${next.list.length} платежей</small></div><div class="mini-kpi"><span>Обязательные</span><b>${money(cur.mandatory)}</b><small>в текущем месяце</small></div></div>${cur.list.length ? `<div class="mini-timeline">${cur.list.slice(0,8).map(p=>`<div class="timeline-item recurring"><span>${String(p.day || 1).padStart(2,'0')}</span><b>${escapeHtml(p.title || p.category)} · ${money(p.amount)}</b><small>${p.recurring?'каждый месяц':'разово'} · ${escapeHtml(p.category || '')}</small></div>`).join('')}</div>` : empty('Добавь аренду, связь, кредит, подписки или крупный плановый расход.')}</div>`;
+}
+function financialCalendarCard() {
+  const items = financialCalendarItems().slice(0, 9);
+  return `<div class="card finance-calendar-card"><div class="section-head"><div><h3>🗓 Финансовый календарь</h3><p class="sub">ЗП/аванс, долги, регулярные и плановые платежи.</p></div><div class="actions-row"><button class="soft-btn" data-open-modal="recurringOperation">+ Регулярное</button><button class="primary-btn" data-open-modal="plannedExpense">+ Плановый расход</button></div></div>${items.length ? `<div class="mini-timeline">${items.map(i=>`<div class="timeline-item ${i.type}"><span>${i.date.slice(8,10)}</span><b>${i.icon} ${escapeHtml(i.title)}</b><small>${formatFeedDate(i.date)}</small></div>`).join('')}</div>` : empty('Пока нет важных дат')}</div>`;
+}
+function financialCalendarItems(monthKey = state.settings.currentMonth) {
+  const items = [];
+  financialDays(monthKey).forEach(x => items.push({ date:x.date, icon:'🏦', title:`Финансовый день (${x.day})`, type:'money' }));
+  debtSummary().active.forEach(d => { if (d.due && inMonth(d.due, monthKey)) items.push({ date:d.due, icon:'💳', title:`${d.direction === 'owe' ? 'Вернуть' : 'Получить'} ${money(d.remaining)}`, type:'debt' }); });
+  state.tasks.filter(t => taskIsOpen(t) && t.due && inMonth(t.due, monthKey)).forEach(t => items.push({ date:t.due, icon:'📌', title:t.title, type:'task' }));
+  state.recurring.filter(r => r.active !== false).forEach(r => { const d = recurringDateForMonth(r, monthKey); if (d) items.push({ date:d, icon:'🔁', title:r.title || r.category || 'Регулярный платёж', type:'recurring' }); });
+  plannedForMonth(monthKey).forEach(p => { const day = Math.min(num(p.day) || 1, 28); const d = `${monthKey}-${String(day).padStart(2,'0')}`; items.push({ date:d, icon:p.mandatory?'📍':'📌', title:`${p.title || p.category} · ${money(p.amount)}`, type:'planned' }); });
+  return items.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function insights() {
+  enhanceGoalGameState();
+  const from = localStorage.getItem('panel.from') || `${state.settings.currentMonth}-01`;
+  const to = localStorage.getItem('panel.to') || `${state.settings.currentMonth}-31`;
+  const reports = state.insightReports || [];
+  return `${undoBar()}<div class="card"><div class="section-head"><div><h3>✨ Инсайты и отчёты</h3><p class="sub">Теперь отчёт не просто показывается — он сохраняется в историю.</p></div><button class="primary-btn" data-action="createInsightReport">Сформировать отчёт</button></div><div class="form-grid"><label>С даты<input id="insightFrom" type="date" value="${from}"></label><label>По дату<input id="insightTo" type="date" value="${to}"></label></div><div class="actions-row"><button class="soft-btn" data-action="setInsightPeriod">Применить период</button><button class="soft-btn" data-action="createMonthlyReport">🏁 Итог месяца</button></div></div>
+  <div class="grid two" style="margin-top:16px"><div>${insightLiveCard(from,to)}</div><div>${plannedExpensesCard()}</div></div>
+  <div class="card" style="margin-top:16px"><h3>📚 Хранилище отчётов</h3>${reports.length ? reports.slice(0,20).map(insightReportCard).join('') : empty('Нажми «Сформировать отчёт», и здесь появится история аналитики.')}</div>`;
+}
+function insightLiveCard(from, to) {
+  const r = buildInsightReport(from,to,false);
+  return `<div class="card insight-live-card"><h3>🧠 Разбор периода</h3><p class="sub">${from} — ${to}</p><div class="grid cards"><div class="mini-kpi"><span>Доход</span><b>${money(r.income)}</b></div><div class="mini-kpi"><span>Расход</span><b>${money(r.expense)}</b></div><div class="mini-kpi"><span>Долги</span><b>${money(r.debts)}</b></div></div>${r.insights.map(x=>`<div class="attention-item ${x.tone}"><b>${escapeHtml(x.title)}</b><span>${escapeHtml(x.text)}</span></div>`).join('')}</div>`;
+}
+function buildInsightReport(from, to, store = true) {
+  const ops = state.operations.filter(o => dateBetween(o.date, from, to));
+  const income = total(ops.filter(o=>o.type==='income'));
+  const expense = total(ops.filter(o=>o.type==='expense'));
+  const cats = categoryTotals(from, to);
+  const top = cats[0] || ['—',0];
+  const debts = debtSummary().openOwe;
+  const goalsNeed = state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена'&&goalProgressDetails(g).missing.length).length;
+  const insights = [];
+  insights.push({ tone: expense > income ? 'danger':'green', title: expense > income ? 'Период в минусе':'Период под контролем', text: `Доход ${money(income)}, расход ${money(expense)}.` });
+  if (top[1]) insights.push({ tone:'blue', title:'Главная категория', text:`${top[0]} — ${money(top[1])}.` });
+  if (debts) insights.push({ tone:'warn', title:'Долговая нагрузка', text:`Открытые долги к возврату: ${money(debts)}.` });
+  if (goalsNeed) insights.push({ tone:'warn', title:'Цели требуют действий', text:`Целей без задачи/шага/срока: ${goalsNeed}.` });
+  const report = { id: uid(), from, to, createdAt: new Date().toISOString(), income, expense, debts, topCategory: top[0], topAmount: top[1], lifeScore: lifeScore(), insights };
+  if (store) { state.insightReports.unshift(report); state.insightReports = state.insightReports.slice(0,60); }
+  return report;
+}
+function insightReportCard(r) {
+  return `<article class="insight-report-card"><div class="section-head"><div><b>${r.from} — ${r.to}</b><p class="sub">Создан: ${new Date(r.createdAt).toLocaleString('ru-RU')}</p></div><span class="tag green">${r.lifeScore}/100</span></div><div class="grid cards"><div class="mini-kpi"><span>Доход</span><b>${money(r.income)}</b></div><div class="mini-kpi"><span>Расход</span><b>${money(r.expense)}</b></div><div class="mini-kpi"><span>Топ</span><b>${escapeHtml(r.topCategory)}</b></div></div>${(r.insights||[]).slice(0,3).map(x=>`<p class="sub"><b>${escapeHtml(x.title)}:</b> ${escapeHtml(x.text)}</p>`).join('')}</article>`;
+}
+function createInsightReport() {
+  const from = document.getElementById('insightFrom')?.value || localStorage.getItem('panel.from') || `${state.settings.currentMonth}-01`;
+  const to = document.getElementById('insightTo')?.value || localStorage.getItem('panel.to') || `${state.settings.currentMonth}-31`;
+  pushUndo('создание отчёта инсайтов');
+  const r = buildInsightReport(from,to,true);
+  save(); render(); toast(`Отчёт сохранён: ${r.from} — ${r.to}`);
+}
+
+function monthCleanup(showToast = true) {
+  const month = state.settings.currentMonth;
+  const issues = [];
+  const monthOpsList = monthOps(month);
+  const noCat = monthOpsList.filter(o => !o.category).length;
+  const suspicious = findSuspiciousDuplicates(monthOpsList).length;
+  const debtNoDue = debtItems().filter(d => d.status !== 'Закрыт' && !d.due).length;
+  const goalNoNext = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && goalProgressDetails(g).missing.length).length;
+  const taskNoDue = state.tasks.filter(t => taskIsOpen(t) && !t.due).length;
+  const plannedMissing = plannedForMonth(month).length ? 0 : 1;
+  const statesThisMonth = state.states.filter(s => inMonth(s.date, month)).length;
+  const [y,m] = month.split('-').map(Number);
+  const passedDays = Math.min(new Date().getDate(), new Date(y, m, 0).getDate());
+  if (noCat) issues.push({ key:'finance-nocat', name:'Операции без категории', count:noCat, action:'Назначить категории', page:'finance' });
+  if (suspicious) issues.push({ key:'finance-dupes', name:'Похожие операции / возможные дубли', count:suspicious, action:'Проверить журнал', page:'finance' });
+  if (debtNoDue) issues.push({ key:'debts-nodue', name:'Долги без даты возврата', count:debtNoDue, action:'Добавить срок', page:'debts' });
+  if (goalNoNext) issues.push({ key:'goals-actions', name:'Цели без нормальной системы действий', count:goalNoNext, action:'Создать действия', page:'goals' });
+  if (taskNoDue) issues.push({ key:'tasks-nodue', name:'Задачи без даты', count:taskNoDue, action:'Запланировать', page:'tasks' });
+  if (plannedMissing) issues.push({ key:'planned-empty', name:'Нет плановых расходов', count:1, action:'Добавить обязательные платежи', page:'insights' });
+  if (statesThisMonth < Math.max(1, Math.floor(passedDays * .35))) issues.push({ key:'state-low', name:'Мало закрытых дней', count:Math.max(0, passedDays - statesThisMonth), action:'Закрывать день чаще', page:'today' });
+  const result = { issues, count: issues.reduce((s,x)=>s+x.count,0) };
+  if (showToast) openMonthCleanupModal(result);
+  return result;
+}
+function openMonthCleanupModal(result = monthCleanup(false)) {
+  openCustomModal('🧹 Чистка месяца', `<div class="cleanup-modal"><p class="sub">Каждое замечание теперь кликабельное: можно сразу перейти к месту исправления.</p>${result.issues.length ? `<div class="cleanup-list clickable">${result.issues.map(x=>`<button class="cleanup-jump" data-cleanup-page="${x.page}"><b>${escapeHtml(x.name)}</b><span>${x.count}</span><small>${escapeHtml(x.action)}</small></button>`).join('')}</div>` : empty('Всё аккуратно. Замечаний нет.')}</div>`);
+  document.querySelectorAll('[data-cleanup-page]').forEach(b => b.onclick = () => { closeModal(); activePage = b.dataset.cleanupPage; render(); });
+}
+
+function dashboard() {
+  enhanceGoalGameState();
+  const s = monthSummary();
+  const h = habitMonthStats();
+  const t = tasksStats();
+  const sc = lifeScore();
+  const debt = debtSummary();
+  const att = attentionItems();
+  const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+  return `
+    ${undoBar()}
+    <div class="os-home">
+      <section class="home-hero-pro card">
+        <div><div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div><h2>Финансы и жизнь в одном ритме</h2><p class="sub">Система подсказывает действия, следит за долгами, категориями, целями, задачами и наградами.</p><div class="actions-row"><button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button><button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button><button class="soft-btn" data-action="openDebtModal">💳 Долг</button><button class="soft-btn" data-open-modal="closeDay">🌙 Закрыть день</button></div></div>
+        <div class="score-orbit"><div class="score-ring" style="--score:${sc}"><span>${sc}</span><small>Life Score</small></div><div class="sub">${scoreText(sc)}</div></div>
+      </section>
+      ${smartActionsCard()}
+      <div class="grid cards" style="margin-top:16px">${kpi('📆','Можно тратить сегодня', money(s.dailyLimit), `Остаток месяца: ${money(s.left)}`)}${kpi('💳','Долги к возврату', money(debt.openOwe), `${debt.oweCount} активных`)}${kpi('🎮','Бонусы', `${rewardBalance().points}`, `${money(rewardBalance().rub)} на себя`)}${kpi('📌','Задачи', `${t.today} сегодня`, `${t.overdue} просрочено`)}</div>
+      ${financialDayCard()}
+      <div class="grid two" style="margin-top:16px"><div class="card"><h3>🔔 Центр внимания</h3>${att.length ? att.map(x => `<div class="attention-item ${x.tone || ''}"><b>${x.title}</b><span>${x.text}</span></div>`).join('') : empty('Система спокойна. Продолжай в том же ритме.')}</div><div class="card"><h3>🎛 Категории месяца</h3>${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : empty('Пока нет расходов за месяц')}</div></div>
+      <div class="grid two" style="margin-top:16px">${lifeScoreCard()}${financialCalendarCard()}</div>
+      <div style="margin-top:16px">${plannedExpensesCard()}</div>
+      <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Банковская лента по дням.</p></div><button class="soft-btn" data-page-jump="finance">Открыть журнал</button></div>${bankingFeed([...state.operations].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12), { compact:true })}</div>
+    </div>`;
+}
+
+function openGoalActionModal(goalId) {
+  const g = state.goals.find(x=>x.id===goalId); if (!g) return;
+  openCustomModal('🪜 Действие по цели', `<div class="form-grid"><label class="full">Действие<input id="goalActTitle" placeholder="Что конкретно сделать?" value="${escapeAttr(g.nextAction || '')}"></label><label>Дата<input id="goalActDue" type="date" value="${todayKey()}"></label><label>Время<input id="goalActTime" type="time" value="10:00"></label><label>Приоритет<select id="goalActPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label></div><div class="actions-row"><button class="primary-btn" id="saveGoalActionBtn">Добавить действие</button></div>`);
+  document.getElementById('saveGoalActionBtn').onclick = () => { const title = val('goalActTitle'); if(!title) return toast('Введи действие'); pushUndo('действие по цели'); state.tasks.push({ id:uid(), title, area:g.area || 'Личное', goalId:g.id, due:val('goalActDue') || todayKey(), time:val('goalActTime') || '', duration:30, priority:val('goalActPriority') || 'Средний', status:'В работе', nextAction:title, calendarAdded:false }); g.nextAction = title; save(); closeModal(); render(); toast('Действие добавлено к цели'); };
+}
+function openSmartGoalActionsModal(goalId) {
+  const g = state.goals.find(x=>x.id===goalId); if (!g) return;
+  const suggestions = smartGoalSuggestions(g).map(x=>x.title).join('\n');
+  openCustomModal('🪜 SMART-план действий', `<p class="sub">Отредактируй список. Каждая строка станет задачей, привязанной к цели.</p><textarea id="smartGoalLines" class="note-area" rows="7">${escapeHtml(suggestions)}</textarea><div class="form-grid"><label>Первый срок<input id="smartGoalStart" type="date" value="${todayKey()}"></label><label>Шаг между задачами, дней<input id="smartGoalStep" type="number" value="2"></label></div><div class="actions-row"><button class="primary-btn" id="saveSmartGoalBtn">Создать действия</button></div>`);
+  document.getElementById('saveSmartGoalBtn').onclick = () => createSmartGoalActions(goalId);
+}
+function createSmartGoalActions(goalId) {
+  const g = state.goals.find(x=>x.id===goalId); if (!g) return;
+  const lines = String(document.getElementById('smartGoalLines')?.value || '').split('\n').map(x=>x.trim()).filter(Boolean);
+  if (!lines.length) return toast('Нет действий');
+  pushUndo('создание SMART-плана');
+  const start = new Date((val('smartGoalStart') || todayKey()) + 'T00:00:00');
+  const step = Math.max(1, num(val('smartGoalStep')) || 2);
+  lines.forEach((title,i)=>{ const d = new Date(start); d.setDate(start.getDate() + i*step); state.tasks.push({ id:uid(), title, area:g.area || 'Личное', goalId:g.id, due:toDateKey(d), time:'10:00', duration:30, priority:i===0?'Высокий':'Средний', status:'В работе', nextAction:title, calendarAdded:false }); });
+  g.nextAction = lines[0];
+  save(); closeModal(); render(); toast(`Создано действий: ${lines.length}`);
+}
+function openGoalNoteModal(goalId) {
+  const g = state.goals.find(x=>x.id===goalId); if (!g) return;
+  openCustomModal('📝 Заметка по цели', `<p class="sub">Отдельное место для мыслей, решений и прогресса по цели.</p><textarea id="goalNoteText" class="note-area" rows="6" placeholder="Что понял? Что мешает? Какой следующий шаг?"></textarea><div class="actions-row"><button class="primary-btn" id="saveGoalNoteBtn">Сохранить заметку</button></div>`);
+  document.getElementById('saveGoalNoteBtn').onclick = () => { const text = val('goalNoteText'); if(!text) return toast('Напиши заметку'); pushUndo('заметка по цели'); state.goalNotes.unshift({ id:uid(), goalId, text, date:todayKey(), createdAt:new Date().toISOString() }); save(); closeModal(); render(); toast('Заметка сохранена'); };
+}
+function openGoalProgressModal(goalId) {
+  const g = state.goals.find(x=>x.id===goalId); if (!g) return;
+  openCustomModal('📈 Обновить прогресс', `<div class="form-grid"><label>Текущее значение<input id="goalProgressCurrent" type="number" value="${escapeAttr(g.currentValue || 0)}"></label><label>Целевое значение<input id="goalProgressTarget" type="number" value="${escapeAttr(g.targetValue || 0)}"></label><label class="full">Следующее действие<input id="goalProgressNext" value="${escapeAttr(g.nextAction || '')}"></label></div><div class="actions-row"><button class="primary-btn" id="saveGoalProgressBtn">Сохранить прогресс</button></div>`);
+  document.getElementById('saveGoalProgressBtn').onclick = () => { pushUndo('прогресс цели'); g.currentValue = num(val('goalProgressCurrent')); g.targetValue = num(val('goalProgressTarget')); g.nextAction = val('goalProgressNext') || g.nextAction || ''; save(); closeModal(); render(); toast('Прогресс обновлён'); };
+}
+function openSpendRewardModal() {
+  const b = rewardBalance();
+  openCustomModal('🎁 Потратить бонусы на себя', `<p class="sub">Доступно: ${b.points} баллов · ${money(b.rub)}.</p><div class="form-grid"><label>Сколько баллов списать<input id="spendRewardPoints" type="number" max="${b.points}" value="${Math.min(b.points, 10)}"></label><label class="full">На что<input id="spendRewardNote" placeholder="Например: кофе, книга, маленький подарок"></label></div><div class="actions-row"><button class="primary-btn" id="saveSpendRewardBtn">Списать и записать расход</button></div>`);
+  document.getElementById('saveSpendRewardBtn').onclick = () => spendReward(num(val('spendRewardPoints')), val('spendRewardNote'));
+}
+function openRewardSettingsModal() {
+  openCustomModal('⚙️ Настройка бонусов', `<div class="form-grid"><label>₽ за 1 балл<input id="rewardRubPerPoint" type="number" value="${state.rewards.rubPerPoint || 100}"></label></div><div class="actions-row"><button class="primary-btn" id="saveRewardSettingsBtn">Сохранить</button></div>`);
+  document.getElementById('saveRewardSettingsBtn').onclick = () => { pushUndo('настройка бонусов'); state.rewards.rubPerPoint = num(val('rewardRubPerPoint')) || 100; rewardBalance(); save(); closeModal(); render(); toast('Курс бонусов сохранён'); };
+}
+function openPlannedExpenseModal() {
+  openCustomModal('📌 Плановый расход', `<div class="form-grid"><label>Название<input id="plannedTitle" placeholder="Аренда, связь, кредит, покупка"></label><label>Сумма<input id="plannedAmount" type="number"></label><label>Категория<select id="plannedCategory">${categoryOptions('expense')}</select></label><label>День месяца<input id="plannedDay" type="number" min="1" max="28" value="1"></label><label>Месяц<input id="plannedMonth" type="month" value="${nextMonthKey()}"></label><label>Тип<select id="plannedType"><option value="mandatory">Обязательный</option><option value="optional">Плановый</option></select></label><label><input id="plannedRecurring" type="checkbox"> Повторять каждый месяц</label></div><div class="actions-row"><button class="primary-btn" id="savePlannedExpenseBtn">Сохранить</button></div>`);
+  document.getElementById('savePlannedExpenseBtn').onclick = () => { const amount=num(val('plannedAmount')); if(!amount) return toast('Введи сумму'); pushUndo('плановый расход'); state.plannedExpenses.push({ id:uid(), title:val('plannedTitle') || val('plannedCategory') || 'Плановый расход', amount, category:val('plannedCategory') || 'Запланированные расходы', day:num(val('plannedDay')) || 1, month:val('plannedMonth') || nextMonthKey(), mandatory:val('plannedType') === 'mandatory', recurring:document.getElementById('plannedRecurring')?.checked || false, active:true }); save(); closeModal(); render(); toast('Плановый расход добавлен'); };
+}
+
+const __baseModalContent = modalContent;
+function modalContent(type) {
+  if (type === 'spendReward') return { title:'🎁 Потратить бонусы', body:`<div id="spendRewardMount"></div>` };
+  if (type === 'rewardSettings') return { title:'⚙️ Бонусы', body:`<div id="rewardSettingsMount"></div>` };
+  if (type === 'plannedExpense') return { title:'📌 Плановый расход', body:`<div id="plannedExpenseMount"></div>` };
+  return __baseModalContent(type);
+}
+const __baseOpenModal = openModal;
+function openModal(type) {
+  if (type === 'spendReward') return openSpendRewardModal();
+  if (type === 'rewardSettings') return openRewardSettingsModal();
+  if (type === 'plannedExpense') return openPlannedExpenseModal();
+  return __baseOpenModal(type);
+}
+
+const __baseHandleModalSave = handleModalSave;
+function handleModalSave(kind) {
+  const beforeDone = new Set(state.tasks.filter(t=>t.status==='Готово').map(t=>t.id));
+  __baseHandleModalSave(kind);
+  if (kind === 'day') { addReward(3, 'Закрытие дня', 'day-' + todayKey()); save(); }
+}
+
+const __baseBindView = bindView;
+function bindView() {
+  __baseBindView();
+  document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => {
+    const t = state.tasks.find(x=>x.id===b.dataset.toggleTask);
+    if (!t) return;
+    pushUndo('изменение статуса задачи');
+    const wasDone = t.status === 'Готово';
+    t.status = wasDone ? 'В работе' : 'Готово';
+    if (!wasDone) addReward(t.goalId ? 5 : 2, t.goalId ? 'Действие по цели выполнено' : 'Задача выполнена', 'task-' + t.id);
+    save(); render();
+  });
+  document.querySelectorAll('[data-edit-task]').forEach(b => b.onclick = () => openEditTaskModal(b.dataset.editTask));
+}
+
+const __baseActionHandler = actionHandler;
+function actionHandler(e) {
+  const a = e.currentTarget.dataset.action;
+  if (a === 'goalAction') return openGoalActionModal(e.currentTarget.dataset.goalId);
+  if (a === 'goalSmartPlan') return openSmartGoalActionsModal(e.currentTarget.dataset.goalId);
+  if (a === 'goalNote') return openGoalNoteModal(e.currentTarget.dataset.goalId);
+  if (a === 'goalProgress') return openGoalProgressModal(e.currentTarget.dataset.goalId);
+  if (a === 'completeGoal') { const g = state.goals.find(x=>x.id===e.currentTarget.dataset.goalId); if (g) { pushUndo('статус цели'); const done = g.status !== 'Готово'; g.status = done ? 'Готово' : 'В работе'; if (done) addReward(20, 'Цель закрыта', 'goal-' + g.id); save(); render(); } return; }
+  if (a === 'createInsightReport') return createInsightReport();
+  if (a === 'setInsightPeriod') { localStorage.setItem('panel.from', document.getElementById('insightFrom')?.value || `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', document.getElementById('insightTo')?.value || `${state.settings.currentMonth}-31`); render(); return; }
+  return __baseActionHandler(e);
+}
+
 window.SecondBrainApp = {
   getState: () => state,
   setStateFromCloud: (cloudState) => {
     if (!cloudState || typeof cloudState !== 'object') return;
     state = migrate(cloudState);
+    enhanceGoalGameState();
     save({ skipCloud: true });
     render();
     toast('Данные загружены из облака');
@@ -2587,5 +2958,6 @@ window.SecondBrainApp = {
   exportBackup
 };
 
+enhanceGoalGameState();
 init();
 if (window.SecondBrainCloud) window.SecondBrainCloud.init();

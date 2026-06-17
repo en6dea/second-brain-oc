@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v10-stability-delight-20260618';
+const CACHE = 'second-brain-os-v11-goal-game-forecast-20260617';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=stability-delight-20260618',
-  './app.js?v=stability-delight-20260618',
-  './cloud-sync.js?v=stability-delight-20260618',
+  './styles.css?v=goal-game-forecast-20260617',
+  './app.js?v=goal-game-forecast-20260617',
+  './cloud-sync.js?v=goal-game-forecast-20260617',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'
