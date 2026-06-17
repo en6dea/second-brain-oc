@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=buttons-v4-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=buttons-v6-rescue-20260618').catch(console.warn);
   }
 }
 function renderNav() {
@@ -2909,11 +2909,12 @@ openModal = function(type) {
   return __baseOpenModal(type);
 };
 
-const __baseHandleModalSave = handleModalSave;
-handleModalSave = function(kind) {
-  __baseHandleModalSave(kind);
+const __baseSaveModal_GOAL_GAME = saveModal;
+function handleModalSave(kind) {
+  __baseSaveModal_GOAL_GAME(kind);
   if (kind === 'day') { addReward(3, 'Закрытие дня', 'day-' + todayKey()); save(); }
-};
+}
+saveModal = handleModalSave;
 
 const __baseBindView_GOAL_GAME = bindView;
 bindView = function() {
@@ -3129,6 +3130,13 @@ function installUniversalClickRouter() {
 }
 installUniversalClickRouter();
 
+
+// V6 rescue: старый слой вызывал createWeekReport(), а в базовом коде функция называется generateWeeklyReport().
+function createWeekReport() {
+  if (typeof generateWeeklyReport === 'function') return generateWeeklyReport();
+  toast('Недельный отчёт пока недоступен');
+}
+
 window.SecondBrainApp = {
   getState: () => state,
   setStateFromCloud: (cloudState) => {
@@ -3146,7 +3154,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain BUTTONS V5 FIX app.js loaded');
+console.log('Second Brain BUTTONS V6 RESCUE app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {
