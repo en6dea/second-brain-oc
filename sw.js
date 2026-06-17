@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v8-category-manager-20260617';
+const CACHE = 'second-brain-os-v10-finance-ux-pro-20260617';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=category-manager-20260617',
-  './app.js?v=category-manager-20260617',
-  './cloud-sync.js?v=category-manager-20260617',
+  './styles.css?v=finance-ux-pro-20260617',
+  './app.js?v=finance-ux-pro-20260617',
+  './cloud-sync.js?v=finance-ux-pro-20260617',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'

@@ -7,10 +7,11 @@ const defaultData = () => ({
   settings: {
     currentMonth: toMonthKey(new Date()),
     currency: '₽',
-    allocation: { savings: 10, cushion: 10, goal: 10, life: 70 },
+    allocation: { savings: 0, cushion: 0, goal: 0, life: 0 },
+    transferDay: 10,
     categories: ['Продукты','Кафе','Транспорт','Дом','Здоровье','Одежда','Подписки','Подарки','Обучение','Развлечения','Путешествия','Импульсные','Финансовая цель','Сбережения','Подушка'],
     expenseCategories: ['Продукты','Кафе','Транспорт','Дом','Здоровье','Одежда','Подписки','Подарки','Обучение','Развлечения','Путешествия','Импульсные','Финансовая цель','Сбережения','Подушка','Другое'],
-    incomeCategories: ['Зарплата','Проект','Фриланс','Возврат','Подарок','Продажа','Кэшбэк','Проценты','Другое'],
+    incomeCategories: ['Зарплата','Проект','Фриланс','Возврат','Подарок','Продажа','Кэшбэк','Проценты','Кредитные средства','Взял в долг','Другое'],
     areas: ['Финансы','Здоровье','Работа','Обучение','Дом','Личное','Отдых','Отношения'],
   },
   operations: [],
@@ -37,6 +38,9 @@ let state = load();
 let activePage = 'dashboard';
 let activePanelTab = 'period';
 let lastDeletedOperation = null;
+let financeView = { page: 1, perPage: 50, type: 'all', query: '', from: '', to: '' };
+const ALLOCATION_CATEGORIES = ['Сбережения', 'Подушка', 'Финансовая цель'];
+const LOAN_INCOME_CATEGORIES = ['Кредитные средства', 'Взял в долг'];
 
 const pages = [
   ['dashboard', '🏠', 'Главная'],
@@ -116,7 +120,12 @@ function migrate(data) {
     settings.incomeCategories = [...base.settings.incomeCategories];
   }
   settings.expenseCategories = uniqueClean(settings.expenseCategories);
-  settings.incomeCategories = uniqueClean(settings.incomeCategories);
+  settings.incomeCategories = uniqueClean([
+    ...settings.incomeCategories,
+    'Кредитные средства',
+    'Взял в долг'
+  ]);
+  settings.transferDay = Number(settings.transferDay || base.settings.transferDay || 10);
   settings.categories = uniqueClean([...settings.expenseCategories, ...settings.incomeCategories]);
 
   return { ...base, ...data, settings };
@@ -204,15 +213,35 @@ function undoLastDelete() {
 }
 function monthSummary(monthKey = state.settings.currentMonth) {
   const income = total(incomeOps(monthKey));
-  const expenses = total(expenseOps(monthKey));
-  const a = state.settings.allocation;
-  const savings = income * a.savings / 100;
-  const cushion = income * a.cushion / 100;
-  const goal = income * a.goal / 100;
-  const life = income * a.life / 100;
-  const left = income - savings - cushion - goal - expenses;
+  const expensesList = expenseOps(monthKey);
+  const savings = total(expensesList.filter(o => o.category === 'Сбережения'));
+  const cushion = total(expensesList.filter(o => o.category === 'Подушка'));
+  const goal = total(expensesList.filter(o => o.category === 'Финансовая цель'));
+  const allocations = savings + cushion + goal;
+  const expenses = total(expensesList.filter(o => !ALLOCATION_CATEGORIES.includes(o.category || '')));
+  const allOut = expenses + allocations;
+  const left = income - allOut;
   const dailyLimit = Math.max(0, left / daysLeftInMonth(monthKey));
-  return { income, expenses, savings, cushion, goal, life, left, dailyLimit };
+  return { income, expenses, savings, cushion, goal, allocations, allOut, left, dailyLimit };
+}
+function manualAllocationStatus(monthKey = state.settings.currentMonth) {
+  const s = monthSummary(monthKey);
+  const [y, m] = monthKey.split('-').map(Number);
+  const day = Number(state.settings.transferDay || 10);
+  const due = `${monthKey}-${String(Math.min(day, new Date(y, m, 0).getDate())).padStart(2, '0')}`;
+  const done = s.allocations > 0;
+  const overdue = !done && todayKey() > due;
+  const today = !done && todayKey() === due;
+  return { ...s, due, done, overdue, today, day };
+}
+function allocationStatusCard() {
+  const a = manualAllocationStatus();
+  const tone = a.done ? 'green' : a.overdue ? 'danger' : a.today ? 'warn' : 'blue';
+  const title = a.done ? 'Распределение сделано' : a.overdue ? 'Распределение просрочено' : a.today ? 'Сегодня финансовый день' : `Финансовый день ${a.day} числа`;
+  const body = a.done
+    ? `Уже отложено: ${money(a.allocations)} · Сбережения ${money(a.savings)} · Подушка ${money(a.cushion)} · Финцель ${money(a.goal)}`
+    : `Запланируй ручной перевод 10-го числа. Автосписаний больше нет — ты сам контролируешь суммы.`;
+  return `<div class="card allocation-card ${tone}"><div><span class="tag ${tone}">${title}</span><h3>🏦 Ручное распределение</h3><p class="sub">${body}</p></div><button class="primary-btn" data-open-modal="manualAllocation">Внести переводы</button></div>`;
 }
 function categoryTotals(from, to) {
   const ops = state.operations.filter(o => o.type === 'expense' && dateBetween(o.date, from, to));
@@ -293,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=calendar-visual-pro-20260617').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=debt-manual-ledger-20260617').catch(console.warn);
   }
 }
 function renderNav() {
@@ -355,11 +384,12 @@ function dashboard() {
       </div>
     </div>
     <div class="grid cards" style="margin-top:16px">
-      ${kpi('💰','Доход', money(s.income), `Распределение 10/10/10/${state.settings.allocation.life}`)}
-      ${kpi('💸','Расходы', money(s.expenses), `Остаток: ${money(s.left)}`)}
+      ${kpi('💰','Доход', money(s.income), 'Факт по операциям')}
+      ${kpi('💸','Расходы на жизнь', money(s.expenses), `Остаток: ${money(s.left)}`)}
       ${kpi('📆','Лимит/день', money(s.dailyLimit), `До конца месяца: ${daysLeftInMonth()} дн.`)}
       ${kpi('✅','Привычки', `${h.percent}%`, `${h.done} отметок за месяц`)}
     </div>
+    ${allocationStatusCard()}
     <div class="grid two" style="margin-top:16px">
       <div class="card">
         <h3>🎛 Категории месяца</h3>
@@ -399,6 +429,7 @@ function quick() {
       <button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button>
       <button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button>
       <button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button>
+      <button class="soft-btn" data-open-modal="manualAllocation">🏦 Распределение</button>
       <button class="soft-btn" data-open-modal="quickTask">📌 Задача</button>
       <button class="soft-btn" data-page-jump="calendar">🔔 Календарь</button>
       <button class="soft-btn" data-open-modal="quickGoal">🎯 SMART-цель</button>
@@ -411,19 +442,54 @@ function quick() {
 }
 
 function finance() {
-  const rows = [...state.operations].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,80);
+  const rowsAll = filteredFinanceOperations();
+  const totalPages = Math.max(1, Math.ceil(rowsAll.length / financeView.perPage));
+  financeView.page = clamp(financeView.page || 1, 1, totalPages);
+  const start = (financeView.page - 1) * financeView.perPage;
+  const rows = rowsAll.slice(start, start + financeView.perPage);
   const s = monthSummary();
   const undo = lastDeletedOperation ? `<div class="card" style="margin-top:16px;background:#fff8eb"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>↩️ Последнее удаление</h3><p class="sub">${operationLabel(lastDeletedOperation)}</p></div><button class="soft-btn" data-action="undoDeleteOp">Восстановить</button></div></div>` : '';
   return `<div class="grid cards">
     ${kpi('💰','Доход месяца', money(s.income), 'Факт по операциям')}
-    ${kpi('💸','Расход месяца', money(s.expenses), 'Факт по операциям')}
-    ${kpi('🏦','Сбережения 10%', money(s.savings), 'Автораспределение')}
-    ${kpi('🎯','Финцель 10%', money(s.goal), 'Автораспределение')}
+    ${kpi('💸','Расходы на жизнь', money(s.expenses), 'Без сбережений и финцели')}
+    ${kpi('🏦','Отложено вручную', money(s.allocations), `Сбережения / подушка / финцель`)}
+    ${kpi('📆','Лимит/день', money(s.dailyLimit), `Остаток: ${money(s.left)}`)}
   </div>
+  ${allocationStatusCard()}
   ${undo}
-  <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>💸 Операции</h3><div class="actions-row" style="margin:0"><button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button><button class="primary-btn" data-open-modal="quickExpense">Добавить</button></div></div>${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))}</div>`;
+  <div class="card finance-ledger" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+      <h3>💸 Операции</h3>
+      <div class="actions-row" style="margin:0">
+        <button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button>
+        <button class="soft-btn" data-open-modal="manualAllocation">🏦 Распределение</button>
+        <button class="primary-btn" data-open-modal="quickExpense">Добавить</button>
+      </div>
+    </div>
+    <div class="finance-toolbar">
+      <label>Поиск<input id="financeQuery" value="${escapeAttr(financeView.query || '')}" placeholder="кафе, долг, банк"></label>
+      <label>Тип<select id="financeType"><option value="all" ${financeView.type==='all'?'selected':''}>Все</option><option value="expense" ${financeView.type==='expense'?'selected':''}>Расходы</option><option value="income" ${financeView.type==='income'?'selected':''}>Доходы</option></select></label>
+      <label>С даты<input id="financeFrom" type="date" value="${financeView.from || ''}"></label>
+      <label>По дату<input id="financeTo" type="date" value="${financeView.to || ''}"></label>
+      <label>На странице<select id="financePerPage"><option ${financeView.perPage==50?'selected':''}>50</option><option ${financeView.perPage==100?'selected':''}>100</option><option value="9999" ${financeView.perPage==9999?'selected':''}>Все</option></select></label>
+    </div>
+    <div class="ledger-meta">Показано ${rows.length} из ${rowsAll.length} операций · страница ${financeView.page} / ${totalPages}</div>
+    ${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))}
+    <div class="pagination-row">
+      <button class="soft-btn" data-action="financePrev" ${financeView.page<=1?'disabled':''}>← Назад</button>
+      <button class="soft-btn" data-action="financeNext" ${financeView.page>=totalPages?'disabled':''}>Вперёд →</button>
+    </div>
+  </div>`;
 }
-
+function filteredFinanceOperations() {
+  const q = String(financeView.query || '').toLowerCase().trim();
+  return [...state.operations]
+    .filter(o => financeView.type === 'all' || o.type === financeView.type)
+    .filter(o => !financeView.from || o.date >= financeView.from)
+    .filter(o => !financeView.to || o.date <= financeView.to)
+    .filter(o => !q || JSON.stringify(o).toLowerCase().includes(q))
+    .sort((a,b)=>String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || '')));
+}
 function operationRow(o) {
   return [
     o.date,
@@ -873,7 +939,7 @@ function panel(opts = {}) {
   const cats = categoryTotals(from, to);
   const ops = state.operations.filter(o => dateBetween(o.date, from, to) && (!search || JSON.stringify(o).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date));
   return `<div class="card"><h3>🎛 Панель управления</h3><p class="sub">Подними любой период, посмотри категории и найди старые операции.</p><div class="form-grid"><label>С даты<input id="panelFrom" type="date" value="${from}"></label><label>По дату<input id="panelTo" type="date" value="${to}"></label></div><div class="actions-row"><button class="primary-btn" data-action="applyPeriod">Показать период</button><button class="soft-btn" data-action="currentMonthPeriod">Текущий месяц</button><button class="soft-btn" data-open-modal="weeklyReport">📅 Собрать неделю</button></div></div>
-  <div class="grid two" style="margin-top:16px"><div class="card"><h3>Категории периода</h3>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Нет расходов')}</div><div class="card"><h3>Поиск операций</h3><input id="panelSearch" class="search" style="width:100%" placeholder="Например: кафе, ozon, такси" value="${search}"><div style="margin-top:12px">${table(['Дата','Тип','Сумма','Категория','Комментарий',''], ops.slice(0,20).map(operationRow))}</div></div></div>`;
+  <div class="grid two" style="margin-top:16px"><div class="card"><h3>Категории периода</h3>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Нет расходов')}</div><div class="card"><h3>Поиск операций</h3><input id="panelSearch" class="search" style="width:100%" placeholder="Например: кафе, ozon, такси" value="${search}"><div class="ledger-meta" style="margin-top:12px">Найдено операций: ${ops.length}</div><div style="margin-top:12px">${table(['Дата','Тип','Сумма','Категория','Комментарий',''], ops.map(operationRow))}</div></div></div>`;
 }
 
 function goals() {
@@ -949,10 +1015,12 @@ function todayView() {
       ${kpi('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'отмечено сегодня')}
       ${kpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
     </div>
+    ${allocationStatusCard()}
     <div class="grid two" style="margin-top:16px">
       <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : empty('Нет задач на сегодня. Выбери 1 главный фокус.')}</div>
       <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${h.name}</b><br><span class="sub">${h.area}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
     </div>
+    ${allocationStatusCard()}
     <div class="grid two" style="margin-top:16px">
       <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Сегодня ещё нет расходов')}</div>
       <div class="card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод. Это даст нормальную аналитику по жизни.</p><button class="primary-btn" data-open-modal="closeDay" style="width:100%">Закрыть день</button></div>
@@ -998,6 +1066,7 @@ function insights() {
   const list = [];
   if (top) list.push(`Главная категория расходов: ${top[0]} — ${money(top[1])}.`);
   if (s.dailyLimit < 500 && s.income) list.push('Дневной лимит низкий: лучше включить режим экономии до конца месяца.');
+  if (manualAllocationStatus().overdue) list.push('Ручное распределение 10-го числа ещё не внесено: сбережения, подушка или финцель требуют внимания.');
   if (h.percent < 55) list.push('Привычки просели. Оставь 2–3 ключевые и не дави на себя всем списком.');
   if (t.overdue) list.push(`Есть просроченные задачи: ${t.overdue}. Закрой одну маленькую сегодня.`);
   if (st.rows.length && st.energy < 5) list.push('Энергия ниже нормы. Лучше включить антихаос и снизить нагрузку.');
@@ -1043,10 +1112,8 @@ function settings() {
       <div class="form-grid">
         <label>Текущий месяц<input id="setMonth" type="month" value="${state.settings.currentMonth}"></label>
         <label>Валюта<input id="setCurrency" value="${state.settings.currency}"></label>
-        <label>Сбережения %<input id="setSavings" type="number" value="${a.savings}"></label>
-        <label>Подушка %<input id="setCushion" type="number" value="${a.cushion}"></label>
-        <label>Финцель %<input id="setGoal" type="number" value="${a.goal}"></label>
-        <label>На жизнь %<input id="setLife" type="number" value="${a.life}"></label>
+        <label>День ручного распределения<input id="setTransferDay" type="number" min="1" max="28" value="${state.settings.transferDay || 10}"></label>
+        <label class="full">Правило<input value="Автораспределение отключено. Сбережения, подушка и финцель вносятся вручную." disabled></label>
       </div>
       <div class="actions-row">
         <button class="primary-btn" data-action="saveSettings">Сохранить</button>
@@ -1174,6 +1241,21 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+
+function bindFinanceControls() {
+  const q = document.getElementById('financeQuery');
+  const type = document.getElementById('financeType');
+  const from = document.getElementById('financeFrom');
+  const to = document.getElementById('financeTo');
+  const per = document.getElementById('financePerPage');
+  const apply = () => { financeView.page = 1; render(); };
+  if (q) q.oninput = e => { financeView.query = e.target.value; apply(); };
+  if (type) type.onchange = e => { financeView.type = e.target.value; apply(); };
+  if (from) from.onchange = e => { financeView.from = e.target.value; apply(); };
+  if (to) to.onchange = e => { financeView.to = e.target.value; apply(); };
+  if (per) per.onchange = e => { financeView.perPage = Number(e.target.value) || 50; apply(); };
+}
+
 function bindView() {
   document.querySelectorAll('[data-page-jump]').forEach(b => b.onclick = () => { activePage = b.dataset.pageJump; render(); });
   document.querySelectorAll('[data-open-modal]').forEach(b => b.onclick = () => openModal(b.dataset.openModal));
@@ -1183,6 +1265,7 @@ function bindView() {
   document.querySelectorAll('[data-hide-habit]').forEach(b => b.onclick = () => { const h = state.habits.find(x=>x.id===b.dataset.hideHabit); if(h) h.active = false; save(); render(); });
   document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => { const t = state.tasks.find(x=>x.id===b.dataset.toggleTask); if(t) t.status = t.status === 'Готово' ? 'В работе' : 'Готово'; save(); render(); });
   document.querySelectorAll('[data-calendar-task]').forEach(a => a.onclick = () => { const t = state.tasks.find(x=>x.id===a.dataset.calendarTask); if(t) { t.calendarAdded = true; t.calendarLink = buildGoogleCalendarUrl(t); save(); setTimeout(render, 500); } });
+  bindFinanceControls();
   document.querySelectorAll('[data-habit]').forEach(ch => ch.onchange = () => {
     const key = todayKey();
     state.habitLogs[key] = state.habitLogs[key] || {};
@@ -1202,6 +1285,8 @@ function actionHandler(e) {
   const a = e.currentTarget.dataset.action;
   if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom').value); localStorage.setItem('panel.to', document.getElementById('panelTo').value); render(); }
   if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); render(); }
+  if (a === 'financePrev') { financeView.page = Math.max(1, (financeView.page || 1) - 1); render(); }
+  if (a === 'financeNext') { financeView.page = (financeView.page || 1) + 1; render(); }
   if (a === 'parseBankFile') parseBankFile();
   if (a === 'transferBankRows') transferBankRows();
   if (a === 'clearBankImport') clearBankImport();
@@ -1241,12 +1326,8 @@ function cloudLogin() {
 function saveSettings() {
   state.settings.currentMonth = document.getElementById('setMonth').value || toMonthKey(new Date());
   state.settings.currency = document.getElementById('setCurrency').value || '₽';
-  state.settings.allocation = {
-    savings: num(document.getElementById('setSavings').value),
-    cushion: num(document.getElementById('setCushion').value),
-    goal: num(document.getElementById('setGoal').value),
-    life: num(document.getElementById('setLife').value),
-  };
+  state.settings.transferDay = num(document.getElementById('setTransferDay')?.value) || 10;
+  state.settings.allocation = { savings: 0, cushion: 0, goal: 0, life: 0 };
   save(); toast('Настройки сохранены'); render();
 }
 
@@ -1263,12 +1344,14 @@ function modalContent(type) {
   const areaOptions = state.settings.areas.map(c=>`<option>${c}</option>`).join('');
   const goalOptions = ['<option value="">Без цели</option>', ...state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена').map(g=>`<option value="${g.id}">${g.title}</option>`)].join('');
   if (type === 'quickExpense') return { title:'💸 Добавить расход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="mEmotion"><option>Нейтрально</option><option>Нужно</option><option>Стресс</option><option>Импульс</option><option>Радость</option></select></label><label class="full">Комментарий<input id="mNote" placeholder="Например: кофе, продукты, такси"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="expense">Добавить</button></div>` };
-  if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${incomeCatOptions}</select></label><label class="full">Источник<input id="mNote" placeholder="Зарплата, проект, подарок"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить и распределить</button></div>` };
+  if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${incomeCatOptions}</select></label><label>Вернуть до, если это долг<input id="mDebtDue" type="date"></label><label class="full">Источник / кто дал / комментарий<input id="mNote" placeholder="Зарплата, проект, кредит, кто дал в долг"></label></div><div class="calendar-note">Если выберешь «Кредитные средства» или «Взял в долг» и укажешь дату возврата, система сама создаст задачу.</div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить доход</button></div>` };
   if (type === 'quickTask') return { title:'📌 Добавить задачу', body:`<div class="form-grid"><label class="full">Задача<input id="tTitle" placeholder="Что сделать?"></label><label>Сфера<select id="tArea">${areaOptions}</select></label><label>Цель<select id="tGoal">${goalOptions}</select></label><label>Дедлайн<input id="tDue" type="date"></label><label>Время<input id="tTime" type="time" value="09:00"></label><label>Длительность, мин<input id="tDuration" type="number" value="30"></label><label>Напоминание<select id="tReminder"><option>В Google Calendar</option><option>За 10 минут</option><option>За 30 минут</option><option>За 1 час</option></select></label><label>Приоритет<select id="tPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label><label class="full">Следующий шаг<input id="tNext" placeholder="Самое маленькое действие"></label></div><div class="calendar-note">После добавления открой задачу и нажми «📅 В календарь» — Google Calendar сам даст уведомления на ПК и iPhone.</div><div class="actions-row"><button class="primary-btn" data-modal-save="task">Добавить</button></div>` };
   if (type === 'quickGoal') return { title:'🎯 SMART-цель', body:`<div class="form-grid"><label class="full">Название цели<input id="gTitle" placeholder="Например: накопить 150 000 ₽"></label><label>Сфера<select id="gArea">${areaOptions}</select></label><label>Метрика<input id="gMetric" placeholder="₽, тренировки, часы"></label><label>Цель в цифре<input id="gTarget" type="number" placeholder="150000"></label><label>Текущее значение<input id="gCurrent" type="number" placeholder="0"></label><label>Дедлайн<input id="gDeadline" type="date"></label><label class="full">Почему важно<textarea id="gWhy" placeholder="Зачем мне эта цель?"></textarea></label><label class="full">Следующий шаг<input id="gNext" placeholder="Первое действие"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="goal">Добавить цель</button></div>` };
   if (type === 'addHabit') return { title:'✅ Новая привычка', body:`<div class="form-grid"><label class="full">Название<input id="hName" placeholder="Например: 20 минут ходьбы"></label><label>Сфера<select id="hArea">${areaOptions}</select></label><label>Цель раз в неделю<input id="hTarget" type="number" value="5"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="habit">Добавить</button></div>` };
   if (type === 'closeDay') return { title:'🌙 Закрыть день', body:`<div class="form-grid"><label>Дата<input id="dDate" type="date" value="${todayKey()}"></label><label>Сон, часов<input id="dSleep" type="number" step="0.5" value="7"></label><label>Энергия 1–10<input id="dEnergy" type="number" min="1" max="10" value="7"></label><label>Настроение 1–10<input id="dMood" type="number" min="1" max="10" value="7"></label><label>Стресс 1–10<input id="dStress" type="number" min="1" max="10" value="4"></label><label class="full">Итог дня<textarea id="dNote" placeholder="Что получилось? Что понял?"></textarea></label></div><h3 style="margin-top:18px">Привычки</h3><div class="checkbox-grid">${state.habits.filter(h=>h.active).map(h=>`<label class="check-card"><span>${h.name}</span><input type="checkbox" data-day-habit="${h.id}"></label>`).join('')}</div><div class="actions-row"><button class="primary-btn" data-modal-save="day">Закрыть день</button></div>` };
   if (type === 'wantBuy') return { title:'🛒 Хочу купить', body:`<div class="form-grid"><label class="full">Что купить<input id="bName" placeholder="Например: кроссовки"></label><label>Сумма<input id="bAmount" type="number" placeholder="0"></label><label>Категория<select id="bCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="bEmotion"><option>Нужно</option><option>Хочу</option><option>Стресс</option><option>Импульс</option></select></label></div><div id="buyResult" class="empty" style="margin-top:14px">Заполни сумму, и система оценит покупку.</div><div class="actions-row"><button class="soft-btn" data-modal-action="checkBuy">Проверить</button><button class="primary-btn" data-modal-save="buyExpense">Купить и записать</button></div>` };
+  if (type === 'manualAllocation') { const d = `${state.settings.currentMonth}-${String(state.settings.transferDay || 10).padStart(2,'0')}`; return { title:'🏦 Ручное распределение денег', body:`<div class="form-grid"><label>Дата<input id="aDate" type="date" value="${d}"></label><label>Сбережения<input id="aSavings" type="number" placeholder="0"></label><label>Подушка<input id="aCushion" type="number" placeholder="0"></label><label>Финансовая цель<input id="aGoal" type="number" placeholder="0"></label><label class="full">Комментарий<input id="aNote" placeholder="Например: распределение зарплаты за месяц"></label></div><div class="calendar-note">Автоматических списаний нет. Эти суммы будут записаны как ручные финансовые переводы и помогут контролировать 10-е число.</div><div class="actions-row"><button class="primary-btn" data-modal-save="manualAllocation">Записать распределение</button></div>` }; }
+
   if (type === 'addCategory') return { title:'🏷 Добавить категорию', body:`<div class="form-grid"><label>Тип<select id="catType"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label class="full">Название категории<input id="catName" placeholder="Например: Маркетплейсы / Зарплата / Возврат"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="category">Добавить категорию</button></div>` };
   if (type === 'weeklyReport') return { title:'📅 Недельный отчёт', body:`<div class="empty">Собрать отчёт за последние 7 дней?</div><div class="actions-row"><button class="primary-btn" data-modal-save="week">Собрать</button></div>` };
   if (type === 'csvImport') return { title:'🏦 Банк-импорт', body:`<p class="sub">Лучше открыть полноценный экран банка: там есть дубли, кодировки и категории.</p><div class="actions-row"><button class="primary-btn" data-modal-action="goBankImport">Открыть банк-импорт</button></div>` };
@@ -1282,8 +1365,28 @@ function saveModal(kind) {
   if (kind === 'expense' || kind === 'income') {
     const amount = num(document.getElementById('mAmount').value);
     if (!amount) return toast('Введи сумму');
-    state.operations.push({ id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category: document.getElementById('mCategory')?.value || (kind === 'income' ? 'Другое' : 'Другое'), note: document.getElementById('mNote')?.value || '', emotion: document.getElementById('mEmotion')?.value || '' });
-    if (kind === 'income') createAllocationOperations(amount, document.getElementById('mDate').value || todayKey());
+    const category = document.getElementById('mCategory')?.value || 'Другое';
+    const note = document.getElementById('mNote')?.value || '';
+    const op = { id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category, note, emotion: document.getElementById('mEmotion')?.value || '' };
+    if (kind === 'income') {
+      const debtDue = document.getElementById('mDebtDue')?.value || '';
+      if (debtDue) op.debtDue = debtDue;
+      if (LOAN_INCOME_CATEGORIES.includes(category) && debtDue) {
+        state.tasks.push({ id: uid(), title: `Вернуть ${money(amount)}${note ? ' — ' + note : ''}`, area: 'Финансы', due: debtDue, time: '10:00', duration: 30, reminder: 'В Google Calendar', priority: 'Высокий', status: 'В работе', nextAction: 'Вернуть заемные средства', linkedOperationId: op.id });
+      }
+    }
+    state.operations.push(op);
+  }
+  if (kind === 'manualAllocation') {
+    const date = val('aDate') || todayKey();
+    const note = val('aNote') || 'Ручное распределение 10 числа';
+    const items = [
+      ['Сбережения', num(val('aSavings'))],
+      ['Подушка', num(val('aCushion'))],
+      ['Финансовая цель', num(val('aGoal'))],
+    ].filter(x => x[1] > 0);
+    if (!items.length) return toast('Введи хотя бы одну сумму');
+    items.forEach(([category, amount]) => state.operations.push({ id: uid(), date, type: 'expense', amount, category, note, emotion: 'Ручное распределение' }));
   }
   if (kind === 'task') state.tasks.push({ id: uid(), title: val('tTitle'), area: val('tArea'), goalId: val('tGoal'), due: val('tDue'), time: val('tTime'), duration: num(val('tDuration')) || 30, reminder: val('tReminder'), priority: val('tPriority'), status: 'В работе', nextAction: val('tNext'), calendarAdded: false });
   if (kind === 'goal') state.goals.push({ id: uid(), title: val('gTitle'), area: val('gArea'), metric: val('gMetric'), targetValue: num(val('gTarget')), currentValue: num(val('gCurrent')), deadline: val('gDeadline'), why: val('gWhy'), nextAction: val('gNext'), status: 'Активна' });
@@ -1303,9 +1406,8 @@ function saveModal(kind) {
 }
 function val(id) { return document.getElementById(id)?.value || ''; }
 function createAllocationOperations(amount, date) {
-  const a = state.settings.allocation;
-  const items = [['Сбережения', a.savings], ['Подушка', a.cushion], ['Финансовая цель', a.goal]];
-  items.forEach(([category, pct]) => { if (pct) state.operations.push({ id: uid(), date, type: 'expense', amount: amount*pct/100, category, note: `Автораспределение ${pct}%`, emotion: 'Система' }); });
+  // Автораспределение отключено: пользователь вручную записывает переводы через модальное окно «Ручное распределение».
+  return null;
 }
 function closeDaySave() {
   const date = val('dDate') || todayKey();
@@ -1367,6 +1469,569 @@ function importBackup(e) {
   reader.onload = () => { try { state = migrate(JSON.parse(reader.result)); save(); render(); toast('Бэкап загружен'); } catch { toast('Не удалось загрузить JSON'); } };
   reader.readAsText(file);
 }
+
+
+/* === FINANCE & UX PRO PATCH 2026-06-17 ===
+   Банковская лента, долги, финансовые дни 10/25, подсказки категорий, темы. */
+
+function enhanceFinanceUXProState() {
+  state.settings = state.settings || {};
+  state.settings.theme = state.settings.theme || 'latte';
+  state.settings.payDays = Array.isArray(state.settings.payDays) && state.settings.payDays.length ? state.settings.payDays : [10, 25];
+  state.settings.categoryRules = Array.isArray(state.settings.categoryRules) ? state.settings.categoryRules : [];
+  state.settings.categoryColors = state.settings.categoryColors || defaultCategoryColors();
+  state.settings.expenseCategories = uniqueClean([...(state.settings.expenseCategories || []), 'Связь', 'Коммунальные услуги', 'Дал в долг', 'Отдал долг', 'Маркетплейсы']);
+  state.settings.incomeCategories = uniqueClean([...(state.settings.incomeCategories || []), 'Вернули долг', 'Кредитные средства', 'Взял в долг']);
+  state.debts = Array.isArray(state.debts) ? state.debts : [];
+  financeView.mode = financeView.mode || 'feed';
+}
+
+function defaultCategoryColors() {
+  return {
+    'Продукты': '#9caf88', 'Кафе': '#c89f73', 'Транспорт': '#9bb7c9', 'Дом': '#b8a28f',
+    'Здоровье': '#b991a8', 'Одежда': '#d3a68c', 'Подписки': '#a49ac7', 'Подарки': '#d6a7a2',
+    'Обучение': '#8faeaa', 'Развлечения': '#c8a2c8', 'Путешествия': '#8daec6', 'Импульсные': '#d18f85',
+    'Финансовая цель': '#8e9f7f', 'Сбережения': '#7f9a81', 'Подушка': '#8296a8', 'Связь': '#94a8c8',
+    'Коммунальные услуги': '#b7a28b', 'Дал в долг': '#a68178', 'Отдал долг': '#7d6f66', 'Маркетплейсы': '#c19a83',
+    'Зарплата': '#7f9a81', 'Проект': '#8faeaa', 'Фриланс': '#9bb7c9', 'Возврат': '#a8b8a0',
+    'Подарок': '#d6a7a2', 'Продажа': '#b99079', 'Кэшбэк': '#c99750', 'Проценты': '#8e9f7f',
+    'Кредитные средства': '#7f8798', 'Взял в долг': '#9b7d72', 'Вернули долг': '#9caf88', 'Другое': '#b5a89f'
+  };
+}
+
+enhanceFinanceUXProState();
+if (!pages.some(p => p[0] === 'debts')) pages.splice(5, 0, ['debts', '💳', 'Долги']);
+
+function applyTheme() {
+  const theme = state.settings?.theme || 'latte';
+  document.documentElement.dataset.theme = theme;
+  document.body.dataset.theme = theme;
+}
+
+function render(opts = {}) {
+  enhanceFinanceUXProState();
+  applyTheme();
+  renderNav();
+  const page = pages.find(p => p[0] === activePage);
+  document.getElementById('pageTitle').textContent = page ? page[2] : 'Главная';
+  document.getElementById('todayMini').innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
+  const view = document.getElementById('view');
+  const map = { dashboard, today: todayView, quick, finance, bank: bankImport, debts, panel, goals, habits, tasks, calendar: calendarView, state: stateView, insights, sync: syncView, settings };
+  view.innerHTML = (map[activePage] || dashboard)(opts);
+  bindView();
+}
+
+function lifeScore() {
+  const s = monthSummary();
+  const baseFinance = s.income ? clamp((s.left / Math.max(1, s.income * .2)) * 100) : 50;
+  const debt = debtSummary();
+  const debtPressure = s.income ? clamp(100 - (debt.openOwe / Math.max(1, s.income)) * 80, 10, 100) : (debt.openOwe ? 45 : 70);
+  const finance = Math.round(baseFinance * .72 + debtPressure * .28);
+  const habits = habitMonthStats().percent;
+  const goals = goalsStats().avg || 40;
+  const ts = tasksStats();
+  const tasks = clamp(100 - ts.overdue * 20 - Math.max(0, ts.open - 10) * 2);
+  const st = stateStats();
+  const condition = st.rows.length ? clamp(((st.energy + st.mood) / 2 * 10) - st.stress * 3) : 60;
+  return Math.round(finance*.34 + habits*.22 + goals*.18 + condition*.14 + tasks*.12);
+}
+
+function dashboard() {
+  const s = monthSummary();
+  const h = habitMonthStats();
+  const g = goalsStats();
+  const t = tasksStats();
+  const sc = lifeScore();
+  const debt = debtSummary();
+  const att = attentionItems();
+  const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+  return `
+    <div class="os-home">
+      <section class="home-hero-pro card">
+        <div>
+          <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+          <h2>Финансы и жизнь в одном ритме</h2>
+          <p class="sub">Notion/Pinterest-стиль: банковская лента, долги, финансовые дни, привычки и состояние. Фокус — меньше ручной рутины, больше контроля.</p>
+          <div class="actions-row">
+            <button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button>
+            <button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button>
+            <button class="soft-btn" data-action="openDebtModal">💳 Долг</button>
+            <button class="soft-btn" data-page-jump="today">🌤 Сегодня</button>
+          </div>
+        </div>
+        <div class="score-orbit">
+          <div class="score-ring" style="--score:${sc}"><span>${sc}</span><small>Life Score</small></div>
+          <div class="sub">${scoreText(sc)}</div>
+        </div>
+      </section>
+      <div class="grid cards" style="margin-top:16px">
+        ${kpi('📆','Можно тратить сегодня', money(s.dailyLimit), `Остаток месяца: ${money(s.left)}`)}
+        ${kpi('💳','Долги к возврату', money(debt.openOwe), `${debt.oweCount} активных`)}
+        ${kpi('✅','Привычки', `${h.percent}%`, `${h.done} отметок за месяц`)}
+        ${kpi('📌','Задачи', `${t.today} сегодня`, `${t.overdue} просрочено`)}
+      </div>
+      ${financialDayCard()}
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3>🔔 Центр внимания</h3>${att.length ? att.map(x => `<div class="attention-item ${x.tone || ''}"><b>${x.title}</b><span>${x.text}</span></div>`).join('') : empty('Система спокойна. Продолжай в том же ритме.')}</div>
+        <div class="card"><h3>🎛 Категории месяца</h3>${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : empty('Пока нет расходов за месяц')}</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Лента теперь сгруппирована как в банковском приложении.</p></div><button class="soft-btn" data-page-jump="finance">Открыть журнал</button></div>
+        ${bankingFeed([...state.operations].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12), { compact:true })}
+      </div>
+    </div>`;
+}
+
+function attentionItems() {
+  const items = [];
+  const f = financialDayStatus();
+  const debt = debtSummary();
+  const t = tasksStats();
+  const s = monthSummary();
+  const goalsNoAction = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && !String(g.nextAction || '').trim()).length;
+  if (f.today) items.push({ tone:'warn', title:'Сегодня финансовый день', text:'Проверь зарплату/аванс и вручную сделай распределение.' });
+  if (f.overdue) items.push({ tone:'danger', title:'Финансовый день пропущен', text:`Распределение просрочено: ${f.label}.` });
+  if (debt.dueSoon.length) items.push({ tone:'danger', title:'Долги рядом', text:`Ближайший возврат: ${debt.dueSoon[0].title} · ${debt.dueSoon[0].due}.` });
+  if (t.overdue) items.push({ tone:'danger', title:'Просроченные задачи', text:`Открыто просрочек: ${t.overdue}. Закрой одну маленькую.` });
+  if (s.dailyLimit && s.dailyLimit < 700) items.push({ tone:'warn', title:'Низкий дневной лимит', text:`Безопасно тратить около ${money(s.dailyLimit)} в день.` });
+  if (goalsNoAction) items.push({ tone:'warn', title:'Цели без следующего шага', text:`Добавь действие для ${goalsNoAction} цели.` });
+  if (!items.length && state.operations.length) items.push({ tone:'green', title:'База стабильная', text:'Можно смотреть категории и держать ритм.' });
+  return items.slice(0, 6);
+}
+
+function finance() {
+  enhanceFinanceUXProState();
+  const rowsAll = filteredFinanceOperations();
+  const totalPages = Math.max(1, Math.ceil(rowsAll.length / financeView.perPage));
+  financeView.page = clamp(financeView.page || 1, 1, totalPages);
+  const start = (financeView.page - 1) * financeView.perPage;
+  const rows = rowsAll.slice(start, start + financeView.perPage);
+  const s = monthSummary();
+  const debt = debtSummary();
+  const undo = lastDeletedOperation ? `<div class="card" style="margin-top:16px;background:#fff8eb"><div class="section-head"><div><h3>↩️ Последнее удаление</h3><p class="sub">${operationLabel(lastDeletedOperation)}</p></div><button class="soft-btn" data-action="undoDeleteOp">Восстановить</button></div></div>` : '';
+  const ledger = financeView.mode === 'table'
+    ? table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))
+    : bankingFeed(rows);
+  return `<div class="grid cards">
+    ${kpi('💰','Доход месяца', money(s.income), 'Факт по операциям')}
+    ${kpi('💸','Расходы', money(s.expenses), 'Без ручных накоплений')}
+    ${kpi('🏦','Отложено вручную', money(s.allocations), 'Сбережения / подушка / финцель')}
+    ${kpi('💳','Открытые долги', money(debt.openOwe), `${debt.oweCount} к возврату`)}
+  </div>
+  ${financialDayCard()}
+  ${undo}
+  <div class="card finance-ledger banking-panel" style="margin-top:16px">
+    <div class="section-head">
+      <div><h3>💸 Банковская лента</h3><p class="sub">Операции сгруппированы по дням. На ПК — как банковский журнал, на телефоне — карточки.</p></div>
+      <div class="actions-row" style="margin:0">
+        <button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button>
+        <button class="soft-btn" data-open-modal="manualAllocation">🏦 Распределение</button>
+        <button class="soft-btn" data-action="openDebtModal">💳 Долг</button>
+        <button class="primary-btn" data-open-modal="quickExpense">Добавить</button>
+      </div>
+    </div>
+    <div class="finance-toolbar pro-toolbar">
+      <label>Поиск<input id="financeQuery" value="${escapeAttr(financeView.query || '')}" placeholder="кафе, долг, банк"></label>
+      <label>Тип<select id="financeType"><option value="all" ${financeView.type==='all'?'selected':''}>Все</option><option value="expense" ${financeView.type==='expense'?'selected':''}>Расходы</option><option value="income" ${financeView.type==='income'?'selected':''}>Доходы</option></select></label>
+      <label>С даты<input id="financeFrom" type="date" value="${financeView.from || ''}"></label>
+      <label>По дату<input id="financeTo" type="date" value="${financeView.to || ''}"></label>
+      <label>Вид<select id="financeMode"><option value="feed" ${financeView.mode!=='table'?'selected':''}>Банковская лента</option><option value="table" ${financeView.mode==='table'?'selected':''}>Таблица</option></select></label>
+      <label>На странице<select id="financePerPage"><option ${financeView.perPage==50?'selected':''}>50</option><option ${financeView.perPage==100?'selected':''}>100</option><option value="9999" ${financeView.perPage==9999?'selected':''}>Все</option></select></label>
+    </div>
+    <div class="ledger-meta">Показано ${rows.length} из ${rowsAll.length} операций · страница ${financeView.page} / ${totalPages}</div>
+    ${ledger}
+    <div class="pagination-row">
+      <button class="soft-btn" data-action="financePrev" ${financeView.page<=1?'disabled':''}>← Назад</button>
+      <button class="soft-btn" data-action="financeNext" ${financeView.page>=totalPages?'disabled':''}>Вперёд →</button>
+    </div>
+  </div>`;
+}
+
+function bankingFeed(rows, opts = {}) {
+  if (!rows.length) return empty('Пока нет операций');
+  const groups = {};
+  rows.forEach(o => { const key = o.date || 'Без даты'; groups[key] = groups[key] || []; groups[key].push(o); });
+  return `<div class="bank-feed ${opts.compact ? 'compact' : ''}">${Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date, list]) => {
+    const inc = total(list.filter(o=>o.type === 'income'));
+    const exp = total(list.filter(o=>o.type === 'expense'));
+    return `<section class="feed-day"><header><div><b>${formatFeedDate(date)}</b><span>${list.length} опер.</span></div><div class="feed-totals">${inc ? `<span class="income">+${money(inc)}</span>` : ''}${exp ? `<span class="expense">−${money(exp)}</span>` : ''}</div></header>${list.map(feedOperationCard).join('')}</section>`;
+  }).join('')}</div>`;
+}
+
+function formatFeedDate(dateKey) {
+  const d = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateKey;
+  const today = todayKey();
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  if (dateKey === today) return 'Сегодня';
+  if (dateKey === toDateKey(yesterday)) return 'Вчера';
+  return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', weekday:'short' });
+}
+
+function feedOperationCard(o) {
+  const cls = o.type === 'income' ? 'income' : 'expense';
+  return `<article class="op-card ${cls}">
+    <div class="op-left"><div class="op-icon">${o.type === 'income' ? '↗' : '↘'}</div><div><b>${escapeHtml(o.note || o.category || 'Операция')}</b><div class="op-meta">${categoryChip(o.category || 'Без категории')} <span>${operationTypeLabel(o.type)}</span></div></div></div>
+    <div class="op-right"><strong>${o.type === 'income' ? '+' : '−'}${money(o.amount)}</strong><button class="danger-btn mini-danger" data-delete-op="${o.id}">Удалить</button></div>
+  </article>`;
+}
+
+function operationRow(o) {
+  return [
+    o.date,
+    operationTypeLabel(o.type),
+    `<b class="${o.type === 'income' ? 'income-text' : 'expense-text'}">${o.type === 'income' ? '+' : '−'}${money(o.amount)}</b>`,
+    categoryChip(o.category || ''),
+    o.note || '',
+    `<button class="danger-btn" data-delete-op="${o.id}">Удалить</button>`
+  ];
+}
+
+function categoryChip(name) {
+  if (!name) return '';
+  const color = categoryColor(name);
+  return `<span class="cat-chip" style="--cat:${color}">${escapeHtml(name)}</span>`;
+}
+function categoryColor(name) {
+  state.settings.categoryColors = state.settings.categoryColors || defaultCategoryColors();
+  if (!state.settings.categoryColors[name]) {
+    const palette = ['#b99079','#a8b8a0','#dcb9ae','#aebdca','#c99750','#9caf88','#c89f73','#8faeaa','#a49ac7','#d18f85'];
+    const idx = Math.abs(String(name).split('').reduce((s,ch)=>s+ch.charCodeAt(0),0)) % palette.length;
+    state.settings.categoryColors[name] = palette[idx];
+  }
+  return state.settings.categoryColors[name];
+}
+
+function bindFinanceControls() {
+  const q = document.getElementById('financeQuery');
+  const type = document.getElementById('financeType');
+  const from = document.getElementById('financeFrom');
+  const to = document.getElementById('financeTo');
+  const per = document.getElementById('financePerPage');
+  const mode = document.getElementById('financeMode');
+  const apply = () => { financeView.page = 1; render(); };
+  if (q) q.oninput = e => { financeView.query = e.target.value; apply(); };
+  if (type) type.onchange = e => { financeView.type = e.target.value; apply(); };
+  if (from) from.onchange = e => { financeView.from = e.target.value; apply(); };
+  if (to) to.onchange = e => { financeView.to = e.target.value; apply(); };
+  if (per) per.onchange = e => { financeView.perPage = Number(e.target.value) || 50; apply(); };
+  if (mode) mode.onchange = e => { financeView.mode = e.target.value; apply(); };
+}
+
+function bankImportTable(rows) {
+  if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV или Excel-файл банка, и здесь появятся операции для проверки.');
+  const visible = rows.slice(0, 300);
+  return table(['✓','Статус','Дата','Тип','Сумма','Категория','Подсказка','Описание'], visible.map(r => {
+    const suggestion = categorySuggestion(r.note || '', r.type || 'expense');
+    const status = r.duplicate ? '<span class="tag danger">Дубль</span>' : (r.category ? '<span class="tag green">Готово</span>' : '<span class="tag warn">Категория</span>');
+    return [
+      `<input type="checkbox" data-import-sel="${r.id}" ${r.selected ? 'checked' : ''}>`,
+      status,
+      `<input class="mini-input" type="date" data-import-date="${r.id}" value="${escapeAttr(r.date || todayKey())}">`,
+      `<select class="mini-input" data-import-type="${r.id}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select>`,
+      money(r.amount),
+      `<select class="mini-input" data-import-cat="${r.id}"><option value="">Выбери</option>${categoryOptions(r.type || 'expense', r.category || '')}</select>`,
+      suggestion && !r.category ? `<button class="soft-btn mini-soft" data-apply-suggestion="${r.id}" data-suggest-cat="${escapeAttr(suggestion)}">${categoryChip(suggestion)} применить</button>` : (r.category ? '<span class="tag green">Выбрано</span>' : '<span class="sub">нет</span>'),
+      `<div class="import-note">${escapeHtml(r.note || '')}</div>`
+    ];
+  }));
+}
+
+function bindImportControls() {
+  document.querySelectorAll('[data-import-sel]').forEach(ch => ch.onchange = () => { const r = state.importRows.find(x=>x.id===ch.dataset.importSel); if(r) { r.selected = ch.checked; save(); render(); } });
+  document.querySelectorAll('[data-import-cat]').forEach(sel => {
+    const r = state.importRows.find(x=>x.id===sel.dataset.importCat);
+    if (r && r.category) sel.value = r.category;
+    sel.onchange = () => {
+      const row = state.importRows.find(x=>x.id===sel.dataset.importCat);
+      if(row) {
+        row.category = sel.value;
+        if (row.category) learnCategoryRule(row.note || '', row.category, row.type || 'expense');
+        save(); render();
+      }
+    };
+  });
+  document.querySelectorAll('[data-apply-suggestion]').forEach(btn => btn.onclick = () => {
+    const row = state.importRows.find(x => x.id === btn.dataset.applySuggestion);
+    if (row) {
+      row.category = btn.dataset.suggestCat;
+      row.selected = !row.duplicate;
+      learnCategoryRule(row.note || '', row.category, row.type || 'expense');
+      save(); render(); toast('Категория применена и правило запомнено');
+    }
+  });
+  document.querySelectorAll('[data-import-type]').forEach(sel => sel.onchange = () => { const r = state.importRows.find(x=>x.id===sel.dataset.importType); if(r) { r.type = sel.value; if (r.category && !categoryList(r.type).includes(r.category)) r.category = ''; save(); render(); } });
+  document.querySelectorAll('[data-import-date]').forEach(inp => inp.onchange = () => { const r = state.importRows.find(x=>x.id===inp.dataset.importDate); if(r) { r.date = inp.value; r.duplicate = isDuplicateImportRow(r); if (r.duplicate) r.selected = false; save(); render(); } });
+}
+
+function categorySuggestion(note, type = 'expense') {
+  const text = normalizeMerchantText(note);
+  const rules = state.settings.categoryRules || [];
+  const hit = rules.find(r => r.type === type && r.keyword && text.includes(r.keyword));
+  if (hit && categoryList(type).includes(hit.category)) return hit.category;
+  const patterns = [
+    ['продукты', 'Продукты', /самокат|пятер|магнит|лента|перекрест|globus|spar|metro|bristol|fix price|sber 5411|еда|food/i],
+    ['кафе', 'Кафе', /coffee|кофе|cafe|бар|restaurant|kfc|burger|суши|пицц/i],
+    ['связь', 'Связь', /yota|мтс|megafon|tele2|beeline|телефон|интернет/i],
+    ['транспорт', 'Транспорт', /taxi|такси|yandex go|транспорт|metro/i],
+    ['здоровье', 'Здоровье', /аптек|pharm|clinic|мед/i],
+    ['развлечения', 'Развлечения', /fonbet|кино|game|steam|развлеч/i],
+    ['маркетплейсы', 'Маркетплейсы', /ozon|wildberries|wb|market|яндекс маркет/i],
+    ['долг', type === 'income' ? 'Вернули долг' : 'Дал в долг', /долг|перевод|сбп|копилка/i],
+  ];
+  for (const [, cat, re] of patterns) {
+    if (re.test(text) && categoryList(type).includes(cat)) return cat;
+  }
+  return '';
+}
+
+function learnCategoryRule(note, category, type = 'expense') {
+  const keyword = merchantKeyword(note);
+  if (!keyword || !category) return;
+  state.settings.categoryRules = state.settings.categoryRules || [];
+  const exists = state.settings.categoryRules.some(r => r.type === type && r.keyword === keyword && r.category === category);
+  if (!exists) state.settings.categoryRules.unshift({ keyword, category, type, createdAt: new Date().toISOString() });
+  state.settings.categoryRules = state.settings.categoryRules.slice(0, 250);
+}
+function normalizeMerchantText(note) { return String(note || '').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9]+/gi,' ').trim(); }
+function merchantKeyword(note) {
+  const text = normalizeMerchantText(note);
+  const ru = text.match(/ru\s+([a-zа-я0-9]{3,}(?:\s+[a-zа-я0-9]{3,})?)/i);
+  if (ru) return ru[1].trim().slice(0, 42);
+  const known = ['samokat','sber','fonbet','yota','bristol','globus','ozon','wildberries','пятерочка','магнит','мтс','кофе','такси'];
+  const hit = known.find(k => text.includes(k));
+  if (hit) return hit;
+  return text.split(' ').filter(w => w.length > 4 && !/^\d+$/.test(w)).slice(0,2).join(' ').slice(0, 42);
+}
+
+function transferBankRows() {
+  const duplicateMode = document.getElementById('bankDuplicateMode')?.value || 'skip';
+  const ready = state.importRows.filter(r => r.selected && r.category && (duplicateMode === 'allow' || !r.duplicate));
+  if (!ready.length) return toast('Нет готовых строк: выбери операции и назначь категории');
+  ready.forEach(r => {
+    learnCategoryRule(r.note || '', r.category, r.type || 'expense');
+    state.operations.push({ id: uid(), date: r.date, type: r.type || 'expense', amount: Math.abs(num(r.amount)), category: r.category, note: r.note || 'Импорт банка', emotion: r.source === 'bank-excel' ? 'Банк Excel' : 'Банк CSV', importedAt: new Date().toISOString(), importSource: r.source || 'bank-import' });
+  });
+  const ids = new Set(ready.map(r => r.id));
+  state.importRows = state.importRows.filter(r => !ids.has(r.id));
+  save(); render(); toast(`Перенесено операций: ${ready.length}`);
+}
+
+function businessPayDate(monthKey, day) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const d = new Date(y, m - 1, Math.min(Number(day || 1), last));
+  const wd = d.getDay();
+  if (wd === 6) d.setDate(d.getDate() - 1);
+  if (wd === 0) d.setDate(d.getDate() - 2);
+  return toDateKey(d);
+}
+function financialDays(monthKey = state.settings.currentMonth) {
+  return (state.settings.payDays || [10,25]).map(day => ({ day: Number(day), date: businessPayDate(monthKey, Number(day)), label: `${Number(day)} число` }));
+}
+function allocationOps(monthKey = state.settings.currentMonth) {
+  return expenseOps(monthKey).filter(o => ALLOCATION_CATEGORIES.includes(o.category || ''));
+}
+function financialDayStatus(monthKey = state.settings.currentMonth) {
+  const days = financialDays(monthKey);
+  const ops = allocationOps(monthKey);
+  const today = todayKey();
+  const statuses = days.map((d, idx) => {
+    const nextDate = days[idx+1]?.date || `${monthKey}-31`;
+    const done = ops.some(o => o.date >= d.date && o.date < nextDate);
+    return { ...d, done, today: today === d.date && !done, overdue: today > d.date && !done };
+  });
+  const active = statuses.find(x => x.today || x.overdue) || statuses.find(x => !x.done) || statuses[statuses.length - 1];
+  return { statuses, active, today: statuses.some(x=>x.today), overdue: statuses.some(x=>x.overdue), label: active?.date || '' };
+}
+function financialDayCard() {
+  const fd = financialDayStatus();
+  const s = monthSummary();
+  const tone = fd.overdue ? 'danger' : fd.today ? 'warn' : fd.statuses.every(x=>x.done) ? 'green' : 'blue';
+  const title = fd.overdue ? 'Финансовый день просрочен' : fd.today ? 'Сегодня финансовый день' : fd.statuses.every(x=>x.done) ? 'Распределение закрыто' : 'Следи за зарплатой и авансом';
+  return `<div class="card allocation-card ${tone}"><div><span class="tag ${tone}">${title}</span><h3>🏦 Ручное распределение</h3><p class="sub">Плановые дни: ${fd.statuses.map(x => `${x.date}${x.done ? ' ✓' : ''}`).join(' · ')}. Уже отложено: <b>${money(s.allocations)}</b>.</p></div><button class="primary-btn" data-open-modal="manualAllocation">Внести переводы</button></div>`;
+}
+
+function debtItems() {
+  const fromOps = state.operations
+    .filter(o => (o.type === 'income' && LOAN_INCOME_CATEGORIES.includes(o.category || '')) || (o.type === 'expense' && ['Дал в долг','Займ выдан'].includes(o.category || '')))
+    .map(o => ({
+      id: o.id,
+      title: o.type === 'income' ? (o.note || 'Взял в долг') : (o.note || 'Мне должны'),
+      direction: o.type === 'income' ? 'owe' : 'receivable',
+      amount: num(o.amount),
+      due: o.debtDue || '',
+      sourceOperationId: o.id,
+      note: o.note || '',
+      createdAt: o.date
+    }));
+  const manual = (state.debts || []).filter(d => !fromOps.some(x => x.id === d.id));
+  const all = [...fromOps, ...manual];
+  return all.map(d => {
+    const paid = state.operations
+      .filter(o => o.linkedDebtId === d.id || o.linkedDebtId === d.sourceOperationId)
+      .reduce((sum, o) => sum + num(o.amount), 0);
+    const remaining = Math.max(0, num(d.amount) - paid);
+    return { ...d, paid, remaining, status: remaining <= 0 ? 'Закрыт' : 'Активен' };
+  }).sort((a,b)=>(a.due || '9999-99-99').localeCompare(b.due || '9999-99-99'));
+}
+function debtSummary() {
+  const active = debtItems().filter(d => d.status !== 'Закрыт');
+  const openOwe = active.filter(d => d.direction === 'owe').reduce((s,d)=>s+d.remaining,0);
+  const openReceivable = active.filter(d => d.direction === 'receivable').reduce((s,d)=>s+d.remaining,0);
+  const soonTo = new Date(); soonTo.setDate(soonTo.getDate() + 7);
+  const dueSoon = active.filter(d => d.due && d.due <= toDateKey(soonTo)).sort((a,b)=>a.due.localeCompare(b.due));
+  return { active, openOwe, openReceivable, oweCount: active.filter(d=>d.direction==='owe').length, receivableCount: active.filter(d=>d.direction==='receivable').length, dueSoon };
+}
+function debts() {
+  const sum = debtSummary();
+  const items = debtItems();
+  const owe = items.filter(d => d.direction === 'owe');
+  const receivable = items.filter(d => d.direction === 'receivable');
+  return `<div class="grid cards">
+    ${kpi('📉','Я должен', money(sum.openOwe), `${sum.oweCount} активных`)}
+    ${kpi('📈','Мне должны', money(sum.openReceivable), `${sum.receivableCount} активных`)}
+    ${kpi('⏰','Ближайшие 7 дней', sum.dueSoon.length, 'возвратов рядом')}
+    ${kpi('✅','Закрыто', items.filter(d=>d.status==='Закрыт').length, 'долгов')}
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>💳 Долговой центр</h3><p class="sub">Долги влияют на Life Score. Цель — постепенно исключить их из жизни.</p></div><button class="primary-btn" data-action="openDebtModal">+ Добавить долг</button></div></div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h3>Я должен</h3>${owe.length ? owe.map(debtCard).join('') : empty('Нет открытых долгов')}</div>
+    <div class="card"><h3>Мне должны</h3>${receivable.length ? receivable.map(debtCard).join('') : empty('Нет долгов в твою пользу')}</div>
+  </div>`;
+}
+function debtCard(d) {
+  const pct = d.amount ? clamp((d.paid / d.amount) * 100) : 0;
+  const danger = d.status !== 'Закрыт' && d.due && d.due < todayKey();
+  const near = d.status !== 'Закрыт' && d.due && d.due <= toDateKey(new Date(Date.now()+7*86400000));
+  return `<article class="debt-card ${danger ? 'danger-zone' : near ? 'warn-zone' : ''}">
+    <div class="section-head"><div><b>${escapeHtml(d.title)}</b><p class="sub">${d.direction === 'owe' ? 'Нужно вернуть' : 'Должны вернуть тебе'} · ${d.due || 'без даты'}</p></div><span class="tag ${d.status==='Закрыт'?'green':danger?'danger':near?'warn':'blue'}">${d.status}</span></div>
+    <div class="metric">${money(d.remaining)}</div>
+    <div class="progress"><span style="width:${pct}%"></span></div>
+    <p class="sub">Всего: ${money(d.amount)} · Уже закрыто: ${money(d.paid)}</p>
+    <div class="actions-row"><button class="soft-btn" data-action="repayDebt" data-debt-id="${d.id}">${d.direction === 'owe' ? 'Записать возврат' : 'Мне вернули'}</button><a class="soft-btn" href="${buildDebtCalendarUrl(d)}" target="_blank" rel="noopener">📅 В календарь</a></div>
+  </article>`;
+}
+function buildDebtCalendarUrl(d) {
+  const title = encodeURIComponent(`${d.direction === 'owe' ? 'Вернуть долг' : 'Напомнить о долге'}: ${d.title}`);
+  const due = d.due || todayKey();
+  const start = new Date(`${due}T10:00:00`);
+  const end = new Date(start.getTime() + 30 * 60000);
+  const fmt = x => x.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const details = encodeURIComponent(`Сумма: ${money(d.remaining)}\nСоздано в Second Brain OS`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}`;
+}
+function openDebtModal() {
+  openCustomModal('💳 Добавить долг', `<div class="form-grid">
+    <label>Тип<select id="debtDirection"><option value="owe">Я взял в долг / кредит</option><option value="receivable">Я дал в долг</option></select></label>
+    <label>Сумма<input id="debtAmount" type="number" placeholder="0"></label>
+    <label>Дата операции<input id="debtDate" type="date" value="${todayKey()}"></label>
+    <label>Вернуть до<input id="debtDue" type="date"></label>
+    <label class="full">Кому / от кого / комментарий<input id="debtTitle" placeholder="Например: Алексей / кредитка / займ"></label>
+  </div><div class="actions-row"><button class="primary-btn" id="saveDebtManualBtn">Сохранить долг</button></div>`);
+  const btn = document.getElementById('saveDebtManualBtn');
+  if (btn) btn.onclick = saveDebtManual;
+}
+function saveDebtManual() {
+  const amount = num(val('debtAmount'));
+  if (!amount) return toast('Введи сумму долга');
+  const direction = val('debtDirection') || 'owe';
+  const date = val('debtDate') || todayKey();
+  const due = val('debtDue') || '';
+  const title = val('debtTitle') || (direction === 'owe' ? 'Взял в долг' : 'Дал в долг');
+  const category = direction === 'owe' ? 'Взял в долг' : 'Дал в долг';
+  const type = direction === 'owe' ? 'income' : 'expense';
+  const op = { id: uid(), date, type, amount, category, note: title, debtDue: due, debtDirection: direction, emotion: 'Долг' };
+  state.operations.push(op);
+  if (due) state.tasks.push({ id: uid(), title: `${direction === 'owe' ? 'Вернуть' : 'Проверить возврат'} ${money(amount)} — ${title}`, area:'Финансы', due, time:'10:00', duration:30, priority:'Высокий', status:'В работе', nextAction:'Закрыть долг', linkedOperationId: op.id });
+  save(); closeModal(); render(); toast('Долг добавлен');
+}
+function openRepayDebtModal(id) {
+  const d = debtItems().find(x => x.id === id);
+  if (!d) return;
+  openCustomModal(d.direction === 'owe' ? '↩️ Записать возврат долга' : '↪️ Мне вернули долг', `<div class="form-grid">
+    <label>Дата<input id="repayDate" type="date" value="${todayKey()}"></label>
+    <label>Сумма<input id="repayAmount" type="number" value="${Math.round(d.remaining)}"></label>
+    <label class="full">Комментарий<input id="repayNote" value="${escapeAttr(d.title)}"></label>
+  </div><div class="actions-row"><button class="primary-btn" id="saveDebtPaymentBtn">Записать</button></div>`);
+  const btn = document.getElementById('saveDebtPaymentBtn');
+  if (btn) btn.onclick = () => saveDebtPayment(d.id);
+}
+function saveDebtPayment(id) {
+  const d = debtItems().find(x => x.id === id);
+  if (!d) return;
+  const amount = num(val('repayAmount'));
+  if (!amount) return toast('Введи сумму');
+  state.operations.push({ id: uid(), date: val('repayDate') || todayKey(), type: d.direction === 'owe' ? 'expense' : 'income', amount, category: d.direction === 'owe' ? 'Отдал долг' : 'Вернули долг', note: val('repayNote') || d.title, linkedDebtId: d.id, emotion:'Долг' });
+  save(); closeModal(); render(); toast('Платёж по долгу записан');
+}
+
+function settings() {
+  const payDays = (state.settings.payDays || [10,25]).join(', ');
+  const rules = state.settings.categoryRules || [];
+  return `<div class="grid two">
+    <div class="card">
+      <h3>⚙️ Настройки системы</h3>
+      <div class="form-grid">
+        <label>Текущий месяц<input id="setMonth" type="month" value="${state.settings.currentMonth}"></label>
+        <label>Валюта<input id="setCurrency" value="${state.settings.currency}"></label>
+        <label>Финансовые дни<input id="setPayDays" value="${escapeAttr(payDays)}" placeholder="10, 25"></label>
+        <label>Тема<select id="setTheme"><option value="latte" ${state.settings.theme==='latte'?'selected':''}>Latte / Pinterest</option><option value="dark" ${state.settings.theme==='dark'?'selected':''}>Graphite Dark</option><option value="sage" ${state.settings.theme==='sage'?'selected':''}>Sage Soft</option></select></label>
+        <label class="full">Правило<input value="Автораспределение отключено. Сбережения, подушка и финцель вносятся вручную в финансовые дни." disabled></label>
+      </div>
+      <div class="actions-row"><button class="primary-btn" data-action="saveSettings">Сохранить</button><button class="soft-btn" data-action="repair">Проверить систему</button></div>
+    </div>
+    <div class="card"><h3>🎨 Визуал</h3><p class="sub">Тема применяется сразу и синхронизируется между ПК и iPhone.</p><div class="theme-preview"><button class="theme-dot latte" data-action="setTheme" data-theme-value="latte">Latte</button><button class="theme-dot dark" data-action="setTheme" data-theme-value="dark">Dark</button><button class="theme-dot sage" data-action="setTheme" data-theme-value="sage">Sage</button></div></div>
+    <div class="card"><h3>🏷 Категории</h3><p class="sub">Цвета назначаются автоматически в Notion/Pinterest стиле.</p><div class="actions-row"><button class="primary-btn" data-open-modal="addCategory">+ Добавить категорию</button></div><h4>Расходы</h4>${categoryChips('expense')}<h4 style="margin-top:16px">Доходы</h4>${categoryChips('income')}</div>
+    <div class="card"><h3>🧠 Правила категорий</h3><p class="sub">Приложение запоминает твои ручные назначения из банк-импорта и потом предлагает категорию.</p><div class="ledger-meta">Правил: ${rules.length}</div>${rules.length ? `<div class="rule-list">${rules.slice(0,25).map(r=>`<div><b>${escapeHtml(r.keyword)}</b><span>${categoryChip(r.category)} · ${r.type === 'income' ? 'доход' : 'расход'}</span></div>`).join('')}</div>` : empty('Правила появятся после назначения категорий в импорте')}<div class="actions-row"><button class="danger-btn" data-action="resetCategoryRules">Сбросить правила</button></div></div>
+    <div class="card"><h3>📦 Данные</h3><p class="sub">Всё хранится локально и синхронизируется с Firebase.</p><div class="actions-row"><button class="soft-btn" data-action="backup">Скачать бэкап</button><label class="soft-btn">Загрузить бэкап<input id="backupInput" type="file" accept=".json" hidden></label><button class="danger-btn" data-action="resetAll">Очистить всё</button></div></div>
+  </div>`;
+}
+
+function saveSettings() {
+  state.settings.currentMonth = document.getElementById('setMonth').value || toMonthKey(new Date());
+  state.settings.currency = document.getElementById('setCurrency').value || '₽';
+  const rawDays = document.getElementById('setPayDays')?.value || '10,25';
+  state.settings.payDays = uniqueClean(rawDays.split(/[;,\s]+/)).map(Number).filter(d => d >= 1 && d <= 28);
+  if (!state.settings.payDays.length) state.settings.payDays = [10,25];
+  state.settings.transferDay = state.settings.payDays[0] || 10;
+  state.settings.theme = document.getElementById('setTheme')?.value || state.settings.theme || 'latte';
+  state.settings.allocation = { savings: 0, cushion: 0, goal: 0, life: 0 };
+  save(); toast('Настройки сохранены'); render();
+}
+
+function actionHandler(e) {
+  const a = e.currentTarget.dataset.action;
+  if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom').value); localStorage.setItem('panel.to', document.getElementById('panelTo').value); render(); }
+  if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); render(); }
+  if (a === 'financePrev') { financeView.page = Math.max(1, (financeView.page || 1) - 1); render(); }
+  if (a === 'financeNext') { financeView.page = (financeView.page || 1) + 1; render(); }
+  if (a === 'parseBankFile') parseBankFile();
+  if (a === 'transferBankRows') transferBankRows();
+  if (a === 'clearBankImport') clearBankImport();
+  if (a === 'selectBankRows') selectBankRows();
+  if (a === 'unselectBankRows') unselectBankRows();
+  if (a === 'undoDeleteOp') undoLastDelete();
+  if (a === 'saveSettings') saveSettings();
+  if (a === 'backup') exportBackup();
+  if (a === 'resetAll') { if(confirm('Точно очистить все данные?')) { state = defaultData(); enhanceFinanceUXProState(); save(); render(); } }
+  if (a === 'repair') { enhanceFinanceUXProState(); save(); toast('Система проверена и мигрирована'); render(); }
+  if (a === 'cloudRegister') cloudRegister();
+  if (a === 'cloudLogin') cloudLogin();
+  if (a === 'cloudLogout') window.SecondBrainCloud?.logout();
+  if (a === 'cloudPush') window.SecondBrainCloud?.pushNow(state);
+  if (a === 'cloudPull') window.SecondBrainCloud?.pullNow();
+  if (a === 'cloudRefresh') { window.SecondBrainCloud?.refreshStatus(); render(); }
+  if (a === 'antiChaos') openAntiChaos();
+  if (a === 'fabQuick') openModal('quickExpense');
+  if (a === 'openDebtModal') openDebtModal();
+  if (a === 'saveDebtManual') saveDebtManual();
+  if (a === 'repayDebt') openRepayDebtModal(e.currentTarget.dataset.debtId);
+  if (a === 'saveDebtPayment') saveDebtPayment(e.currentTarget.dataset.debtId);
+  if (a === 'setTheme') { state.settings.theme = e.currentTarget.dataset.themeValue || 'latte'; save(); render(); }
+  if (a === 'resetCategoryRules') { if(confirm('Сбросить все обученные правила категорий?')) { state.settings.categoryRules = []; save(); render(); toast('Правила категорий сброшены'); } }
+}
+
 
 window.SecondBrainApp = {
   getState: () => state,
