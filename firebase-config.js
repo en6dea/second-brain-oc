@@ -1,3 +1,6 @@
+// Second Brain OS — Firebase config
+// Этот файл нужен для входа и синхронизации ПК ↔ iPhone.
+// Firebase Web API key не является банковским секретом; доступ к данным ограничивают Firestore Rules.
 window.SECOND_BRAIN_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAuxWvGfr_0cReaEQdIkvPIUoEjurDcabY",
   authDomain: "second-brain-os-7e27d.firebaseapp.com",
