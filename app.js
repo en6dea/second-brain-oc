@@ -491,6 +491,128 @@ async function parseBankFile() {
   }
 }
 
+
+function isExcelFile(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return /\.(xlsx|xls|xlsm|xlsb)$/i.test(name) || /spreadsheet|excel/.test(type);
+}
+
+async function parseBankExcelFile(file, opts = {}) {
+  if (!window.XLSX) {
+    throw new Error('библиотека Excel не загрузилась. Обнови страницу или попробуй CSV');
+  }
+  const buf = await file.arrayBuffer();
+  const workbook = XLSX.read(buf, { type: 'array', cellDates: true, raw: true });
+  const sheets = workbook.SheetNames
+    .map(name => ({ name, rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: true }) }))
+    .filter(s => s.rows && s.rows.length);
+
+  if (!sheets.length) return [];
+
+  const best = sheets
+    .map(s => ({ ...s, score: scoreBankSheet(s.rows) }))
+    .sort((a, b) => b.score - a.score)[0];
+
+  const rows = normalizeExcelRows(best.rows).filter(r => r.some(c => String(c || '').trim() !== ''));
+  let parsed = parseBankRowsAuto(rows, { defaultType: opts.defaultType || 'expense', source: 'bank-excel' });
+
+  if (!parsed.length) {
+    parsed = parseBankRowsWithoutHeaders(rows, { defaultType: opts.defaultType || 'expense', source: 'bank-excel' });
+  }
+
+  if (!parsed.length) {
+    const sample = rows.slice(0, 8).map(r => r.join(' | ')).join('\n');
+    console.warn('Excel import: no parsed rows. Sheet:', best.name, 'sample:', sample);
+  }
+
+  return parsed;
+}
+
+function normalizeExcelRows(rows) {
+  return rows.map(row => row.map(cell => {
+    if (cell instanceof Date && !Number.isNaN(cell.getTime())) return toDateKey(cell);
+    if (typeof cell === 'number') return cell;
+    return String(cell ?? '').replace(/\u00A0/g, ' ').trim();
+  }));
+}
+
+function scoreBankSheet(rows) {
+  const sample = normalizeExcelRows(rows.slice(0, 80));
+  const text = sample.map(r => r.join(' ').toLowerCase()).join(' ');
+  let score = 0;
+  if (/дата|date|операц|транзакц|платеж|покупк|списан|зачисл/.test(text)) score += 8;
+  if (/сумм|amount|debit|credit|расход|приход|руб|rur|₽/.test(text)) score += 8;
+  if (/опис|назнач|детал|контрагент|получатель|merchant|description|mcc/.test(text)) score += 4;
+  let dateLike = 0, amountLike = 0;
+  sample.forEach(r => r.forEach(c => {
+    if (parseBankDate(c)) dateLike++;
+    if (Math.abs(parseMoneyValue(c)) > 0) amountLike++;
+  }));
+  score += Math.min(dateLike, 20) + Math.min(amountLike, 20);
+  return score;
+}
+
+function parseBankRowsAuto(rows, opts = {}) {
+  const headerIndex = findHeaderRow(rows);
+  const headers = headerIndex >= 0 ? rows[headerIndex].map(normalizeHeader) : [];
+  const dataRows = rows.slice(headerIndex >= 0 ? headerIndex + 1 : 0);
+  const idx = detectBankColumns(headers);
+  const parsed = [];
+  dataRows.slice(0, 1200).forEach(cols => {
+    const row = parseBankRow(cols, idx, headers, opts.defaultType || 'expense');
+    if (!row || !row.amount || !row.date) return;
+    row.source = opts.source || 'bank-excel';
+    row.duplicate = isDuplicateImportRow(row);
+    row.selected = !row.duplicate;
+    parsed.push(row);
+  });
+  return parsed;
+}
+
+function parseBankRowsWithoutHeaders(rows, opts = {}) {
+  const parsed = [];
+  rows.slice(0, 1200).forEach(cols => {
+    const dateCell = cols.find(c => parseBankDate(c));
+    const date = parseBankDate(dateCell);
+    if (!date) return;
+
+    const moneyCells = cols
+      .map((c, i) => ({ cell: c, i, value: parseMoneyValue(c) }))
+      .filter(x => Math.abs(x.value) > 0)
+      .filter(x => !parseBankDate(x.cell));
+    if (!moneyCells.length) return;
+
+    let chosen = moneyCells.find(x => /[-−]/.test(String(x.cell))) || moneyCells.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value))[0];
+    const signed = chosen.value;
+    const amount = Math.abs(signed);
+    if (!amount) return;
+
+    const rowText = cols.map(c => String(c || '').trim()).filter(Boolean).join(' · ');
+    const typeText = rowText.toLowerCase();
+    let type = opts.defaultType || 'expense';
+    if (signed < 0 || /списан|расход|покупк|оплат|debit|withdraw/.test(typeText)) type = 'expense';
+    if (signed > 0 && /зачисл|поступл|приход|credit|income|пополн/.test(typeText)) type = 'income';
+
+    const row = {
+      id: uid(),
+      date,
+      type,
+      amount,
+      category: '',
+      note: rowText.slice(0, 220),
+      raw: cols,
+      selected: true,
+      duplicate: false,
+      source: opts.source || 'bank-excel'
+    };
+    row.duplicate = isDuplicateImportRow(row);
+    row.selected = !row.duplicate;
+    parsed.push(row);
+  });
+  return parsed;
+}
+
 async function readBankFileText(file, encoding = 'auto') {
   const buf = await file.arrayBuffer();
   if (encoding !== 'auto') return new TextDecoder(encoding).decode(buf);
@@ -579,7 +701,7 @@ function detectBankColumns(headers) {
   return { date, amount, debit, credit, desc };
 }
 function parseBankRow(cols, idx, headers, defaultType) {
-  let date = idx.date >= 0 ? parseBankDate(cols[idx.date]) : parseBankDate(cols.find(c => /\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(String(c))));
+  let date = idx.date >= 0 ? parseBankDate(cols[idx.date]) : parseBankDate(cols.find(c => parseBankDate(c)));
   let type = defaultType;
   let amount = 0;
   if (idx.debit >= 0 || idx.credit >= 0) {
