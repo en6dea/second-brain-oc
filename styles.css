@@ -1404,3 +1404,28 @@ body {
   .premium-today-card { min-height: 126px; border-radius: 24px; }
   .allocation-segments { grid-template-columns: 1fr; }
 }
+
+
+/* PREMIUM UI V8 — честный ноль для ручного распределения */
+.allocation-legacy-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(125, 87, 58, .08);
+  border: 1px solid rgba(125, 87, 58, .14);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.subtle-warning {
+  display: inline-block;
+  margin-top: 5px;
+  color: #8a6d48;
+}
+.premium-allocation .alloc-total small {
+  max-width: 240px;
+  line-height: 1.38;
+}
+.premium-allocation .alloc-segment i {
+  min-width: 0 !important;
+}

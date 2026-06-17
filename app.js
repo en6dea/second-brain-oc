@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=buttons-v6-rescue-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=premium-ui-v8-zero-allocation-20260618').catch(console.warn);
   }
 }
 function renderNav() {
@@ -2511,7 +2511,7 @@ function saveModal(kind) {
   if (kind === 'habit') { pushUndo('добавление привычки'); state.habits.push({ id: uid(), name: val('hName'), area: val('hArea'), targetPerWeek: num(val('hTarget')) || 5, active: true }); save(); closeModal(); render(); toast('Привычка добавлена'); }
   if (kind === 'day') { pushUndo('закрытие дня'); const date = val('dDate') || todayKey(); state.states = state.states.filter(s => s.date !== date); state.states.push({ date, sleep:num(val('dSleep')), energy:num(val('dEnergy')), mood:num(val('dMood')), stress:num(val('dStress')), note:val('dNote') }); state.habitLogs[date] = state.habitLogs[date] || {}; document.querySelectorAll('[data-day-habit]').forEach(ch => state.habitLogs[date][ch.dataset.dayHabit] = ch.checked); save(); closeModal(); render(); toast('День закрыт'); }
   if (kind === 'buyExpense') { pushUndo('покупка'); state.operations.push({ id: uid(), date: todayKey(), type:'expense', amount:num(val('bAmount')), category:val('bCategory'), note:val('bName'), emotion:val('bEmotion') }); save(); closeModal(); render(); }
-  if (kind === 'manualAllocation') { pushUndo('ручное распределение денег'); const date = val('aDate') || todayKey(); const note = val('aNote') || 'Ручное распределение'; const entries = [['Сбережения', num(val('aSavings'))], ['Подушка', num(val('aCushion'))], ['Финансовая цель', num(val('aGoal'))]].filter(x => x[1] > 0); if (!entries.length) return toast('Введи хотя бы одну сумму'); entries.forEach(([category, amount]) => state.operations.push({ id: uid(), date, type: 'expense', amount, category, note, emotion: 'Распределение' })); save(); closeModal(); render(); toast('Распределение записано'); }
+  if (kind === 'manualAllocation') { pushUndo('ручное распределение денег'); const date = val('aDate') || todayKey(); const note = val('aNote') || 'Ручное распределение'; const entries = [['Сбережения', num(val('aSavings'))], ['Подушка', num(val('aCushion'))], ['Финансовая цель', num(val('aGoal'))]].filter(x => x[1] > 0); if (!entries.length) return toast('Введи хотя бы одну сумму'); entries.forEach(([category, amount]) => state.operations.push({ id: uid(), date, type: 'expense', amount, category, note, emotion: 'Распределение', manualAllocation: true, allocationKind: 'manual', source: 'manualAllocation', manualAllocationAt: new Date().toISOString() })); save(); closeModal(); render(); toast('Распределение записано'); }
   if (kind === 'category') { const type = val('catType') || 'expense'; const name = val('catName'); if (!name) return toast('Введи название категории'); pushUndo('добавление категории'); addCategory(type, name); save(); closeModal(); render(); toast('Категория добавлена'); }
   if (kind === 'week') { pushUndo('недельный отчёт'); createWeekReport(); closeModal(); render(); }
   if (kind === 'recurring') { pushUndo('регулярная операция'); state.recurring.push({ id: uid(), title: val('rTitle'), type: val('rType') || 'expense', amount: num(val('rAmount')), day: num(val('rDay')) || 1, category: val('rCategory') || 'Регулярные платежи', note: val('rNote'), active: true }); save(); closeModal(); render(); toast('Регулярная операция добавлена'); }
@@ -3216,7 +3216,167 @@ function todayView() {
   </div>`;
 }
 
-console.log('Second Brain PREMIUM UI V7 visual layer loaded');
+
+
+/* PREMIUM UI V8 — zero allocation logic fix.
+   Ручное распределение считается только если операция создана через модалку ручного распределения
+   и имеет явную метку manualAllocation. Старые операции в категориях Сбережения/Подушка/Финцель
+   не должны автоматически превращаться в "сейф" и не должны показывать, будто пользователь что-то внёс. */
+function isAllocationCategoryOperation(o) {
+  return o && o.type === 'expense' && ALLOCATION_CATEGORIES.includes(o.category || '');
+}
+
+function isManualAllocationOperation(o) {
+  return isAllocationCategoryOperation(o) && (
+    o.manualAllocation === true ||
+    o.allocationKind === 'manual' ||
+    o.source === 'manualAllocation'
+  );
+}
+
+function allocationOps(monthKey = state.settings.currentMonth) {
+  return expenseOps(monthKey).filter(isManualAllocationOperation);
+}
+
+function legacyAllocationOps(monthKey = state.settings.currentMonth) {
+  return expenseOps(monthKey).filter(o => isAllocationCategoryOperation(o) && !isManualAllocationOperation(o));
+}
+
+function monthSummary(monthKey = state.settings.currentMonth) {
+  const income = total(incomeOps(monthKey));
+  const expensesList = expenseOps(monthKey);
+  const manual = allocationOps(monthKey);
+  const legacy = legacyAllocationOps(monthKey);
+  const savings = total(manual.filter(o => o.category === 'Сбережения'));
+  const cushion = total(manual.filter(o => o.category === 'Подушка'));
+  const goal = total(manual.filter(o => o.category === 'Финансовая цель'));
+  const allocations = savings + cushion + goal;
+
+  // Жизненные расходы не включают категории сейфа. Сейф учитывается отдельно и только через ручной ввод.
+  const expenses = total(expensesList.filter(o => !isAllocationCategoryOperation(o)));
+  const legacyAllocations = total(legacy);
+  const allOut = expenses + allocations;
+  const left = income - allOut;
+  const dailyLimit = Math.max(0, left / daysLeftInMonth(monthKey));
+  return { income, expenses, savings, cushion, goal, allocations, legacyAllocations, allOut, left, dailyLimit };
+}
+
+function manualAllocationStatus(monthKey = state.settings.currentMonth) {
+  const s = monthSummary(monthKey);
+  const [y, m] = monthKey.split('-').map(Number);
+  const days = financialDays ? financialDays(monthKey) : [{ day: Number(state.settings.transferDay || 10), date: `${monthKey}-${String(state.settings.transferDay || 10).padStart(2, '0')}` }];
+  const activeDay = days.find(d => todayKey() <= d.date) || days[days.length - 1];
+  const due = activeDay?.date || `${monthKey}-10`;
+  const done = s.allocations > 0;
+  const overdue = !done && todayKey() > due;
+  const today = !done && todayKey() === due;
+  return { ...s, due, done, overdue, today, day: activeDay?.day || Number(state.settings.transferDay || 10) };
+}
+
+function financialDayStatus(monthKey = state.settings.currentMonth) {
+  const days = financialDays(monthKey);
+  const ops = allocationOps(monthKey);
+  const today = todayKey();
+  const statuses = days.map((d, idx) => {
+    const nextDate = days[idx+1]?.date || `${monthKey}-31`;
+    const done = ops.some(o => o.date >= d.date && o.date < nextDate);
+    return { ...d, done, today: today === d.date && !done, overdue: today > d.date && !done };
+  });
+  const active = statuses.find(x => x.today || x.overdue) || statuses.find(x => !x.done) || statuses[statuses.length - 1];
+  return { statuses, active, today: statuses.some(x=>x.today), overdue: statuses.some(x=>x.overdue), label: active?.date || '' };
+}
+
+function allocationNoticeText(a) {
+  if (a.allocations > 0) {
+    return `Вручную учтено ${money(a.allocations)}. Эти деньги вычтены из свободного остатка и не считаются доступными для трат.`;
+  }
+  return 'Вручную учтено 0 ₽. Ты ничего не вносил — значит сейф не уменьшает лимит. Так и должно быть.';
+}
+
+function allocationStatusCard() {
+  const a = manualAllocationStatus();
+  const segments = [
+    ['Сбережения', a.savings ?? 0, 'save'],
+    ['Подушка', a.cushion ?? 0, 'cushion'],
+    ['Финцель', a.goal ?? 0, 'goal']
+  ];
+  const totalPlan = Math.max(1, a.allocations || 0);
+  const tone = a.done ? 'green' : a.overdue ? 'warn' : a.today ? 'warn' : 'blue';
+  const title = a.done ? 'Сейф учтён вручную' : '0 ₽ распределено вручную';
+  const body = a.done
+    ? 'Приложение учитывает только те суммы, которые ты сам внёс через эту кнопку. Поэтому расчёт лимита честный и без скрытых автосписаний.'
+    : 'Автоматических списаний нет. Пока ты не внесёшь суммы сам, в сейфе считается 0 ₽ — даже если раньше были старые категории сбережений.';
+  const legacyNote = a.legacyAllocations > 0
+    ? `<div class="allocation-legacy-note">Найдено старых записей в категориях сейфа: <b>${money(a.legacyAllocations)}</b>. Я не считаю их ручным распределением, чтобы не врать по цифрам.</div>`
+    : '';
+  return `<div class="card allocation-card premium-allocation ${tone}">
+    <div class="allocation-main">
+      <div class="allocation-eyebrow"><span class="tag ${tone}">${title}</span><span class="allocation-date">контрольная дата: ${a.due}</span></div>
+      <h3>🏦 Сейф-распределение</h3>
+      <p class="sub">${body}</p>
+      <div class="allocation-segments">
+        ${segments.map(([name, amount, cls]) => `<div class="alloc-segment ${cls}"><span>${name}</span><b>${money(amount)}</b><i style="width:${a.allocations ? clamp(amount / totalPlan * 100, 0, 100) : 0}%"></i></div>`).join('')}
+      </div>
+      ${legacyNote}
+    </div>
+    <div class="allocation-side">
+      <div class="alloc-total"><span>Вручную учтено</span><b>${money(a.allocations ?? 0)}</b><small>${allocationNoticeText(a)}</small></div>
+      <button class="primary-btn" data-open-modal="manualAllocation">Внести переводы</button>
+    </div>
+  </div>`;
+}
+
+function financialDayCard() {
+  const fd = financialDayStatus();
+  const s = monthSummary();
+  const allDone = fd.statuses.every(x=>x.done);
+  const tone = s.allocations > 0 ? 'green' : fd.overdue || fd.today ? 'warn' : 'blue';
+  const title = s.allocations > 0 ? 'Распределение учтено' : 'Ручное распределение: 0 ₽';
+  const note = s.allocations > 0
+    ? `Вручную внесено: <b>${money(s.allocations)}</b>. Сейф уже вычтен из свободного остатка.`
+    : `Пока вручную внесено: <b>0 ₽</b>. Лимит не уменьшается сейфом, пока ты сам не внесёшь суммы.`;
+  const legacy = s.legacyAllocations > 0 ? `<br><span class="subtle-warning">Старые записи в категориях сейфа: ${money(s.legacyAllocations)} — не считаю ручным распределением.</span>` : '';
+  return `<div class="card allocation-card ${tone}"><div><span class="tag ${tone}">${title}</span><h3>🏦 Ручное распределение</h3><p class="sub">Плановые дни: ${fd.statuses.map(x => `${x.date}${x.done ? ' ✓' : ''}`).join(' · ')}. ${note}${legacy}</p></div><button class="primary-btn" data-open-modal="manualAllocation">Внести переводы</button></div>`;
+}
+
+function todayView() {
+  const s = monthSummary();
+  const date = todayKey();
+  const habits = state.habits.filter(h => h.active);
+  const todayTasks = tasksForDay(date).slice(0, 5);
+  const cats = categoryTotals(date, date).slice(0, 4);
+  const st = state.states.find(x => x.date === date);
+  const ts = tasksStats();
+  const rb = typeof rewardBalance === 'function' ? rewardBalance() : { points: 0, rub: 0 };
+  const overdueTone = ts.overdue ? 'danger' : '';
+  return `<div class="today-screen premium-today-screen">
+    <div class="today-hero premium-hero">
+      <div>
+        <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+        <h2>Сегодня</h2>
+        <p>Держи ритм: деньги, 1–3 задачи, привычки и короткое закрытие дня.</p>
+      </div>
+      <div class="today-score-ring"><span>${lifeScore()}</span><small>Life Score</small></div>
+    </div>
+    <div class="today-kpi-grid">
+      ${premiumMiniKpi('📆','Лимит сегодня', money(s.dailyLimit), 'нажми — покажу расчёт', 'todayLimit')}
+      ${premiumMiniKpi('📌','Задачи', `${todayTasks.length}`, `${ts.overdue} просрочено`, 'jumpOverdueTasks', overdueTone)}
+      ${premiumMiniKpi('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'открыть привычки', 'jumpHabits')}
+      ${premiumMiniKpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
+    </div>
+    ${allocationStatusCard()}
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : empty('Нет задач на сегодня. Выбери 1 главный фокус.')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area)}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+    </div>
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Сегодня ещё нет расходов')}</div>
+      <div class="card close-day-card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод. Это даст нормальную аналитику по жизни.</p><div class="pill-list"><span class="tag green">🎮 ${rb.points || 0} баллов</span><span class="tag blue">${money(rb.rub || 0)} на себя</span></div><button class="primary-btn" data-open-modal="closeDay" style="width:100%;margin-top:12px">Закрыть день</button></div>
+    </div>
+  </div>`;
+}
+
+console.log('Second Brain PREMIUM UI V8 zero allocation layer loaded');
 
 window.SecondBrainApp = {
   getState: () => state,
@@ -3235,7 +3395,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain PREMIUM UI V7 app.js loaded');
+console.log('Second Brain PREMIUM UI V8 zero allocation app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {
