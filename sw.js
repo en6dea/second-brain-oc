@@ -1,11 +1,17 @@
-const CACHE = 'second-brain-os-auth-nuclear-v2-20260618';
-self.addEventListener('install', event => { self.skipWaiting(); });
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
-  self.clients.claim();
+const CACHE_VERSION = 'second-brain-os-auth-inline-final-20260618';
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req)));
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request)));
 });

@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=debt-manual-ledger-20260617').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=auth-inline-final-20260618').catch(console.warn);
   }
 }
 function renderNav() {
