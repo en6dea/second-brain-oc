@@ -41,6 +41,7 @@ const pages = [
   ['today', '🌤', 'Сегодня'],
   ['quick', '⚡', 'Быстрый ввод'],
   ['finance', '💸', 'Деньги'],
+  ['bank', '🏦', 'Банк-импорт'],
   ['panel', '🎛', 'Панель анализа'],
   ['goals', '🎯', 'SMART-цели'],
   ['habits', '✅', 'Привычки'],
@@ -255,7 +256,7 @@ function render(opts = {}) {
   document.getElementById('pageTitle').textContent = page ? page[2] : 'Главная';
   document.getElementById('todayMini').innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
   const view = document.getElementById('view');
-  const map = { dashboard, today: todayView, quick, finance, panel, goals, habits, tasks, calendar: calendarView, state: stateView, insights, sync: syncView, settings };
+  const map = { dashboard, today: todayView, quick, finance, bank: bankImport, panel, goals, habits, tasks, calendar: calendarView, state: stateView, insights, sync: syncView, settings };
   view.innerHTML = (map[activePage] || dashboard)(opts);
   bindView();
 }
@@ -334,6 +335,7 @@ function quick() {
   return `<div class="grid two">
     <div class="card"><h3>⚡ Быстрый ввод</h3><p class="sub">Основная идея: не ходить по листам. Добавляй события жизни отсюда.</p><div class="actions-row">
       <button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button>
+      <button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button>
       <button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button>
       <button class="soft-btn" data-open-modal="quickTask">📌 Задача</button>
       <button class="soft-btn" data-page-jump="calendar">🔔 Календарь</button>
@@ -357,7 +359,7 @@ function finance() {
     ${kpi('🎯','Финцель 10%', money(s.goal), 'Автораспределение')}
   </div>
   ${undo}
-  <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>💸 Операции</h3><div class="actions-row" style="margin:0"><button class="soft-btn" data-open-modal="csvImport">📥 CSV импорт</button><button class="primary-btn" data-open-modal="quickExpense">Добавить</button></div></div>${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))}</div>`;
+  <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>💸 Операции</h3><div class="actions-row" style="margin:0"><button class="soft-btn" data-page-jump="bank">🏦 Импорт банка</button><button class="primary-btn" data-open-modal="quickExpense">Добавить</button></div></div>${table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow))}</div>`;
 }
 
 function operationRow(o) {
@@ -373,6 +375,283 @@ function operationRow(o) {
 function recentOperationsTable(limit = 8) {
   const rows = [...state.operations].sort((a,b)=>b.date.localeCompare(a.date)).slice(0, limit);
   return table(['Дата','Тип','Сумма','Категория','Комментарий',''], rows.map(operationRow));
+}
+
+function bankImport() {
+  const rows = state.importRows || [];
+  const stats = bankImportStats(rows);
+  const ready = rows.filter(r => r.selected && !r.duplicate && r.category).length;
+  const notReady = rows.filter(r => r.selected && !r.category && !r.duplicate).length;
+  return `
+  <div class="bank-hero">
+    <div>
+      <div class="tiny-label">Банк-импорт Pro</div>
+      <h2>Загрузи выписку — система сама разберёт операции</h2>
+      <p>Самый безопасный вариант без доступа к банку: скачал CSV-выписку → загрузил сюда → назначил категории вручную → перенёс в операции. Дубли подсвечиваются и не выбираются автоматически.</p>
+      <div class="actions-row">
+        <label class="primary-btn bank-file-btn">📥 Выбрать CSV<input id="bankCsvFile" type="file" accept=".csv,.txt,text/csv" hidden></label>
+        <button class="soft-btn" data-action="parseBankFile">Разобрать файл</button>
+        <button class="soft-btn" data-action="clearBankImport">Очистить импорт</button>
+      </div>
+    </div>
+    <div class="card bank-help-card">
+      <h3>Как пользоваться</h3>
+      <p>1. Скачай выписку из банка в CSV.</p>
+      <p>2. Загрузи файл сюда.</p>
+      <p>3. Проверь дату/сумму, назначь категории.</p>
+      <p>4. Перенеси готовые строки в «Деньги».</p>
+    </div>
+  </div>
+  <div class="grid cards" style="margin-top:16px">
+    ${kpi('📄','Строк в импорте', stats.total, 'разобрано из файла')}
+    ${kpi('✅','Готово к переносу', ready, 'выбрано + категория')}
+    ${kpi('🏷','Без категории', notReady, 'нужно назначить вручную')}
+    ${kpi('🧯','Дубли', stats.duplicates, 'автоматически сняты')}
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="section-head">
+      <div><h3>⚙️ Настройки разбора</h3><p class="sub">Для большинства банков оставь «авто». Если кракозябры — попробуй Windows-1251.</p></div>
+    </div>
+    <div class="form-grid">
+      <label>Кодировка<select id="bankEncoding"><option value="auto">Авто</option><option value="utf-8">UTF-8</option><option value="windows-1251">Windows-1251</option></select></label>
+      <label>Разделитель<select id="bankDelimiter"><option value="auto">Авто</option><option value=";">Точка с запятой ;</option><option value=",">Запятая ,</option><option value="tab">Tab</option></select></label>
+      <label>Тип по умолчанию<select id="bankDefaultType"><option value="expense">Расход</option><option value="income">Доход</option></select></label>
+      <label>Дубли<select id="bankDuplicateMode"><option value="skip">Не переносить</option><option value="allow">Разрешить вручную</option></select></label>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="section-head">
+      <div><h3>🏷 Подготовка операций</h3><p class="sub">Категории специально не ставятся автоматически — ты контролируешь каждую сумму сам.</p></div>
+      <div class="actions-row" style="margin:0">
+        <button class="soft-btn" data-action="selectBankRows">Выбрать готовые</button>
+        <button class="soft-btn" data-action="unselectBankRows">Снять выбор</button>
+        <button class="primary-btn" data-action="transferBankRows">Перенести готовые</button>
+      </div>
+    </div>
+    ${bankImportTable(rows)}
+  </div>`;
+}
+
+function bankImportStats(rows = state.importRows || []) {
+  return {
+    total: rows.length,
+    duplicates: rows.filter(r => r.duplicate).length,
+    selected: rows.filter(r => r.selected).length,
+    ready: rows.filter(r => r.selected && r.category && !r.duplicate).length
+  };
+}
+
+function bankImportTable(rows) {
+  if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV-файл банка, и здесь появятся операции для проверки.');
+  const visible = rows.slice(0, 180);
+  const cats = state.settings.categories.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+  return table(['✓','Статус','Дата','Тип','Сумма','Категория','Описание'], visible.map(r => {
+    const status = r.duplicate ? '<span class="tag danger">Дубль</span>' : (r.category ? '<span class="tag green">Готово</span>' : '<span class="tag warn">Категория</span>');
+    return [
+      `<input type="checkbox" data-import-sel="${r.id}" ${r.selected ? 'checked' : ''}>`,
+      status,
+      `<input class="mini-input" type="date" data-import-date="${r.id}" value="${escapeAttr(r.date || todayKey())}">`,
+      `<select class="mini-input" data-import-type="${r.id}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select>`,
+      money(r.amount),
+      `<select class="mini-input" data-import-cat="${r.id}"><option value="">Выбери</option>${cats}</select>`.replace(`value="${escapeAttr(r.category || '')}"`, `value="${escapeAttr(r.category || '')}" selected`),
+      `<div class="import-note">${escapeHtml(r.note || '')}</div>`
+    ];
+  }));
+}
+
+function bindImportControls() {
+  document.querySelectorAll('[data-import-sel]').forEach(ch => ch.onchange = () => { const r = state.importRows.find(x=>x.id===ch.dataset.importSel); if(r) { r.selected = ch.checked; save(); render(); } });
+  document.querySelectorAll('[data-import-cat]').forEach(sel => {
+    const r = state.importRows.find(x=>x.id===sel.dataset.importCat);
+    if (r && r.category) sel.value = r.category;
+    sel.onchange = () => { const row = state.importRows.find(x=>x.id===sel.dataset.importCat); if(row) { row.category = sel.value; save(); render(); } };
+  });
+  document.querySelectorAll('[data-import-type]').forEach(sel => sel.onchange = () => { const r = state.importRows.find(x=>x.id===sel.dataset.importType); if(r) { r.type = sel.value; save(); render(); } });
+  document.querySelectorAll('[data-import-date]').forEach(inp => inp.onchange = () => { const r = state.importRows.find(x=>x.id===inp.dataset.importDate); if(r) { r.date = inp.value; r.duplicate = isDuplicateImportRow(r); if (r.duplicate) r.selected = false; save(); render(); } });
+}
+
+async function parseBankFile() {
+  const input = document.getElementById('bankCsvFile') || document.getElementById('csvFile');
+  const file = input?.files?.[0];
+  if (!file) return toast('Выбери CSV-файл');
+  try {
+    const encoding = document.getElementById('bankEncoding')?.value || 'auto';
+    const delimiter = document.getElementById('bankDelimiter')?.value || 'auto';
+    const defaultType = document.getElementById('bankDefaultType')?.value || 'expense';
+    const text = await readBankFileText(file, encoding);
+    const parsed = parseBankCsvText(text, { delimiter, defaultType });
+    state.importRows = parsed;
+    save();
+    render();
+    toast(`Разобрано строк: ${parsed.length}`);
+  } catch (err) {
+    console.error(err);
+    toast('Не удалось разобрать CSV');
+  }
+}
+
+async function readBankFileText(file, encoding = 'auto') {
+  const buf = await file.arrayBuffer();
+  if (encoding !== 'auto') return new TextDecoder(encoding).decode(buf);
+  const utf = new TextDecoder('utf-8').decode(buf);
+  let cp = '';
+  try { cp = new TextDecoder('windows-1251').decode(buf); } catch { cp = utf; }
+  const score = (txt) => {
+    const bad = (txt.match(/�/g) || []).length * 10;
+    const cyr = (txt.match(/[А-Яа-яЁё]/g) || []).length;
+    const delims = (txt.match(/[;,\t]/g) || []).length;
+    return cyr + delims - bad;
+  };
+  return score(cp) > score(utf) ? cp : utf;
+}
+
+function parseBankCsvText(text, opts = {}) {
+  const delimiter = opts.delimiter === 'tab' ? '\t' : (opts.delimiter && opts.delimiter !== 'auto' ? opts.delimiter : detectDelimiter(text));
+  const rows = parseDelimited(text.replace(/^\uFEFF/, ''), delimiter).filter(r => r.some(c => String(c || '').trim()));
+  if (!rows.length) return [];
+  const headerIndex = findHeaderRow(rows);
+  const headers = headerIndex >= 0 ? rows[headerIndex].map(normalizeHeader) : [];
+  const dataRows = rows.slice(headerIndex >= 0 ? headerIndex + 1 : 0);
+  const idx = detectBankColumns(headers);
+  const parsed = [];
+  dataRows.slice(0, 600).forEach(cols => {
+    const row = parseBankRow(cols, idx, headers, opts.defaultType || 'expense');
+    if (!row || !row.amount || !row.date) return;
+    row.duplicate = isDuplicateImportRow(row);
+    row.selected = !row.duplicate;
+    parsed.push(row);
+  });
+  return parsed;
+}
+
+function detectDelimiter(text) {
+  const sample = text.split(/\r?\n/).slice(0, 15).join('\n');
+  const candidates = [';', ',', '\t'];
+  let best = ';', bestScore = -1;
+  candidates.forEach(d => {
+    const rows = sample.split(/\r?\n/).map(line => parseDelimitedLine(line, d).length);
+    const score = rows.reduce((s,n)=>s+n,0) - Math.abs(Math.max(...rows) - Math.min(...rows));
+    if (score > bestScore) { bestScore = score; best = d; }
+  });
+  return best;
+}
+
+function parseDelimited(text, delimiter) {
+  const rows = [];
+  let row = [], cell = '', quote = false;
+  for (let i=0; i<text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (quote && text[i+1] === '"') { cell += '"'; i++; }
+      else quote = !quote;
+    } else if (ch === delimiter && !quote) { row.push(cell.trim()); cell = ''; }
+    else if ((ch === '\n' || ch === '\r') && !quote) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      row.push(cell.trim()); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
+  return rows;
+}
+function parseDelimitedLine(line, delimiter) { return parseDelimited(line, delimiter)[0] || []; }
+function normalizeHeader(h) { return String(h || '').toLowerCase().replace(/\s+/g,' ').replace(/["']/g,'').trim(); }
+function findHeaderRow(rows) {
+  let best = -1, scoreBest = 0;
+  rows.slice(0, 10).forEach((r, i) => {
+    const text = r.map(normalizeHeader).join(' ');
+    let score = 0;
+    if (/дата|date/.test(text)) score += 2;
+    if (/сумм|amount|debit|credit|расход|приход|списан|зачисл/.test(text)) score += 2;
+    if (/опис|назнач|операц|merchant|description|контрагент|получатель|детал/.test(text)) score += 1;
+    if (score > scoreBest) { scoreBest = score; best = i; }
+  });
+  return scoreBest >= 3 ? best : -1;
+}
+function detectBankColumns(headers) {
+  const find = (pred) => headers.findIndex(pred);
+  const date = find(h => (/дата|date/.test(h) && !/валют|value/.test(h)));
+  const debit = find(h => /расход|debit|списан|withdraw|outcome|снятие/.test(h) && !/катег/.test(h));
+  const credit = find(h => /приход|credit|зачисл|income|поступл|пополн/.test(h) && !/катег/.test(h));
+  let amount = find(h => /сумм|amount|операц/.test(h) && !/остат|баланс|balance/.test(h));
+  if (amount < 0) amount = find(h => /руб|rub|rur|₽/.test(h) && !/остат|баланс/.test(h));
+  const desc = headers.map((h,i)=>({h,i})).filter(x => /опис|назнач|детал|операц|merchant|description|контрагент|получатель|отправитель|коммент|mcc|категория/.test(x.h) && !/сумм|amount|дата|date|остат|баланс/.test(x.h)).map(x=>x.i);
+  return { date, amount, debit, credit, desc };
+}
+function parseBankRow(cols, idx, headers, defaultType) {
+  let date = idx.date >= 0 ? parseBankDate(cols[idx.date]) : parseBankDate(cols.find(c => /\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(String(c))));
+  let type = defaultType;
+  let amount = 0;
+  if (idx.debit >= 0 || idx.credit >= 0) {
+    const debit = idx.debit >= 0 ? Math.abs(parseMoneyValue(cols[idx.debit])) : 0;
+    const credit = idx.credit >= 0 ? Math.abs(parseMoneyValue(cols[idx.credit])) : 0;
+    if (credit && credit >= debit) { amount = credit; type = 'income'; }
+    else if (debit) { amount = debit; type = 'expense'; }
+  }
+  if (!amount) {
+    const amountCell = idx.amount >= 0 ? cols[idx.amount] : findAmountCell(cols);
+    const signed = parseMoneyValue(amountCell);
+    amount = Math.abs(signed);
+    if (signed < 0) type = 'expense';
+    else if (signed > 0 && /приход|зачисл|поступл|credit|income/i.test(cols.join(' '))) type = 'income';
+  }
+  if (!date) return null;
+  const noteParts = [];
+  if (idx.desc && idx.desc.length) idx.desc.forEach(i => { if (cols[i]) noteParts.push(cols[i]); });
+  if (!noteParts.length) noteParts.push(...cols.filter(c => String(c).trim()).slice(0, 5));
+  const note = noteParts.join(' · ').replace(/\s+/g, ' ').slice(0, 220);
+  return { id: uid(), date, type, amount, category: '', note, raw: cols, selected: true, duplicate: false, source: 'bank-csv' };
+}
+
+function parseBankDate(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0,10);
+  if (/\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}/.test(raw)) return parseDate(raw);
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime()) && d.getFullYear() > 2000) return toDateKey(d);
+  return '';
+}
+
+function findAmountCell(cols) {
+  const candidates = cols.filter(c => /[-−+]?\(?\d[\d\s.,]*\)?/.test(String(c)) && !/\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(String(c)));
+  return candidates.sort((a,b)=>Math.abs(parseMoneyValue(b))-Math.abs(parseMoneyValue(a)))[0] || '';
+}
+function parseMoneyValue(raw) {
+  let source = String(raw ?? '').trim();
+  const negative = /[-−]/.test(source) || /^\(.*\)$/.test(source);
+  let s = source.replace(/[\s\u00A0]/g,'').replace(/[₽рРрубRUBa-zA-Z]/g,'').replace(/[()−+]/g,'').replace(/[^\d,.]/g,'');
+  if (!s) return 0;
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  const dec = Math.max(lastComma, lastDot);
+  if (dec >= 0) {
+    const intPart = s.slice(0, dec).replace(/[,.]/g,'');
+    const frac = s.slice(dec+1).replace(/[,.]/g,'');
+    s = `${intPart}.${frac}`;
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? (negative ? -n : n) : 0;
+}
+function normalizeNote(note) { return String(note || '').toLowerCase().replace(/[^a-zа-яё0-9]+/gi,' ').trim().slice(0, 48); }
+function importSignatureLike(date, type, amount, note) { return `${date}|${type}|${Math.round(num(amount)*100)}|${normalizeNote(note)}`; }
+function isDuplicateImportRow(row) {
+  const sig = importSignatureLike(row.date, row.type, row.amount, row.note);
+  return state.operations.some(o => importSignatureLike(o.date, o.type, o.amount, o.note) === sig);
+}
+function selectBankRows() {
+  state.importRows.forEach(r => { r.duplicate = isDuplicateImportRow(r); r.selected = !r.duplicate && Boolean(r.category); });
+  save(); render(); toast('Выбраны строки с категориями без дублей');
+}
+function unselectBankRows() { state.importRows.forEach(r => r.selected = false); save(); render(); }
+function clearBankImport() { if(confirm('Очистить текущий импорт?')) { state.importRows = []; save(); render(); } }
+function transferBankRows() {
+  const duplicateMode = document.getElementById('bankDuplicateMode')?.value || 'skip';
+  const ready = state.importRows.filter(r => r.selected && r.category && (duplicateMode === 'allow' || !r.duplicate));
+  if (!ready.length) return toast('Нет готовых строк: выбери операции и назначь категории');
+  ready.forEach(r => state.operations.push({ id: uid(), date: r.date, type: r.type || 'expense', amount: Math.abs(num(r.amount)), category: r.category, note: r.note || 'Импорт банка', emotion: 'Банк CSV', importedAt: new Date().toISOString(), importSource: 'bank-csv' }));
+  const ids = new Set(ready.map(r => r.id));
+  state.importRows = state.importRows.filter(r => !ids.has(r.id));
+  save(); render(); toast(`Перенесено операций: ${ready.length}`);
 }
 
 function panel(opts = {}) {
@@ -666,11 +945,19 @@ function bindView() {
   if (panelSearch) panelSearch.oninput = (e) => { document.getElementById('globalSearch').value = e.target.value; render({ search: e.target.value }); };
   const backupInput = document.getElementById('backupInput');
   if (backupInput) backupInput.onchange = importBackup;
+  const bankFile = document.getElementById('bankCsvFile');
+  if (bankFile) bankFile.onchange = () => toast('Файл выбран. Нажми «Разобрать файл»');
+  bindImportControls();
 }
 function actionHandler(e) {
   const a = e.currentTarget.dataset.action;
   if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom').value); localStorage.setItem('panel.to', document.getElementById('panelTo').value); render(); }
   if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); render(); }
+  if (a === 'parseBankFile') parseBankFile();
+  if (a === 'transferBankRows') transferBankRows();
+  if (a === 'clearBankImport') clearBankImport();
+  if (a === 'selectBankRows') selectBankRows();
+  if (a === 'unselectBankRows') unselectBankRows();
   if (a === 'undoDeleteOp') undoLastDelete();
   if (a === 'saveSettings') saveSettings();
   if (a === 'backup') exportBackup();
@@ -733,7 +1020,7 @@ function modalContent(type) {
   if (type === 'closeDay') return { title:'🌙 Закрыть день', body:`<div class="form-grid"><label>Дата<input id="dDate" type="date" value="${todayKey()}"></label><label>Сон, часов<input id="dSleep" type="number" step="0.5" value="7"></label><label>Энергия 1–10<input id="dEnergy" type="number" min="1" max="10" value="7"></label><label>Настроение 1–10<input id="dMood" type="number" min="1" max="10" value="7"></label><label>Стресс 1–10<input id="dStress" type="number" min="1" max="10" value="4"></label><label class="full">Итог дня<textarea id="dNote" placeholder="Что получилось? Что понял?"></textarea></label></div><h3 style="margin-top:18px">Привычки</h3><div class="checkbox-grid">${state.habits.filter(h=>h.active).map(h=>`<label class="check-card"><span>${h.name}</span><input type="checkbox" data-day-habit="${h.id}"></label>`).join('')}</div><div class="actions-row"><button class="primary-btn" data-modal-save="day">Закрыть день</button></div>` };
   if (type === 'wantBuy') return { title:'🛒 Хочу купить', body:`<div class="form-grid"><label class="full">Что купить<input id="bName" placeholder="Например: кроссовки"></label><label>Сумма<input id="bAmount" type="number" placeholder="0"></label><label>Категория<select id="bCategory">${catOptions}</select></label><label>Эмоция<select id="bEmotion"><option>Нужно</option><option>Хочу</option><option>Стресс</option><option>Импульс</option></select></label></div><div id="buyResult" class="empty" style="margin-top:14px">Заполни сумму, и система оценит покупку.</div><div class="actions-row"><button class="soft-btn" data-modal-action="checkBuy">Проверить</button><button class="primary-btn" data-modal-save="buyExpense">Купить и записать</button></div>` };
   if (type === 'weeklyReport') return { title:'📅 Недельный отчёт', body:`<div class="empty">Собрать отчёт за последние 7 дней?</div><div class="actions-row"><button class="primary-btn" data-modal-save="week">Собрать</button></div>` };
-  if (type === 'csvImport') return { title:'📥 CSV импорт', body:`<p class="sub">Загрузи CSV-выписку. После импорта вручную назначь категории и перенеси в операции.</p><input id="csvFile" type="file" accept=".csv,text/csv"><div id="csvPreview" style="margin-top:14px"></div><div class="actions-row"><button class="primary-btn" data-modal-action="parseCsv">Разобрать CSV</button><button class="soft-btn" data-modal-save="csvTransfer">Перенести отмеченное</button></div>` };
+  if (type === 'csvImport') return { title:'🏦 Банк-импорт', body:`<p class="sub">Лучше открыть полноценный экран банка: там есть дубли, кодировки и категории.</p><div class="actions-row"><button class="primary-btn" data-modal-action="goBankImport">Открыть банк-импорт</button></div>` };
   return { title:'Окно', body:'' };
 }
 function bindModal(type) {
@@ -784,40 +1071,12 @@ function modalAction(action) {
     else if (amount > s.dailyLimit) { verdict = 'Можно, но это выше дневного лимита'; cls = 'warn'; }
     document.getElementById('buyResult').innerHTML = `<span class="tag ${cls}">${verdict}</span><p>После покупки останется: <b>${money(after)}</b>. Новый дневной лимит: <b>${money(Math.max(0, after / daysLeftInMonth()))}</b>.</p>`;
   }
-  if (action === 'parseCsv') parseCsv();
+  if (action === 'parseCsv') parseBankFile();
+  if (action === 'goBankImport') { closeModal(); activePage = 'bank'; render(); }
 }
-function parseCsv() {
-  const file = document.getElementById('csvFile').files[0];
-  if (!file) return toast('Выбери CSV-файл');
-  const reader = new FileReader();
-  reader.onload = () => {
-    const text = reader.result;
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    const sep = lines[0].includes(';') ? ';' : ',';
-    const rows = lines.slice(0, 200).map(line => line.split(sep).map(x => x.trim().replace(/^"|"$/g,'')));
-    const parsed = rows.map(cols => {
-      const joined = cols.join(' ');
-      const date = parseDate(cols.find(c => /\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(c)) || cols[0]);
-      const amountCell = [...cols].reverse().find(c => /-?\d+[\s\d]*(,|\.)?\d*/.test(c));
-      const amount = Math.abs(num(amountCell));
-      return { id: uid(), date, amount, note: joined.slice(0, 120), category: '', selected: true };
-    }).filter(r => r.amount);
-    state.importRows = parsed;
-    save();
-    renderCsvPreview();
-  };
-  reader.readAsText(file, 'UTF-8');
-}
-function renderCsvPreview() {
-  const cats = state.settings.categories.map(c=>`<option>${c}</option>`).join('');
-  document.getElementById('csvPreview').innerHTML = table(['✓','Дата','Сумма','Категория','Описание'], state.importRows.slice(0,50).map(r => [`<input type="checkbox" data-import-sel="${r.id}" checked>`, r.date, money(r.amount), `<select data-import-cat="${r.id}"><option value="">Выбери</option>${cats}</select>`, r.note]));
-  document.querySelectorAll('[data-import-sel]').forEach(ch => ch.onchange = () => { const r = state.importRows.find(x=>x.id===ch.dataset.importSel); if(r) r.selected = ch.checked; save(); });
-  document.querySelectorAll('[data-import-cat]').forEach(sel => sel.onchange = () => { const r = state.importRows.find(x=>x.id===sel.dataset.importCat); if(r) r.category = sel.value; save(); });
-}
-function transferCsvRows() {
-  state.importRows.filter(r => r.selected && r.category).forEach(r => state.operations.push({ id: uid(), date: r.date, type: 'expense', amount: r.amount, category: r.category, note: r.note, emotion: 'CSV' }));
-  state.importRows = state.importRows.filter(r => !(r.selected && r.category));
-}
+function parseCsv() { parseBankFile(); }
+function renderCsvPreview() { render(); }
+function transferCsvRows() { transferBankRows(); }
 function generateWeeklyReport() {
   const to = todayKey();
   const d = new Date(); d.setDate(d.getDate() - 6);
