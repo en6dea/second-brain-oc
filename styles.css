@@ -931,3 +931,54 @@ body.mobile-os .mini-input {
 }
 html.mobile-os .import-note,
 body.mobile-os .import-note { max-width:none !important; }
+
+
+/* Category Manager */
+.category-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px 9px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(121, 93, 72, .16);
+  box-shadow: 0 10px 22px rgba(81, 62, 45, .06);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+}
+.category-chip button {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(114, 82, 60, .12);
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+  line-height: 1;
+}
+.category-chip button:hover {
+  background: rgba(189, 83, 83, .18);
+  color: #8f3f3f;
+}
+.card h4 {
+  margin: 18px 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.mobile-os .category-chip-list {
+  gap: 7px;
+}
+.mobile-os .category-chip {
+  width: 100%;
+  justify-content: space-between;
+  padding: 12px 14px;
+}

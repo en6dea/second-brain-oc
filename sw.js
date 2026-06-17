@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v8-bank-excel-fix-20260617';
+const CACHE = 'second-brain-os-v8-category-manager-20260617';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=bank-excel-fix-20260617',
-  './app.js?v=bank-excel-fix-20260617',
-  './cloud-sync.js?v=bank-excel-fix-20260617',
+  './styles.css?v=category-manager-20260617',
+  './app.js?v=category-manager-20260617',
+  './cloud-sync.js?v=category-manager-20260617',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'

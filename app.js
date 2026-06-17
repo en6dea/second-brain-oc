@@ -9,6 +9,8 @@ const defaultData = () => ({
     currency: '₽',
     allocation: { savings: 10, cushion: 10, goal: 10, life: 70 },
     categories: ['Продукты','Кафе','Транспорт','Дом','Здоровье','Одежда','Подписки','Подарки','Обучение','Развлечения','Путешествия','Импульсные','Финансовая цель','Сбережения','Подушка'],
+    expenseCategories: ['Продукты','Кафе','Транспорт','Дом','Здоровье','Одежда','Подписки','Подарки','Обучение','Развлечения','Путешествия','Импульсные','Финансовая цель','Сбережения','Подушка','Другое'],
+    incomeCategories: ['Зарплата','Проект','Фриланс','Возврат','Подарок','Продажа','Кэшбэк','Проценты','Другое'],
     areas: ['Финансы','Здоровье','Работа','Обучение','Дом','Личное','Отдых','Отношения'],
   },
   operations: [],
@@ -96,7 +98,28 @@ function load() {
 }
 function migrate(data) {
   const base = defaultData();
-  return { ...base, ...data, settings: { ...base.settings, ...(data.settings || {}), allocation: { ...base.settings.allocation, ...((data.settings||{}).allocation||{}) } } };
+  const incomingSettings = data.settings || {};
+  const settings = {
+    ...base.settings,
+    ...incomingSettings,
+    allocation: { ...base.settings.allocation, ...((incomingSettings || {}).allocation || {}) }
+  };
+
+  // Старые версии хранили один общий список categories.
+  // Новая версия разделяет категории доходов и расходов, но оставляет categories для совместимости.
+  if (!Array.isArray(settings.expenseCategories) || !settings.expenseCategories.length) {
+    settings.expenseCategories = Array.isArray(incomingSettings.categories) && incomingSettings.categories.length
+      ? [...incomingSettings.categories]
+      : [...base.settings.expenseCategories];
+  }
+  if (!Array.isArray(settings.incomeCategories) || !settings.incomeCategories.length) {
+    settings.incomeCategories = [...base.settings.incomeCategories];
+  }
+  settings.expenseCategories = uniqueClean(settings.expenseCategories);
+  settings.incomeCategories = uniqueClean(settings.incomeCategories);
+  settings.categories = uniqueClean([...settings.expenseCategories, ...settings.incomeCategories]);
+
+  return { ...base, ...data, settings };
 }
 function save(options = {}) {
   state.meta = state.meta || {};
@@ -119,6 +142,45 @@ function expenseOps(monthKey = state.settings.currentMonth) { return monthOps(mo
 function incomeOps(monthKey = state.settings.currentMonth) { return monthOps(monthKey).filter(o => o.type === 'income'); }
 function total(list) { return list.reduce((s, x) => s + num(x.amount), 0); }
 function operationTypeLabel(type) { return type === 'income' ? 'Доход' : 'Расход'; }
+function uniqueClean(list) {
+  return [...new Set((list || []).map(x => String(x || '').trim()).filter(Boolean))];
+}
+function categoryList(type = 'expense') {
+  const key = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+  state.settings[key] = uniqueClean(state.settings[key] || []);
+  if (!state.settings[key].length) {
+    state.settings[key] = [...(defaultData().settings[key] || ['Другое'])];
+  }
+  state.settings.categories = uniqueClean([...(state.settings.expenseCategories || []), ...(state.settings.incomeCategories || [])]);
+  return state.settings[key];
+}
+function categoryOptions(type = 'expense', selected = '') {
+  return categoryList(type)
+    .map(c => `<option value="${escapeAttr(c)}" ${c === selected ? 'selected' : ''}>${escapeHtml(c)}</option>`)
+    .join('');
+}
+function addCategory(kind, name) {
+  const category = String(name || '').trim();
+  if (!category) return false;
+  const type = kind === 'income' ? 'income' : 'expense';
+  const key = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+  state.settings[key] = uniqueClean([...(state.settings[key] || []), category]);
+  state.settings.categories = uniqueClean([...(state.settings.expenseCategories || []), ...(state.settings.incomeCategories || [])]);
+  return true;
+}
+function removeCategory(kind, name) {
+  const type = kind === 'income' ? 'income' : 'expense';
+  const key = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+  const category = String(name || '').trim();
+  if (!category) return false;
+  state.settings[key] = uniqueClean(state.settings[key] || []).filter(c => c !== category);
+  state.settings.categories = uniqueClean([...(state.settings.expenseCategories || []), ...(state.settings.incomeCategories || [])]);
+  return true;
+}
+function categoryChips(kind) {
+  const type = kind === 'income' ? 'income' : 'expense';
+  return `<div class="category-chip-list">${categoryList(type).map(c => `<span class="category-chip"><span>${escapeHtml(c)}</span><button title="Удалить категорию" data-delete-category="${escapeAttr(type)}" data-category-name="${escapeAttr(c)}">×</button></span>`).join('')}</div>`;
+}
 function operationLabel(o) { return `${operationTypeLabel(o.type)} ${money(o.amount)}${o.category ? ' / ' + o.category : ''}${o.date ? ' / ' + o.date : ''}`; }
 function deleteOperation(id) {
   const op = state.operations.find(o => o.id === id);
@@ -425,7 +487,7 @@ function bankImport() {
       <div class="actions-row" style="margin:0">
         <button class="soft-btn" data-action="selectBankRows">Выбрать готовые</button>
         <button class="soft-btn" data-action="unselectBankRows">Снять выбор</button>
-        <button class="primary-btn" data-action="transferBankRows">Перенести готовые</button>
+        <button class="soft-btn" data-open-modal="addCategory">+ Категория</button><button class="primary-btn" data-action="transferBankRows">Перенести готовые</button>
       </div>
     </div>
     ${bankImportTable(rows)}
@@ -444,7 +506,6 @@ function bankImportStats(rows = state.importRows || []) {
 function bankImportTable(rows) {
   if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV или Excel-файл банка, и здесь появятся операции для проверки.');
   const visible = rows.slice(0, 180);
-  const cats = state.settings.categories.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
   return table(['✓','Статус','Дата','Тип','Сумма','Категория','Описание'], visible.map(r => {
     const status = r.duplicate ? '<span class="tag danger">Дубль</span>' : (r.category ? '<span class="tag green">Готово</span>' : '<span class="tag warn">Категория</span>');
     return [
@@ -453,7 +514,7 @@ function bankImportTable(rows) {
       `<input class="mini-input" type="date" data-import-date="${r.id}" value="${escapeAttr(r.date || todayKey())}">`,
       `<select class="mini-input" data-import-type="${r.id}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select>`,
       money(r.amount),
-      `<select class="mini-input" data-import-cat="${r.id}"><option value="">Выбери</option>${cats}</select>`.replace(`value="${escapeAttr(r.category || '')}"`, `value="${escapeAttr(r.category || '')}" selected`),
+      `<select class="mini-input" data-import-cat="${r.id}"><option value="">Выбери</option>${categoryOptions(r.type || 'expense', r.category || '')}</select>`,
       `<div class="import-note">${escapeHtml(r.note || '')}</div>`
     ];
   }));
@@ -466,7 +527,7 @@ function bindImportControls() {
     if (r && r.category) sel.value = r.category;
     sel.onchange = () => { const row = state.importRows.find(x=>x.id===sel.dataset.importCat); if(row) { row.category = sel.value; save(); render(); } };
   });
-  document.querySelectorAll('[data-import-type]').forEach(sel => sel.onchange = () => { const r = state.importRows.find(x=>x.id===sel.dataset.importType); if(r) { r.type = sel.value; save(); render(); } });
+  document.querySelectorAll('[data-import-type]').forEach(sel => sel.onchange = () => { const r = state.importRows.find(x=>x.id===sel.dataset.importType); if(r) { r.type = sel.value; if (r.category && !categoryList(r.type).includes(r.category)) r.category = ''; save(); render(); } });
   document.querySelectorAll('[data-import-date]').forEach(inp => inp.onchange = () => { const r = state.importRows.find(x=>x.id===inp.dataset.importDate); if(r) { r.date = inp.value; r.duplicate = isDuplicateImportRow(r); if (r.duplicate) r.selected = false; save(); render(); } });
 }
 
@@ -478,7 +539,8 @@ async function parseBankFile() {
     const encoding = document.getElementById('bankEncoding')?.value || 'auto';
     const delimiter = document.getElementById('bankDelimiter')?.value || 'auto';
     const defaultType = document.getElementById('bankDefaultType')?.value || 'expense';
-    const parsed = isExcelFile(file)
+    const shouldUseExcelParser = await isLikelyExcelWorkbook(file);
+    const parsed = shouldUseExcelParser
       ? await parseBankExcelFile(file, { defaultType })
       : parseBankCsvText(await readBankFileText(file, encoding), { delimiter, defaultType });
     state.importRows = parsed;
@@ -491,6 +553,21 @@ async function parseBankFile() {
   }
 }
 
+
+
+async function isLikelyExcelWorkbook(file) {
+  if (isExcelFile(file)) return true;
+  try {
+    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    // XLSX/XLSM/XLSB are ZIP containers. Some banks download them with .csv extension.
+    const isZipWorkbook = head[0] === 0x50 && head[1] === 0x4B;
+    // Old .xls files use OLE Compound File magic: D0 CF 11 E0 A1 B1 1A E1.
+    const isOldXls = head[0] === 0xD0 && head[1] === 0xCF && head[2] === 0x11 && head[3] === 0xE0;
+    return Boolean(isZipWorkbook || isOldXls);
+  } catch (e) {
+    return false;
+  }
+}
 
 function isExcelFile(file) {
   const name = String(file?.name || '').toLowerCase();
@@ -680,7 +757,7 @@ function parseDelimitedLine(line, delimiter) { return parseDelimited(line, delim
 function normalizeHeader(h) { return String(h || '').toLowerCase().replace(/\s+/g,' ').replace(/["']/g,'').trim(); }
 function findHeaderRow(rows) {
   let best = -1, scoreBest = 0;
-  rows.slice(0, 10).forEach((r, i) => {
+  rows.slice(0, 80).forEach((r, i) => {
     const text = r.map(normalizeHeader).join(' ');
     let score = 0;
     if (/дата|date/.test(text)) score += 2;
@@ -741,7 +818,14 @@ function parseBankDate(value) {
 }
 
 function findAmountCell(cols) {
-  const candidates = cols.filter(c => /[-−+]?\(?\d[\d\s.,]*\)?/.test(String(c)) && !/\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(String(c)));
+  const candidates = cols.filter(c => {
+    const str = String(c || '');
+    if (!/[-−+]?\(?\d[\d\s.,]*\)?/.test(str)) return false;
+    if (/\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(str)) return false;
+    const digits = str.replace(/\D/g, '');
+    if (digits.length > 14 && !/[,.]/.test(str)) return false; // card/account numbers, not money
+    return true;
+  });
   return candidates.sort((a,b)=>Math.abs(parseMoneyValue(b))-Math.abs(parseMoneyValue(a)))[0] || '';
 }
 function parseMoneyValue(raw) {
@@ -953,7 +1037,43 @@ function syncView() {
 
 function settings() {
   const a = state.settings.allocation;
-  return `<div class="grid two"><div class="card"><h3>⚙️ Настройки системы</h3><div class="form-grid"><label>Текущий месяц<input id="setMonth" type="month" value="${state.settings.currentMonth}"></label><label>Валюта<input id="setCurrency" value="${state.settings.currency}"></label><label>Сбережения %<input id="setSavings" type="number" value="${a.savings}"></label><label>Подушка %<input id="setCushion" type="number" value="${a.cushion}"></label><label>Финцель %<input id="setGoal" type="number" value="${a.goal}"></label><label>На жизнь %<input id="setLife" type="number" value="${a.life}"></label></div><div class="actions-row"><button class="primary-btn" data-action="saveSettings">Сохранить</button><button class="soft-btn" data-action="repair">Проверить систему</button></div></div><div class="card"><h3>📦 Данные</h3><p class="sub">Всё хранится локально в браузере. Для безопасности периодически делай бэкап.</p><div class="actions-row"><button class="soft-btn" data-action="backup">Скачать бэкап</button><label class="soft-btn">Загрузить бэкап<input id="backupInput" type="file" accept=".json" hidden></label><button class="danger-btn" data-action="resetAll">Очистить всё</button></div></div></div>`;
+  return `<div class="grid two">
+    <div class="card">
+      <h3>⚙️ Настройки системы</h3>
+      <div class="form-grid">
+        <label>Текущий месяц<input id="setMonth" type="month" value="${state.settings.currentMonth}"></label>
+        <label>Валюта<input id="setCurrency" value="${state.settings.currency}"></label>
+        <label>Сбережения %<input id="setSavings" type="number" value="${a.savings}"></label>
+        <label>Подушка %<input id="setCushion" type="number" value="${a.cushion}"></label>
+        <label>Финцель %<input id="setGoal" type="number" value="${a.goal}"></label>
+        <label>На жизнь %<input id="setLife" type="number" value="${a.life}"></label>
+      </div>
+      <div class="actions-row">
+        <button class="primary-btn" data-action="saveSettings">Сохранить</button>
+        <button class="soft-btn" data-action="repair">Проверить систему</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🏷 Категории</h3>
+      <p class="sub">Теперь категории разделены: расходы отдельно, доходы отдельно. Старые операции не ломаются.</p>
+      <div class="actions-row">
+        <button class="primary-btn" data-open-modal="addCategory">+ Добавить категорию</button>
+      </div>
+      <h4>Расходы</h4>
+      ${categoryChips('expense')}
+      <h4 style="margin-top:16px">Доходы</h4>
+      ${categoryChips('income')}
+    </div>
+    <div class="card">
+      <h3>📦 Данные</h3>
+      <p class="sub">Всё хранится локально в браузере и синхронизируется с облаком. Для безопасности периодически делай бэкап.</p>
+      <div class="actions-row">
+        <button class="soft-btn" data-action="backup">Скачать бэкап</button>
+        <label class="soft-btn">Загрузить бэкап<input id="backupInput" type="file" accept=".json" hidden></label>
+        <button class="danger-btn" data-action="resetAll">Очистить всё</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function table(headers, rows) {
@@ -1058,6 +1178,7 @@ function bindView() {
   document.querySelectorAll('[data-page-jump]').forEach(b => b.onclick = () => { activePage = b.dataset.pageJump; render(); });
   document.querySelectorAll('[data-open-modal]').forEach(b => b.onclick = () => openModal(b.dataset.openModal));
   document.querySelectorAll('[data-delete-op]').forEach(b => b.onclick = () => deleteOperation(b.dataset.deleteOp));
+  document.querySelectorAll('[data-delete-category]').forEach(b => b.onclick = () => { const type = b.dataset.deleteCategory; const name = b.dataset.categoryName; if (!confirm(`Удалить категорию «${name}» из списка? Старые операции останутся как есть.`)) return; removeCategory(type, name); save(); render(); toast('Категория удалена из списка'); });
   document.querySelectorAll('[data-delete-goal]').forEach(b => b.onclick = () => { const g = state.goals.find(x=>x.id===b.dataset.deleteGoal); if(g) g.status = 'Отменена'; save(); render(); });
   document.querySelectorAll('[data-hide-habit]').forEach(b => b.onclick = () => { const h = state.habits.find(x=>x.id===b.dataset.hideHabit); if(h) h.active = false; save(); render(); });
   document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => { const t = state.tasks.find(x=>x.id===b.dataset.toggleTask); if(t) t.status = t.status === 'Готово' ? 'В работе' : 'Готово'; save(); render(); });
@@ -1137,16 +1258,18 @@ function openModal(type) {
 }
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
 function modalContent(type) {
-  const catOptions = state.settings.categories.map(c=>`<option>${c}</option>`).join('');
+  const expenseCatOptions = categoryOptions('expense');
+  const incomeCatOptions = categoryOptions('income');
   const areaOptions = state.settings.areas.map(c=>`<option>${c}</option>`).join('');
   const goalOptions = ['<option value="">Без цели</option>', ...state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена').map(g=>`<option value="${g.id}">${g.title}</option>`)].join('');
-  if (type === 'quickExpense') return { title:'💸 Добавить расход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${catOptions}</select></label><label>Эмоция<select id="mEmotion"><option>Нейтрально</option><option>Нужно</option><option>Стресс</option><option>Импульс</option><option>Радость</option></select></label><label class="full">Комментарий<input id="mNote" placeholder="Например: кофе, продукты, такси"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="expense">Добавить</button></div>` };
-  if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label class="full">Источник<input id="mNote" placeholder="Зарплата, проект, подарок"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить и распределить</button></div>` };
+  if (type === 'quickExpense') return { title:'💸 Добавить расход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="mEmotion"><option>Нейтрально</option><option>Нужно</option><option>Стресс</option><option>Импульс</option><option>Радость</option></select></label><label class="full">Комментарий<input id="mNote" placeholder="Например: кофе, продукты, такси"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="expense">Добавить</button></div>` };
+  if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${incomeCatOptions}</select></label><label class="full">Источник<input id="mNote" placeholder="Зарплата, проект, подарок"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить и распределить</button></div>` };
   if (type === 'quickTask') return { title:'📌 Добавить задачу', body:`<div class="form-grid"><label class="full">Задача<input id="tTitle" placeholder="Что сделать?"></label><label>Сфера<select id="tArea">${areaOptions}</select></label><label>Цель<select id="tGoal">${goalOptions}</select></label><label>Дедлайн<input id="tDue" type="date"></label><label>Время<input id="tTime" type="time" value="09:00"></label><label>Длительность, мин<input id="tDuration" type="number" value="30"></label><label>Напоминание<select id="tReminder"><option>В Google Calendar</option><option>За 10 минут</option><option>За 30 минут</option><option>За 1 час</option></select></label><label>Приоритет<select id="tPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label><label class="full">Следующий шаг<input id="tNext" placeholder="Самое маленькое действие"></label></div><div class="calendar-note">После добавления открой задачу и нажми «📅 В календарь» — Google Calendar сам даст уведомления на ПК и iPhone.</div><div class="actions-row"><button class="primary-btn" data-modal-save="task">Добавить</button></div>` };
   if (type === 'quickGoal') return { title:'🎯 SMART-цель', body:`<div class="form-grid"><label class="full">Название цели<input id="gTitle" placeholder="Например: накопить 150 000 ₽"></label><label>Сфера<select id="gArea">${areaOptions}</select></label><label>Метрика<input id="gMetric" placeholder="₽, тренировки, часы"></label><label>Цель в цифре<input id="gTarget" type="number" placeholder="150000"></label><label>Текущее значение<input id="gCurrent" type="number" placeholder="0"></label><label>Дедлайн<input id="gDeadline" type="date"></label><label class="full">Почему важно<textarea id="gWhy" placeholder="Зачем мне эта цель?"></textarea></label><label class="full">Следующий шаг<input id="gNext" placeholder="Первое действие"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="goal">Добавить цель</button></div>` };
   if (type === 'addHabit') return { title:'✅ Новая привычка', body:`<div class="form-grid"><label class="full">Название<input id="hName" placeholder="Например: 20 минут ходьбы"></label><label>Сфера<select id="hArea">${areaOptions}</select></label><label>Цель раз в неделю<input id="hTarget" type="number" value="5"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="habit">Добавить</button></div>` };
   if (type === 'closeDay') return { title:'🌙 Закрыть день', body:`<div class="form-grid"><label>Дата<input id="dDate" type="date" value="${todayKey()}"></label><label>Сон, часов<input id="dSleep" type="number" step="0.5" value="7"></label><label>Энергия 1–10<input id="dEnergy" type="number" min="1" max="10" value="7"></label><label>Настроение 1–10<input id="dMood" type="number" min="1" max="10" value="7"></label><label>Стресс 1–10<input id="dStress" type="number" min="1" max="10" value="4"></label><label class="full">Итог дня<textarea id="dNote" placeholder="Что получилось? Что понял?"></textarea></label></div><h3 style="margin-top:18px">Привычки</h3><div class="checkbox-grid">${state.habits.filter(h=>h.active).map(h=>`<label class="check-card"><span>${h.name}</span><input type="checkbox" data-day-habit="${h.id}"></label>`).join('')}</div><div class="actions-row"><button class="primary-btn" data-modal-save="day">Закрыть день</button></div>` };
-  if (type === 'wantBuy') return { title:'🛒 Хочу купить', body:`<div class="form-grid"><label class="full">Что купить<input id="bName" placeholder="Например: кроссовки"></label><label>Сумма<input id="bAmount" type="number" placeholder="0"></label><label>Категория<select id="bCategory">${catOptions}</select></label><label>Эмоция<select id="bEmotion"><option>Нужно</option><option>Хочу</option><option>Стресс</option><option>Импульс</option></select></label></div><div id="buyResult" class="empty" style="margin-top:14px">Заполни сумму, и система оценит покупку.</div><div class="actions-row"><button class="soft-btn" data-modal-action="checkBuy">Проверить</button><button class="primary-btn" data-modal-save="buyExpense">Купить и записать</button></div>` };
+  if (type === 'wantBuy') return { title:'🛒 Хочу купить', body:`<div class="form-grid"><label class="full">Что купить<input id="bName" placeholder="Например: кроссовки"></label><label>Сумма<input id="bAmount" type="number" placeholder="0"></label><label>Категория<select id="bCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="bEmotion"><option>Нужно</option><option>Хочу</option><option>Стресс</option><option>Импульс</option></select></label></div><div id="buyResult" class="empty" style="margin-top:14px">Заполни сумму, и система оценит покупку.</div><div class="actions-row"><button class="soft-btn" data-modal-action="checkBuy">Проверить</button><button class="primary-btn" data-modal-save="buyExpense">Купить и записать</button></div>` };
+  if (type === 'addCategory') return { title:'🏷 Добавить категорию', body:`<div class="form-grid"><label>Тип<select id="catType"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label class="full">Название категории<input id="catName" placeholder="Например: Маркетплейсы / Зарплата / Возврат"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="category">Добавить категорию</button></div>` };
   if (type === 'weeklyReport') return { title:'📅 Недельный отчёт', body:`<div class="empty">Собрать отчёт за последние 7 дней?</div><div class="actions-row"><button class="primary-btn" data-modal-save="week">Собрать</button></div>` };
   if (type === 'csvImport') return { title:'🏦 Банк-импорт', body:`<p class="sub">Лучше открыть полноценный экран банка: там есть дубли, кодировки и категории.</p><div class="actions-row"><button class="primary-btn" data-modal-action="goBankImport">Открыть банк-импорт</button></div>` };
   return { title:'Окно', body:'' };
@@ -1159,11 +1282,14 @@ function saveModal(kind) {
   if (kind === 'expense' || kind === 'income') {
     const amount = num(document.getElementById('mAmount').value);
     if (!amount) return toast('Введи сумму');
-    state.operations.push({ id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category: kind === 'income' ? 'Доход' : document.getElementById('mCategory')?.value, note: document.getElementById('mNote')?.value || '', emotion: document.getElementById('mEmotion')?.value || '' });
+    state.operations.push({ id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category: document.getElementById('mCategory')?.value || (kind === 'income' ? 'Другое' : 'Другое'), note: document.getElementById('mNote')?.value || '', emotion: document.getElementById('mEmotion')?.value || '' });
     if (kind === 'income') createAllocationOperations(amount, document.getElementById('mDate').value || todayKey());
   }
   if (kind === 'task') state.tasks.push({ id: uid(), title: val('tTitle'), area: val('tArea'), goalId: val('tGoal'), due: val('tDue'), time: val('tTime'), duration: num(val('tDuration')) || 30, reminder: val('tReminder'), priority: val('tPriority'), status: 'В работе', nextAction: val('tNext'), calendarAdded: false });
   if (kind === 'goal') state.goals.push({ id: uid(), title: val('gTitle'), area: val('gArea'), metric: val('gMetric'), targetValue: num(val('gTarget')), currentValue: num(val('gCurrent')), deadline: val('gDeadline'), why: val('gWhy'), nextAction: val('gNext'), status: 'Активна' });
+  if (kind === 'category') {
+    if (!addCategory(val('catType'), val('catName'))) return toast('Введи название категории');
+  }
   if (kind === 'habit') state.habits.push({ id: uid(), name: val('hName'), area: val('hArea'), targetPerWeek: num(val('hTarget')) || 5, active: true });
   if (kind === 'day') closeDaySave();
   if (kind === 'buyExpense') {
