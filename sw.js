@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v10-finance-ux-pro-20260617';
+const CACHE = 'second-brain-os-v10-stability-delight-20260618';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=finance-ux-pro-20260617',
-  './app.js?v=finance-ux-pro-20260617',
-  './cloud-sync.js?v=finance-ux-pro-20260617',
+  './styles.css?v=stability-delight-20260618',
+  './app.js?v=stability-delight-20260618',
+  './cloud-sync.js?v=stability-delight-20260618',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'

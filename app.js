@@ -2033,6 +2033,545 @@ function actionHandler(e) {
 }
 
 
+
+/* =========================
+   STABILITY & DELIGHT PACK
+   ========================= */
+
+// Fix: local date keys without UTC shift. This fixes “today shows tomorrow” on +UTC timezones.
+function toDateKey(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey() { return toDateKey(new Date()); }
+
+function enhanceDelightState() {
+  enhanceFinanceUXProState();
+  state.undoStack = Array.isArray(state.undoStack) ? state.undoStack : [];
+  state.reports = Array.isArray(state.reports) ? state.reports : [];
+  state.recurring = Array.isArray(state.recurring) ? state.recurring : [];
+  state.settings.categoryRules = Array.isArray(state.settings.categoryRules) ? state.settings.categoryRules : [];
+  state.settings.categoryColors = state.settings.categoryColors || defaultCategoryColors();
+  state.settings.visualDensity = state.settings.visualDensity || 'comfortable';
+  state.settings.showSmartActions = state.settings.showSmartActions !== false;
+  state.settings.expenseCategories = uniqueClean([...(state.settings.expenseCategories || []), 'Кредиты', 'Регулярные платежи']);
+  state.settings.incomeCategories = uniqueClean([...(state.settings.incomeCategories || []), 'Аванс']);
+}
+
+enhanceDelightState();
+
+function pushUndo(label) {
+  try {
+    state.undoStack = Array.isArray(state.undoStack) ? state.undoStack : [];
+    const snap = JSON.stringify({ ...state, undoStack: [] });
+    state.undoStack.unshift({ id: uid(), label: label || 'действие', at: new Date().toISOString(), snapshot: snap });
+    state.undoStack = state.undoStack.slice(0, 8);
+  } catch (e) { console.warn('undo snapshot failed', e); }
+}
+function undoLastAction() {
+  const item = state.undoStack?.shift();
+  if (!item) return toast('Нет действий для отмены');
+  try {
+    const previous = JSON.parse(item.snapshot);
+    const rest = state.undoStack || [];
+    state = migrate(previous);
+    enhanceDelightState();
+    state.undoStack = rest;
+    save();
+    render();
+    toast(`Отменено: ${item.label}`);
+  } catch (e) {
+    console.error(e);
+    toast('Не удалось отменить действие');
+  }
+}
+function undoBar() {
+  const item = state.undoStack?.[0];
+  if (!item) return '';
+  return `<div class="undo-bar"><span>Последнее действие: <b>${escapeHtml(item.label)}</b></span><button class="soft-btn" data-action="undoLastAction">↩️ Отменить</button></div>`;
+}
+
+function lifeScoreDetails() {
+  const s = monthSummary();
+  const baseFinance = s.income ? clamp((s.left / Math.max(1, s.income * .2)) * 100) : 50;
+  const debt = debtSummary();
+  const debtPressure = s.income ? clamp(100 - (debt.openOwe / Math.max(1, s.income)) * 80, 10, 100) : (debt.openOwe ? 45 : 70);
+  const finance = Math.round(baseFinance * .72 + debtPressure * .28);
+  const habits = habitMonthStats().percent;
+  const goals = goalsStats().avg || 40;
+  const ts = tasksStats();
+  const tasksScore = clamp(100 - ts.overdue * 20 - Math.max(0, ts.open - 10) * 2);
+  const st = stateStats();
+  const condition = st.rows.length ? clamp(((st.energy + st.mood) / 2 * 10) - st.stress * 3) : 60;
+  return {
+    total: Math.round(finance*.34 + habits*.22 + goals*.18 + condition*.14 + tasksScore*.12),
+    finance: Math.round(finance), debtPressure: Math.round(debtPressure), habits: Math.round(habits), goals: Math.round(goals), tasks: Math.round(tasksScore), condition: Math.round(condition)
+  };
+}
+function lifeScoreCard() {
+  const d = lifeScoreDetails();
+  const rows = [
+    ['Финансы', d.finance, 'доход / остаток / лимит'],
+    ['Долговая нагрузка', d.debtPressure, 'давление долгов'],
+    ['Привычки', d.habits, 'месячное выполнение'],
+    ['Цели', d.goals, 'прогресс и действия'],
+    ['Задачи', d.tasks, 'просрочки и объём'],
+    ['Состояние', d.condition, 'энергия / настроение / стресс'],
+  ];
+  return `<div class="card score-detail-card"><div class="section-head"><div><h3>🧠 Расшифровка Life Score</h3><p class="sub">Понятно, что влияет на общую оценку.</p></div><span class="tag green">${d.total}/100</span></div>${rows.map(([n,v,sub])=>`<div class="score-row"><div><b>${n}</b><span>${sub}</span></div><div class="score-mini"><div class="progress"><span style="width:${clamp(v)}%"></span></div><b>${v}</b></div></div>`).join('')}</div>`;
+}
+
+function smartActions() {
+  const items = [];
+  const fd = financialDayStatus();
+  const cleanup = monthCleanup(false);
+  const debt = debtSummary();
+  const t = tasksStats();
+  const now = new Date();
+  const hour = now.getHours();
+  const importedNoCat = state.importRows.filter(r => r.selected && !r.duplicate && !r.category).length;
+  const goalsNoAction = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && !String(g.nextAction || '').trim()).length;
+  if (fd.today || fd.overdue) items.push({ icon:'🏦', title: fd.overdue ? 'Закрыть финансовый день' : 'Сегодня финансовый день', text:'Проверь ЗП/аванс и внеси ручное распределение.', action:'manualAllocation', kind:'modal', tone:fd.overdue?'danger':'warn' });
+  if (importedNoCat) items.push({ icon:'🏷', title:'Назначить категории', text:`В импорте ${importedNoCat} строк без категории.`, action:'bank', kind:'page', tone:'warn' });
+  if (debt.dueSoon.length) items.push({ icon:'💳', title:'Проверить долги', text:`Ближайший срок: ${debt.dueSoon[0].due} · ${money(debt.dueSoon[0].remaining)}.`, action:'debts', kind:'page', tone:'danger' });
+  if (t.overdue) items.push({ icon:'📌', title:'Разгрести просрочки', text:`Просрочено задач: ${t.overdue}. Начни с одной.`, action:'tasks', kind:'page', tone:'danger' });
+  if (goalsNoAction) items.push({ icon:'🎯', title:'Добавить шаг к цели', text:`Целей без следующего действия: ${goalsNoAction}.`, action:'goals', kind:'page', tone:'warn' });
+  if (cleanup.count) items.push({ icon:'🧹', title:'Чистка месяца', text:`Найдено замечаний: ${cleanup.count}.`, action:'monthCleanup', kind:'action', tone:'blue' });
+  if (hour >= 19 && !state.states.some(x => x.date === todayKey())) items.push({ icon:'🌙', title:'Закрыть день', text:'Сон, энергия, настроение и короткий вывод.', action:'closeDay', kind:'modal', tone:'green' });
+  if (!items.length) items.push({ icon:'✨', title:'Система спокойна', text:'Можно просто добавить расход или закрыть день.', action:'quickExpense', kind:'modal', tone:'green' });
+  return items.slice(0, 6);
+}
+function smartActionsCard() {
+  const items = smartActions();
+  return `<div class="card smart-actions-card"><div class="section-head"><div><h3>⚡ Что сделать сейчас</h3><p class="sub">Приложение само поднимает то, что важно именно сейчас.</p></div><button class="soft-btn" data-action="monthCleanup">🧹 Проверить месяц</button></div><div class="smart-action-grid">${items.map(x=>`<button class="smart-action ${x.tone || ''}" ${x.kind==='page'?`data-page-jump="${x.action}"`:x.kind==='modal'?`data-open-modal="${x.action}"`:`data-action="${x.action}"`}><span>${x.icon}</span><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.text)}</small></button>`).join('')}</div></div>`;
+}
+
+function dashboard() {
+  enhanceDelightState();
+  const s = monthSummary();
+  const h = habitMonthStats();
+  const g = goalsStats();
+  const t = tasksStats();
+  const sc = lifeScore();
+  const debt = debtSummary();
+  const att = attentionItems();
+  const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+  return `
+    ${undoBar()}
+    <div class="os-home">
+      <section class="home-hero-pro card">
+        <div>
+          <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+          <h2>Финансы и жизнь в одном ритме</h2>
+          <p class="sub">Система подсказывает действия, следит за долгами, категориями, задачами и состоянием. Твоя рутина — минимум кликов.</p>
+          <div class="actions-row">
+            <button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button>
+            <button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button>
+            <button class="soft-btn" data-action="openDebtModal">💳 Долг</button>
+            <button class="soft-btn" data-open-modal="closeDay">🌙 Закрыть день</button>
+          </div>
+        </div>
+        <div class="score-orbit">
+          <div class="score-ring" style="--score:${sc}"><span>${sc}</span><small>Life Score</small></div>
+          <div class="sub">${scoreText(sc)}</div>
+        </div>
+      </section>
+      ${smartActionsCard()}
+      <div class="grid cards" style="margin-top:16px">
+        ${kpi('📆','Можно тратить сегодня', money(s.dailyLimit), `Остаток месяца: ${money(s.left)}`)}
+        ${kpi('💳','Долги к возврату', money(debt.openOwe), `${debt.oweCount} активных`)}
+        ${kpi('✅','Привычки', `${h.percent}%`, `${h.done} отметок за месяц`)}
+        ${kpi('📌','Задачи', `${t.today} сегодня`, `${t.overdue} просрочено`)}
+      </div>
+      ${financialDayCard()}
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3>🔔 Центр внимания</h3>${att.length ? att.map(x => `<div class="attention-item ${x.tone || ''}"><b>${x.title}</b><span>${x.text}</span></div>`).join('') : empty('Система спокойна. Продолжай в том же ритме.')}</div>
+        <div class="card"><h3>🎛 Категории месяца</h3>${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : empty('Пока нет расходов за месяц')}</div>
+      </div>
+      <div class="grid two" style="margin-top:16px">${lifeScoreCard()}${financialCalendarCard()}</div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Банковская лента по дням.</p></div><button class="soft-btn" data-page-jump="finance">Открыть журнал</button></div>
+        ${bankingFeed([...state.operations].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,12), { compact:true })}
+      </div>
+    </div>`;
+}
+
+function financialCalendarItems(monthKey = state.settings.currentMonth) {
+  const items = [];
+  financialDays(monthKey).forEach(x => items.push({ date:x.date, icon:'🏦', title:`Финансовый день (${x.day})`, type:'money' }));
+  debtSummary().active.forEach(d => { if (d.due && inMonth(d.due, monthKey)) items.push({ date:d.due, icon:'💳', title:`${d.direction === 'owe' ? 'Вернуть' : 'Получить'} ${money(d.remaining)}`, type:'debt' }); });
+  state.tasks.filter(t => taskIsOpen(t) && t.due && inMonth(t.due, monthKey)).forEach(t => items.push({ date:t.due, icon:'📌', title:t.title, type:'task' }));
+  state.recurring.filter(r => r.active !== false).forEach(r => { const d = recurringDateForMonth(r, monthKey); if (d) items.push({ date:d, icon:'🔁', title:r.title || r.category || 'Регулярный платёж', type:'recurring' }); });
+  return items.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function recurringDateForMonth(r, monthKey) {
+  const day = Math.min(Number(r.day || 1), 28);
+  if (!day) return '';
+  return `${monthKey}-${String(day).padStart(2,'0')}`;
+}
+function financialCalendarCard() {
+  const items = financialCalendarItems().slice(0, 9);
+  return `<div class="card finance-calendar-card"><div class="section-head"><div><h3>🗓 Финансовый календарь</h3><p class="sub">ЗП/аванс, долги, регулярные платежи и задачи месяца.</p></div><button class="soft-btn" data-open-modal="recurringOperation">+ Регулярное</button></div>${items.length ? `<div class="mini-timeline">${items.map(i=>`<div class="timeline-item ${i.type}"><span>${i.date.slice(8,10)}</span><b>${i.icon} ${escapeHtml(i.title)}</b><small>${formatFeedDate(i.date)}</small></div>`).join('')}</div>` : empty('Пока нет важных дат')}</div>`;
+}
+
+function monthCleanup(showToast = true) {
+  const month = state.settings.currentMonth;
+  const issues = [];
+  const monthOpsList = monthOps(month);
+  const noCat = monthOpsList.filter(o => !o.category).length;
+  const suspicious = findSuspiciousDuplicates(monthOpsList).length;
+  const debtNoDue = debtItems().filter(d => d.status !== 'Закрыт' && !d.due).length;
+  const goalNoNext = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && !String(g.nextAction || '').trim()).length;
+  const taskNoDue = state.tasks.filter(t => taskIsOpen(t) && !t.due).length;
+  const statesThisMonth = state.states.filter(s => inMonth(s.date, month)).length;
+  const [y,m] = month.split('-').map(Number);
+  const passedDays = Math.min(new Date().getDate(), new Date(y, m, 0).getDate());
+  if (noCat) issues.push(['Операции без категории', noCat, 'Назначить категории']);
+  if (suspicious) issues.push(['Похожие операции / возможные дубли', suspicious, 'Проверить журнал']);
+  if (debtNoDue) issues.push(['Долги без даты возврата', debtNoDue, 'Добавить срок']);
+  if (goalNoNext) issues.push(['Цели без следующего шага', goalNoNext, 'Добавить действие']);
+  if (taskNoDue) issues.push(['Задачи без даты', taskNoDue, 'Запланировать']);
+  if (statesThisMonth < Math.max(1, Math.floor(passedDays * .35))) issues.push(['Мало закрытых дней', Math.max(0, passedDays - statesThisMonth), 'Закрывать день чаще']);
+  const result = { issues, count: issues.reduce((s,x)=>s+x[1],0) };
+  if (showToast) openMonthCleanupModal(result);
+  return result;
+}
+function findSuspiciousDuplicates(list) {
+  const seen = new Map(), dup = [];
+  list.forEach(o => {
+    const sig = `${o.date}|${o.type}|${Math.round(num(o.amount)*100)}|${normalizeNote(o.note || o.category)}`;
+    if (seen.has(sig)) dup.push(o); else seen.set(sig, o.id);
+  });
+  return dup;
+}
+function openMonthCleanupModal(result = monthCleanup(false)) {
+  openCustomModal('🧹 Чистка месяца', `<div class="cleanup-modal"><p class="sub">Быстрая проверка аккуратности данных за ${monthLabel(state.settings.currentMonth)}.</p>${result.issues.length ? `<div class="cleanup-list">${result.issues.map(([name,count,action])=>`<div><b>${escapeHtml(name)}</b><span>${count}</span><small>${escapeHtml(action)}</small></div>`).join('')}</div>` : empty('Всё аккуратно. Замечаний нет.')}</div><div class="actions-row"><button class="primary-btn" id="goCleanupFinance">Открыть деньги</button><button class="soft-btn" id="goCleanupGoals">Открыть цели</button></div>`);
+  const f = document.getElementById('goCleanupFinance'); if (f) f.onclick = () => { closeModal(); activePage = 'finance'; render(); };
+  const g = document.getElementById('goCleanupGoals'); if (g) g.onclick = () => { closeModal(); activePage = 'goals'; render(); };
+}
+
+function periodComparison(from, to) {
+  const start = new Date(`${from}T00:00:00`), end = new Date(`${to}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const days = Math.max(1, Math.round((end-start)/86400000)+1);
+  const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate()-1);
+  const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate()-days+1);
+  const pk = { from: toDateKey(prevStart), to: toDateKey(prevEnd) };
+  const curOps = state.operations.filter(o => dateBetween(o.date, from, to));
+  const prevOps = state.operations.filter(o => dateBetween(o.date, pk.from, pk.to));
+  const sumBy = (ops, type) => total(ops.filter(o=>o.type===type));
+  const curExpense = sumBy(curOps, 'expense'), prevExpense = sumBy(prevOps, 'expense');
+  const curIncome = sumBy(curOps, 'income'), prevIncome = sumBy(prevOps, 'income');
+  const diff = curExpense - prevExpense;
+  return { days, prevFrom: pk.from, prevTo: pk.to, curExpense, prevExpense, curIncome, prevIncome, diff, pct: prevExpense ? Math.round(diff/prevExpense*100) : null };
+}
+function comparisonCard(from, to) {
+  const c = periodComparison(from, to);
+  if (!c) return '';
+  const tone = c.diff > 0 ? 'danger' : c.diff < 0 ? 'green' : 'blue';
+  return `<div class="card comparison-card"><h3>📊 Сравнение периодов</h3><p class="sub">Текущий период сравнен с предыдущими ${c.days} днями (${c.prevFrom} — ${c.prevTo}).</p><div class="grid cards"><div class="mini-kpi"><span>Расходы сейчас</span><b>${money(c.curExpense)}</b></div><div class="mini-kpi"><span>Расходы раньше</span><b>${money(c.prevExpense)}</b></div><div class="mini-kpi"><span>Разница</span><b class="${tone}-text">${c.diff>0?'+':''}${money(c.diff)}</b></div><div class="mini-kpi"><span>Изменение</span><b>${c.pct===null?'—':(c.pct>0?'+':'')+c.pct+'%'}</b></div></div></div>`;
+}
+
+function panel(opts = {}) {
+  const search = opts.search || document.getElementById('globalSearch')?.value || '';
+  const from = localStorage.getItem('panel.from') || `${state.settings.currentMonth}-01`;
+  const to = localStorage.getItem('panel.to') || `${state.settings.currentMonth}-31`;
+  const cats = categoryTotals(from, to);
+  const ops = state.operations.filter(o => dateBetween(o.date, from, to) && (!search || JSON.stringify(o).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date));
+  return `${undoBar()}<div class="card"><h3>🎛 Панель управления</h3><p class="sub">Периоды, категории, сравнение и поиск старых операций.</p><div class="form-grid"><label>С даты<input id="panelFrom" type="date" value="${from}"></label><label>По дату<input id="panelTo" type="date" value="${to}"></label></div><div class="actions-row"><button class="primary-btn" data-action="applyPeriod">Показать период</button><button class="soft-btn" data-action="currentMonthPeriod">Текущий месяц</button><button class="soft-btn" data-open-modal="weeklyReport">📅 Собрать неделю</button><button class="soft-btn" data-action="createMonthlyReport">🏁 Итог месяца</button></div></div>
+  <div style="margin-top:16px">${comparisonCard(from,to)}</div>
+  <div class="grid two" style="margin-top:16px"><div class="card"><h3>Категории периода</h3>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Нет расходов')}</div><div class="card"><h3>Поиск операций</h3><input id="panelSearch" class="search" style="width:100%" placeholder="Например: кафе, ozon, такси" value="${escapeAttr(search)}"><div class="ledger-meta" style="margin-top:12px">Найдено операций: ${ops.length}</div><div style="margin-top:12px">${bankingFeed(ops.slice(0,80), { compact:true })}</div></div></div>`;
+}
+
+function buildMonthlyReport(monthKey = state.settings.currentMonth) {
+  const s = monthSummary(monthKey);
+  const cats = categoryTotals(`${monthKey}-01`, `${monthKey}-31`);
+  const h = habitMonthStats(monthKey);
+  const d = debtSummary();
+  const bestCat = cats[0] || ['—', 0];
+  const score = lifeScore();
+  return {
+    id: `report-${monthKey}`,
+    month: monthKey,
+    createdAt: new Date().toISOString(),
+    income: s.income,
+    expenses: s.expenses,
+    allocations: s.allocations,
+    left: s.left,
+    bestCategory: bestCat[0],
+    bestCategoryAmount: bestCat[1],
+    habitsPercent: h.percent,
+    openDebt: d.openOwe,
+    lifeScore: score,
+    conclusion: s.left >= 0 ? 'Месяц держится в плюсе. Продолжай ручное распределение и контроль долгов.' : 'Месяц ушёл в минус. Нужна чистка категорий и ограничение необязательных расходов.'
+  };
+}
+function createMonthlyReport() {
+  const r = buildMonthlyReport();
+  pushUndo('создание месячного отчёта');
+  state.reports = state.reports.filter(x => x.id !== r.id);
+  state.reports.unshift(r);
+  save();
+  openCustomModal('🏁 Месячный отчёт', monthlyReportCard(r) + `<div class="actions-row"><button class="primary-btn" id="closeMonthlyReport">Готово</button></div>`);
+  const btn = document.getElementById('closeMonthlyReport'); if (btn) btn.onclick = closeModal;
+}
+function monthlyReportCard(r) {
+  return `<div class="month-report-card"><div class="tiny-label">${monthLabel(r.month)}</div><h2>${r.lifeScore}/100 · Итог месяца</h2><div class="grid cards"><div class="mini-kpi"><span>Доход</span><b>${money(r.income)}</b></div><div class="mini-kpi"><span>Расход</span><b>${money(r.expenses)}</b></div><div class="mini-kpi"><span>Отложено</span><b>${money(r.allocations)}</b></div><div class="mini-kpi"><span>Долги</span><b>${money(r.openDebt)}</b></div></div><p class="sub">Главная категория: <b>${escapeHtml(r.bestCategory)}</b> · ${money(r.bestCategoryAmount)}. Привычки: ${r.habitsPercent}%.</p><div class="attention-item green"><b>Вывод</b><span>${escapeHtml(r.conclusion)}</span></div></div>`;
+}
+
+function bankImport() {
+  enhanceDelightState();
+  const rows = state.importRows || [];
+  const stats = bankImportStats(rows);
+  const ready = rows.filter(r => r.selected && !r.duplicate && r.category).length;
+  const notReady = rows.filter(r => r.selected && !r.category && !r.duplicate).length;
+  return `${undoBar()}
+  <div class="bank-hero">
+    <div>
+      <div class="tiny-label">Банк-импорт Pro</div>
+      <h2>Загрузи выписку — система сама разберёт операции</h2>
+      <p>Категории остаются под твоим контролем, но приложение подсказывает и запоминает правила.</p>
+      <div class="actions-row">
+        <label class="primary-btn bank-file-btn">📥 Выбрать CSV / Excel<input id="bankCsvFile" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label>
+        <button class="soft-btn" data-action="parseBankFile">Разобрать файл</button>
+        <button class="soft-btn" data-action="clearBankImport">Очистить импорт</button>
+      </div>
+    </div>
+    <div class="card bank-help-card"><h3>Логика</h3><p>1. Разобрал файл.</p><p>2. Назначил категории вручную или массово.</p><p>3. Подтвердил перенос.</p></div>
+  </div>
+  <div class="grid cards" style="margin-top:16px">
+    ${kpi('📄','Строк в импорте', stats.total, 'разобрано из файла')}
+    ${kpi('✅','Готово к переносу', ready, 'выбрано + категория')}
+    ${kpi('🏷','Без категории', notReady, 'нужно назначить вручную')}
+    ${kpi('🧯','Дубли', stats.duplicates, 'автоматически сняты')}
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="section-head"><div><h3>⚙️ Настройки и массовые действия</h3><p class="sub">Ускоряет разбор выписки, не забирая контроль.</p></div></div>
+    <div class="form-grid">
+      <label>Кодировка<select id="bankEncoding"><option value="auto">Авто</option><option value="utf-8">UTF-8</option><option value="windows-1251">Windows-1251</option></select></label>
+      <label>Разделитель<select id="bankDelimiter"><option value="auto">Авто</option><option value=";">Точка с запятой ;</option><option value=",">Запятая ,</option><option value="tab">Tab</option></select></label>
+      <label>Тип по умолчанию<select id="bankDefaultType"><option value="expense">Расход</option><option value="income">Доход</option></select></label>
+      <label>Дубли<select id="bankDuplicateMode"><option value="skip">Не переносить</option><option value="allow">Разрешить вручную</option></select></label>
+      <label>Массовая категория<select id="bulkCategory"><option value="">Выбери</option>${categoryOptions('expense')}</select></label>
+      <label>Поиск похожих<input id="similarText" placeholder="например SAMOKAT / YOTA / FONBET"></label>
+    </div>
+    <div class="actions-row"><button class="soft-btn" data-action="applyBulkCategory">Назначить выбранным</button><button class="soft-btn" data-action="applySuggestionsAll">Применить все подсказки</button><button class="soft-btn" data-action="selectSimilarImport">Выбрать похожие</button><button class="soft-btn" data-action="rememberRulesForSelected">Запомнить правила</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>🏷 Подготовка операций</h3><p class="sub">Выбери категории и перенеси готовые операции.</p></div><div class="actions-row" style="margin:0"><button class="soft-btn" data-action="selectBankRows">Выбрать готовые</button><button class="soft-btn" data-action="unselectBankRows">Снять выбор</button><button class="soft-btn" data-open-modal="addCategory">+ Категория</button><button class="primary-btn" data-action="transferBankRows">Перенести готовые</button></div></div>${bankImportTable(rows)}</div>`;
+}
+
+function applyBulkCategory() {
+  const cat = document.getElementById('bulkCategory')?.value || '';
+  if (!cat) return toast('Выбери массовую категорию');
+  pushUndo('массовое назначение категории');
+  let count = 0;
+  state.importRows.forEach(r => { if (r.selected && !r.duplicate) { r.category = cat; count++; learnCategoryRule(r.note || '', cat, r.type || 'expense'); } });
+  save(); render(); toast(`Категория применена: ${count}`);
+}
+function applySuggestionsAll() {
+  pushUndo('применение подсказок категорий');
+  let count = 0;
+  state.importRows.forEach(r => { if (!r.category && !r.duplicate) { const s = categorySuggestion(r.note || '', r.type || 'expense'); if (s) { r.category = s; r.selected = true; count++; learnCategoryRule(r.note || '', s, r.type || 'expense'); } } });
+  save(); render(); toast(`Подсказки применены: ${count}`);
+}
+function selectSimilarImport() {
+  const q = normalizeMerchantText(document.getElementById('similarText')?.value || '');
+  if (!q) return toast('Введи текст для поиска похожих');
+  let count = 0;
+  state.importRows.forEach(r => { const hit = normalizeMerchantText(r.note || '').includes(q); if (hit && !r.duplicate) { r.selected = true; count++; } });
+  save(); render(); toast(`Выбрано похожих: ${count}`);
+}
+function rememberRulesForSelected() {
+  let count = 0;
+  state.importRows.forEach(r => { if (r.selected && r.category) { learnCategoryRule(r.note || '', r.category, r.type || 'expense'); count++; } });
+  save(); render(); toast(`Правил обновлено: ${count}`);
+}
+
+function bankImportTable(rows) {
+  if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV или Excel-файл банка, и здесь появятся операции для проверки.');
+  const visible = rows.slice(0, 600);
+  return table(['✓','Статус','Дата','Тип','Сумма','Категория','Подсказка','Описание'], visible.map(r => {
+    const suggestion = categorySuggestion(r.note || '', r.type || 'expense');
+    const status = r.duplicate ? '<span class="tag danger">Дубль</span>' : (r.category ? '<span class="tag green">Готово</span>' : '<span class="tag warn">Категория</span>');
+    return [
+      `<input type="checkbox" data-import-sel="${r.id}" ${r.selected ? 'checked' : ''}>`,
+      status,
+      `<input class="mini-input" type="date" data-import-date="${r.id}" value="${escapeAttr(r.date || todayKey())}">`,
+      `<select class="mini-input" data-import-type="${r.id}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select>`,
+      money(r.amount),
+      `<select class="mini-input" data-import-cat="${r.id}"><option value="">Выбери</option>${categoryOptions(r.type || 'expense', r.category || '')}</select>`,
+      suggestion && !r.category ? `<button class="soft-btn mini-soft" data-apply-suggestion="${r.id}" data-suggest-cat="${escapeAttr(suggestion)}">${categoryChip(suggestion)} применить</button>` : (r.category ? '<span class="tag green">Выбрано</span>' : '<span class="sub">нет</span>'),
+      `<div class="import-note">${escapeHtml(r.note || '')}</div>`
+    ];
+  }));
+}
+
+function taskCard(t) {
+  const goal = state.goals.find(g => g.id === t.goalId);
+  const danger = taskIsOpen(t) && t.due && t.due < todayKey();
+  const added = t.calendarAdded ? '<span class="tag green">В календаре</span>' : '';
+  const calUrl = buildGoogleCalendarUrl(t);
+  return `<article class="task-card ${danger ? 'danger-zone' : ''}">
+    <div class="task-main"><div class="task-title">${escapeHtml(t.title || 'Без названия')}</div><div class="task-meta">${t.due ? `<span class="tag ${danger ? 'danger' : 'blue'}">${formatTaskDate(t)}</span>` : '<span class="tag warn">Без даты</span>'}<span class="tag">${escapeHtml(t.priority || 'Средний')}</span>${goal ? `<span class="tag green">${escapeHtml(goal.title)}</span>` : ''}${added}</div>${t.nextAction ? `<p class="sub">Следующий шаг: ${escapeHtml(t.nextAction)}</p>` : ''}</div>
+    <div class="task-actions"><a class="soft-btn" href="${calUrl}" target="_blank" rel="noopener" data-calendar-task="${t.id}">📅 В календарь</a><button class="soft-btn" data-edit-task="${t.id}">Редактировать</button><button class="ghost-btn" data-toggle-task="${t.id}">${t.status === 'Готово' ? 'Вернуть' : 'Готово'}</button></div>
+  </article>`;
+}
+function openEditTaskModal(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const areaOptions = state.settings.areas.map(c=>`<option ${t.area===c?'selected':''}>${c}</option>`).join('');
+  const goalOptions = ['<option value="">Без цели</option>', ...state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена').map(g=>`<option value="${g.id}" ${t.goalId===g.id?'selected':''}>${escapeHtml(g.title)}</option>`)].join('');
+  openCustomModal('✏️ Редактировать задачу', `<div class="form-grid"><label class="full">Задача<input id="editTaskTitle" value="${escapeAttr(t.title || '')}"></label><label>Сфера<select id="editTaskArea">${areaOptions}</select></label><label>Цель<select id="editTaskGoal">${goalOptions}</select></label><label>Дедлайн<input id="editTaskDue" type="date" value="${escapeAttr(t.due || '')}"></label><label>Время<input id="editTaskTime" type="time" value="${escapeAttr(t.time || '09:00')}"></label><label>Длительность, мин<input id="editTaskDuration" type="number" value="${escapeAttr(t.duration || 30)}"></label><label>Приоритет<select id="editTaskPriority"><option ${t.priority==='Средний'?'selected':''}>Средний</option><option ${t.priority==='Высокий'?'selected':''}>Высокий</option><option ${t.priority==='Низкий'?'selected':''}>Низкий</option></select></label><label>Статус<select id="editTaskStatus"><option ${t.status==='В работе'?'selected':''}>В работе</option><option ${t.status==='Готово'?'selected':''}>Готово</option><option ${t.status==='Отменена'?'selected':''}>Отменена</option></select></label><label class="full">Следующий шаг<input id="editTaskNext" value="${escapeAttr(t.nextAction || '')}"></label></div><div class="actions-row"><button class="primary-btn" id="saveEditTaskBtn">Сохранить</button><button class="danger-btn" id="deleteEditTaskBtn">Удалить</button></div>`);
+  const saveBtn = document.getElementById('saveEditTaskBtn'); if (saveBtn) saveBtn.onclick = () => saveEditedTask(id);
+  const delBtn = document.getElementById('deleteEditTaskBtn'); if (delBtn) delBtn.onclick = () => { if(confirm('Удалить задачу?')) { pushUndo('удаление задачи'); state.tasks = state.tasks.filter(x=>x.id!==id); save(); closeModal(); render(); toast('Задача удалена'); } };
+}
+function saveEditedTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  pushUndo('редактирование задачи');
+  t.title = val('editTaskTitle') || t.title;
+  t.area = val('editTaskArea') || t.area;
+  t.goalId = val('editTaskGoal') || '';
+  t.due = val('editTaskDue') || '';
+  t.time = val('editTaskTime') || '';
+  t.duration = num(val('editTaskDuration')) || 30;
+  t.priority = val('editTaskPriority') || 'Средний';
+  t.status = val('editTaskStatus') || 'В работе';
+  t.nextAction = val('editTaskNext') || '';
+  t.calendarAdded = false;
+  save(); closeModal(); render(); toast('Задача обновлена');
+}
+
+function deleteOperation(id) {
+  const op = state.operations.find(o => o.id === id);
+  if (!op) return;
+  const msg = `Удалить операцию: ${operationLabel(op)}?`;
+  if (!confirm(msg)) return;
+  pushUndo('удаление операции');
+  lastDeletedOperation = { ...op, deletedAt: new Date().toISOString() };
+  state.operations = state.operations.filter(o => o.id !== id);
+  save(); render(); toast('Операция удалена. Можно отменить действие.');
+}
+function transferBankRows() {
+  const duplicateMode = document.getElementById('bankDuplicateMode')?.value || 'skip';
+  const ready = state.importRows.filter(r => r.selected && r.category && (duplicateMode === 'allow' || !r.duplicate));
+  if (!ready.length) return toast('Нет готовых строк: выбери операции и назначь категории');
+  pushUndo('перенос банковского импорта');
+  ready.forEach(r => { learnCategoryRule(r.note || '', r.category, r.type || 'expense'); state.operations.push({ id: uid(), date: r.date, type: r.type || 'expense', amount: Math.abs(num(r.amount)), category: r.category, note: r.note || 'Импорт банка', emotion: r.source === 'bank-excel' ? 'Банк Excel' : 'Банк CSV', importedAt: new Date().toISOString(), importSource: r.source || 'bank-import' }); });
+  const ids = new Set(ready.map(r => r.id));
+  state.importRows = state.importRows.filter(r => !ids.has(r.id));
+  save(); render(); toast(`Перенесено операций: ${ready.length}`);
+}
+
+function openCustomModal(title, body) {
+  document.getElementById('modalRoot').innerHTML = `<div class="modal-backdrop"><div class="modal"><header><h3>${title}</h3><button class="ghost-btn" data-close-modal>✕</button></header>${body}</div></div>`;
+  const close = document.querySelector('[data-close-modal]'); if (close) close.onclick = closeModal;
+}
+
+function modalContent(type) {
+  const expenseCatOptions = categoryOptions('expense');
+  const incomeCatOptions = categoryOptions('income');
+  const areaOptions = state.settings.areas.map(c=>`<option>${c}</option>`).join('');
+  const goalOptions = ['<option value="">Без цели</option>', ...state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена').map(g=>`<option value="${g.id}">${escapeHtml(g.title)}</option>`)].join('');
+  if (type === 'recurringOperation') return { title:'🔁 Регулярная операция', body:`<div class="form-grid"><label>Название<input id="rTitle" placeholder="Интернет, подписка, кредит"></label><label>Тип<select id="rType"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label>Сумма<input id="rAmount" type="number" placeholder="0"></label><label>День месяца<input id="rDay" type="number" min="1" max="28" value="1"></label><label>Категория<select id="rCategory">${expenseCatOptions}</select></label><label class="full">Комментарий<input id="rNote" placeholder="Будет отображаться в финансовом календаре"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="recurring">Сохранить</button></div>` };
+  if (type === 'quickExpense') return { title:'💸 Добавить расход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="mEmotion"><option>Нейтрально</option><option>Нужно</option><option>Стресс</option><option>Импульс</option><option>Радость</option></select></label><label class="full">Комментарий<input id="mNote" placeholder="Например: кофе, продукты, такси"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="expense">Добавить</button></div>` };
+  if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${incomeCatOptions}</select></label><label>Вернуть до, если это долг<input id="mDebtDue" type="date"></label><label class="full">Источник / кто дал / комментарий<input id="mNote" placeholder="Зарплата, аванс, кредит, кто дал в долг"></label></div><div class="calendar-note">Если выберешь «Кредитные средства» или «Взял в долг» и укажешь дату возврата, система сама создаст задачу.</div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить доход</button></div>` };
+  if (type === 'quickTask') return { title:'📌 Добавить задачу', body:`<div class="form-grid"><label class="full">Задача<input id="tTitle" placeholder="Что сделать?"></label><label>Сфера<select id="tArea">${areaOptions}</select></label><label>Цель<select id="tGoal">${goalOptions}</select></label><label>Дедлайн<input id="tDue" type="date"></label><label>Время<input id="tTime" type="time" value="09:00"></label><label>Длительность, мин<input id="tDuration" type="number" value="30"></label><label>Напоминание<select id="tReminder"><option>В Google Calendar</option><option>За 10 минут</option><option>За 30 минут</option><option>За 1 час</option></select></label><label>Приоритет<select id="tPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label><label class="full">Следующий шаг<input id="tNext" placeholder="Самое маленькое действие"></label></div><div class="calendar-note">После добавления нажми «📅 В календарь» — Google Calendar даст уведомления.</div><div class="actions-row"><button class="primary-btn" data-modal-save="task">Добавить</button></div>` };
+  if (type === 'quickGoal') return { title:'🎯 SMART-цель', body:`<div class="form-grid"><label class="full">Название цели<input id="gTitle" placeholder="Например: накопить 150 000 ₽"></label><label>Сфера<select id="gArea">${areaOptions}</select></label><label>Метрика<input id="gMetric" placeholder="₽, тренировки, часы"></label><label>Цель в цифре<input id="gTarget" type="number" placeholder="150000"></label><label>Текущее значение<input id="gCurrent" type="number" placeholder="0"></label><label>Дедлайн<input id="gDeadline" type="date"></label><label class="full">Почему важно<textarea id="gWhy" placeholder="Зачем мне эта цель?"></textarea></label><label class="full">Следующий шаг<input id="gNext" placeholder="Первое действие"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="goal">Добавить цель</button></div>` };
+  if (type === 'addHabit') return { title:'✅ Новая привычка', body:`<div class="form-grid"><label class="full">Название<input id="hName" placeholder="Например: 20 минут ходьбы"></label><label>Сфера<select id="hArea">${areaOptions}</select></label><label>Цель раз в неделю<input id="hTarget" type="number" value="5"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="habit">Добавить</button></div>` };
+  if (type === 'closeDay') return { title:'🌙 Закрыть день', body:`<div class="form-grid"><label>Дата<input id="dDate" type="date" value="${todayKey()}"></label><label>Сон, часов<input id="dSleep" type="number" step="0.5" value="7"></label><label>Энергия 1–10<input id="dEnergy" type="number" min="1" max="10" value="7"></label><label>Настроение 1–10<input id="dMood" type="number" min="1" max="10" value="7"></label><label>Стресс 1–10<input id="dStress" type="number" min="1" max="10" value="4"></label><label class="full">Итог дня<textarea id="dNote" placeholder="Что получилось? Что понял?"></textarea></label></div><h3 style="margin-top:18px">Привычки</h3><div class="checkbox-grid">${state.habits.filter(h=>h.active).map(h=>`<label class="check-card"><span>${escapeHtml(h.name)}</span><input type="checkbox" data-day-habit="${h.id}"></label>`).join('')}</div><div class="actions-row"><button class="primary-btn" data-modal-save="day">Закрыть день</button></div>` };
+  if (type === 'wantBuy') return { title:'🛒 Хочу купить', body:`<div class="form-grid"><label class="full">Что купить<input id="bName" placeholder="Например: кроссовки"></label><label>Сумма<input id="bAmount" type="number" placeholder="0"></label><label>Категория<select id="bCategory">${expenseCatOptions}</select></label><label>Эмоция<select id="bEmotion"><option>Нужно</option><option>Хочу</option><option>Стресс</option><option>Импульс</option></select></label></div><div id="buyResult" class="empty" style="margin-top:14px">Заполни сумму, и система оценит покупку.</div><div class="actions-row"><button class="soft-btn" data-modal-action="checkBuy">Проверить</button><button class="primary-btn" data-modal-save="buyExpense">Купить и записать</button></div>` };
+  if (type === 'manualAllocation') { const fd = financialDayStatus().active?.date || `${state.settings.currentMonth}-10`; return { title:'🏦 Ручное распределение денег', body:`<div class="form-grid"><label>Дата<input id="aDate" type="date" value="${fd}"></label><label>Сбережения<input id="aSavings" type="number" placeholder="0"></label><label>Подушка<input id="aCushion" type="number" placeholder="0"></label><label>Финансовая цель<input id="aGoal" type="number" placeholder="0"></label><label class="full">Комментарий<input id="aNote" placeholder="Например: распределение зарплаты/аванса"></label></div><div class="calendar-note">Автоматических списаний нет. Эти суммы будут записаны как ручные финансовые переводы.</div><div class="actions-row"><button class="primary-btn" data-modal-save="manualAllocation">Записать распределение</button></div>` }; }
+  if (type === 'addCategory') return { title:'🏷 Добавить категорию', body:`<div class="form-grid"><label>Тип<select id="catType"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label class="full">Название категории<input id="catName" placeholder="Например: Маркетплейсы / Зарплата / Возврат"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="category">Добавить категорию</button></div>` };
+  if (type === 'weeklyReport') return { title:'📅 Недельный отчёт', body:`<div class="empty">Собрать отчёт за последние 7 дней?</div><div class="actions-row"><button class="primary-btn" data-modal-save="week">Собрать</button></div>` };
+  if (type === 'csvImport') return { title:'🏦 Банк-импорт', body:`<p class="sub">Лучше открыть полноценный экран банка: там есть дубли, кодировки и категории.</p><div class="actions-row"><button class="primary-btn" data-modal-action="goBankImport">Открыть банк-импорт</button></div>` };
+  return { title:'Окно', body:'' };
+}
+
+function saveModal(kind) {
+  if (kind === 'expense' || kind === 'income') {
+    const amount = num(document.getElementById('mAmount').value);
+    if (!amount) return toast('Введи сумму');
+    pushUndo(kind === 'income' ? 'добавление дохода' : 'добавление расхода');
+    const category = document.getElementById('mCategory')?.value || 'Другое';
+    const note = document.getElementById('mNote')?.value || '';
+    const op = { id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category, note, emotion: document.getElementById('mEmotion')?.value || '' };
+    if (kind === 'income') {
+      const debtDue = document.getElementById('mDebtDue')?.value || '';
+      if (debtDue) op.debtDue = debtDue;
+      if (LOAN_INCOME_CATEGORIES.includes(category) && debtDue) state.tasks.push({ id: uid(), title: `Вернуть ${money(amount)}${note ? ' — ' + note : ''}`, area: 'Финансы', due: debtDue, time: '10:00', duration: 30, reminder: 'В Google Calendar', priority: 'Высокий', status: 'В работе', nextAction: 'Вернуть заемные средства', linkedOperationId: op.id });
+    }
+    state.operations.push(op); save(); closeModal(); render(); toast('Операция добавлена');
+  }
+  if (kind === 'task') { pushUndo('добавление задачи'); state.tasks.push({ id: uid(), title: val('tTitle'), area: val('tArea'), goalId: val('tGoal'), due: val('tDue'), time: val('tTime'), duration: num(val('tDuration')) || 30, reminder: val('tReminder'), priority: val('tPriority'), status: 'В работе', nextAction: val('tNext'), calendarAdded: false }); save(); closeModal(); render(); toast('Задача добавлена'); }
+  if (kind === 'goal') { pushUndo('добавление цели'); state.goals.push({ id: uid(), title: val('gTitle'), area: val('gArea'), metric: val('gMetric'), targetValue: num(val('gTarget')), currentValue: num(val('gCurrent')), deadline: val('gDeadline'), why: val('gWhy'), nextAction: val('gNext'), status:'В работе' }); save(); closeModal(); render(); toast('Цель добавлена'); }
+  if (kind === 'habit') { pushUndo('добавление привычки'); state.habits.push({ id: uid(), name: val('hName'), area: val('hArea'), targetPerWeek: num(val('hTarget')) || 5, active: true }); save(); closeModal(); render(); toast('Привычка добавлена'); }
+  if (kind === 'day') { pushUndo('закрытие дня'); const date = val('dDate') || todayKey(); state.states = state.states.filter(s => s.date !== date); state.states.push({ date, sleep:num(val('dSleep')), energy:num(val('dEnergy')), mood:num(val('dMood')), stress:num(val('dStress')), note:val('dNote') }); state.habitLogs[date] = state.habitLogs[date] || {}; document.querySelectorAll('[data-day-habit]').forEach(ch => state.habitLogs[date][ch.dataset.dayHabit] = ch.checked); save(); closeModal(); render(); toast('День закрыт'); }
+  if (kind === 'buyExpense') { pushUndo('покупка'); state.operations.push({ id: uid(), date: todayKey(), type:'expense', amount:num(val('bAmount')), category:val('bCategory'), note:val('bName'), emotion:val('bEmotion') }); save(); closeModal(); render(); }
+  if (kind === 'manualAllocation') { pushUndo('ручное распределение денег'); const date = val('aDate') || todayKey(); const note = val('aNote') || 'Ручное распределение'; const entries = [['Сбережения', num(val('aSavings'))], ['Подушка', num(val('aCushion'))], ['Финансовая цель', num(val('aGoal'))]].filter(x => x[1] > 0); if (!entries.length) return toast('Введи хотя бы одну сумму'); entries.forEach(([category, amount]) => state.operations.push({ id: uid(), date, type: 'expense', amount, category, note, emotion: 'Распределение' })); save(); closeModal(); render(); toast('Распределение записано'); }
+  if (kind === 'category') { const type = val('catType') || 'expense'; const name = val('catName'); if (!name) return toast('Введи название категории'); pushUndo('добавление категории'); addCategory(type, name); save(); closeModal(); render(); toast('Категория добавлена'); }
+  if (kind === 'week') { pushUndo('недельный отчёт'); createWeekReport(); closeModal(); render(); }
+  if (kind === 'recurring') { pushUndo('регулярная операция'); state.recurring.push({ id: uid(), title: val('rTitle'), type: val('rType') || 'expense', amount: num(val('rAmount')), day: num(val('rDay')) || 1, category: val('rCategory') || 'Регулярные платежи', note: val('rNote'), active: true }); save(); closeModal(); render(); toast('Регулярная операция добавлена'); }
+}
+
+function bindView() {
+  document.querySelectorAll('[data-page-jump]').forEach(b => b.onclick = () => { activePage = b.dataset.pageJump; render(); });
+  document.querySelectorAll('[data-open-modal]').forEach(b => b.onclick = () => openModal(b.dataset.openModal));
+  document.querySelectorAll('[data-delete-op]').forEach(b => b.onclick = () => deleteOperation(b.dataset.deleteOp));
+  document.querySelectorAll('[data-delete-category]').forEach(b => b.onclick = () => { const type = b.dataset.deleteCategory; const name = b.dataset.categoryName; if (!confirm(`Удалить категорию «${name}» из списка? Старые операции останутся как есть.`)) return; pushUndo('удаление категории'); removeCategory(type, name); save(); render(); toast('Категория удалена из списка'); });
+  document.querySelectorAll('[data-delete-goal]').forEach(b => b.onclick = () => { const g = state.goals.find(x=>x.id===b.dataset.deleteGoal); if(g) { pushUndo('скрытие цели'); g.status = 'Отменена'; save(); render(); } });
+  document.querySelectorAll('[data-hide-habit]').forEach(b => b.onclick = () => { const h = state.habits.find(x=>x.id===b.dataset.hideHabit); if(h) { pushUndo('скрытие привычки'); h.active = false; save(); render(); } });
+  document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => { const t = state.tasks.find(x=>x.id===b.dataset.toggleTask); if(t) { pushUndo('изменение статуса задачи'); t.status = t.status === 'Готово' ? 'В работе' : 'Готово'; save(); render(); } });
+  document.querySelectorAll('[data-edit-task]').forEach(b => b.onclick = () => openEditTaskModal(b.dataset.editTask));
+  document.querySelectorAll('[data-calendar-task]').forEach(a => a.onclick = () => { const t = state.tasks.find(x=>x.id===a.dataset.calendarTask); if(t) { t.calendarAdded = true; t.calendarLink = buildGoogleCalendarUrl(t); save(); setTimeout(render, 500); } });
+  bindFinanceControls();
+  document.querySelectorAll('[data-habit]').forEach(ch => ch.onchange = () => { pushUndo('отметка привычки'); const key = todayKey(); state.habitLogs[key] = state.habitLogs[key] || {}; state.habitLogs[key][ch.dataset.habit] = ch.checked; save(); toast('Привычка обновлена'); });
+  document.querySelectorAll('[data-action]').forEach(b => b.onclick = actionHandler);
+  const panelSearch = document.getElementById('panelSearch'); if (panelSearch) panelSearch.oninput = (e) => { document.getElementById('globalSearch').value = e.target.value; render({ search: e.target.value }); };
+  const backupInput = document.getElementById('backupInput'); if (backupInput) backupInput.onchange = importBackup;
+  const bankFile = document.getElementById('bankCsvFile'); if (bankFile) bankFile.onchange = () => toast('Файл выбран. Нажми «Разобрать файл»');
+  bindImportControls();
+}
+
+function actionHandler(e) {
+  const a = e.currentTarget.dataset.action;
+  if (a === 'applyPeriod') { localStorage.setItem('panel.from', document.getElementById('panelFrom').value); localStorage.setItem('panel.to', document.getElementById('panelTo').value); render(); }
+  if (a === 'currentMonthPeriod') { localStorage.setItem('panel.from', `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', `${state.settings.currentMonth}-31`); render(); }
+  if (a === 'financePrev') { financeView.page = Math.max(1, (financeView.page || 1) - 1); render(); }
+  if (a === 'financeNext') { financeView.page = (financeView.page || 1) + 1; render(); }
+  if (a === 'parseBankFile') parseBankFile();
+  if (a === 'transferBankRows') transferBankRows();
+  if (a === 'clearBankImport') { pushUndo('очистка импорта'); clearBankImport(); }
+  if (a === 'selectBankRows') selectBankRows();
+  if (a === 'unselectBankRows') unselectBankRows();
+  if (a === 'applyBulkCategory') applyBulkCategory();
+  if (a === 'applySuggestionsAll') applySuggestionsAll();
+  if (a === 'selectSimilarImport') selectSimilarImport();
+  if (a === 'rememberRulesForSelected') rememberRulesForSelected();
+  if (a === 'undoDeleteOp') undoLastDelete();
+  if (a === 'undoLastAction') undoLastAction();
+  if (a === 'saveSettings') saveSettings();
+  if (a === 'backup') exportBackup();
+  if (a === 'resetAll') { if(confirm('Точно очистить все данные?')) { pushUndo('полная очистка'); state = defaultData(); enhanceDelightState(); save(); render(); } }
+  if (a === 'repair') { enhanceDelightState(); save(); toast('Система проверена и мигрирована'); render(); }
+  if (a === 'cloudRegister') cloudRegister();
+  if (a === 'cloudLogin') cloudLogin();
+  if (a === 'cloudLogout') window.SecondBrainCloud?.logout();
+  if (a === 'cloudPush') window.SecondBrainCloud?.pushNow(state);
+  if (a === 'cloudPull') window.SecondBrainCloud?.pullNow();
+  if (a === 'cloudRefresh') { window.SecondBrainCloud?.refreshStatus(); render(); }
+  if (a === 'antiChaos') openAntiChaos();
+  if (a === 'fabQuick') openModal('quickExpense');
+  if (a === 'openDebtModal') openDebtModal();
+  if (a === 'repayDebt') openRepayDebtModal(e.currentTarget.dataset.debtId);
+  if (a === 'setTheme') { state.settings.theme = e.currentTarget.dataset.themeValue || 'latte'; save(); render(); }
+  if (a === 'resetCategoryRules') { if(confirm('Сбросить все обученные правила категорий?')) { pushUndo('сброс правил категорий'); state.settings.categoryRules = []; save(); render(); toast('Правила категорий сброшены'); } }
+  if (a === 'monthCleanup') monthCleanup(true);
+  if (a === 'createMonthlyReport') createMonthlyReport();
+}
+
+
 window.SecondBrainApp = {
   getState: () => state,
   setStateFromCloud: (cloudState) => {
