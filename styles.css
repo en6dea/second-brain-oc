@@ -484,3 +484,280 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
     font-size: 28px;
   }
 }
+
+
+/* ===== MOBILE FORCE PATCH v2 =====
+   Работает даже если iPhone/PWA отдаёт широкий viewport или старые media-query не сработали.
+   JS добавляет классы html.mobile-os и body.mobile-os.
+*/
+html.mobile-os,
+html.mobile-os body,
+body.mobile-os {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  -webkit-text-size-adjust: 100% !important;
+  touch-action: manipulation;
+}
+
+html.mobile-os .app-shell,
+body.mobile-os .app-shell {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100dvh !important;
+  padding: 0 !important;
+}
+
+html.mobile-os .sidebar,
+body.mobile-os .sidebar {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: 92px !important;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+  border-right: 0 !important;
+  border-top: 1px solid rgba(229,215,200,.95) !important;
+  border-bottom: 0 !important;
+  background: rgba(247,240,232,.94) !important;
+  backdrop-filter: blur(22px) !important;
+  box-shadow: 0 -12px 34px rgba(99,75,58,.14) !important;
+}
+
+html.mobile-os .brand,
+html.mobile-os .sidebar-card,
+body.mobile-os .brand,
+body.mobile-os .sidebar-card {
+  display: none !important;
+}
+
+html.mobile-os .nav,
+body.mobile-os .nav {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  padding: 0 2px 2px !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch;
+}
+html.mobile-os .nav::-webkit-scrollbar,
+body.mobile-os .nav::-webkit-scrollbar { display: none !important; }
+
+html.mobile-os .nav button,
+body.mobile-os .nav button {
+  flex: 0 0 auto !important;
+  min-width: 76px !important;
+  width: auto !important;
+  height: 58px !important;
+  padding: 7px 9px !important;
+  border-radius: 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3px !important;
+  text-align: center !important;
+  font-size: 11px !important;
+  line-height: 1.05 !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+html.mobile-os .nav button span,
+body.mobile-os .nav button span { font-size: 19px !important; line-height: 1 !important; }
+
+html.mobile-os .main,
+body.mobile-os .main {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 14px 12px calc(112px + env(safe-area-inset-bottom)) !important;
+}
+
+html.mobile-os .topbar,
+body.mobile-os .topbar {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+html.mobile-os .topbar h2,
+body.mobile-os .topbar h2 { font-size: 27px !important; }
+
+html.mobile-os .top-actions,
+body.mobile-os .top-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+html.mobile-os .search,
+body.mobile-os .search {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html.mobile-os button,
+html.mobile-os input,
+html.mobile-os select,
+html.mobile-os textarea,
+body.mobile-os button,
+body.mobile-os input,
+body.mobile-os select,
+body.mobile-os textarea {
+  min-height: 44px !important;
+  font-size: 16px !important;
+}
+
+html.mobile-os .hero,
+html.mobile-os .grid.cards,
+html.mobile-os .grid.two,
+html.mobile-os .grid.three,
+html.mobile-os .form-grid,
+body.mobile-os .hero,
+body.mobile-os .grid.cards,
+body.mobile-os .grid.two,
+body.mobile-os .grid.three,
+body.mobile-os .form-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+
+html.mobile-os .hero-main,
+body.mobile-os .hero-main {
+  min-height: auto !important;
+  padding: 20px !important;
+  border-radius: 28px !important;
+}
+html.mobile-os .hero-main h2,
+body.mobile-os .hero-main h2 { font-size: 31px !important; }
+html.mobile-os .big-score,
+body.mobile-os .big-score { font-size: 52px !important; }
+
+html.mobile-os .card,
+body.mobile-os .card {
+  padding: 16px !important;
+  border-radius: 22px !important;
+}
+html.mobile-os .metric,
+body.mobile-os .metric { font-size: 27px !important; }
+
+html.mobile-os .actions-row,
+body.mobile-os .actions-row {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+html.mobile-os .actions-row > *,
+body.mobile-os .actions-row > * { width: 100% !important; }
+
+html.mobile-os .tabs,
+body.mobile-os .tabs {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 8px !important;
+  padding-bottom: 4px !important;
+  scrollbar-width: none !important;
+}
+html.mobile-os .tabs::-webkit-scrollbar,
+body.mobile-os .tabs::-webkit-scrollbar { display: none !important; }
+html.mobile-os .tabs button,
+body.mobile-os .tabs button { flex: 0 0 auto !important; font-size: 13px !important; }
+
+html.mobile-os .table-wrap,
+body.mobile-os .table-wrap {
+  overflow: visible !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html.mobile-os table,
+html.mobile-os thead,
+html.mobile-os tbody,
+html.mobile-os tr,
+html.mobile-os th,
+html.mobile-os td,
+body.mobile-os table,
+body.mobile-os thead,
+body.mobile-os tbody,
+body.mobile-os tr,
+body.mobile-os th,
+body.mobile-os td {
+  display: block !important;
+  width: 100% !important;
+}
+html.mobile-os thead,
+body.mobile-os thead { display: none !important; }
+html.mobile-os tbody,
+body.mobile-os tbody { display: grid !important; gap: 10px !important; }
+html.mobile-os tr,
+body.mobile-os tr {
+  background: rgba(255,250,245,.84) !important;
+  border: 1px solid rgba(229,215,200,.95) !important;
+  border-radius: 20px !important;
+  padding: 10px !important;
+  box-shadow: 0 8px 22px rgba(99,75,58,.07) !important;
+}
+html.mobile-os td,
+body.mobile-os td {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 9px 3px !important;
+  border-bottom: 1px solid rgba(229,215,200,.55) !important;
+  text-align: right !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  word-break: break-word !important;
+}
+html.mobile-os td:last-child,
+body.mobile-os td:last-child { border-bottom: 0 !important; }
+html.mobile-os td::before,
+body.mobile-os td::before {
+  content: attr(data-label) !important;
+  flex: 0 0 40% !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  text-align: left !important;
+}
+html.mobile-os td[data-label="Действие"],
+body.mobile-os td[data-label="Действие"] { display: block !important; }
+html.mobile-os td[data-label="Действие"]::before,
+body.mobile-os td[data-label="Действие"]::before { display: none !important; }
+html.mobile-os td[data-label="Действие"] button,
+body.mobile-os td[data-label="Действие"] button { width: 100% !important; }
+
+html.mobile-os .modal-backdrop,
+body.mobile-os .modal-backdrop {
+  align-items: end !important;
+  place-items: end center !important;
+  padding: 10px !important;
+}
+html.mobile-os .modal,
+body.mobile-os .modal {
+  width: 100% !important;
+  max-height: calc(92dvh - env(safe-area-inset-bottom)) !important;
+  border-radius: 28px 28px 20px 20px !important;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom)) !important;
+}
+html.mobile-os .toast,
+body.mobile-os .toast {
+  left: 12px !important;
+  right: 12px !important;
+  bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  text-align: center !important;
+}

@@ -208,12 +208,27 @@ function lifeScore() {
   return Math.round(finance*.3 + habits*.25 + goals*.2 + condition*.15 + tasks*.1);
 }
 
+
+function applyMobileMode() {
+  const ua = navigator.userAgent || '';
+  const byWidth = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  const byTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const byUA = /iPhone|iPad|iPod|Android|Mobile/i.test(ua);
+  const isMobile = Boolean(byWidth || (byTouch && window.innerWidth < 1100) || byUA);
+  document.documentElement.classList.toggle('mobile-os', isMobile);
+  document.body.classList.toggle('mobile-os', isMobile);
+  document.documentElement.style.setProperty('--vvh', `${window.innerHeight}px`);
+}
+
 function init() {
+  applyMobileMode();
+  window.addEventListener('resize', applyMobileMode);
+  window.addEventListener('orientationchange', () => setTimeout(applyMobileMode, 250));
   renderNav();
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=mobile-force-20260617').catch(console.warn);
   }
 }
 function renderNav() {

@@ -1,13 +1,40 @@
-const CACHE = 'second-brain-os-v2-delete-ops';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './cloud-sync.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'second-brain-os-v5-mobile-force-20260617';
+const ASSETS = [
+  './',
+  './index.html',
+  './styles.css?v=mobile-force-20260617',
+  './app.js?v=mobile-force-20260617',
+  './cloud-sync.js?v=mobile-force-20260617',
+  './firebase-config.js?v=live',
+  './manifest.webmanifest',
+  './icon.svg'
+];
+
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS).catch(() => null)));
   self.skipWaiting();
 });
+
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k)))));
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k))))
+  );
   self.clients.claim();
 });
+
 self.addEventListener('fetch', event => {
-  event.respondWith(caches.match(event.request).then(resp => resp || fetch(event.request)));
+  const req = event.request;
+  const url = new URL(req.url);
+  const isRuntimeFile = ['document', 'script', 'style'].includes(req.destination) || /\.(html|js|css)$/.test(url.pathname);
+  if (isRuntimeFile) {
+    event.respondWith(
+      fetch(req).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE).then(cache => cache.put(req, clone)).catch(() => null);
+        return resp;
+      }).catch(() => caches.match(req).then(resp => resp || caches.match('./index.html')))
+    );
+    return;
+  }
+  event.respondWith(caches.match(req).then(resp => resp || fetch(req)));
 });
