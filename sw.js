@@ -1,5 +1,5 @@
-// Second Brain OS — BUTTONS V4 service worker
-const CACHE_NAME = 'second-brain-os-buttons-v4-20260618';
+// Second Brain OS — BUTTONS V5 FIX service worker
+const CACHE_NAME = 'second-brain-os-buttons-v5-callstack-fix-20260618';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
@@ -9,5 +9,5 @@ self.addEventListener('activate', event => {
   })());
 });
 self.addEventListener('fetch', event => {
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  event.respondWith(fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request)));
 });

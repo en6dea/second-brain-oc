@@ -1232,7 +1232,7 @@ body[data-theme="dark"] .smart-action,body[data-theme="dark"] .timeline-item,bod
 }
 
 
-/* BUTTONS V4: кликабельные карточки на Сегодня */
+/* BUTTONS V5 FIX: кликабельные карточки на Сегодня */
 .clickable-kpi {
   width: 100%;
   text-align: left;

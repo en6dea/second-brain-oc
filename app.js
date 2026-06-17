@@ -2895,26 +2895,25 @@ function openPlannedExpenseModal() {
 }
 
 const __baseModalContent = modalContent;
-function modalContent(type) {
+modalContent = function(type) {
   if (type === 'spendReward') return { title:'🎁 Потратить бонусы', body:`<div id="spendRewardMount"></div>` };
   if (type === 'rewardSettings') return { title:'⚙️ Бонусы', body:`<div id="rewardSettingsMount"></div>` };
   if (type === 'plannedExpense') return { title:'📌 Плановый расход', body:`<div id="plannedExpenseMount"></div>` };
   return __baseModalContent(type);
-}
+};
 const __baseOpenModal = openModal;
-function openModal(type) {
+openModal = function(type) {
   if (type === 'spendReward') return openSpendRewardModal();
   if (type === 'rewardSettings') return openRewardSettingsModal();
   if (type === 'plannedExpense') return openPlannedExpenseModal();
   return __baseOpenModal(type);
-}
+};
 
 const __baseHandleModalSave = handleModalSave;
-function handleModalSave(kind) {
-  const beforeDone = new Set(state.tasks.filter(t=>t.status==='Готово').map(t=>t.id));
+handleModalSave = function(kind) {
   __baseHandleModalSave(kind);
   if (kind === 'day') { addReward(3, 'Закрытие дня', 'day-' + todayKey()); save(); }
-}
+};
 
 const __baseBindView_GOAL_GAME = bindView;
 bindView = function() {
@@ -2930,21 +2929,6 @@ bindView = function() {
   });
   document.querySelectorAll('[data-edit-task]').forEach(b => b.onclick = () => openEditTaskModal(b.dataset.editTask));
 }
-
-const __baseActionHandler = actionHandler;
-function actionHandler(e) {
-  const a = e.currentTarget.dataset.action;
-  if (a === 'goalAction') return openGoalActionModal(e.currentTarget.dataset.goalId);
-  if (a === 'goalSmartPlan') return openSmartGoalActionsModal(e.currentTarget.dataset.goalId);
-  if (a === 'goalNote') return openGoalNoteModal(e.currentTarget.dataset.goalId);
-  if (a === 'goalProgress') return openGoalProgressModal(e.currentTarget.dataset.goalId);
-  if (a === 'completeGoal') { const g = state.goals.find(x=>x.id===e.currentTarget.dataset.goalId); if (g) { pushUndo('статус цели'); const done = g.status !== 'Готово'; g.status = done ? 'Готово' : 'В работе'; if (done) addReward(20, 'Цель закрыта', 'goal-' + g.id); save(); render(); } return; }
-  if (a === 'createInsightReport') return createInsightReport();
-  if (a === 'setInsightPeriod') { localStorage.setItem('panel.from', document.getElementById('insightFrom')?.value || `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', document.getElementById('insightTo')?.value || `${state.settings.currentMonth}-31`); render(); return; }
-  return __baseActionHandler(e);
-}
-
-
 
 /* =========================
    FINAL BUTTONS + UX REPAIR V4
@@ -3162,7 +3146,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain BUTTONS V4 app.js loaded');
+console.log('Second Brain BUTTONS V5 FIX app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {
