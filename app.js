@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=auth-callstack-fix-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=final-repair-v3-20260618').catch(console.warn);
   }
 }
 function renderNav() {
@@ -1088,7 +1088,7 @@ function achievementsHtml() {
 function syncView() {
   const cloud = window.SecondBrainCloud;
   const st = cloud ? cloud.getStatus() : { configured:false, ready:false, user:null, status:'Модуль не загружен', lastSync:'', lastError:'' };
-  const configured = !!st.configured;
+  const configured = !!(st.configured || (window.SECOND_BRAIN_FIREBASE_CONFIG && window.SECOND_BRAIN_FIREBASE_CONFIG.apiKey));
   const onlineTag = configured ? '<span class="tag green">Firebase подключён</span>' : '<span class="tag warn">Нужна настройка Firebase</span>';
   const userBlock = st.user
     ? `<div class="card"><h3>☁️ Облако активно</h3><p class="sub">Вход выполнен: <b>${st.user.email || st.user.uid}</b></p><div class="pill-list"><span class="tag green">${st.status || 'Готово'}</span>${st.lastSync ? `<span class="tag blue">Последняя синхронизация: ${new Date(st.lastSync).toLocaleString('ru-RU')}</span>` : ''}</div><div class="actions-row"><button class="primary-btn" data-action="cloudPush">⬆️ Отправить это устройство в облако</button><button class="soft-btn" data-action="cloudPull">⬇️ Загрузить из облака</button><button class="soft-btn" data-action="cloudRefresh">🔄 Обновить статус</button><button class="danger-btn" data-action="cloudLogout">Выйти</button></div><p class="sub">Автосохранение включено: после изменений данные отправляются в облако с небольшой задержкой. Для первого запуска на новом устройстве нажми «Загрузить из облака».</p></div>`
@@ -1312,14 +1312,16 @@ function cloudCredentials() {
     password: document.getElementById('cloudPassword')?.value || ''
   };
 }
-function cloudRegister() {
+async function cloudRegister() {
   const c = cloudCredentials();
   if (!c.email || !c.password) return toast('Введи email и пароль');
+  if (window.SecondBrainCloud?.init) await window.SecondBrainCloud.init();
   window.SecondBrainCloud?.register(c.email, c.password);
 }
-function cloudLogin() {
+async function cloudLogin() {
   const c = cloudCredentials();
   if (!c.email || !c.password) return toast('Введи email и пароль');
+  if (window.SecondBrainCloud?.init) await window.SecondBrainCloud.init();
   window.SecondBrainCloud?.login(c.email, c.password);
 }
 
@@ -2893,30 +2895,30 @@ function openPlannedExpenseModal() {
 }
 
 const __baseModalContent = modalContent;
-modalContent = function(type) {
+function modalContent(type) {
   if (type === 'spendReward') return { title:'🎁 Потратить бонусы', body:`<div id="spendRewardMount"></div>` };
   if (type === 'rewardSettings') return { title:'⚙️ Бонусы', body:`<div id="rewardSettingsMount"></div>` };
   if (type === 'plannedExpense') return { title:'📌 Плановый расход', body:`<div id="plannedExpenseMount"></div>` };
   return __baseModalContent(type);
-};
+}
 const __baseOpenModal = openModal;
-openModal = function(type) {
+function openModal(type) {
   if (type === 'spendReward') return openSpendRewardModal();
   if (type === 'rewardSettings') return openRewardSettingsModal();
   if (type === 'plannedExpense') return openPlannedExpenseModal();
   return __baseOpenModal(type);
-};
+}
 
 const __baseHandleModalSave = handleModalSave;
-handleModalSave = function(kind) {
+function handleModalSave(kind) {
   const beforeDone = new Set(state.tasks.filter(t=>t.status==='Готово').map(t=>t.id));
   __baseHandleModalSave(kind);
   if (kind === 'day') { addReward(3, 'Закрытие дня', 'day-' + todayKey()); save(); }
-};
+}
 
-const __baseBindView = bindView;
+const __baseBindView_GOAL_GAME = bindView;
 bindView = function() {
-  __baseBindView();
+  __baseBindView_GOAL_GAME();
   document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => {
     const t = state.tasks.find(x=>x.id===b.dataset.toggleTask);
     if (!t) return;
@@ -2927,10 +2929,10 @@ bindView = function() {
     save(); render();
   });
   document.querySelectorAll('[data-edit-task]').forEach(b => b.onclick = () => openEditTaskModal(b.dataset.editTask));
-};
+}
 
 const __baseActionHandler = actionHandler;
-actionHandler = function(e) {
+function actionHandler(e) {
   const a = e.currentTarget.dataset.action;
   if (a === 'goalAction') return openGoalActionModal(e.currentTarget.dataset.goalId);
   if (a === 'goalSmartPlan') return openSmartGoalActionsModal(e.currentTarget.dataset.goalId);
@@ -2940,7 +2942,7 @@ actionHandler = function(e) {
   if (a === 'createInsightReport') return createInsightReport();
   if (a === 'setInsightPeriod') { localStorage.setItem('panel.from', document.getElementById('insightFrom')?.value || `${state.settings.currentMonth}-01`); localStorage.setItem('panel.to', document.getElementById('insightTo')?.value || `${state.settings.currentMonth}-31`); render(); return; }
   return __baseActionHandler(e);
-};
+}
 
 window.SecondBrainApp = {
   getState: () => state,
@@ -2959,5 +2961,10 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
+console.log('Second Brain FINAL REPAIR V3 app.js loaded');
 init();
-if (window.SecondBrainCloud) window.SecondBrainCloud.init();
+if (window.SecondBrainCloud) {
+  window.SecondBrainCloud.init().then(() => {
+    try { if (activePage === 'sync') render(); } catch(e) {}
+  });
+}
