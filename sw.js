@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v7-bank-import-pro-20260617';
+const CACHE = 'second-brain-os-v8-bank-excel-pro-20260617';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=bank-import-pro-20260617',
-  './app.js?v=bank-import-pro-20260617',
-  './cloud-sync.js?v=bank-import-pro-20260617',
+  './styles.css?v=bank-excel-pro-20260617',
+  './app.js?v=bank-excel-pro-20260617',
+  './cloud-sync.js?v=bank-excel-pro-20260617',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'

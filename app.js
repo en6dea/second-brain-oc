@@ -387,16 +387,16 @@ function bankImport() {
     <div>
       <div class="tiny-label">Банк-импорт Pro</div>
       <h2>Загрузи выписку — система сама разберёт операции</h2>
-      <p>Самый безопасный вариант без доступа к банку: скачал CSV-выписку → загрузил сюда → назначил категории вручную → перенёс в операции. Дубли подсвечиваются и не выбираются автоматически.</p>
+      <p>Самый безопасный вариант без доступа к банку: скачал CSV или Excel-выписку → загрузил сюда → назначил категории вручную → перенёс в операции. Дубли подсвечиваются и не выбираются автоматически.</p>
       <div class="actions-row">
-        <label class="primary-btn bank-file-btn">📥 Выбрать CSV<input id="bankCsvFile" type="file" accept=".csv,.txt,text/csv" hidden></label>
+        <label class="primary-btn bank-file-btn">📥 Выбрать CSV / Excel<input id="bankCsvFile" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label>
         <button class="soft-btn" data-action="parseBankFile">Разобрать файл</button>
         <button class="soft-btn" data-action="clearBankImport">Очистить импорт</button>
       </div>
     </div>
     <div class="card bank-help-card">
       <h3>Как пользоваться</h3>
-      <p>1. Скачай выписку из банка в CSV.</p>
+      <p>1. Скачай выписку из банка в CSV, XLSX или XLS.</p>
       <p>2. Загрузи файл сюда.</p>
       <p>3. Проверь дату/сумму, назначь категории.</p>
       <p>4. Перенеси готовые строки в «Деньги».</p>
@@ -410,7 +410,7 @@ function bankImport() {
   </div>
   <div class="card" style="margin-top:16px">
     <div class="section-head">
-      <div><h3>⚙️ Настройки разбора</h3><p class="sub">Для большинства банков оставь «авто». Если кракозябры — попробуй Windows-1251.</p></div>
+      <div><h3>⚙️ Настройки разбора</h3><p class="sub">Для CSV оставь «авто». Если кракозябры — попробуй Windows-1251. Для Excel эти настройки почти не нужны.</p></div>
     </div>
     <div class="form-grid">
       <label>Кодировка<select id="bankEncoding"><option value="auto">Авто</option><option value="utf-8">UTF-8</option><option value="windows-1251">Windows-1251</option></select></label>
@@ -442,7 +442,7 @@ function bankImportStats(rows = state.importRows || []) {
 }
 
 function bankImportTable(rows) {
-  if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV-файл банка, и здесь появятся операции для проверки.');
+  if (!rows.length) return empty('Пока нет загруженной выписки. Загрузи CSV или Excel-файл банка, и здесь появятся операции для проверки.');
   const visible = rows.slice(0, 180);
   const cats = state.settings.categories.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
   return table(['✓','Статус','Дата','Тип','Сумма','Категория','Описание'], visible.map(r => {
@@ -473,20 +473,21 @@ function bindImportControls() {
 async function parseBankFile() {
   const input = document.getElementById('bankCsvFile') || document.getElementById('csvFile');
   const file = input?.files?.[0];
-  if (!file) return toast('Выбери CSV-файл');
+  if (!file) return toast('Выбери CSV или Excel-файл');
   try {
     const encoding = document.getElementById('bankEncoding')?.value || 'auto';
     const delimiter = document.getElementById('bankDelimiter')?.value || 'auto';
     const defaultType = document.getElementById('bankDefaultType')?.value || 'expense';
-    const text = await readBankFileText(file, encoding);
-    const parsed = parseBankCsvText(text, { delimiter, defaultType });
+    const parsed = isExcelFile(file)
+      ? await parseBankExcelFile(file, { defaultType })
+      : parseBankCsvText(await readBankFileText(file, encoding), { delimiter, defaultType });
     state.importRows = parsed;
     save();
     render();
     toast(`Разобрано строк: ${parsed.length}`);
   } catch (err) {
     console.error(err);
-    toast('Не удалось разобрать CSV');
+    toast('Не удалось разобрать файл');
   }
 }
 
@@ -607,6 +608,11 @@ function parseBankDate(value) {
   const raw = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0,10);
   if (/\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4}/.test(raw)) return parseDate(raw);
+  const serial = Number(raw.replace(',', '.'));
+  if (Number.isFinite(serial) && serial > 25000 && serial < 80000) {
+    const ms = Math.round((serial - 25569) * 86400000);
+    return new Date(ms).toISOString().slice(0, 10);
+  }
   const d = new Date(raw);
   if (!Number.isNaN(d.getTime()) && d.getFullYear() > 2000) return toDateKey(d);
   return '';
@@ -648,7 +654,7 @@ function transferBankRows() {
   const duplicateMode = document.getElementById('bankDuplicateMode')?.value || 'skip';
   const ready = state.importRows.filter(r => r.selected && r.category && (duplicateMode === 'allow' || !r.duplicate));
   if (!ready.length) return toast('Нет готовых строк: выбери операции и назначь категории');
-  ready.forEach(r => state.operations.push({ id: uid(), date: r.date, type: r.type || 'expense', amount: Math.abs(num(r.amount)), category: r.category, note: r.note || 'Импорт банка', emotion: 'Банк CSV', importedAt: new Date().toISOString(), importSource: 'bank-csv' }));
+  ready.forEach(r => state.operations.push({ id: uid(), date: r.date, type: r.type || 'expense', amount: Math.abs(num(r.amount)), category: r.category, note: r.note || 'Импорт банка', emotion: r.source === 'bank-excel' ? 'Банк Excel' : 'Банк CSV', importedAt: new Date().toISOString(), importSource: r.source || 'bank-import' }));
   const ids = new Set(ready.map(r => r.id));
   state.importRows = state.importRows.filter(r => !ids.has(r.id));
   save(); render(); toast(`Перенесено операций: ${ready.length}`);
