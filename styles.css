@@ -761,3 +761,123 @@ body.mobile-os .toast {
   bottom: calc(92px + env(safe-area-inset-bottom)) !important;
   text-align: center !important;
 }
+
+/* Calendar & Visual Pro — 2026-06-17 */
+:root {
+  --glass: rgba(255, 250, 245, .72);
+  --ink-soft: rgba(63,53,46,.72);
+  --gold: #c8a27d;
+  --olive: #9aaa89;
+  --lavender: #c7bdcf;
+}
+body {
+  background:
+    radial-gradient(circle at 10% 5%, rgba(220,185,174,.46), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(168,184,160,.42), transparent 34%),
+    linear-gradient(180deg, #f8f1e9 0%, #efe5d8 100%);
+}
+.card, .hero-main, .sidebar-card, .modal {
+  box-shadow: 0 18px 52px rgba(65, 47, 33, .10), inset 0 1px 0 rgba(255,255,255,.55);
+}
+.card {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card:hover { transform: translateY(-1px); box-shadow: 0 22px 60px rgba(65, 47, 33, .13); }
+.primary-btn, .soft-btn, .danger-btn, .ghost-btn { transition: transform .15s ease, filter .15s ease, background .15s ease; }
+.primary-btn:active, .soft-btn:active, .danger-btn:active { transform: scale(.985); }
+.primary-btn { background: linear-gradient(135deg, #4f443b, #756658); }
+.soft-btn { background: rgba(255,250,245,.82); backdrop-filter: blur(14px); }
+
+.section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.calendar-hero, .today-hero {
+  display:flex; justify-content:space-between; gap:18px; align-items:stretch; flex-wrap:wrap;
+  padding: 24px;
+  border-radius: 34px;
+  background:
+    linear-gradient(135deg, rgba(255,250,245,.92), rgba(239,229,216,.78)),
+    radial-gradient(circle at 85% 20%, rgba(168,184,160,.40), transparent 36%);
+  border: 1px solid rgba(229,215,200,.85);
+  box-shadow: var(--shadow);
+}
+.calendar-hero h2, .today-hero h2 { margin: 4px 0 8px; font-size: clamp(30px, 5vw, 54px); letter-spacing:-.07em; }
+.calendar-hero p, .today-hero p { max-width: 720px; color: var(--muted); line-height:1.55; margin:0 0 14px; }
+.calendar-hero-actions { display:flex; flex-direction:column; justify-content:center; gap:10px; min-width:220px; }
+.task-hero { background:
+  linear-gradient(135deg, rgba(255,250,245,.94), rgba(236,226,215,.80)),
+  radial-gradient(circle at 80% 20%, rgba(199,189,207,.36), transparent 34%);
+}
+.today-score-ring {
+  width: 142px; height:142px; border-radius: 50%; display:grid; place-items:center;
+  background: conic-gradient(var(--olive) 0 72%, rgba(255,250,245,.75) 72% 100%);
+  box-shadow: inset 0 0 0 13px rgba(255,250,245,.82), 0 18px 45px rgba(65,47,33,.12);
+  color: var(--text); flex: 0 0 auto; align-self:center;
+}
+.today-score-ring span { display:block; font-size: 38px; font-weight: 950; letter-spacing:-.07em; text-align:center; }
+.today-score-ring small { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-top:-16px; }
+.task-board { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; }
+.task-column { background: rgba(255,250,245,.50); border: 1px solid rgba(229,215,200,.70); border-radius: 28px; padding: 14px; min-height: 160px; }
+.task-column h3 { margin: 0 0 10px; font-size:16px; }
+.task-list { display:grid; gap:12px; }
+.task-list.compact .task-card { padding: 12px; }
+.task-card {
+  display:grid; grid-template-columns: 1fr auto; gap: 14px; align-items:center;
+  padding: 15px;
+  margin: 0 0 10px;
+  border-radius: 22px;
+  background: rgba(255,250,245,.84);
+  border: 1px solid rgba(229,215,200,.88);
+  box-shadow: 0 10px 26px rgba(65,47,33,.07);
+}
+.task-card.danger-zone { border-color: rgba(173,95,95,.32); background: rgba(255,241,241,.80); }
+.task-title { font-weight: 900; letter-spacing:-.025em; margin-bottom: 8px; }
+.task-meta { display:flex; flex-wrap:wrap; gap:6px; }
+.task-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+.task-actions a { text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+.mini-empty { color: var(--muted); border:1px dashed var(--line); border-radius:18px; padding:16px; text-align:center; }
+.calendar-note { margin-top: 14px; padding: 12px 14px; border-radius: 18px; background: rgba(168,184,160,.16); color: var(--ink-soft); line-height:1.45; }
+.fab-add {
+  position: fixed; right: 22px; bottom: 22px; z-index: 90;
+  width: 62px; height: 62px; border-radius: 22px;
+  display:grid; place-items:center; font-size: 34px; line-height:1;
+  background: linear-gradient(135deg, #4f443b, #8a7665); color:#fff;
+  box-shadow: 0 18px 44px rgba(79,68,59,.28);
+}
+.fab-add:hover { filter: brightness(1.04); }
+
+@media (max-width: 1180px) {
+  .task-board { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 780px) {
+  .task-board { grid-template-columns: 1fr; }
+  .task-card { grid-template-columns: 1fr; }
+  .task-actions { justify-content:stretch; }
+  .task-actions > * { flex: 1 1 auto; }
+}
+html.mobile-os .calendar-hero,
+body.mobile-os .calendar-hero,
+html.mobile-os .today-hero,
+body.mobile-os .today-hero {
+  display:grid !important; grid-template-columns: 1fr !important; padding: 19px !important; border-radius: 28px !important;
+}
+html.mobile-os .calendar-hero-actions,
+body.mobile-os .calendar-hero-actions { min-width:0 !important; }
+html.mobile-os .today-score-ring,
+body.mobile-os .today-score-ring { width: 118px !important; height: 118px !important; justify-self:start; }
+html.mobile-os .task-board,
+body.mobile-os .task-board { grid-template-columns: 1fr !important; gap: 12px !important; }
+html.mobile-os .task-column,
+body.mobile-os .task-column { border-radius: 22px !important; padding: 12px !important; }
+html.mobile-os .task-card,
+body.mobile-os .task-card { grid-template-columns: 1fr !important; padding: 14px !important; border-radius: 20px !important; }
+html.mobile-os .task-actions,
+body.mobile-os .task-actions { display:grid !important; grid-template-columns: 1fr !important; gap: 8px !important; }
+html.mobile-os .task-actions > *,
+body.mobile-os .task-actions > * { width: 100% !important; }
+html.mobile-os .fab-add,
+body.mobile-os .fab-add {
+  right: 16px !important;
+  bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+  width: 58px !important; height:58px !important; border-radius: 21px !important;
+}
+html.mobile-os .nav button:nth-child(n+8),
+body.mobile-os .nav button:nth-child(n+8) { display: none !important; }

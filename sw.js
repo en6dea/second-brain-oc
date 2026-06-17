@@ -1,10 +1,10 @@
-const CACHE = 'second-brain-os-v5-mobile-force-20260617';
+const CACHE = 'second-brain-os-v6-calendar-visual-pro-20260617';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=mobile-force-20260617',
-  './app.js?v=mobile-force-20260617',
-  './cloud-sync.js?v=mobile-force-20260617',
+  './styles.css?v=calendar-visual-pro-20260617',
+  './app.js?v=calendar-visual-pro-20260617',
+  './cloud-sync.js?v=calendar-visual-pro-20260617',
   './firebase-config.js?v=live',
   './manifest.webmanifest',
   './icon.svg'
@@ -28,7 +28,7 @@ self.addEventListener('fetch', event => {
   const isRuntimeFile = ['document', 'script', 'style'].includes(req.destination) || /\.(html|js|css)$/.test(url.pathname);
   if (isRuntimeFile) {
     event.respondWith(
-      fetch(req).then(resp => {
+      fetch(req, { cache: 'no-store' }).then(resp => {
         const clone = resp.clone();
         caches.open(CACHE).then(cache => cache.put(req, clone)).catch(() => null);
         return resp;

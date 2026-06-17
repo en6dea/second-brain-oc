@@ -38,12 +38,14 @@ let lastDeletedOperation = null;
 
 const pages = [
   ['dashboard', '🏠', 'Главная'],
+  ['today', '🌤', 'Сегодня'],
   ['quick', '⚡', 'Быстрый ввод'],
   ['finance', '💸', 'Деньги'],
   ['panel', '🎛', 'Панель анализа'],
   ['goals', '🎯', 'SMART-цели'],
   ['habits', '✅', 'Привычки'],
   ['tasks', '📌', 'Задачи'],
+  ['calendar', '🔔', 'Календарь'],
   ['state', '🌿', 'Состояние'],
   ['insights', '✨', 'Инсайты'],
   ['sync', '☁️', 'Синхронизация'],
@@ -228,7 +230,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=mobile-force-20260617').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=calendar-visual-pro-20260617').catch(console.warn);
   }
 }
 function renderNav() {
@@ -239,6 +241,8 @@ function renderNav() {
 function bindGlobal() {
   document.querySelector('[data-action="quick"]').onclick = () => { activePage = 'quick'; render(); };
   document.querySelector('[data-action="backup"]').onclick = exportBackup;
+  const fab = document.getElementById('fabAdd');
+  if (fab) fab.onclick = () => openModal('quickExpense');
   document.getElementById('globalSearch').oninput = (e) => {
     if (activePage !== 'panel') activePage = 'panel';
     activePanelTab = 'search';
@@ -251,7 +255,7 @@ function render(opts = {}) {
   document.getElementById('pageTitle').textContent = page ? page[2] : 'Главная';
   document.getElementById('todayMini').innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
   const view = document.getElementById('view');
-  const map = { dashboard, quick, finance, panel, goals, habits, tasks, state: stateView, insights, sync: syncView, settings };
+  const map = { dashboard, today: todayView, quick, finance, panel, goals, habits, tasks, calendar: calendarView, state: stateView, insights, sync: syncView, settings };
   view.innerHTML = (map[activePage] || dashboard)(opts);
   bindView();
 }
@@ -273,6 +277,7 @@ function dashboard() {
         <div class="sub">${scoreText(sc)}</div>
         <div class="actions-row">
           <button class="primary-btn" data-open-modal="quickExpense">💸 Добавить расход</button>
+          <button class="soft-btn" data-page-jump="today">🌤 Сегодня</button>
           <button class="soft-btn" data-page-jump="habits">✅ Отметить привычки</button>
           <button class="soft-btn" data-open-modal="closeDay">🌙 Закрыть день</button>
         </div>
@@ -331,6 +336,7 @@ function quick() {
       <button class="primary-btn" data-open-modal="quickExpense">💸 Расход</button>
       <button class="soft-btn" data-open-modal="quickIncome">💰 Доход</button>
       <button class="soft-btn" data-open-modal="quickTask">📌 Задача</button>
+      <button class="soft-btn" data-page-jump="calendar">🔔 Календарь</button>
       <button class="soft-btn" data-open-modal="quickGoal">🎯 SMART-цель</button>
       <button class="soft-btn" data-open-modal="closeDay">🌙 Закрыть день</button>
       <button class="soft-btn" data-open-modal="wantBuy">🛒 Хочу купить</button>
@@ -397,12 +403,92 @@ function habits() {
 }
 
 function tasks() {
-  const rows = state.tasks.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')).map(t => {
-    const goal = state.goals.find(g => g.id === t.goalId);
-    const danger = t.status !== 'Готово' && t.due && t.due < todayKey();
-    return [t.title, goal?.title || '', t.area, t.priority, t.due || '', danger ? '<span class="tag danger">Просрочено</span>' : t.status, t.nextAction || '', `<button class="ghost-btn" data-toggle-task="${t.id}">${t.status === 'Готово' ? 'Вернуть' : 'Готово'}</button>`];
-  });
-  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h3>📌 Задачи</h3><button class="primary-btn" data-open-modal="quickTask">Добавить задачу</button></div>${table(['Задача','Цель','Сфера','Приоритет','Дедлайн','Статус','Следующий шаг',''], rows)}</div>`;
+  const open = state.tasks
+    .filter(t => t.status !== 'Готово' && t.status !== 'Отменена')
+    .sort(taskSort);
+  const done = state.tasks
+    .filter(t => t.status === 'Готово')
+    .sort(taskSort)
+    .slice(0, 12);
+  return `<div class="calendar-hero task-hero">
+    <div>
+      <div class="tiny-label">Google Calendar Lite</div>
+      <h2>Задачи с напоминаниями</h2>
+      <p>Добавляй дату и время, открывай задачу в Google Calendar и получай уведомления уже средствами календаря.</p>
+      <div class="pill-list">
+        <span class="tag green">Сегодня: ${tasksForDay(todayKey()).length}</span>
+        <span class="tag warn">Просрочено: ${tasksStats().overdue}</span>
+        <span class="tag blue">Без даты: ${undatedTasks().length}</span>
+      </div>
+    </div>
+    <div class="calendar-hero-actions">
+      <button class="primary-btn" data-open-modal="quickTask">📌 Добавить задачу</button>
+      <button class="soft-btn" data-page-jump="calendar">🔔 Открыть календарь</button>
+    </div>
+  </div>
+  <div class="task-board" style="margin-top:16px">
+    ${taskColumn('🔥 Просрочено', overdueTasks(), 'danger')}
+    ${taskColumn('🌤 Сегодня', tasksForDay(todayKey()), 'green')}
+    ${taskColumn('🗓 Неделя', weekTasks(), 'blue')}
+    ${taskColumn('🌫 Без даты', undatedTasks(), 'warn')}
+  </div>
+  <div class="card" style="margin-top:16px"><h3>📚 Все активные задачи</h3>${open.length ? `<div class="task-list">${open.map(taskCard).join('')}</div>` : empty('Активных задач нет')}</div>
+  <div class="card" style="margin-top:16px"><h3>✅ Завершённые</h3>${done.length ? `<div class="task-list compact">${done.map(taskCard).join('')}</div>` : empty('Пока нет завершённых задач')}</div>`;
+}
+
+function todayView() {
+  const s = monthSummary();
+  const date = todayKey();
+  const habits = state.habits.filter(h => h.active);
+  const todayTasks = tasksForDay(date).slice(0, 5);
+  const cats = categoryTotals(date, date).slice(0, 4);
+  const st = state.states.find(x => x.date === date);
+  return `<div class="today-screen">
+    <div class="today-hero">
+      <div>
+        <div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div>
+        <h2>Сегодня</h2>
+        <p>${todayIntro()}</p>
+      </div>
+      <div class="today-score-ring"><span>${lifeScore()}</span><small>Life Score</small></div>
+    </div>
+    <div class="grid cards" style="margin-top:16px">
+      ${kpi('📆','Лимит сегодня', money(s.dailyLimit), 'безопасная трата до конца месяца')}
+      ${kpi('📌','Задачи', `${todayTasks.length}`, `${tasksStats().overdue} просрочено`)}
+      ${kpi('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'отмечено сегодня')}
+      ${kpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : empty('Нет задач на сегодня. Выбери 1 главный фокус.')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${h.name}</b><br><span class="sub">${h.area}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : empty('Сегодня ещё нет расходов')}</div>
+      <div class="card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод. Это даст нормальную аналитику по жизни.</p><button class="primary-btn" data-open-modal="closeDay" style="width:100%">Закрыть день</button></div>
+    </div>
+  </div>`;
+}
+
+function calendarView() {
+  const today = todayKey();
+  const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+  const tomorrow = toDateKey(tomorrowDate);
+  const upcoming = weekTasks().filter(t => t.due !== today).slice(0, 10);
+  return `<div class="calendar-hero">
+    <div>
+      <div class="tiny-label">Calendar Lite</div>
+      <h2>Календарь и напоминания</h2>
+      <p>Без сложной интеграции: задача открывается в Google Calendar с заполненными полями. Ты нажимаешь «Сохранить», а уведомления уже делает календарь на ПК и iPhone.</p>
+      <div class="pill-list"><span class="tag green">Сегодня ${tasksForDay(today).length}</span><span class="tag blue">Завтра ${tasksForDay(tomorrow).length}</span><span class="tag warn">Без даты ${undatedTasks().length}</span></div>
+    </div>
+    <div class="calendar-hero-actions"><button class="primary-btn" data-open-modal="quickTask">📌 Новая задача</button><button class="soft-btn" data-page-jump="tasks">Все задачи</button></div>
+  </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h3>🌤 Сегодня</h3>${tasksForDay(today).length ? tasksForDay(today).map(taskCard).join('') : empty('На сегодня задач нет')}</div>
+    <div class="card"><h3>🌅 Завтра</h3>${tasksForDay(tomorrow).length ? tasksForDay(tomorrow).map(taskCard).join('') : empty('На завтра задач нет')}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>🗓 Ближайшая неделя</h3>${upcoming.length ? `<div class="task-list">${upcoming.map(taskCard).join('')}</div>` : empty('На неделю задач пока нет')}</div>
+  <div class="card" style="margin-top:16px"><h3>🌫 Без даты</h3>${undatedTasks().length ? `<div class="task-list">${undatedTasks().map(taskCard).join('')}</div>` : empty('Все задачи запланированы')}</div>`;
 }
 
 function stateView() {
@@ -477,6 +563,90 @@ function escapeAttr(value) {
     .replaceAll('>', '&gt;');
 }
 
+
+function todayIntro() {
+  const t = tasksStats();
+  const s = monthSummary();
+  if (t.overdue) return `Есть ${t.overdue} просроч. задача. Не геройствуй: закрой одну маленькую.`;
+  if (s.dailyLimit && s.dailyLimit < 700) return 'Денежный режим аккуратный: держи дневной лимит и не покупай на эмоциях.';
+  return 'Держи ритм: деньги, 1–3 задачи, привычки и короткое закрытие дня.';
+}
+function todayHabitCount() {
+  const log = state.habitLogs[todayKey()] || {};
+  return state.habits.filter(h => h.active && log[h.id]).length;
+}
+function taskIsOpen(t) { return t.status !== 'Готово' && t.status !== 'Отменена'; }
+function taskSort(a,b) {
+  const da = a.due || '9999-99-99';
+  const db = b.due || '9999-99-99';
+  if (da !== db) return da.localeCompare(db);
+  const p = { 'Высокий': 1, 'Средний': 2, 'Низкий': 3 };
+  return (p[a.priority] || 2) - (p[b.priority] || 2);
+}
+function tasksForDay(dateKey) { return state.tasks.filter(t => taskIsOpen(t) && t.due === dateKey).sort(taskSort); }
+function overdueTasks() { return state.tasks.filter(t => taskIsOpen(t) && t.due && t.due < todayKey()).sort(taskSort); }
+function undatedTasks() { return state.tasks.filter(t => taskIsOpen(t) && !t.due).sort(taskSort); }
+function weekTasks() {
+  const start = new Date();
+  const end = new Date(); end.setDate(end.getDate() + 7);
+  const from = toDateKey(start), to = toDateKey(end);
+  return state.tasks.filter(t => taskIsOpen(t) && t.due && t.due >= from && t.due <= to).sort(taskSort);
+}
+function taskColumn(title, list, tone) {
+  return `<div class="task-column"><h3>${title}</h3>${list.length ? list.slice(0,4).map(taskCard).join('') : `<div class="mini-empty">Пусто</div>`}</div>`;
+}
+function taskCard(t) {
+  const goal = state.goals.find(g => g.id === t.goalId);
+  const danger = taskIsOpen(t) && t.due && t.due < todayKey();
+  const added = t.calendarAdded ? '<span class="tag green">В календаре</span>' : '';
+  const calUrl = buildGoogleCalendarUrl(t);
+  return `<article class="task-card ${danger ? 'danger-zone' : ''}">
+    <div class="task-main">
+      <div class="task-title">${escapeHtml(t.title || 'Без названия')}</div>
+      <div class="task-meta">
+        ${t.due ? `<span class="tag ${danger ? 'danger' : 'blue'}">${formatTaskDate(t)}</span>` : '<span class="tag warn">Без даты</span>'}
+        <span class="tag">${escapeHtml(t.priority || 'Средний')}</span>
+        ${goal ? `<span class="tag green">${escapeHtml(goal.title)}</span>` : ''}
+        ${added}
+      </div>
+      ${t.nextAction ? `<p class="sub">Следующий шаг: ${escapeHtml(t.nextAction)}</p>` : ''}
+    </div>
+    <div class="task-actions">
+      <a class="soft-btn" href="${calUrl}" target="_blank" rel="noopener" data-calendar-task="${t.id}">📅 В календарь</a>
+      <button class="ghost-btn" data-toggle-task="${t.id}">${t.status === 'Готово' ? 'Вернуть' : 'Готово'}</button>
+    </div>
+  </article>`;
+}
+function formatTaskDate(t) {
+  if (!t.due) return 'Без даты';
+  const d = new Date(`${t.due}T00:00:00`);
+  const base = d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+  return `${base}${t.time ? ' · ' + t.time : ''}`;
+}
+function buildGoogleCalendarUrl(t) {
+  const title = encodeURIComponent(t.title || 'Задача Second Brain OS');
+  const due = t.due || todayKey();
+  const startTime = t.time || '09:00';
+  const duration = Math.max(15, num(t.duration || 30));
+  const start = new Date(`${due}T${startTime}:00`);
+  const end = new Date(start.getTime() + duration * 60000);
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const details = encodeURIComponent([
+    t.nextAction ? `Следующий шаг: ${t.nextAction}` : '',
+    t.area ? `Сфера: ${t.area}` : '',
+    'Создано в Second Brain OS'
+  ].filter(Boolean).join('\n'));
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}`;
+}
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function bindView() {
   document.querySelectorAll('[data-page-jump]').forEach(b => b.onclick = () => { activePage = b.dataset.pageJump; render(); });
   document.querySelectorAll('[data-open-modal]').forEach(b => b.onclick = () => openModal(b.dataset.openModal));
@@ -484,6 +654,7 @@ function bindView() {
   document.querySelectorAll('[data-delete-goal]').forEach(b => b.onclick = () => { const g = state.goals.find(x=>x.id===b.dataset.deleteGoal); if(g) g.status = 'Отменена'; save(); render(); });
   document.querySelectorAll('[data-hide-habit]').forEach(b => b.onclick = () => { const h = state.habits.find(x=>x.id===b.dataset.hideHabit); if(h) h.active = false; save(); render(); });
   document.querySelectorAll('[data-toggle-task]').forEach(b => b.onclick = () => { const t = state.tasks.find(x=>x.id===b.dataset.toggleTask); if(t) t.status = t.status === 'Готово' ? 'В работе' : 'Готово'; save(); render(); });
+  document.querySelectorAll('[data-calendar-task]').forEach(a => a.onclick = () => { const t = state.tasks.find(x=>x.id===a.dataset.calendarTask); if(t) { t.calendarAdded = true; t.calendarLink = buildGoogleCalendarUrl(t); save(); setTimeout(render, 500); } });
   document.querySelectorAll('[data-habit]').forEach(ch => ch.onchange = () => {
     const key = todayKey();
     state.habitLogs[key] = state.habitLogs[key] || {};
@@ -512,6 +683,7 @@ function actionHandler(e) {
   if (a === 'cloudPull') window.SecondBrainCloud?.pullNow();
   if (a === 'cloudRefresh') { window.SecondBrainCloud?.refreshStatus(); render(); }
   if (a === 'antiChaos') openAntiChaos();
+  if (a === 'fabQuick') openModal('quickExpense');
 }
 function cloudCredentials() {
   return {
@@ -555,7 +727,7 @@ function modalContent(type) {
   const goalOptions = ['<option value="">Без цели</option>', ...state.goals.filter(g=>g.status!=='Готово'&&g.status!=='Отменена').map(g=>`<option value="${g.id}">${g.title}</option>`)].join('');
   if (type === 'quickExpense') return { title:'💸 Добавить расход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${catOptions}</select></label><label>Эмоция<select id="mEmotion"><option>Нейтрально</option><option>Нужно</option><option>Стресс</option><option>Импульс</option><option>Радость</option></select></label><label class="full">Комментарий<input id="mNote" placeholder="Например: кофе, продукты, такси"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="expense">Добавить</button></div>` };
   if (type === 'quickIncome') return { title:'💰 Добавить доход', body:`<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label class="full">Источник<input id="mNote" placeholder="Зарплата, проект, подарок"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="income">Добавить и распределить</button></div>` };
-  if (type === 'quickTask') return { title:'📌 Добавить задачу', body:`<div class="form-grid"><label class="full">Задача<input id="tTitle" placeholder="Что сделать?"></label><label>Сфера<select id="tArea">${areaOptions}</select></label><label>Цель<select id="tGoal">${goalOptions}</select></label><label>Дедлайн<input id="tDue" type="date"></label><label>Приоритет<select id="tPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label><label class="full">Следующий шаг<input id="tNext" placeholder="Самое маленькое действие"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="task">Добавить</button></div>` };
+  if (type === 'quickTask') return { title:'📌 Добавить задачу', body:`<div class="form-grid"><label class="full">Задача<input id="tTitle" placeholder="Что сделать?"></label><label>Сфера<select id="tArea">${areaOptions}</select></label><label>Цель<select id="tGoal">${goalOptions}</select></label><label>Дедлайн<input id="tDue" type="date"></label><label>Время<input id="tTime" type="time" value="09:00"></label><label>Длительность, мин<input id="tDuration" type="number" value="30"></label><label>Напоминание<select id="tReminder"><option>В Google Calendar</option><option>За 10 минут</option><option>За 30 минут</option><option>За 1 час</option></select></label><label>Приоритет<select id="tPriority"><option>Средний</option><option>Высокий</option><option>Низкий</option></select></label><label class="full">Следующий шаг<input id="tNext" placeholder="Самое маленькое действие"></label></div><div class="calendar-note">После добавления открой задачу и нажми «📅 В календарь» — Google Calendar сам даст уведомления на ПК и iPhone.</div><div class="actions-row"><button class="primary-btn" data-modal-save="task">Добавить</button></div>` };
   if (type === 'quickGoal') return { title:'🎯 SMART-цель', body:`<div class="form-grid"><label class="full">Название цели<input id="gTitle" placeholder="Например: накопить 150 000 ₽"></label><label>Сфера<select id="gArea">${areaOptions}</select></label><label>Метрика<input id="gMetric" placeholder="₽, тренировки, часы"></label><label>Цель в цифре<input id="gTarget" type="number" placeholder="150000"></label><label>Текущее значение<input id="gCurrent" type="number" placeholder="0"></label><label>Дедлайн<input id="gDeadline" type="date"></label><label class="full">Почему важно<textarea id="gWhy" placeholder="Зачем мне эта цель?"></textarea></label><label class="full">Следующий шаг<input id="gNext" placeholder="Первое действие"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="goal">Добавить цель</button></div>` };
   if (type === 'addHabit') return { title:'✅ Новая привычка', body:`<div class="form-grid"><label class="full">Название<input id="hName" placeholder="Например: 20 минут ходьбы"></label><label>Сфера<select id="hArea">${areaOptions}</select></label><label>Цель раз в неделю<input id="hTarget" type="number" value="5"></label></div><div class="actions-row"><button class="primary-btn" data-modal-save="habit">Добавить</button></div>` };
   if (type === 'closeDay') return { title:'🌙 Закрыть день', body:`<div class="form-grid"><label>Дата<input id="dDate" type="date" value="${todayKey()}"></label><label>Сон, часов<input id="dSleep" type="number" step="0.5" value="7"></label><label>Энергия 1–10<input id="dEnergy" type="number" min="1" max="10" value="7"></label><label>Настроение 1–10<input id="dMood" type="number" min="1" max="10" value="7"></label><label>Стресс 1–10<input id="dStress" type="number" min="1" max="10" value="4"></label><label class="full">Итог дня<textarea id="dNote" placeholder="Что получилось? Что понял?"></textarea></label></div><h3 style="margin-top:18px">Привычки</h3><div class="checkbox-grid">${state.habits.filter(h=>h.active).map(h=>`<label class="check-card"><span>${h.name}</span><input type="checkbox" data-day-habit="${h.id}"></label>`).join('')}</div><div class="actions-row"><button class="primary-btn" data-modal-save="day">Закрыть день</button></div>` };
@@ -575,7 +747,7 @@ function saveModal(kind) {
     state.operations.push({ id: uid(), date: document.getElementById('mDate').value || todayKey(), type: kind, amount, category: kind === 'income' ? 'Доход' : document.getElementById('mCategory')?.value, note: document.getElementById('mNote')?.value || '', emotion: document.getElementById('mEmotion')?.value || '' });
     if (kind === 'income') createAllocationOperations(amount, document.getElementById('mDate').value || todayKey());
   }
-  if (kind === 'task') state.tasks.push({ id: uid(), title: val('tTitle'), area: val('tArea'), goalId: val('tGoal'), due: val('tDue'), priority: val('tPriority'), status: 'В работе', nextAction: val('tNext') });
+  if (kind === 'task') state.tasks.push({ id: uid(), title: val('tTitle'), area: val('tArea'), goalId: val('tGoal'), due: val('tDue'), time: val('tTime'), duration: num(val('tDuration')) || 30, reminder: val('tReminder'), priority: val('tPriority'), status: 'В работе', nextAction: val('tNext'), calendarAdded: false });
   if (kind === 'goal') state.goals.push({ id: uid(), title: val('gTitle'), area: val('gArea'), metric: val('gMetric'), targetValue: num(val('gTarget')), currentValue: num(val('gCurrent')), deadline: val('gDeadline'), why: val('gWhy'), nextAction: val('gNext'), status: 'Активна' });
   if (kind === 'habit') state.habits.push({ id: uid(), name: val('hName'), area: val('hArea'), targetPerWeek: num(val('hTarget')) || 5, active: true });
   if (kind === 'day') closeDaySave();
