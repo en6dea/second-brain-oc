@@ -3376,6 +3376,113 @@ function todayView() {
   </div>`;
 }
 
+
+
+/* =========================
+   PREMIUM FINANCE UI V9
+   PlanFact x Apple x Notion x Pinterest visual layer
+   Логика сохранена: меняем подачу, кликабельные плитки и премиум-дашборд.
+   ========================= */
+
+function v9IconTile(icon, title, sub, attrs = '', tone = 'white') {
+  return `<button class="v9-action-tile ${tone}" ${attrs}>
+    <span class="v9-action-icon">${icon}</span>
+    <span class="v9-action-text"><b>${escapeHtml(title)}</b><small>${escapeHtml(sub || '')}</small></span>
+    <span class="v9-action-arrow">↗</span>
+  </button>`;
+}
+
+function v9MoneyChip(icon, label, value, sub = '', tone = '') {
+  return `<div class="v9-money-chip ${tone}">
+    <span class="v9-chip-icon">${icon}</span>
+    <div><small>${escapeHtml(label)}</small><b>${value}</b>${sub ? `<em>${escapeHtml(sub)}</em>` : ''}</div>
+  </div>`;
+}
+
+function v9QuickActions() {
+  return `<div class="v9-action-grid">
+    ${v9IconTile('💸', 'Расход', 'быстро записать', 'data-open-modal="quickExpense"', 'black')}
+    ${v9IconTile('💰', 'Доход', 'зарплата / проект', 'data-open-modal="quickIncome"', 'yellow')}
+    ${v9IconTile('🧾', 'Долг', 'взял / отдал', 'data-action="openDebtModal"', 'white')}
+    ${v9IconTile('🎯', 'Цель', 'SMART-план', 'data-open-modal="quickGoal"', 'white')}
+    ${v9IconTile('✅', 'Привычки', 'отметить день', 'data-page-jump="habits"', 'white')}
+    ${v9IconTile('✨', 'Инсайты', 'отчёт и план', 'data-page-jump="insights"', 'white')}
+  </div>`;
+}
+
+function dashboard() {
+  const s = monthSummary();
+  const h = habitMonthStats();
+  const g = goalsStats();
+  const t = tasksStats();
+  const sc = lifeScore();
+  const rb = typeof rewardBalance === 'function' ? rewardBalance() : { points: 0, rub: 0 };
+  const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+  const latest = [...state.operations].sort((a,b)=>String(b.date || '').localeCompare(String(a.date || ''))).slice(0,6);
+  const safeText = s.allocations > 0 ? `В сейфе вручную учтено ${money(s.allocations)}` : 'Сейф пока 0 ₽ — лимит не уменьшен';
+
+  return `<div class="v9-dashboard">
+    <section class="v9-hero-shell">
+      <div class="v9-balance-card">
+        <div class="v9-card-top"><span class="v9-logo-dot">●</span><span>Second Brain Finance</span></div>
+        <small>Свободный остаток месяца</small>
+        <strong>${money(s.left)}</strong>
+        <div class="v9-spend-track"><i style="width:${clamp(s.income ? (s.expenses / Math.max(1, s.income) * 100) : 0, 0, 100)}%"></i></div>
+        <div class="v9-balance-meta"><span>Расходы: ${money(s.expenses)}</span><span>Доход: ${money(s.income)}</span></div>
+        <div class="v9-mini-actions">
+          <button data-open-modal="quickExpense">−</button>
+          <button data-open-modal="quickIncome">＋</button>
+          <button data-page-jump="bank">⇅</button>
+          <button data-page-jump="finance">⋯</button>
+        </div>
+      </div>
+
+      <div class="v9-hero-main">
+        <div class="tiny-label">${monthLabel(state.settings.currentMonth)}</div>
+        <h2>Финансы и жизнь<br>в одном ритме</h2>
+        <p>Премиальный центр управления: деньги, цели, задачи, привычки, долги и решения на день — без серости и ощущения Excel.</p>
+        <div class="v9-hero-kpis">
+          ${v9MoneyChip('📆', 'Лимит сегодня', money(s.dailyLimit), `${daysLeftInMonth()} дн. до конца месяца`, 'yellow')}
+          ${v9MoneyChip('🎮', 'Бонусы', `${rb.points || 0}`, `${money(rb.rub || 0)} на себя`, 'soft')}
+          ${v9MoneyChip('📌', 'Задачи', `${t.today} сегодня`, `${t.overdue} просрочено`, t.overdue ? 'danger' : 'soft')}
+        </div>
+      </div>
+
+      <div class="v9-score-card">
+        <div class="v9-score-ring"><span>${sc}</span><small>Life Score</small></div>
+        <p>${scoreText(sc)}</p>
+        <button class="soft-btn" data-page-jump="today">Открыть день</button>
+      </div>
+    </section>
+
+    <section class="v9-section-grid">
+      <div class="card v9-card-wide">
+        <div class="section-head"><div><h3>⚡ Быстрые действия</h3><p class="sub">Каждая плитка кликабельна и ведёт сразу в действие.</p></div></div>
+        ${v9QuickActions()}
+      </div>
+      <div class="card v9-safe-card">
+        <div class="section-head"><div><h3>🏦 Сейф месяца</h3><p class="sub">${safeText}</p></div><button class="primary-btn" data-open-modal="manualAllocation">Внести</button></div>
+        <div class="v9-safe-row"><span>Сбережения</span><b>${money(s.savings ?? 0)}</b></div>
+        <div class="v9-safe-row"><span>Подушка</span><b>${money(s.cushion ?? 0)}</b></div>
+        <div class="v9-safe-row"><span>Финцель</span><b>${money(s.goal ?? 0)}</b></div>
+      </div>
+    </section>
+
+    <section class="grid two v9-lower-grid" style="margin-top:18px">
+      <div class="card">
+        <div class="section-head"><div><h3>📊 Категории месяца</h3><p class="sub">Куда реально уходит жизнь и деньги.</p></div><button class="soft-btn" data-page-jump="finance">Журнал</button></div>
+        ${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : empty('Пока нет расходов за месяц')}
+      </div>
+      <div class="card">
+        <div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Свежая лента финансов.</p></div><button class="soft-btn" data-open-modal="quickExpense">Добавить</button></div>
+        ${latest.length ? `<div class="v9-feed">${latest.map(o => `<button class="v9-feed-row" data-page-jump="finance"><span>${o.type === 'income' ? '💰' : '💸'}</span><b>${escapeHtml(o.category || 'Без категории')}</b><small>${escapeHtml(o.note || o.date || '')}</small><em>${money(o.amount)}</em></button>`).join('')}</div>` : empty('Операций пока нет')}
+      </div>
+    </section>
+  </div>`;
+}
+
+console.log('Second Brain PREMIUM FINANCE V9 visual layer loaded');
+
 console.log('Second Brain PREMIUM UI V8 zero allocation layer loaded');
 
 window.SecondBrainApp = {
@@ -3395,7 +3502,7 @@ window.SecondBrainApp = {
 };
 
 enhanceGoalGameState();
-console.log('Second Brain PREMIUM UI V8 zero allocation app.js loaded');
+console.log('Second Brain PREMIUM FINANCE V9 app.js loaded');
 init();
 if (window.SecondBrainCloud) {
   window.SecondBrainCloud.init().then(() => {
