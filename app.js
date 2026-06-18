@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=premium-ui-v8-zero-allocation-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=smart-simplicity-v10-20260618').catch(console.warn);
   }
 }
 function renderNav() {
@@ -3484,6 +3484,312 @@ function dashboard() {
 console.log('Second Brain PREMIUM FINANCE V9 visual layer loaded');
 
 console.log('Second Brain PREMIUM UI V8 zero allocation layer loaded');
+
+
+
+/* =========================
+   SMART SIMPLICITY PACK V10
+   Цель: больше пользы без перегруза. Не трогаем Firebase/облако, добавляем понятные блоки.
+   ========================= */
+
+function v10EnsureState() {
+  if (typeof enhanceGoalGameState === 'function') enhanceGoalGameState();
+  state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+  state.debts = Array.isArray(state.debts) ? state.debts : [];
+  state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+  state.goals = Array.isArray(state.goals) ? state.goals : [];
+  state.habits = Array.isArray(state.habits) ? state.habits : [];
+}
+
+function v10DaysUntil(dateKey) {
+  if (!dateKey) return 999;
+  const today = new Date(todayKey() + 'T00:00:00');
+  const target = new Date(String(dateKey).slice(0,10) + 'T00:00:00');
+  if (Number.isNaN(target.getTime())) return 999;
+  return Math.ceil((target - today) / 86400000);
+}
+
+function v10PlannedDate(p, monthKey = state.settings.currentMonth) {
+  const day = String(Math.min(Math.max(num(p.day) || 1, 1), 28)).padStart(2, '0');
+  return `${p.month && !p.recurring ? p.month : monthKey}-${day}`;
+}
+
+function v10UpcomingPlanned(limit = 5) {
+  v10EnsureState();
+  const current = plannedForMonth ? plannedForMonth(state.settings.currentMonth) : [];
+  return current
+    .map(p => ({ ...p, date: v10PlannedDate(p), daysLeft: v10DaysUntil(v10PlannedDate(p)) }))
+    .filter(p => p.daysLeft >= 0)
+    .sort((a,b) => a.daysLeft - b.daysLeft)
+    .slice(0, limit);
+}
+
+function v10MandatoryPlannedTotal(monthKey = state.settings.currentMonth) {
+  const summary = typeof plannedSummary === 'function' ? plannedSummary(monthKey) : { mandatory: 0, total: 0 };
+  return summary.mandatory || 0;
+}
+
+function v10SafeDailyLimit(monthKey = state.settings.currentMonth) {
+  const s = monthSummary(monthKey);
+  const mandatory = v10MandatoryPlannedTotal(monthKey);
+  const leftAfterMandatory = Math.max(0, num(s.left) - num(mandatory));
+  return {
+    baseLimit: s.dailyLimit,
+    safeLimit: leftAfterMandatory / daysLeftInMonth(monthKey),
+    leftAfterMandatory,
+    mandatory,
+    summary: s
+  };
+}
+
+function v10PrimaryGoal() {
+  v10EnsureState();
+  const active = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+  if (!active.length) return null;
+  return active
+    .map(g => ({ g, details: typeof goalProgressDetails === 'function' ? goalProgressDetails(g) : { pct: goalProgress(g), missing: [] } }))
+    .sort((a,b) => (a.details.pct || 0) - (b.details.pct || 0))[0];
+}
+
+function v10FocusItems() {
+  v10EnsureState();
+  const items = [];
+  const today = todayKey();
+  const ts = tasksStats();
+  const dailyMoneyLogged = state.operations.some(o => o.date === today);
+  const habits = state.habits.filter(h => h.active);
+  const habitDone = todayHabitCount ? todayHabitCount() : 0;
+  const st = state.states.find(x => x.date === today);
+  const debt = typeof debtSummary === 'function' ? debtSummary() : { dueSoon: [], openOwe: 0 };
+  const planned = v10UpcomingPlanned(1)[0];
+  const primaryGoal = v10PrimaryGoal();
+  const limit = v10SafeDailyLimit();
+
+  if (!dailyMoneyLogged) items.push({ icon:'💸', tone:'black', title:'Записать деньги', text:'Добавь расход или доход, чтобы лимит был честным.', kind:'modal', action:'quickExpense' });
+  if (ts.overdue > 0) items.push({ icon:'📌', tone:'danger', title:'Просроченные задачи', text:`Есть ${ts.overdue} просроч. — открой список и закрой одну.`, kind:'action', action:'jumpOverdueTasks' });
+  if (debt.dueSoon && debt.dueSoon.length) items.push({ icon:'💳', tone:'danger', title:'Ближайший долг', text:`${debt.dueSoon[0].due}: ${money(debt.dueSoon[0].remaining)}.`, kind:'page', action:'debts' });
+  if (planned) items.push({ icon:'📅', tone:'warn', title:'Плановый платёж', text:`${planned.date}: ${planned.title || planned.category} · ${money(planned.amount)}.`, kind:'modal', action:'plannedExpense' });
+  if (primaryGoal && primaryGoal.g.nextAction) items.push({ icon:'🎯', tone:'yellow', title:'Шаг по цели', text:primaryGoal.g.nextAction, kind:'page', action:'goals' });
+  if (habits.length && habitDone < Math.min(2, habits.length)) items.push({ icon:'✅', tone:'green', title:'Отметить привычку', text:'Сделай хотя бы одну отметку, чтобы день не выпал.', kind:'page', action:'habits' });
+  if (!st) items.push({ icon:'🌙', tone:'soft', title:'Закрыть день', text:'Вечером отметь состояние и короткий вывод.', kind:'modal', action:'closeDay' });
+  if (limit.safeLimit <= 300 && limit.summary.income > 0) items.push({ icon:'⚠️', tone:'warn', title:'Лимит низкий', text:'Проверь обязательные платежи и траты до конца месяца.', kind:'action', action:'todayLimit' });
+
+  if (!items.length) items.push({ icon:'✨', tone:'green', title:'День под контролем', text:'Отклонений нет. Поддерживай ритм и не перегружай себя.', kind:'page', action:'today' });
+  return items.slice(0, 5);
+}
+
+function v10ActionAttrs(item) {
+  if (item.kind === 'modal') return `data-open-modal="${escapeAttr(item.action)}"`;
+  if (item.kind === 'page') return `data-page-jump="${escapeAttr(item.action)}"`;
+  return `data-action="${escapeAttr(item.action)}"`;
+}
+
+function v10FocusCenter() {
+  const items = v10FocusItems();
+  return `<section class="card v10-focus-card">
+    <div class="section-head">
+      <div><div class="tiny-label">Smart Simplicity</div><h3>🔥 Центр внимания</h3><p class="sub">Не всё приложение сразу — только 3–5 действий, которые реально двигают день.</p></div>
+      <button class="soft-btn" data-action="antiChaos">🆘 Антихаос</button>
+    </div>
+    <div class="v10-focus-grid">
+      ${items.map((item, idx) => `<button class="v10-focus-item ${item.tone || ''}" ${v10ActionAttrs(item)}>
+        <span class="v10-focus-index">${idx + 1}</span><i>${item.icon}</i><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text || '')}</small><em>Открыть</em>
+      </button>`).join('')}
+    </div>
+  </section>`;
+}
+
+function v10LimitCard() {
+  const l = v10SafeDailyLimit();
+  return `<div class="card v10-limit-card">
+    <div class="section-head"><div><h3>📆 Лимит дня</h3><p class="sub">Базовый лимит + вариант с учётом обязательных платежей.</p></div><button class="primary-btn" data-action="todayLimit">Почему такой?</button></div>
+    <div class="v10-limit-row"><span>Базовый</span><b>${money(l.baseLimit)}</b></div>
+    <div class="v10-limit-row accent"><span>Безопасный после обязательных</span><b>${money(l.safeLimit)}</b></div>
+    <div class="v10-limit-math"><span>Остаток</span><span>${money(l.summary.left)}</span><span>− обязательные</span><span>${money(l.mandatory)}</span><span>= запас</span><span>${money(l.leftAfterMandatory)}</span></div>
+  </div>`;
+}
+
+function v10PlannedPaymentsCard() {
+  v10EnsureState();
+  const cur = typeof plannedSummary === 'function' ? plannedSummary(state.settings.currentMonth) : { list: [], total: 0, mandatory: 0 };
+  const upcoming = v10UpcomingPlanned(6);
+  return `<div class="card v10-simple-card">
+    <div class="section-head"><div><h3>📅 Плановые платежи</h3><p class="sub">Без сложного бюджета: дата, сумма, статус ожидания.</p></div><button class="primary-btn" data-open-modal="plannedExpense">+ Платёж</button></div>
+    <div class="v10-stats-line"><span>Всего: <b>${money(cur.total)}</b></span><span>Обязательные: <b>${money(cur.mandatory)}</b></span><span>${cur.list.length} шт.</span></div>
+    ${upcoming.length ? `<div class="v10-pay-list">${upcoming.map(p => `<button class="v10-pay-row" data-open-modal="plannedExpense"><i>${p.mandatory ? '📍' : '📌'}</i><b>${escapeHtml(p.title || p.category || 'Платёж')}</b><span>${p.date}</span><em>${money(p.amount)}</em></button>`).join('')}</div>` : v10EmptyState('📅','Плановых платежей нет','Добавь аренду, кредит, связь или подписки — они будут влиять на прогноз лимита.','+ Добавить платёж','data-open-modal="plannedExpense"')}
+  </div>`;
+}
+
+function v10DebtPriorityCard() {
+  const sum = typeof debtSummary === 'function' ? debtSummary() : { active: [], openOwe: 0, dueSoon: [] };
+  const active = (sum.active || []).sort((a,b)=>(a.due || '9999-99-99').localeCompare(b.due || '9999-99-99'));
+  const next = active[0];
+  const closedCount = typeof debtItems === 'function' ? debtItems().filter(d => d.status === 'Закрыт').length : 0;
+  return `<div class="card v10-simple-card v10-debt-priority">
+    <div class="section-head"><div><h3>💳 Долги</h3><p class="sub">Активные сверху, закрытые — в архиве.</p></div><button class="primary-btn" data-action="openDebtModal">+ Долг</button></div>
+    <div class="v10-stats-line"><span>К возврату: <b>${money(sum.openOwe || 0)}</b></span><span>Активные: <b>${active.length}</b></span><span>Архив: <b>${closedCount}</b></span></div>
+    ${next ? `<button class="v10-priority-row ${next.due && next.due < todayKey() ? 'danger' : ''}" data-page-jump="debts"><i>⏰</i><b>${escapeHtml(next.title)}</b><small>${next.due || 'без даты'}</small><em>${money(next.remaining)}</em></button>` : v10EmptyState('💳','Активных долгов нет','Красота. Долговая нагрузка не давит на Life Score.','Добавить долг','data-action="openDebtModal"')}
+  </div>`;
+}
+
+function v10GoalNextCard() {
+  const primary = v10PrimaryGoal();
+  const rb = typeof rewardBalance === 'function' ? rewardBalance() : { points: 0, rub: 0 };
+  if (!primary) return `<div class="card v10-simple-card">${v10EmptyState('🎯','Целей пока нет','Создай одну цель и добавь к ней первое действие. Без действия цель не считается живой.','Создать цель','data-open-modal="quickGoal"')}</div>`;
+  const g = primary.g;
+  const d = primary.details;
+  const next = g.nextAction || (d.missing && d.missing.length ? 'Добавь ближайшее действие' : 'Проверь прогресс');
+  return `<div class="card v10-simple-card v10-goal-next">
+    <div class="section-head"><div><h3>🎯 Ближайшее действие цели</h3><p class="sub">Цель → действие → бонус. Без перегруза.</p></div><button class="soft-btn" data-page-jump="goals">Все цели</button></div>
+    <button class="v10-goal-row" data-page-jump="goals"><i>🎯</i><b>${escapeHtml(g.title || 'Цель')}</b><span>${d.pct || 0}%</span></button>
+    <div class="progress"><span style="width:${clamp(d.pct || 0)}%"></span></div>
+    <div class="v10-next-action"><span>Следующий шаг</span><b>${escapeHtml(next)}</b></div>
+    <div class="v10-stats-line"><span>Бонусы: <b>${rb.points || 0}</b></span><span>На себя: <b>${money(rb.rub || 0)}</b></span></div>
+    <div class="actions-row"><button class="primary-btn" data-action="goalAction" data-goal-id="${g.id}">+ Действие</button><button class="soft-btn" data-action="goalSmartPlan" data-goal-id="${g.id}">SMART-план</button></div>
+  </div>`;
+}
+
+function v10AntiChaosStrip() {
+  return `<section class="card v10-anti-card">
+    <div><span class="tag warn">режим минимум</span><h3>🆘 Антихаос-режим</h3><p class="sub">Когда нет сил: один расход, одна задача, одна привычка и закрытие дня. Система не должна давить.</p></div>
+    <button class="primary-btn" data-action="antiChaos">Включить минимум</button>
+  </section>`;
+}
+
+function v10EmptyState(icon, title, text, button, attrs) {
+  return `<div class="v10-empty"><i>${icon}</i><b>${escapeHtml(title)}</b><small>${escapeHtml(text)}</small>${button ? `<button class="soft-btn" ${attrs || ''}>${escapeHtml(button)}</button>` : ''}</div>`;
+}
+
+function dashboard() {
+  v10EnsureState();
+  const s = monthSummary();
+  const t = tasksStats();
+  const sc = lifeScore();
+  const rb = typeof rewardBalance === 'function' ? rewardBalance() : { points: 0, rub: 0 };
+  const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+  const latest = [...state.operations].sort((a,b)=>String(b.date || '').localeCompare(String(a.date || ''))).slice(0,6);
+  const limit = v10SafeDailyLimit();
+
+  return `<div class="v10-dashboard v9-dashboard">
+    <section class="v9-hero-shell v10-hero-shell">
+      <div class="v9-balance-card">
+        <div class="v9-card-top"><span class="v9-logo-dot">●</span><span>Second Brain OS</span></div>
+        <small>Свободный остаток месяца</small>
+        <strong>${money(s.left)}</strong>
+        <div class="v9-spend-track"><i style="width:${clamp(s.income ? (s.expenses / Math.max(1, s.income) * 100) : 0, 0, 100)}%"></i></div>
+        <div class="v9-balance-meta"><span>Расходы: ${money(s.expenses)}</span><span>Доход: ${money(s.income)}</span></div>
+        <div class="v9-mini-actions"><button data-open-modal="quickExpense">−</button><button data-open-modal="quickIncome">＋</button><button data-page-jump="bank">⇅</button><button data-page-jump="finance">⋯</button></div>
+      </div>
+      <div class="v9-hero-main">
+        <div class="tiny-label">${monthLabel(state.settings.currentMonth)} · V10 Smart Simplicity</div>
+        <h2>Управляй днём,<br>а не десятками таблиц</h2>
+        <p>Главная показывает только то, что влияет на деньги, фокус и спокойствие сегодня.</p>
+        <div class="v9-hero-kpis">
+          ${v9MoneyChip('📆', 'Безопасный лимит', money(limit.safeLimit), `с учётом обязательных`, 'yellow')}
+          ${v9MoneyChip('🎮', 'Бонусы', `${rb.points || 0}`, `${money(rb.rub || 0)} на себя`, 'soft')}
+          ${v9MoneyChip('📌', 'Задачи', `${t.today} сегодня`, `${t.overdue} просрочено`, t.overdue ? 'danger' : 'soft')}
+        </div>
+      </div>
+      <div class="v9-score-card">
+        <div class="v9-score-ring"><span>${sc}</span><small>Life Score</small></div>
+        <p>${scoreText(sc)}</p>
+        <button class="soft-btn" data-page-jump="today">Открыть день</button>
+      </div>
+    </section>
+
+    ${v10FocusCenter()}
+
+    <section class="v10-compact-grid">
+      ${v10LimitCard()}
+      ${v10PlannedPaymentsCard()}
+      ${v10DebtPriorityCard()}
+      ${v10GoalNextCard()}
+    </section>
+
+    ${allocationStatusCard()}
+    ${v10AntiChaosStrip()}
+
+    <section class="grid two v9-lower-grid" style="margin-top:18px">
+      <div class="card">
+        <div class="section-head"><div><h3>📊 Категории месяца</h3><p class="sub">Только крупные направления, без перегруза графиками.</p></div><button class="soft-btn" data-page-jump="finance">Журнал</button></div>
+        ${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : v10EmptyState('📊','Расходов пока нет','Добавь первую операцию, и здесь появятся категории месяца.','Добавить расход','data-open-modal="quickExpense"')}
+      </div>
+      <div class="card">
+        <div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Свежая лента, чтобы быстро проверить порядок.</p></div><button class="soft-btn" data-open-modal="quickExpense">Добавить</button></div>
+        ${latest.length ? `<div class="v9-feed">${latest.map(o => `<button class="v9-feed-row" data-page-jump="finance"><span>${o.type === 'income' ? '💰' : '💸'}</span><b>${escapeHtml(o.category || 'Без категории')}</b><small>${escapeHtml(o.note || o.date || '')}</small><em>${money(o.amount)}</em></button>`).join('')}</div>` : v10EmptyState('🧾','Операций пока нет','Начни с одного дохода или расхода.','Быстрый ввод','data-page-jump="quick"')}
+      </div>
+    </section>
+  </div>`;
+}
+
+function todayView() {
+  v10EnsureState();
+  const s = monthSummary();
+  const date = todayKey();
+  const habits = state.habits.filter(h => h.active);
+  const todayTasks = tasksForDay(date).slice(0, 5);
+  const cats = categoryTotals(date, date).slice(0, 4);
+  const st = state.states.find(x => x.date === date);
+  const ts = tasksStats();
+  const rb = typeof rewardBalance === 'function' ? rewardBalance() : { points: 0, rub: 0 };
+  const limit = v10SafeDailyLimit();
+  return `<div class="today-screen premium-today-screen v10-today-screen">
+    <div class="today-hero premium-hero">
+      <div><div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div><h2>Сегодня</h2><p>Не ведём всё подряд. Держим минимум: деньги, фокус, привычки, состояние.</p></div>
+      <div class="today-score-ring"><span>${lifeScore()}</span><small>Life Score</small></div>
+    </div>
+    ${v10FocusCenter()}
+    <div class="today-kpi-grid">
+      ${premiumMiniKpi('📆','Безопасный лимит', money(limit.safeLimit), 'нажми — покажу расчёт', 'todayLimit')}
+      ${premiumMiniKpi('📌','Задачи', `${todayTasks.length}`, `${ts.overdue} просрочено`, 'jumpOverdueTasks', ts.overdue ? 'danger' : '')}
+      ${premiumMiniKpi('✅','Привычки', `${todayHabitCount()}/${habits.length}`, 'открыть привычки', 'jumpHabits')}
+      ${premiumMiniKpi('🌿','Состояние', st ? `${st.energy}/10` : '—', st ? 'энергия сегодня' : 'день ещё не закрыт')}
+    </div>
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>📌 Фокус дня</h3><button class="soft-btn" data-open-modal="quickTask">Добавить</button></div>${todayTasks.length ? todayTasks.map(taskCard).join('') : v10EmptyState('📌','Задач на сегодня нет','Добавь одну главную задачу или включи антихаос-режим.','Добавить задачу','data-open-modal="quickTask"')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Привычки</h3><button class="soft-btn" data-page-jump="habits">Открыть</button></div>${habits.length ? `<div class="checkbox-grid">${habits.slice(0,8).map(h => `<label class="check-card"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area)}</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[date]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div>` : v10EmptyState('✅','Привычек пока нет','Добавь одну привычку, которую реально хочется поддерживать.','Добавить привычку','data-open-modal="addHabit"')}</div>
+    </div>
+    <div class="grid two premium-content-grid" style="margin-top:18px">
+      <div class="card"><div class="section-head"><h3>💸 Деньги сегодня</h3><button class="primary-btn" data-open-modal="quickExpense">Расход</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,total(cats.map(x=>({amount:x[1]}))))).join('') : v10EmptyState('💸','Сегодня расходов нет','Это хорошо. Или просто ещё не записал.','Записать расход','data-open-modal="quickExpense"')}</div>
+      <div class="card close-day-card"><h3>🌙 Закрытие дня</h3><p class="sub">Вечером отметь сон, энергию, настроение, стресс и короткий вывод.</p><div class="pill-list"><span class="tag green">🎮 ${rb.points || 0} баллов</span><span class="tag blue">${money(rb.rub || 0)} на себя</span></div><button class="primary-btn" data-open-modal="closeDay" style="width:100%;margin-top:12px">Закрыть день</button></div>
+    </div>
+  </div>`;
+}
+
+function explainTodayLimit() {
+  const s = monthSummary();
+  const planned = typeof plannedSummary === 'function' ? plannedSummary(state.settings.currentMonth) : { total: 0, mandatory: 0 };
+  const debts = typeof debtSummary === 'function' ? debtSummary() : { openOwe: 0 };
+  const leftAfterMandatory = Math.max(0, num(s.left) - num(planned.mandatory));
+  const safeLimit = Math.floor(leftAfterMandatory / daysLeftInMonth());
+  openCustomModal('📆 Как рассчитан лимит', `
+    <div class="v10-limit-explain">
+      <div><span>Доходы месяца</span><b>${money(s.income)}</b></div>
+      <div><span>Минус расходы на жизнь</span><b>${money(s.expenses)}</b></div>
+      <div><span>Минус сейф месяца</span><b>${money(s.allocations || 0)}</b></div>
+      <div><span>Остаток месяца</span><b>${money(s.left)}</b></div>
+      <div><span>Обязательные платежи впереди</span><b>${money(planned.mandatory)}</b></div>
+      <div><span>Долги к возврату</span><b>${money(debts.openOwe || 0)}</b></div>
+      <div class="accent"><span>Безопасный лимит на день</span><b>${money(safeLimit)}</b></div>
+    </div>
+    <p class="sub" style="margin-top:12px">Система не усложняет бюджет: она показывает, сколько можно тратить спокойно, учитывая обязательные платежи и уже внесённый сейф.</p>
+    <div class="actions-row"><button class="primary-btn" data-open-modal="plannedExpense">+ Плановый платёж</button><button class="soft-btn" data-page-jump="finance">Открыть деньги</button></div>
+  `);
+}
+
+function openAntiChaos() {
+  const task = state.tasks.find(x => x.status !== 'Готово' && x.status !== 'Отменена');
+  const habit = state.habits.find(h => h.active);
+  openCustomModal('🆘 Антихаос-режим', `<div class="v10-anti-modal">
+    <p class="sub">Не надо идеально. Нужно сохранить контакт с системой.</p>
+    <button class="v10-focus-item black" data-open-modal="quickExpense"><i>💸</i><b>Записать 1 расход</b><small>или доход, если был</small></button>
+    <button class="v10-focus-item yellow" data-open-modal="quickTask"><i>📌</i><b>${escapeHtml(task?.title || 'Создать маленькую задачу')}</b><small>один минимальный шаг</small></button>
+    <button class="v10-focus-item green" data-page-jump="habits"><i>✅</i><b>${escapeHtml(habit?.name || 'Отметить привычку')}</b><small>одна отметка уже победа</small></button>
+    <button class="v10-focus-item soft" data-open-modal="closeDay"><i>🌙</i><b>Закрыть день</b><small>сон, энергия, настроение</small></button>
+  </div>`);
+}
+
+console.log('Second Brain V10 Smart Simplicity Pack loaded');
 
 window.SecondBrainApp = {
   getState: () => state,
