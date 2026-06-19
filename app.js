@@ -3110,7 +3110,24 @@ function installUniversalClickRouter() {
   document.addEventListener('click', function(e) {
     const target = e.target.closest('[data-page-jump],[data-open-modal],[data-action],[data-delete-op],[data-delete-category],[data-delete-goal],[data-hide-habit],[data-toggle-task],[data-edit-task],[data-calendar-task],[data-cleanup-page]');
     if (!target) return;
-    if (target.matches('a[href]') && !target.dataset.action && !target.dataset.calendarTask) return;
+
+    // V12 fix: ссылки Google Calendar должны открываться как обычные ссылки.
+    // Раньше универсальный роутер перехватывал data-calendar-task, делал preventDefault(),
+    // поэтому кнопка «В календарь» визуально нажималась, но календарь не открывался.
+    if (target.dataset.calendarTask && target.matches('a[href]')) {
+      safeCall('calendar-link-mark', () => {
+        const t = state.tasks.find(x => x.id === target.dataset.calendarTask);
+        if (t) {
+          t.calendarAdded = true;
+          t.calendarLink = target.href || buildGoogleCalendarUrl(t);
+          save();
+          setTimeout(render, 800);
+        }
+      });
+      return; // не блокируем href/target="_blank"
+    }
+
+    if (target.matches('a[href]') && !target.dataset.action) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     safeCall('universal-click', () => {
@@ -3122,7 +3139,7 @@ function installUniversalClickRouter() {
       if (target.dataset.hideHabit) { const h = state.habits.find(x=>x.id===target.dataset.hideHabit); if(h) { pushUndo?.('скрытие привычки'); h.active = false; save(); render(); } return; }
       if (target.dataset.toggleTask) { const t = state.tasks.find(x=>x.id===target.dataset.toggleTask); if(t) { pushUndo?.('изменение статуса задачи'); const wasDone = t.status === 'Готово'; t.status = wasDone ? 'В работе' : 'Готово'; if (!wasDone) addReward?.(t.goalId ? 5 : 2, t.goalId ? 'Действие по цели выполнено' : 'Задача выполнена', 'task-' + t.id); save(); render(); } return; }
       if (target.dataset.editTask) return openEditTaskModal(target.dataset.editTask);
-      if (target.dataset.calendarTask) { const t = state.tasks.find(x=>x.id===target.dataset.calendarTask); if(t) { t.calendarAdded = true; t.calendarLink = buildGoogleCalendarUrl(t); save(); setTimeout(render, 500); } return; }
+      if (target.dataset.calendarTask) { const t = state.tasks.find(x=>x.id===target.dataset.calendarTask); if(t) { const url = buildGoogleCalendarUrl(t); t.calendarAdded = true; t.calendarLink = url; save(); window.open(url, '_blank', 'noopener'); setTimeout(render, 800); } return; }
       if (target.dataset.cleanupPage) { closeModal(); return goPage(target.dataset.cleanupPage); }
       if (target.dataset.action) return routeAction(target.dataset.action, target, e);
     });
@@ -3815,3 +3832,5 @@ if (window.SecondBrainCloud) {
     try { if (activePage === 'sync') render(); } catch(e) {}
   });
 }
+
+console.log('Second Brain CALENDAR LINK FIX V12 app.js loaded');
