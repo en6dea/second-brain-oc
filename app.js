@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=inspection-fix-v11-20260618').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=life-addons-v14-20260625').catch(console.warn);
   }
 }
 function renderNav() {
@@ -3806,6 +3806,428 @@ function openAntiChaos() {
   </div>`);
 }
 
+
+/* =========================
+   V14 LIFE ADD-ONS LITE
+   Добавляем модули как надстройку к стабильной V12: люди, хотелки, дневник, книги,
+   лёгкий трейдинг-журнал, быстрый текстовый ввод и флаг плановых платежей.
+   Firebase/cloud-sync не трогаем.
+   ========================= */
+
+(function installV14LifeAddons(){
+  if (window.__SECOND_BRAIN_V14_LIFE_ADDONS__) return;
+  window.__SECOND_BRAIN_V14_LIFE_ADDONS__ = true;
+
+  const V14_VERSION = 'life-addons-lite-v14-20260625';
+
+  function v14EnsureState() {
+    state.people = Array.isArray(state.people) ? state.people : [];
+    state.wishes = Array.isArray(state.wishes) ? state.wishes : [];
+    state.journalEntries = Array.isArray(state.journalEntries) ? state.journalEntries : [];
+    state.books = Array.isArray(state.books) ? state.books : [];
+    state.tradingAccounts = Array.isArray(state.tradingAccounts) ? state.tradingAccounts : [
+      { id: uid(), title: 'Demo', kind: 'demo', balance: 0, active: true },
+      { id: uid(), title: 'Real', kind: 'real', balance: 0, active: true }
+    ];
+    state.trades = Array.isArray(state.trades) ? state.trades : [];
+    state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+    state.plannedExpenses.forEach(p => {
+      if (p.countInLimit === undefined) p.countInLimit = p.mandatory !== false;
+    });
+  }
+
+  function v14PushUndo(label) {
+    if (typeof pushUndo === 'function') pushUndo(label);
+  }
+
+  function v14PageExists(id) { return pages.some(p => p[0] === id); }
+  function v14AddPage(afterId, pageDef) {
+    if (v14PageExists(pageDef[0])) return;
+    const idx = pages.findIndex(p => p[0] === afterId);
+    if (idx >= 0) pages.splice(idx + 1, 0, pageDef);
+    else pages.push(pageDef);
+  }
+
+  v14AddPage('calendar', ['people', '👥', 'Люди']);
+  v14AddPage('people', ['wishes', '💛', 'Хотелки']);
+  v14AddPage('wishes', ['journal', '🧠', 'Дневник']);
+  v14AddPage('journal', ['books', '📚', 'Книги']);
+  v14AddPage('books', ['trading', '📈', 'Трейдинг']);
+
+  function v14Empty(icon, title, text, actionText, actionAttr) {
+    return `<div class="v14-empty"><i>${icon}</i><b>${escapeHtml(title)}</b><small>${escapeHtml(text)}</small>${actionText ? `<button class="primary-btn" ${actionAttr || ''}>${escapeHtml(actionText)}</button>` : ''}</div>`;
+  }
+
+  function v14IsoFromBirthday(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const m = raw.match(/^(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?$/);
+    if (m) {
+      const y = m[3] ? (m[3].length === 2 ? `20${m[3]}` : m[3]) : '2000';
+      return `${y}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`;
+    }
+    return '';
+  }
+
+  function v14NextBirthdayDate(iso) {
+    const normalized = v14IsoFromBirthday(iso);
+    if (!normalized) return '';
+    const [, mm, dd] = normalized.split('-');
+    const now = new Date();
+    let y = now.getFullYear();
+    let candidate = new Date(`${y}-${mm}-${dd}T00:00:00`);
+    if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+      y += 1;
+      candidate = new Date(`${y}-${mm}-${dd}T00:00:00`);
+    }
+    return toDateKey(candidate);
+  }
+
+  function v14BirthdayText(iso) {
+    const normalized = v14IsoFromBirthday(iso);
+    if (!normalized) return 'ДР не указан';
+    const [, mm, dd] = normalized.split('-');
+    return `${dd}.${mm}`;
+  }
+
+  function v14BuildBirthdayCalendarUrl(person) {
+    const next = v14NextBirthdayDate(person.birthday) || todayKey();
+    const start = new Date(`${next}T10:00:00`);
+    const end = new Date(start.getTime() + 30 * 60000);
+    const fmt = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    const title = encodeURIComponent(`День рождения: ${person.name || 'человек'}`);
+    const details = encodeURIComponent([
+      person.likes ? `Любит: ${person.likes}` : '',
+      person.gifts ? `Идеи подарков: ${person.gifts}` : '',
+      person.talkIdeas ? `О чём поговорить: ${person.talkIdeas}` : '',
+      'Создано в Second Brain OS'
+    ].filter(Boolean).join('\n'));
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&recur=RRULE:FREQ=YEARLY`;
+  }
+
+  function v14PriorityValue(p) {
+    const map = { 'Высокий': 3, 'Средний': 2, 'Низкий': 1 };
+    return map[p] || Number(p || 0) || 0;
+  }
+
+  function v14OwnerLabel(owner) {
+    if (owner === 'polina') return 'Полина';
+    if (owner === 'common') return 'Общее';
+    return 'Я';
+  }
+
+  const V14_PROMPTS = [
+    'Что я сегодня избегаю, хотя это важно?',
+    'Какой один маленький шаг даст мне ощущение контроля?',
+    'Где я сейчас обманываю себя словами «потом»?',
+    'Что я хочу на самом деле, но не формулирую вслух?',
+    'Какая трата или привычка сегодня покупает мне спокойствие, а какая — тревогу?',
+    'Что я могу сделать сегодня для будущего себя?',
+    'С каким человеком мне стоит восстановить контакт или поговорить теплее?',
+    'Что я понял о себе за последние сутки?',
+    'Что сегодня будет победой, даже если день тяжёлый?',
+    'Какой страх мешает мне действовать проще?'
+  ];
+  function v14DailyPrompt(dateKey = todayKey()) {
+    const sum = String(dateKey).split('').reduce((s,ch)=>s+ch.charCodeAt(0),0);
+    return V14_PROMPTS[sum % V14_PROMPTS.length];
+  }
+
+  function v14PeopleStats() {
+    v14EnsureState();
+    const total = state.people.length;
+    const withBirthday = state.people.filter(p => p.birthday).length;
+    const gifts = state.people.filter(p => p.gifts).length;
+    return { total, withBirthday, gifts };
+  }
+
+  function peopleView() {
+    v14EnsureState();
+    const sorted = [...state.people].sort((a,b) => (v14NextBirthdayDate(a.birthday) || '9999-99-99').localeCompare(v14NextBirthdayDate(b.birthday) || '9999-99-99'));
+    const st = v14PeopleStats();
+    return `<div class="v14-page">
+      <section class="v14-hero"><div><div class="tiny-label">Life Add-ons</div><h2>Люди</h2><p>Личная база: о чём поговорить, что подарить, когда день рождения и что человек любит.</p></div><button class="primary-btn" data-open-modal="person">+ Человек</button></section>
+      <div class="v14-metric-grid">
+        ${kpi('👥','Людей', st.total, 'контактов в базе')}
+        ${kpi('🎂','ДР указано', st.withBirthday, 'можно добавить в календарь')}
+        ${kpi('🎁','Есть подарки', st.gifts, 'идеи подарков')}
+      </div>
+      <div class="v14-card-grid people-grid">${sorted.length ? sorted.map(v14PersonCard).join('') : v14Empty('👥','Людей пока нет','Добавь Полину, близких, друзей или рабочих контактов.','Добавить человека','data-open-modal="person"')}</div>
+    </div>`;
+  }
+
+  function v14PersonCard(p) {
+    const bday = v14NextBirthdayDate(p.birthday);
+    const cal = v14BuildBirthdayCalendarUrl(p);
+    return `<article class="card v14-person-card">
+      <div class="section-head"><div><h3>${escapeHtml(p.name || 'Без имени')}</h3><p class="sub">${escapeHtml(p.relation || 'человек')} · ${v14BirthdayText(p.birthday)}</p></div><span class="v14-avatar">${escapeHtml((p.name || '?').slice(0,1).toUpperCase())}</span></div>
+      <div class="v14-note-block"><b>О чём поговорить</b><p>${escapeHtml(p.talkIdeas || 'Пока нет идей для общения.')}</p></div>
+      <div class="v14-tags">
+        ${p.likes ? `<span>💛 ${escapeHtml(p.likes)}</span>` : ''}
+        ${p.gifts ? `<span>🎁 ${escapeHtml(p.gifts)}</span>` : ''}
+        ${bday ? `<span>🎂 ${bday}</span>` : ''}
+      </div>
+      ${p.notes ? `<p class="sub">${escapeHtml(p.notes)}</p>` : ''}
+      <div class="actions-row"><button class="soft-btn" data-action="editPerson" data-person-id="${p.id}">Редактировать</button>${p.birthday ? `<a class="soft-btn" href="${cal}" target="_blank" rel="noopener">📅 ДР в календарь</a>` : ''}<button class="ghost-btn" data-action="deletePerson" data-person-id="${p.id}">Удалить</button></div>
+    </article>`;
+  }
+
+  function wishesView() {
+    v14EnsureState();
+    const active = state.wishes.filter(w => w.status !== 'done').sort((a,b)=>v14PriorityValue(b.priority)-v14PriorityValue(a.priority));
+    const done = state.wishes.filter(w => w.status === 'done').slice(0,12);
+    const top = active.slice(0,3);
+    return `<div class="v14-page"><section class="v14-hero"><div><div class="tiny-label">Wishlist</div><h2>Хотелки и мечты</h2><p>Твои, Полины и общие желания. Приоритеты сверху, необязательные идеи не давят на лимит.</p></div><button class="primary-btn" data-open-modal="wish">+ Хотелка</button></section>
+      <div class="grid two" style="margin-top:16px"><div class="card"><h3>🔥 Топ приоритетов</h3>${top.length ? top.map(v14WishRow).join('') : v14Empty('💛','Топ пока пуст','Добавь 1–3 желания, чтобы видеть приоритеты.','Добавить хотелку','data-open-modal="wish"')}</div><div class="card"><h3>✅ Исполнено</h3>${done.length ? done.map(v14WishRow).join('') : v14Empty('✅','Архив пуст','Здесь будут исполненные желания.','','')}</div></div>
+      <div class="card" style="margin-top:16px"><div class="section-head"><h3>Все активные желания</h3><button class="soft-btn" data-open-modal="wish">Добавить</button></div>${active.length ? `<div class="v14-list">${active.map(v14WishRow).join('')}</div>` : v14Empty('💛','Желаний пока нет','Можно добавить покупку, мечту, подарок или общую идею.','Добавить','data-open-modal="wish"')}</div>
+    </div>`;
+  }
+
+  function v14WishRow(w) {
+    const tone = w.countInLimit ? 'yellow' : 'soft';
+    return `<button class="v14-row ${tone}" data-action="editWish" data-wish-id="${w.id}"><i>${w.owner === 'polina' ? '💛' : w.owner === 'common' ? '🤝' : '✨'}</i><b>${escapeHtml(w.title || 'Без названия')}</b><small>${v14OwnerLabel(w.owner)} · ${escapeHtml(w.type || 'идея')} · ${escapeHtml(w.priority || 'Средний')}</small><em>${num(w.price) ? money(w.price) : 'без цены'}</em>${w.countInLimit ? '<span>учитывать</span>' : '<span>не в лимите</span>'}</button>`;
+  }
+
+  function journalView() {
+    v14EnsureState();
+    const prompt = v14DailyPrompt();
+    const todayEntry = state.journalEntries.find(x => x.date === todayKey() && x.kind === 'subconscious');
+    const entries = [...state.journalEntries].sort((a,b)=>String(b.createdAt||b.date).localeCompare(String(a.createdAt||a.date))).slice(0,20);
+    return `<div class="v14-page"><section class="v14-hero v14-journal-hero"><div><div class="tiny-label">Интервью с подсознанием</div><h2>Вопрос дня</h2><p>${escapeHtml(prompt)}</p></div><button class="primary-btn" data-open-modal="journalEntry">Ответить</button></section>
+      ${todayEntry ? `<div class="card"><h3>Сегодняшний ответ</h3><p>${escapeHtml(todayEntry.answer)}</p>${todayEntry.insight ? `<p class="sub"><b>Вывод:</b> ${escapeHtml(todayEntry.insight)}</p>` : ''}</div>` : ''}
+      <div class="card" style="margin-top:16px"><div class="section-head"><h3>История ответов</h3><button class="soft-btn" data-open-modal="journalEntry">+ Запись</button></div>${entries.length ? `<div class="v14-list">${entries.map(e=>`<div class="v14-history-item"><b>${escapeHtml(e.date || '')}</b><span>${escapeHtml(e.prompt || 'Запись')}</span><p>${escapeHtml(e.answer || '')}</p></div>`).join('')}</div>` : v14Empty('🧠','Записей пока нет','Ответь на один вопрос дня — история начнёт собираться.','Ответить','data-open-modal="journalEntry"')}</div>
+    </div>`;
+  }
+
+  function booksView() {
+    v14EnsureState();
+    const reading = state.books.filter(b => b.status !== 'Прочитано').sort((a,b)=>String(b.status).localeCompare(String(a.status)));
+    const done = state.books.filter(b => b.status === 'Прочитано');
+    return `<div class="v14-page"><section class="v14-hero"><div><div class="tiny-label">Reading OS</div><h2>Книги</h2><p>Не просто список книг: мысли, цитаты и что реально применить в жизни.</p></div><button class="primary-btn" data-open-modal="book">+ Книга</button></section>
+      <div class="grid two" style="margin-top:16px"><div class="card"><h3>Читаю / хочу</h3>${reading.length ? reading.map(v14BookCard).join('') : v14Empty('📚','Книг пока нет','Добавь книгу, которую читаешь или хочешь прочитать.','Добавить книгу','data-open-modal="book"')}</div><div class="card"><h3>Прочитано</h3>${done.length ? done.slice(0,12).map(v14BookCard).join('') : v14Empty('✅','Прочитанных пока нет','После завершения книги она попадёт сюда.','','')}</div></div>
+    </div>`;
+  }
+
+  function v14BookCard(b) {
+    const pct = clamp(num(b.progress), 0, 100);
+    return `<article class="v14-book-card"><div class="section-head"><div><b>${escapeHtml(b.title || 'Без названия')}</b><p class="sub">${escapeHtml(b.author || 'автор не указан')} · ${escapeHtml(b.status || 'Хочу прочитать')}</p></div><button class="soft-btn" data-action="editBook" data-book-id="${b.id}">Редактировать</button></div><div class="progress"><span style="width:${pct}%"></span></div><p class="sub">${pct}% · ${escapeHtml(b.idea || 'Мыслей пока нет')}</p></article>`;
+  }
+
+  function tradingView() {
+    v14EnsureState();
+    const accounts = state.tradingAccounts.filter(a => a.active !== false);
+    const trades = [...state.trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    const pnl = trades.reduce((s,t)=>s+num(t.resultRub),0);
+    const wins = trades.filter(t=>num(t.resultRub)>0).length;
+    const closed = trades.filter(t=>t.status !== 'План');
+    const winrate = closed.length ? Math.round(wins/closed.length*100) : 0;
+    return `<div class="v14-page"><section class="v14-hero"><div><div class="tiny-label">Trading Lite</div><h2>Дневник трейдера</h2><p>Demo и Real отдельно. Фиксируем сделку, причину входа, ошибку и вывод — без перегруза терминалом.</p></div><div class="actions-row"><button class="soft-btn" data-open-modal="tradingAccount">+ Счёт</button><button class="primary-btn" data-open-modal="trade">+ Сделка</button></div></section>
+      <div class="v14-metric-grid">${kpi('📊','PnL', money(pnl), 'по закрытым сделкам')}${kpi('🎯','Winrate', `${winrate}%`, `${closed.length} сделок`)}${kpi('🧪','Счета', accounts.length, 'demo / real')}</div>
+      <div class="grid two" style="margin-top:16px"><div class="card"><h3>Счета</h3>${accounts.length ? accounts.map(a=>`<div class="v14-history-item"><b>${escapeHtml(a.title)}</b><span>${a.kind === 'real' ? 'Real' : 'Demo'} · ${money(a.balance)}</span></div>`).join('') : v14Empty('📈','Счетов нет','Создай Demo и Real счёт.','Добавить счёт','data-open-modal="tradingAccount"')}</div><div class="card"><h3>Последние сделки</h3>${trades.length ? trades.slice(0,12).map(v14TradeRow).join('') : v14Empty('📈','Сделок пока нет','Запиши первую сделку с причиной входа и выводом.','Добавить сделку','data-open-modal="trade"')}</div></div>
+    </div>`;
+  }
+
+  function v14TradeRow(t) {
+    return `<button class="v14-row ${num(t.resultRub) >= 0 ? 'green' : 'danger'}" data-action="editTrade" data-trade-id="${t.id}"><i>${t.side === 'sell' ? '🔻' : '🔺'}</i><b>${escapeHtml(t.instrument || 'Инструмент')}</b><small>${escapeHtml(t.accountKind || '')} · ${escapeHtml(t.date || '')} · риск ${escapeHtml(t.risk || '—')}%</small><em>${money(t.resultRub)}</em></button>`;
+  }
+
+  function quickCaptureCard() {
+    return `<div class="card v14-quick-capture"><div class="section-head"><div><h3>⚡ Быстрая строка</h3><p class="sub">Подготовлено под iPhone Shortcut: формат <b>-500 кафе</b> или <b>+30000 аванс</b>. Telegram подключим отдельным безопасным слоем, без токена в GitHub.</p></div><button class="soft-btn" data-action="quickCaptureHelp">Как писать?</button></div><div class="v14-inline-form"><input id="v14QuickText" placeholder="-500 кофе / +30000 аванс"><button class="primary-btn" data-action="quickCaptureSave">Записать</button></div></div>`;
+  }
+
+  const __v14BaseQuick = quick;
+  quick = function() {
+    return quickCaptureCard() + __v14BaseQuick();
+  };
+
+  function v14ParseQuickText(raw) {
+    const text = String(raw || '').trim();
+    const m = text.match(/^([+-])\s*([0-9]+(?:[\s.,][0-9]+)?)\s*(.*)$/);
+    if (!m) return null;
+    const sign = m[1];
+    const amount = num(m[2]);
+    const note = (m[3] || '').trim() || (sign === '+' ? 'Быстрый доход' : 'Быстрый расход');
+    return { type: sign === '+' ? 'income' : 'expense', amount, note };
+  }
+
+  function v14SaveQuickText(text, source = 'quick-line') {
+    v14EnsureState();
+    const parsed = v14ParseQuickText(text);
+    if (!parsed || !parsed.amount) return toast('Формат: -500 кафе или +30000 аванс');
+    const category = parsed.type === 'income' ? 'Другое' : 'Другое';
+    v14PushUndo('быстрый ввод');
+    state.operations.push({ id: uid(), date: todayKey(), type: parsed.type, amount: parsed.amount, category, note: parsed.note, emotion: source });
+    save();
+    render();
+    toast(`${parsed.type === 'income' ? 'Доход' : 'Расход'} записан: ${money(parsed.amount)}`);
+  }
+
+  function v14HandleQuickUrl() {
+    try {
+      const url = new URL(location.href);
+      const raw = url.searchParams.get('quick') || (location.hash.startsWith('#quick=') ? decodeURIComponent(location.hash.slice(7)) : '');
+      if (!raw) return;
+      const key = 'v14quick:' + raw;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      v14SaveQuickText(raw, 'iPhone Shortcut');
+      url.searchParams.delete('quick');
+      history.replaceState(null, '', url.pathname + url.search + (location.hash.startsWith('#quick=') ? '' : location.hash));
+    } catch(e) { console.warn(e); }
+  }
+
+  function v14ModalPerson(existingId='') {
+    const p = state.people.find(x => x.id === existingId) || {};
+    openCustomModal(existingId ? '👥 Редактировать человека' : '👥 Добавить человека', `<div class="form-grid"><label>Имя<input id="v14PersonName" value="${escapeAttr(p.name || '')}" placeholder="Полина, друг, коллега"></label><label>Кто это<input id="v14PersonRelation" value="${escapeAttr(p.relation || '')}" placeholder="девушка / друг / работа"></label><label>День рождения<input id="v14PersonBirthday" type="date" value="${escapeAttr(v14IsoFromBirthday(p.birthday) || '')}"></label><label class="full">Что любит<input id="v14PersonLikes" value="${escapeAttr(p.likes || '')}" placeholder="кофе, море, украшения, книги"></label><label class="full">О чём поговорить<textarea id="v14PersonTalk" rows="3" class="note-area">${escapeHtml(p.talkIdeas || '')}</textarea></label><label class="full">Идеи подарков<textarea id="v14PersonGifts" rows="3" class="note-area">${escapeHtml(p.gifts || '')}</textarea></label><label class="full">Заметки<textarea id="v14PersonNotes" rows="3" class="note-area">${escapeHtml(p.notes || '')}</textarea></label></div><div class="actions-row"><button class="primary-btn" id="v14SavePerson">Сохранить</button></div>`);
+    document.getElementById('v14SavePerson').onclick = () => {
+      const name = val('v14PersonName').trim();
+      if (!name) return toast('Введи имя');
+      v14PushUndo(existingId ? 'редактирование человека' : 'добавление человека');
+      const data = { name, relation: val('v14PersonRelation'), birthday: val('v14PersonBirthday'), likes: val('v14PersonLikes'), talkIdeas: val('v14PersonTalk'), gifts: val('v14PersonGifts'), notes: val('v14PersonNotes'), updatedAt: new Date().toISOString() };
+      if (existingId && p.id) Object.assign(p, data);
+      else state.people.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+      save(); closeModal(); activePage = 'people'; render(); toast('Человек сохранён');
+    };
+  }
+
+  function v14ModalWish(existingId='') {
+    const w = state.wishes.find(x => x.id === existingId) || { owner:'self', priority:'Средний', type:'покупка', countInLimit:false };
+    openCustomModal(existingId ? '💛 Редактировать хотелку' : '💛 Добавить хотелку', `<div class="form-grid"><label class="full">Название<input id="v14WishTitle" value="${escapeAttr(w.title || '')}" placeholder="Что хочется / мечта / подарок"></label><label>Кому<select id="v14WishOwner"><option value="self" ${w.owner==='self'?'selected':''}>Мне</option><option value="polina" ${w.owner==='polina'?'selected':''}>Полине</option><option value="common" ${w.owner==='common'?'selected':''}>Общее</option></select></label><label>Тип<input id="v14WishType" value="${escapeAttr(w.type || 'покупка')}"></label><label>Приоритет<select id="v14WishPriority"><option ${w.priority==='Высокий'?'selected':''}>Высокий</option><option ${w.priority==='Средний'?'selected':''}>Средний</option><option ${w.priority==='Низкий'?'selected':''}>Низкий</option></select></label><label>Цена<input id="v14WishPrice" type="number" value="${escapeAttr(w.price || '')}"></label><label class="full"><input id="v14WishCount" type="checkbox" ${w.countInLimit ? 'checked' : ''}> Учитывать в планировании лимита</label><label class="full">Заметка<textarea id="v14WishNote" rows="3" class="note-area">${escapeHtml(w.note || '')}</textarea></label></div><div class="actions-row"><button class="primary-btn" id="v14SaveWish">Сохранить</button>${existingId ? '<button class="soft-btn" id="v14DoneWish">Исполнено</button>' : ''}</div>`);
+    document.getElementById('v14SaveWish').onclick = () => {
+      const title = val('v14WishTitle').trim();
+      if (!title) return toast('Введи название');
+      v14PushUndo(existingId ? 'редактирование хотелки' : 'добавление хотелки');
+      const data = { title, owner: val('v14WishOwner') || 'self', type: val('v14WishType') || 'идея', priority: val('v14WishPriority') || 'Средний', price: num(val('v14WishPrice')), countInLimit: document.getElementById('v14WishCount')?.checked || false, note: val('v14WishNote'), updatedAt: new Date().toISOString() };
+      if (existingId && w.id) Object.assign(w, data);
+      else state.wishes.push({ id: uid(), ...data, status:'active', createdAt: new Date().toISOString() });
+      save(); closeModal(); activePage='wishes'; render(); toast('Хотелка сохранена');
+    };
+    const done = document.getElementById('v14DoneWish');
+    if (done) done.onclick = () => { w.status = 'done'; w.doneAt = todayKey(); save(); closeModal(); render(); toast('Хотелка перенесена в исполненные'); };
+  }
+
+  function v14ModalJournal() {
+    const prompt = v14DailyPrompt();
+    const existing = state.journalEntries.find(x => x.date === todayKey() && x.kind === 'subconscious') || {};
+    openCustomModal('🧠 Интервью с подсознанием', `<p class="sub"><b>Вопрос дня:</b> ${escapeHtml(prompt)}</p><div class="form-grid"><label class="full">Ответ<textarea id="v14JournalAnswer" rows="6" class="note-area" placeholder="Пиши свободно, без цензуры">${escapeHtml(existing.answer || '')}</textarea></label><label class="full">Главный вывод<input id="v14JournalInsight" value="${escapeAttr(existing.insight || '')}" placeholder="Что я понял?"></label></div><div class="actions-row"><button class="primary-btn" id="v14SaveJournal">Сохранить</button></div>`);
+    document.getElementById('v14SaveJournal').onclick = () => {
+      const answer = val('v14JournalAnswer').trim();
+      if (!answer) return toast('Напиши ответ');
+      v14PushUndo('запись дневника');
+      const data = { kind:'subconscious', date: todayKey(), prompt, answer, insight: val('v14JournalInsight'), updatedAt:new Date().toISOString(), createdAt: existing.createdAt || new Date().toISOString() };
+      if (existing.id) Object.assign(existing, data);
+      else state.journalEntries.unshift({ id:uid(), ...data });
+      save(); closeModal(); activePage='journal'; render(); toast('Запись сохранена');
+    };
+  }
+
+  function v14ModalBook(existingId='') {
+    const b = state.books.find(x => x.id === existingId) || { status:'Хочу прочитать', progress:0 };
+    openCustomModal(existingId ? '📚 Редактировать книгу' : '📚 Добавить книгу', `<div class="form-grid"><label>Название<input id="v14BookTitle" value="${escapeAttr(b.title || '')}"></label><label>Автор<input id="v14BookAuthor" value="${escapeAttr(b.author || '')}"></label><label>Статус<select id="v14BookStatus"><option ${b.status==='Хочу прочитать'?'selected':''}>Хочу прочитать</option><option ${b.status==='Читаю'?'selected':''}>Читаю</option><option ${b.status==='Прочитано'?'selected':''}>Прочитано</option></select></label><label>Прогресс %<input id="v14BookProgress" type="number" min="0" max="100" value="${escapeAttr(b.progress || 0)}"></label><label class="full">Главная мысль<input id="v14BookIdea" value="${escapeAttr(b.idea || '')}" placeholder="Что забираю в жизнь?"></label><label class="full">Цитаты / заметки<textarea id="v14BookNotes" rows="4" class="note-area">${escapeHtml(b.notes || '')}</textarea></label></div><div class="actions-row"><button class="primary-btn" id="v14SaveBook">Сохранить</button></div>`);
+    document.getElementById('v14SaveBook').onclick = () => {
+      const title = val('v14BookTitle').trim(); if (!title) return toast('Введи название книги');
+      v14PushUndo(existingId ? 'редактирование книги' : 'добавление книги');
+      const data = { title, author: val('v14BookAuthor'), status: val('v14BookStatus'), progress: clamp(num(val('v14BookProgress')),0,100), idea: val('v14BookIdea'), notes: val('v14BookNotes'), updatedAt: new Date().toISOString() };
+      if (existingId && b.id) Object.assign(b, data);
+      else state.books.push({ id:uid(), ...data, createdAt:new Date().toISOString() });
+      save(); closeModal(); activePage='books'; render(); toast('Книга сохранена');
+    };
+  }
+
+  function v14ModalTradingAccount() {
+    openCustomModal('📈 Добавить торговый счёт', `<div class="form-grid"><label>Название<input id="v14AccTitle" placeholder="Demo / Real / FTMO"></label><label>Тип<select id="v14AccKind"><option value="demo">Demo</option><option value="real">Real</option></select></label><label>Баланс<input id="v14AccBalance" type="number"></label></div><div class="actions-row"><button class="primary-btn" id="v14SaveAcc">Сохранить</button></div>`);
+    document.getElementById('v14SaveAcc').onclick = () => {
+      v14PushUndo('торговый счёт');
+      state.tradingAccounts.push({ id:uid(), title: val('v14AccTitle') || 'Trading Account', kind: val('v14AccKind') || 'demo', balance: num(val('v14AccBalance')), active:true });
+      save(); closeModal(); activePage='trading'; render(); toast('Счёт добавлен');
+    };
+  }
+
+  function v14ModalTrade(existingId='') {
+    const t = state.trades.find(x => x.id === existingId) || { date:todayKey(), side:'buy', status:'Закрыта' };
+    const accountOptions = state.tradingAccounts.filter(a=>a.active!==false).map(a=>`<option value="${a.id}" ${t.accountId===a.id?'selected':''}>${escapeHtml(a.title)} · ${a.kind}</option>`).join('');
+    openCustomModal(existingId ? '📈 Редактировать сделку' : '📈 Добавить сделку', `<div class="form-grid"><label>Дата<input id="v14TradeDate" type="date" value="${escapeAttr(t.date || todayKey())}"></label><label>Счёт<select id="v14TradeAccount">${accountOptions}</select></label><label>Инструмент<input id="v14TradeInstrument" value="${escapeAttr(t.instrument || '')}" placeholder="EURUSD / XAUUSD"></label><label>Тип<select id="v14TradeSide"><option value="buy" ${t.side==='buy'?'selected':''}>Buy / Long</option><option value="sell" ${t.side==='sell'?'selected':''}>Sell / Short</option></select></label><label>Риск %<input id="v14TradeRisk" type="number" value="${escapeAttr(t.risk || '')}"></label><label>Результат ₽<input id="v14TradeResult" type="number" value="${escapeAttr(t.resultRub || '')}"></label><label class="full">Причина входа<textarea id="v14TradeReason" rows="3" class="note-area">${escapeHtml(t.reason || '')}</textarea></label><label class="full">Ошибка / вывод<textarea id="v14TradeLesson" rows="3" class="note-area">${escapeHtml(t.lesson || '')}</textarea></label></div><div class="actions-row"><button class="primary-btn" id="v14SaveTrade">Сохранить</button></div>`);
+    document.getElementById('v14SaveTrade').onclick = () => {
+      const acc = state.tradingAccounts.find(a=>a.id===val('v14TradeAccount')) || {};
+      v14PushUndo(existingId ? 'редактирование сделки' : 'добавление сделки');
+      const data = { date: val('v14TradeDate') || todayKey(), accountId: acc.id || '', accountKind: acc.kind || '', instrument: val('v14TradeInstrument'), side: val('v14TradeSide') || 'buy', risk: num(val('v14TradeRisk')), resultRub: num(val('v14TradeResult')), reason: val('v14TradeReason'), lesson: val('v14TradeLesson'), status:'Закрыта', updatedAt:new Date().toISOString() };
+      if (existingId && t.id) Object.assign(t, data);
+      else state.trades.unshift({ id:uid(), ...data, createdAt:new Date().toISOString() });
+      save(); closeModal(); activePage='trading'; render(); toast('Сделка сохранена');
+    };
+  }
+
+  // Плановые платежи: добавляем флаг «учитывать в лимите / не учитывать».
+  plannedSummary = function(monthKey = state.settings.currentMonth) {
+    v14EnsureState();
+    const list = plannedForMonth(monthKey);
+    const counted = list.filter(x => x.countInLimit !== false);
+    return {
+      list,
+      total: list.reduce((s,x)=>s+num(x.amount),0),
+      counted: counted.reduce((s,x)=>s+num(x.amount),0),
+      ignored: list.filter(x => x.countInLimit === false).reduce((s,x)=>s+num(x.amount),0),
+      mandatory: counted.filter(x=>x.mandatory).reduce((s,x)=>s+num(x.amount),0)
+    };
+  };
+
+  openPlannedExpenseModal = function() {
+    openCustomModal('📌 Плановый расход', `<div class="form-grid"><label>Название<input id="plannedTitle" placeholder="Аренда, связь, кредит, покупка"></label><label>Сумма<input id="plannedAmount" type="number"></label><label>Категория<select id="plannedCategory">${categoryOptions('expense')}</select></label><label>День месяца<input id="plannedDay" type="number" min="1" max="28" value="1"></label><label>Месяц<input id="plannedMonth" type="month" value="${nextMonthKey()}"></label><label>Тип<select id="plannedType"><option value="mandatory">Обязательный</option><option value="optional">Плановый</option></select></label><label><input id="plannedRecurring" type="checkbox"> Повторять каждый месяц</label><label class="full"><input id="plannedCountInLimit" type="checkbox" checked> Учитывать в лимите и прогнозе</label><p class="sub full">Сними галочку, если это просто идея/хотелка и она не должна уменьшать дневной лимит.</p></div><div class="actions-row"><button class="primary-btn" id="savePlannedExpenseBtn">Сохранить</button></div>`);
+    document.getElementById('savePlannedExpenseBtn').onclick = () => { const amount=num(val('plannedAmount')); if(!amount) return toast('Введи сумму'); v14PushUndo('плановый расход'); state.plannedExpenses.push({ id:uid(), title:val('plannedTitle') || val('plannedCategory') || 'Плановый расход', amount, category:val('plannedCategory') || 'Запланированные расходы', day:num(val('plannedDay')) || 1, month:val('plannedMonth') || nextMonthKey(), mandatory:val('plannedType') === 'mandatory', recurring:document.getElementById('plannedRecurring')?.checked || false, countInLimit: document.getElementById('plannedCountInLimit')?.checked !== false, active:true }); save(); closeModal(); render(); toast('Плановый расход добавлен'); };
+  };
+
+  const __v14OpenModal = openModal;
+  openModal = function(type) {
+    v14EnsureState();
+    if (type === 'person') return v14ModalPerson();
+    if (type === 'wish') return v14ModalWish();
+    if (type === 'journalEntry') return v14ModalJournal();
+    if (type === 'book') return v14ModalBook();
+    if (type === 'tradingAccount') return v14ModalTradingAccount();
+    if (type === 'trade') return v14ModalTrade();
+    return __v14OpenModal(type);
+  };
+
+  const __v14RouteAction = routeAction;
+  routeAction = function(a, el, e) {
+    v14EnsureState();
+    if (a === 'quickCaptureSave') return v14SaveQuickText(document.getElementById('v14QuickText')?.value || '');
+    if (a === 'quickCaptureHelp') return openCustomModal('⚡ Быстрая строка', `<p class="sub">Пиши одну строку:</p><div class="v14-codebox">-500 кофе<br>+30000 аванс<br>-1200 такси<br>+4500 возврат</div><p class="sub">Для iPhone Shortcut можно открыть ссылку приложения с параметром <b>&quick=-500%20кофе</b>. Telegram подключим отдельным безопасным серверным слоем, чтобы не хранить токен бота в GitHub.</p>`);
+    if (a === 'editPerson') return v14ModalPerson(el.dataset.personId);
+    if (a === 'deletePerson') { const id = el.dataset.personId; if(confirm('Удалить человека из базы?')) { v14PushUndo('удаление человека'); state.people = state.people.filter(p=>p.id!==id); save(); render(); } return; }
+    if (a === 'editWish') return v14ModalWish(el.dataset.wishId);
+    if (a === 'editBook') return v14ModalBook(el.dataset.bookId);
+    if (a === 'editTrade') return v14ModalTrade(el.dataset.tradeId);
+    return __v14RouteAction(a, el, e);
+  };
+
+  const v14Views = { people: peopleView, wishes: wishesView, journal: journalView, books: booksView, trading: tradingView };
+  const __v14BaseRender = render;
+  render = function(opts = {}) {
+    v14EnsureState();
+    if (!v14Views[activePage]) return __v14BaseRender(opts);
+    renderNav();
+    const page = pages.find(p => p[0] === activePage);
+    document.getElementById('pageTitle').textContent = page ? page[2] : 'Second Brain';
+    document.getElementById('todayMini').innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
+    document.getElementById('view').innerHTML = v14Views[activePage](opts);
+    bindView();
+  };
+
+  const __v14SetStateFromCloud = window.SecondBrainApp?.setStateFromCloud;
+
+  const __v14Init = init;
+  init = function() {
+    v14EnsureState();
+    __v14Init();
+    setTimeout(v14HandleQuickUrl, 250);
+  };
+
+  v14EnsureState();
+  console.log('Second Brain LIFE ADD-ONS V14 loaded');
+})();
+
 console.log('Second Brain INSPECTION FIX V11 loaded');
 
 window.SecondBrainApp = {
@@ -3833,4 +4255,4 @@ if (window.SecondBrainCloud) {
   });
 }
 
-console.log('Second Brain CALENDAR LINK FIX V12 app.js loaded');
+console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
