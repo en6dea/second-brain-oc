@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=life-addons-v14-20260625').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=segmentation-v15-20260625').catch(console.warn);
   }
 }
 function renderNav() {
@@ -4226,6 +4226,425 @@ function openAntiChaos() {
 
   v14EnsureState();
   console.log('Second Brain LIFE ADD-ONS V14 loaded');
+})();
+
+
+
+/* =========================
+   V15 SEGMENTATION + HABITS OS PATCH 2026-06-25
+   Финансы как папка, задачи + календарь, привычки + состояние + вопрос дня.
+   ========================= */
+(function installV15SegmentationPatch(){
+  if (window.__SECOND_BRAIN_V15_SEGMENTATION__) return;
+  window.__SECOND_BRAIN_V15_SEGMENTATION__ = true;
+
+  const V15_VERSION = 'segmentation-v15-20260625';
+  const V15_HIDDEN_PAGES = new Set(['bank', 'debts', 'panel', 'calendar', 'state', 'insights', 'journal']);
+  const V15_FINANCE_SECTION_BY_PAGE = { bank:'import', debts:'debts', panel:'analysis' };
+  const V15_PAGE_ALIASES = { bank:'finance', debts:'finance', panel:'finance', calendar:'tasks', state:'habits', insights:'habits', journal:'habits' };
+  const V15_FINANCE_SECTIONS = [
+    ['overview', 'Обзор', 'Главные цифры, лимит, плановые платежи'],
+    ['ledger', 'Журнал', 'Операции и фильтры'],
+    ['debts', 'Долги', 'Кому должен / кто должен тебе'],
+    ['import', 'Банк-импорт', 'CSV / Excel выписки'],
+    ['analysis', 'Анализ', 'Периоды, категории, поиск'],
+    ['planned', 'Плановые', 'Регулярные и обязательные платежи']
+  ];
+  const V15_DAILY_PROMPTS = [
+    'Что я сегодня избегаю, хотя это важно?',
+    'Какой один маленький шаг даст мне ощущение контроля?',
+    'Где я сейчас обманываю себя словами «потом»?',
+    'Что я хочу на самом деле, но не формулирую вслух?',
+    'Какая трата или привычка сегодня покупает мне спокойствие, а какая — тревогу?',
+    'Что я могу сделать сегодня для будущего себя?',
+    'С каким человеком мне стоит восстановить контакт или поговорить теплее?',
+    'Что я понял о себе за последние сутки?',
+    'Что сегодня будет победой, даже если день тяжёлый?',
+    'Какой страх мешает мне действовать проще?'
+  ];
+
+  function v15EnsureState() {
+    enhanceDelightState?.();
+    if (typeof enhanceGoalGameState === 'function') enhanceGoalGameState();
+    state.people = Array.isArray(state.people) ? state.people : [];
+    state.wishes = Array.isArray(state.wishes) ? state.wishes : [];
+    state.journalEntries = Array.isArray(state.journalEntries) ? state.journalEntries : [];
+    state.books = Array.isArray(state.books) ? state.books : [];
+    state.tradingAccounts = Array.isArray(state.tradingAccounts) ? state.tradingAccounts : [];
+    state.trades = Array.isArray(state.trades) ? state.trades : [];
+    state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+    state.settings = state.settings || {};
+    state.settings.financeSection = state.settings.financeSection || 'overview';
+    v15RelabelPages();
+    v15EnsureDailyQuestionTasks();
+  }
+
+  function v15RelabelPages() {
+    const labels = {
+      finance: ['💸', 'Финансы'],
+      goals: ['🎯', 'SMART-цели'],
+      habits: ['✅', 'Привычки + состояние'],
+      tasks: ['📌', 'Задачи + календарь'],
+      people: ['👥', 'Люди'],
+      wishes: ['💛', 'Хотелки'],
+      books: ['📚', 'Книги'],
+      trading: ['📈', 'Трейдинг']
+    };
+    Object.entries(labels).forEach(([id, [icon, label]]) => {
+      const p = pages.find(x => x[0] === id);
+      if (p) { p[1] = icon; p[2] = label; }
+    });
+  }
+
+  function v15NormalizeActivePage() {
+    if (V15_FINANCE_SECTION_BY_PAGE[activePage]) {
+      state.settings.financeSection = V15_FINANCE_SECTION_BY_PAGE[activePage];
+      activePage = 'finance';
+      return;
+    }
+    if (activePage === 'calendar') activePage = 'tasks';
+    if (activePage === 'state') { state.settings.habitsSection = 'state'; activePage = 'habits'; }
+    if (activePage === 'insights') { state.settings.habitsSection = 'insights'; activePage = 'habits'; }
+    if (activePage === 'journal') { state.settings.habitsSection = 'question'; activePage = 'habits'; }
+  }
+
+  function v15PageButton(id) {
+    const p = pages.find(x => x[0] === id);
+    if (!p) return '';
+    return `<button data-page="${id}" class="${activePage===id?'active':''}"><span>${p[1]}</span>${escapeHtml(p[2])}</button>`;
+  }
+
+  renderNav = function() {
+    v15RelabelPages();
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const groups = [
+      ['Деньги', ['dashboard', 'finance']],
+      ['День', ['today', 'quick', 'tasks', 'habits', 'goals']],
+      ['Личная база', ['people', 'wishes', 'books', 'trading']],
+      ['Система', ['sync', 'settings']]
+    ];
+    nav.innerHTML = groups.map(([title, ids]) => {
+      const buttons = ids.filter(id => pages.some(p => p[0] === id) && !V15_HIDDEN_PAGES.has(id)).map(v15PageButton).join('');
+      return buttons ? `<div class="nav-group-label">${title}</div>${buttons}` : '';
+    }).join('');
+    nav.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => { activePage = btn.dataset.page; render(); }));
+  };
+
+  function v15RenderShell(viewHtml) {
+    renderNav();
+    const page = pages.find(p => p[0] === activePage);
+    document.getElementById('pageTitle').textContent = page ? page[2] : 'Second Brain';
+    document.getElementById('todayMini').innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
+    document.getElementById('view').innerHTML = viewHtml;
+    bindView();
+  }
+
+  function v15SectionTabs(sections, current, actionName, extraClass = '') {
+    return `<div class="v15-tabs ${extraClass}">${sections.map(([id, label, hint]) => `<button class="${current===id?'active':''}" data-action="${actionName}" data-section="${id}"><b>${escapeHtml(label)}</b><small>${escapeHtml(hint || '')}</small></button>`).join('')}</div>`;
+  }
+
+  function v15FinanceHeader(current) {
+    const s = monthSummary();
+    const debt = debtSummary();
+    return `<section class="v15-folder-hero v15-finance-hero">
+      <div><div class="tiny-label">Папка</div><h2>Финансы</h2><p>Операции, долги, банк-импорт, плановые платежи и панель анализа собраны в одном месте.</p></div>
+      <div class="v15-folder-kpis"><span>Остаток: <b>${money(s.left)}</b></span><span>Лимит: <b>${money(v10SafeDailyLimit ? v10SafeDailyLimit().safeLimit : s.dailyLimit)}</b></span><span>Долги: <b>${money(debt.openOwe)}</b></span></div>
+    </section>${v15SectionTabs(V15_FINANCE_SECTIONS, current, 'setFinanceSection', 'v15-finance-tabs')}`;
+  }
+
+  function v15FinanceOverview() {
+    const s = monthSummary();
+    const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+    const latest = [...state.operations].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,8);
+    return `<div class="v15-finance-overview">
+      <div class="grid cards">
+        ${kpi('💰','Доход месяца', money(s.income), 'все доходы')}
+        ${kpi('💸','Расходы', money(s.expenses), 'без ручных накоплений')}
+        ${kpi('🏦','Сейф месяца', money(s.allocations), 'сбережения / подушка / финцель')}
+        ${kpi('📆','Безопасный лимит', money(v10SafeDailyLimit ? v10SafeDailyLimit().safeLimit : s.dailyLimit), 'на день')}
+      </div>
+      <div class="v15-finance-shortcuts">
+        <button class="v10-focus-item black" data-open-modal="quickExpense"><i>💸</i><b>Записать расход</b><small>один клик</small></button>
+        <button class="v10-focus-item green" data-open-modal="quickIncome"><i>💰</i><b>Записать доход</b><small>зарплата, проект, возврат</small></button>
+        <button class="v10-focus-item yellow" data-action="setFinanceSection" data-section="import"><i>🏦</i><b>Импорт банка</b><small>CSV / Excel</small></button>
+        <button class="v10-focus-item soft" data-action="setFinanceSection" data-section="analysis"><i>🎛</i><b>Панель анализа</b><small>периоды и поиск</small></button>
+      </div>
+      <div style="margin-top:16px">${financialDayCard()}</div>
+      <div class="grid two" style="margin-top:16px"><div>${plannedExpensesCard()}</div><div>${financialCalendarCard()}</div></div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><div class="section-head"><div><h3>📊 Категории месяца</h3><p class="sub">Топ направлений расходов.</p></div><button class="soft-btn" data-action="setFinanceSection" data-section="analysis">Анализ</button></div>${cats.length ? cats.map(([name, amount]) => categoryBar(name, amount, s.expenses)).join('') : empty('Пока нет расходов за месяц')}</div>
+        <div class="card"><div class="section-head"><div><h3>🧾 Последние операции</h3><p class="sub">Свежая банковская лента.</p></div><button class="soft-btn" data-action="setFinanceSection" data-section="ledger">Журнал</button></div>${latest.length ? bankingFeed(latest, { compact:true }) : empty('Операций пока нет')}</div>
+      </div>
+    </div>`;
+  }
+
+  const __v15BaseFinance = finance;
+  finance = function() {
+    v15EnsureState();
+    const current = state.settings.financeSection || 'overview';
+    const body = current === 'overview' ? v15FinanceOverview()
+      : current === 'ledger' ? __v15BaseFinance()
+      : current === 'debts' ? debts()
+      : current === 'import' ? bankImport()
+      : current === 'analysis' ? panel({})
+      : current === 'planned' ? `<div class="grid two"><div>${plannedExpensesCard()}</div><div>${financialCalendarCard()}</div></div>`
+      : v15FinanceOverview();
+    return `<div class="v15-folder-page">${v15FinanceHeader(current)}<div class="v15-section-body">${body}</div></div>`;
+  };
+
+  const __v15BaseGoals = goals;
+  function v15GoalImprovementsCard() {
+    const active = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+    const withoutMetric = active.filter(g => !g.metric || !g.targetValue).length;
+    const withoutTasks = active.filter(g => !state.tasks.some(t => t.goalId === g.id)).length;
+    const withoutDeadline = active.filter(g => !g.deadline).length;
+    return `<div class="card v15-reco-card">
+      <div class="section-head"><div><div class="tiny-label">Усиление папки</div><h3>🎯 Как сделать SMART-цели рабочими</h3><p class="sub">Не просто список желаний, а система движения: метрика → действия → ревью → награда.</p></div><button class="primary-btn" data-open-modal="quickGoal">+ Цель</button></div>
+      <div class="v15-reco-grid">
+        <div><b>1. Паспорт цели</b><span>Зачем, метрика, дедлайн, цена бездействия.</span></div>
+        <div><b>2. SMART-план</b><span>Авторазбивка на 5–7 задач с датами.</span></div>
+        <div><b>3. Еженедельный review</b><span>Что сделано, что мешает, следующий шаг.</span></div>
+        <div><b>4. Бонусы</b><span>Награда за действия, а не за идеальную мотивацию.</span></div>
+      </div>
+      <div class="v15-warning-line">
+        <span class="tag ${withoutMetric?'warn':'green'}">Без метрики: ${withoutMetric}</span>
+        <span class="tag ${withoutTasks?'warn':'green'}">Без задач: ${withoutTasks}</span>
+        <span class="tag ${withoutDeadline?'warn':'green'}">Без срока: ${withoutDeadline}</span>
+      </div>
+    </div>`;
+  }
+  goals = function() {
+    return `${undoBar()}${v15GoalImprovementsCard()}<div style="margin-top:16px">${__v15BaseGoals().replace(undoBar(), '')}</div>`;
+  };
+
+  function v15DailyPrompt(dateKey = todayKey()) {
+    const sum = String(dateKey).split('').reduce((s,ch)=>s+ch.charCodeAt(0),0);
+    return V15_DAILY_PROMPTS[sum % V15_DAILY_PROMPTS.length];
+  }
+  function v15IsWeekday(date) { const d = date.getDay(); return d >= 1 && d <= 5; }
+  function v15EnsureDailyQuestionTasks() {
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    let changed = false;
+    let made = 0;
+    const d = new Date();
+    for (let i = 0; made < 10 && i < 24; i++) {
+      const cur = new Date(); cur.setDate(d.getDate() + i);
+      if (!v15IsWeekday(cur)) continue;
+      const due = toDateKey(cur);
+      const exists = state.tasks.some(t => t.systemType === 'dailyQuestion' && t.due === due);
+      if (!exists) {
+        state.tasks.push({ id: uid(), title: 'Ответить на вопрос дня', area: 'Личное', due, time: '18:00', duration: 15, reminder: 'В Google Calendar', priority: 'Высокий', status: 'В работе', nextAction: v15DailyPrompt(due), calendarAdded: false, systemType: 'dailyQuestion', required: true, createdAt: new Date().toISOString() });
+        changed = true;
+      }
+      made++;
+    }
+    if (changed) save({ skipCloud: false });
+  }
+  function v15QuestionEntry(date = todayKey()) {
+    return state.journalEntries.find(x => x.date === date && (x.kind === 'dailyQuestion' || x.kind === 'subconscious')) || null;
+  }
+  function v15TodayQuestionTask() {
+    return state.tasks.find(t => t.systemType === 'dailyQuestion' && t.due === todayKey()) || null;
+  }
+  function v15QuestionCalendarUrl() {
+    const title = encodeURIComponent('Second Brain: вопрос дня');
+    const details = encodeURIComponent('Ежедневный будний ритуал: ответить на вопрос дня, зафиксировать главный инсайт и состояние.');
+    const start = new Date(`${todayKey()}T18:00:00`);
+    const end = new Date(start.getTime() + 15 * 60000);
+    const fmt = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&recur=RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR`;
+  }
+  function v15DailyQuestionCard() {
+    const entry = v15QuestionEntry();
+    const task = v15TodayQuestionTask();
+    const prompt = v15DailyPrompt();
+    const answered = !!entry?.answer;
+    return `<div class="card v15-question-card ${answered ? 'done' : ''}">
+      <div class="section-head"><div><div class="tiny-label">Обязательно · будни · 18:00</div><h3>🧠 Вопрос дня</h3><p class="sub">Автоматическая задача создана в списке задач. Ответ сохраняется в инсайты дня.</p></div><span class="tag ${answered ? 'green' : 'warn'}">${answered ? 'Ответ есть' : 'Ждёт ответа'}</span></div>
+      <div class="v15-question-text">${escapeHtml(prompt)}</div>
+      ${entry?.insight ? `<div class="attention-item green"><b>Инсайт</b><span>${escapeHtml(entry.insight)}</span></div>` : ''}
+      <div class="actions-row"><button class="primary-btn" data-action="openDailyQuestion">${answered ? 'Редактировать ответ' : 'Ответить'}</button>${task ? `<a class="soft-btn" href="${buildGoogleCalendarUrl(task)}" target="_blank" rel="noopener">📅 Сегодня в календарь</a>` : ''}<a class="soft-btn" href="${v15QuestionCalendarUrl()}" target="_blank" rel="noopener">🔁 Повтор 18:00</a></div>
+    </div>`;
+  }
+  function v15HabitsInsights() {
+    const h = habitMonthStats();
+    const st = stateStats();
+    const ts = tasksStats();
+    const entry = v15QuestionEntry();
+    const items = [];
+    if (h.percent < 50) items.push(['warn', 'Привычки просели', 'Оставь 2–3 обязательные привычки, остальные не дави.']);
+    else items.push(['green', 'Ритм привычек держится', `Выполнение месяца: ${h.percent}%.`]);
+    if (st.rows.length && st.energy < 5) items.push(['danger', 'Энергия низкая', 'На сегодня лучше антихаос: минимум задач, сон и восстановление.']);
+    if (!entry?.answer) items.push(['warn', 'Нет ответа на вопрос дня', 'В 18:00 закрой этот маленький ритуал.']);
+    if (ts.overdue) items.push(['danger', 'Просроченные задачи давят на состояние', `Просрочено: ${ts.overdue}. Закрой одну маленькую.`]);
+    if (!items.length) items.push(['green', 'Состояние спокойно', 'Продолжай без усложнения системы.']);
+    return `<div class="card v15-insights-card"><h3>✨ Инсайты по привычкам и состоянию</h3>${items.map(([tone,title,text]) => `<div class="attention-item ${tone}"><b>${escapeHtml(title)}</b><span>${escapeHtml(text)}</span></div>`).join('')}</div>`;
+  }
+  function v15StateCard() {
+    const st = stateStats();
+    const todayState = state.states.find(x => x.date === todayKey());
+    return `<div class="card v15-state-card"><div class="section-head"><div><h3>🌿 Состояние</h3><p class="sub">Теперь это часть привычек: сон, энергия, настроение, стресс и вывод дня.</p></div><button class="primary-btn" data-open-modal="closeDay">Закрыть день</button></div>
+      <div class="grid cards"><div class="mini-kpi"><span>Сон 7 дней</span><b>${st.sleep.toFixed(1)}</b></div><div class="mini-kpi"><span>Энергия</span><b>${st.energy.toFixed(1)}</b></div><div class="mini-kpi"><span>Настроение</span><b>${st.mood.toFixed(1)}</b></div><div class="mini-kpi"><span>Стресс</span><b>${st.stress.toFixed(1)}</b></div></div>
+      ${todayState ? `<p class="sub" style="margin-top:12px"><b>Сегодня:</b> ${escapeHtml(todayState.note || 'день закрыт')}</p>` : `<div class="empty" style="margin-top:12px">День ещё не закрыт</div>`}
+    </div>`;
+  }
+  function habits() {
+    v15EnsureState();
+    const key = todayKey();
+    const active = state.habits.filter(h => h.active);
+    return `<div class="v15-habits-page">
+      <section class="v15-folder-hero v15-habits-hero"><div><div class="tiny-label">Ритуалы дня</div><h2>Привычки + состояние</h2><p>Здесь теперь всё ежедневное: привычки, состояние, вопрос дня и инсайты.</p></div><button class="primary-btn" data-open-modal="addHabit">+ Привычка</button></section>
+      <div class="grid two" style="margin-top:16px">${v15DailyQuestionCard()}${v15StateCard()}</div>
+      <div style="margin-top:16px">${v15HabitsInsights()}</div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><div class="section-head"><div><h3>✅ Привычки сегодня</h3><p class="sub">Отмечай без перфекционизма. Одна отметка лучше нуля.</p></div><span class="tag green">${todayHabitCount()}/${active.length}</span></div><div class="checkbox-grid">${active.map(h => `<label class="check-card v15-habit-check"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area)} · цель ${h.targetPerWeek || 1}/нед.</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[key]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+        <div class="card"><div class="section-head"><div><h3>Управление привычками</h3><p class="sub">Скрытие не удаляет историю.</p></div><button class="soft-btn" data-open-modal="addHabit">Добавить</button></div>${table(['Привычка','Сфера','Цель/нед.',''], state.habits.map(h=>[escapeHtml(h.name), escapeHtml(h.area), h.targetPerWeek, h.active ? `<button class="ghost-btn" data-hide-habit="${h.id}">Скрыть</button>` : '<span class="tag">Скрыта</span>']))}</div>
+      </div>
+    </div>`;
+  }
+
+  function v15OpenDailyQuestionModal() {
+    v15EnsureState();
+    const existing = v15QuestionEntry() || {};
+    const prompt = v15DailyPrompt();
+    openCustomModal('🧠 Вопрос дня', `<p class="sub"><b>Сегодня:</b> ${escapeHtml(prompt)}</p><div class="form-grid"><label class="full">Ответ<textarea id="v15QuestionAnswer" rows="7" class="note-area" placeholder="Пиши свободно, без цензуры">${escapeHtml(existing.answer || '')}</textarea></label><label class="full">Главный инсайт<input id="v15QuestionInsight" value="${escapeAttr(existing.insight || '')}" placeholder="Что я понял?"></label></div><div class="actions-row"><button class="primary-btn" id="v15SaveQuestionBtn">Сохранить и закрыть задачу</button></div>`);
+    document.getElementById('v15SaveQuestionBtn').onclick = () => {
+      const answer = val('v15QuestionAnswer').trim();
+      if (!answer) return toast('Напиши ответ');
+      pushUndo?.('вопрос дня');
+      const data = { kind:'dailyQuestion', date: todayKey(), prompt, answer, insight: val('v15QuestionInsight'), updatedAt:new Date().toISOString(), createdAt: existing.createdAt || new Date().toISOString() };
+      if (existing.id) Object.assign(existing, data);
+      else state.journalEntries.unshift({ id:uid(), ...data });
+      const task = v15TodayQuestionTask();
+      if (task) task.status = 'Готово';
+      save(); closeModal(); activePage = 'habits'; render(); toast('Вопрос дня сохранён');
+    };
+  }
+
+  function v15TaskList(title, list, tone='') {
+    return `<div class="v15-task-column ${tone}"><div class="section-head"><h3>${title}</h3><span class="tag">${list.length}</span></div>${list.length ? list.slice(0,8).map(v15TaskCard).join('') : `<div class="mini-empty">Пусто</div>`}</div>`;
+  }
+  function v15TaskCard(t) {
+    const goal = state.goals.find(g => g.id === t.goalId);
+    const danger = taskIsOpen(t) && t.due && t.due < todayKey();
+    const question = t.systemType === 'dailyQuestion';
+    return `<article class="v15-task-card ${danger?'danger-zone':''} ${question?'question-task':''}">
+      <div class="v15-task-icon">${question ? '🧠' : danger ? '🔥' : '📌'}</div>
+      <div class="v15-task-main"><b>${escapeHtml(t.title || 'Без названия')}</b><div class="task-meta">${t.due ? `<span class="tag ${danger?'danger':'blue'}">${formatTaskDate(t)}</span>` : '<span class="tag warn">Без даты</span>'}<span class="tag">${escapeHtml(t.priority || 'Средний')}</span>${goal ? `<span class="tag green">${escapeHtml(goal.title)}</span>` : ''}${question ? '<span class="tag warn">обязательно</span>' : ''}</div>${t.nextAction ? `<p class="sub">${escapeHtml(t.nextAction)}</p>` : ''}</div>
+      <div class="v15-task-actions"><a class="soft-btn" href="${buildGoogleCalendarUrl(t)}" target="_blank" rel="noopener" data-calendar-task="${t.id}">📅</a><button class="soft-btn" data-edit-task="${t.id}">✏️</button><button class="ghost-btn" data-toggle-task="${t.id}">${t.status === 'Готово' ? 'Вернуть' : 'Готово'}</button></div>
+    </article>`;
+  }
+  function v15CalendarAgenda() {
+    const items = [...weekTasks(), ...tasksForDay(todayKey())]
+      .filter((t, idx, arr) => arr.findIndex(x => x.id === t.id) === idx)
+      .sort(taskSort)
+      .slice(0, 16);
+    const groups = {};
+    items.forEach(t => { const key = t.due || 'Без даты'; groups[key] = groups[key] || []; groups[key].push(t); });
+    return `<div class="card v15-calendar-card"><div class="section-head"><div><h3>🗓 Календарь задач</h3><p class="sub">Календарь больше не отдельная папка — он внутри задач.</p></div><button class="primary-btn" data-open-modal="quickTask">+ Задача</button></div>${Object.entries(groups).length ? `<div class="mini-timeline">${Object.entries(groups).map(([date, list]) => `<div class="timeline-item task"><span>${date === 'Без даты' ? '—' : date.slice(8,10)}</span><b>${escapeHtml(formatFeedDate(date))}</b><small>${list.map(t => escapeHtml(t.title || 'Задача')).join(' · ')}</small></div>`).join('')}</div>` : empty('На неделю задач пока нет')}</div>`;
+  }
+  function tasks() {
+    v15EnsureState();
+    const today = todayKey();
+    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+    const tomorrow = toDateKey(tomorrowDate);
+    const open = state.tasks.filter(taskIsOpen).sort(taskSort);
+    const done = state.tasks.filter(t => t.status === 'Готово').sort(taskSort).slice(0,10);
+    return `<div class="v15-tasks-page">
+      <section class="v15-folder-hero v15-task-hero"><div><div class="tiny-label">Задачи + календарь</div><h2>Фокус и сроки</h2><p>Один экран вместо двух: просрочки, сегодня, неделя, без даты и календарная повестка.</p></div><button class="primary-btn" data-open-modal="quickTask">+ Задача</button></section>
+      <div class="grid cards" style="margin-top:16px">${kpi('🔥','Просрочено', overdueTasks().length, 'сначала закрыть одну')}${kpi('🌤','Сегодня', tasksForDay(today).length, 'фокус дня')}${kpi('🌅','Завтра', tasksForDay(tomorrow).length, 'следующий день')}${kpi('🌫','Без даты', undatedTasks().length, 'надо запланировать')}</div>
+      <div class="v15-task-board" style="margin-top:16px">${v15TaskList('🔥 Просрочено', overdueTasks(), 'danger')}${v15TaskList('🌤 Сегодня', tasksForDay(today), 'green')}${v15TaskList('🗓 Неделя', weekTasks().filter(t => t.due !== today), 'blue')}${v15TaskList('🌫 Без даты', undatedTasks(), 'warn')}</div>
+      <div style="margin-top:16px">${v15CalendarAgenda()}</div>
+      <div class="card" style="margin-top:16px"><div class="section-head"><h3>📚 Все активные задачи</h3><span class="tag">${open.length}</span></div>${open.length ? `<div class="v15-all-task-list">${open.map(v15TaskCard).join('')}</div>` : empty('Активных задач нет')}</div>
+      <div class="card" style="margin-top:16px"><h3>✅ Завершённые</h3>${done.length ? `<div class="v15-all-task-list compact">${done.map(v15TaskCard).join('')}</div>` : empty('Пока нет завершённых задач')}</div>
+    </div>`;
+  }
+
+  function v15IsoFromBirthday(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const m = raw.match(/^(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?$/);
+    if (m) {
+      const y = m[3] ? (m[3].length === 2 ? `20${m[3]}` : m[3]) : '2000';
+      return `${y}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`;
+    }
+    return '';
+  }
+  function v15NextBirthdayDate(iso) {
+    const normalized = v15IsoFromBirthday(iso);
+    if (!normalized) return '';
+    const [, mm, dd] = normalized.split('-');
+    const now = new Date();
+    let y = now.getFullYear();
+    let candidate = new Date(`${y}-${mm}-${dd}T00:00:00`);
+    if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) candidate = new Date(`${y+1}-${mm}-${dd}T00:00:00`);
+    return toDateKey(candidate);
+  }
+  function v15BirthdayText(iso) {
+    const normalized = v15IsoFromBirthday(iso);
+    if (!normalized) return 'ДР не указан';
+    const [, mm, dd] = normalized.split('-');
+    return `${dd}.${mm}`;
+  }
+  function v15BirthdayCalendarUrl(person) {
+    const next = v15NextBirthdayDate(person.birthday) || todayKey();
+    const start = new Date(`${next}T10:00:00`);
+    const end = new Date(start.getTime() + 30 * 60000);
+    const fmt = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    const title = encodeURIComponent(`День рождения: ${person.name || 'человек'}`);
+    const details = encodeURIComponent([person.likes ? `Любит: ${person.likes}` : '', person.gifts ? `Идеи подарков: ${person.gifts}` : '', person.talkIdeas ? `О чём поговорить: ${person.talkIdeas}` : '', 'Создано в Second Brain OS'].filter(Boolean).join('\n'));
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&recur=RRULE:FREQ=YEARLY`;
+  }
+  function peopleView() {
+    v15EnsureState();
+    const sorted = [...state.people].sort((a,b) => (v15NextBirthdayDate(a.birthday) || '9999-99-99').localeCompare(v15NextBirthdayDate(b.birthday) || '9999-99-99'));
+    const withBirthday = state.people.filter(p => p.birthday).length;
+    const gifts = state.people.filter(p => p.gifts).length;
+    return `<div class="v14-page v15-people-page">
+      <section class="v14-hero"><div><div class="tiny-label">Личная база</div><h2>Люди</h2><p>О чём поговорить, что подарить, когда день рождения и что человек любит.</p></div><button class="primary-btn" data-open-modal="person">+ Человек</button></section>
+      <div class="v14-metric-grid">${kpi('👥','Людей', state.people.length, 'контактов в базе')}${kpi('🎂','ДР указано', withBirthday, 'можно добавить в календарь')}${kpi('🎁','Есть подарки', gifts, 'идеи подарков')}</div>
+      <div class="v14-card-grid people-grid">${sorted.length ? sorted.map(v15PersonCard).join('') : `<div class="v14-empty"><i>👥</i><b>Людей пока нет</b><small>Добавь первый контакт: день рождения, идеи подарков, темы для разговора и важные заметки.</small><button class="primary-btn" data-open-modal="person">Добавить человека</button></div>`}</div>
+    </div>`;
+  }
+  function v15PersonCard(p) {
+    const bday = v15NextBirthdayDate(p.birthday);
+    const cal = v15BirthdayCalendarUrl(p);
+    return `<article class="card v14-person-card"><div class="section-head"><div><h3>${escapeHtml(p.name || 'Без имени')}</h3><p class="sub">${escapeHtml(p.relation || 'человек')} · ${v15BirthdayText(p.birthday)}</p></div><span class="v14-avatar">${escapeHtml((p.name || '?').slice(0,1).toUpperCase())}</span></div><div class="v14-note-block"><b>О чём поговорить</b><p>${escapeHtml(p.talkIdeas || 'Пока нет идей для общения.')}</p></div><div class="v14-tags">${p.likes ? `<span>💛 ${escapeHtml(p.likes)}</span>` : ''}${p.gifts ? `<span>🎁 ${escapeHtml(p.gifts)}</span>` : ''}${bday ? `<span>🎂 ${bday}</span>` : ''}</div>${p.notes ? `<p class="sub">${escapeHtml(p.notes)}</p>` : ''}<div class="actions-row"><button class="soft-btn" data-action="editPerson" data-person-id="${p.id}">Редактировать</button>${p.birthday ? `<a class="soft-btn" href="${cal}" target="_blank" rel="noopener">📅 ДР в календарь</a>` : ''}<button class="ghost-btn" data-action="deletePerson" data-person-id="${p.id}">Удалить</button></div></article>`;
+  }
+
+  const __v15BaseRender = render;
+  render = function(opts = {}) {
+    v15EnsureState();
+    v15NormalizeActivePage();
+    const own = { finance, goals, habits, tasks, people: peopleView };
+    if (own[activePage]) return v15RenderShell(own[activePage](opts));
+    return __v15BaseRender(opts);
+  };
+
+  const __v15BaseRouteAction = routeAction;
+  routeAction = function(a, el, e) {
+    v15EnsureState();
+    if (a === 'setFinanceSection') { state.settings.financeSection = el?.dataset?.section || 'overview'; activePage = 'finance'; save(); return render(); }
+    if (a === 'openDailyQuestion') return v15OpenDailyQuestionModal();
+    if (a === 'jumpHabits') { activePage = 'habits'; return render(); }
+    if (a === 'jumpTasks' || a === 'jumpOverdueTasks') { activePage = 'tasks'; return render(); }
+    return __v15BaseRouteAction(a, el, e);
+  };
+
+  const __v15BaseGoPage = typeof goPage === 'function' ? goPage : null;
+  if (__v15BaseGoPage) {
+    goPage = function(page, message) {
+      if (V15_FINANCE_SECTION_BY_PAGE[page]) state.settings.financeSection = V15_FINANCE_SECTION_BY_PAGE[page];
+      activePage = V15_PAGE_ALIASES[page] || page;
+      render();
+      if (message) setTimeout(() => toast(message), 50);
+    };
+  }
+
+  v15EnsureState();
+  console.log('Second Brain V15 segmentation patch loaded:', V15_VERSION);
 })();
 
 console.log('Second Brain INSPECTION FIX V11 loaded');
