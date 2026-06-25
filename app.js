@@ -4675,3 +4675,1232 @@ if (window.SecondBrainCloud) {
 }
 
 console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
+
+/* =========================
+   FOCUS SYSTEM V16 PATCH 2026-06-25
+   Центр дня, универсальный +, умный ввод, поиск, weekly review, финансовый прогноз.
+   ========================= */
+(function installV16FocusSystem(){
+  if (window.__SECOND_BRAIN_V16_FOCUS_SYSTEM__) return;
+  window.__SECOND_BRAIN_V16_FOCUS_SYSTEM__ = true;
+
+  const V16_VERSION = 'focus-system-v16-20260625';
+  const V16_HIDDEN_PAGES = new Set(['bank', 'debts', 'panel', 'calendar', 'state', 'insights', 'journal']);
+  const V16_PAGE_ALIASES = { bank:'finance', debts:'finance', panel:'finance', calendar:'tasks', state:'habits', insights:'habits', journal:'habits' };
+  const V16_FINANCE_SECTION_BY_PAGE = { bank:'import', debts:'debts', panel:'analysis' };
+
+  const __v16BaseRender = render;
+  const __v16BaseRouteAction = routeAction;
+  const __v16BaseFinance = finance;
+  const __v16BaseGoals = typeof goals === 'function' ? goals : null;
+
+  function v16UpsertPage(afterId, def) {
+    const existing = pages.find(p => p[0] === def[0]);
+    if (existing) { existing[1] = def[1]; existing[2] = def[2]; return; }
+    const index = pages.findIndex(p => p[0] === afterId);
+    pages.splice(index >= 0 ? index + 1 : pages.length, 0, def);
+  }
+
+  function v16EnsureState() {
+    if (typeof enhanceGoalGameState === 'function') enhanceGoalGameState();
+    else if (typeof enhanceDelightState === 'function') enhanceDelightState();
+    state.settings = state.settings || {};
+    state.settings.financeSection = state.settings.financeSection || 'overview';
+    state.people = Array.isArray(state.people) ? state.people : [];
+    state.wishes = Array.isArray(state.wishes) ? state.wishes : [];
+    state.books = Array.isArray(state.books) ? state.books : [];
+    state.trades = Array.isArray(state.trades) ? state.trades : [];
+    state.tradingAccounts = Array.isArray(state.tradingAccounts) ? state.tradingAccounts : [];
+    state.journal = Array.isArray(state.journal) ? state.journal : [];
+    state.journalEntries = Array.isArray(state.journalEntries) ? state.journalEntries : [];
+    state.weeklyReviews = Array.isArray(state.weeklyReviews) ? state.weeklyReviews : [];
+    state.quickInbox = Array.isArray(state.quickInbox) ? state.quickInbox : [];
+    v16UpsertPage('finance', ['search', '🔎', 'Поиск']);
+    v16RelabelPages();
+    v16EnsureQuestionHabit();
+    v16EnsureDailyQuestionTasks(14);
+  }
+
+  function v16RelabelPages() {
+    const labels = {
+      dashboard: ['🏠', 'Центр дня'],
+      quick: ['⚡', 'Быстрый ввод'],
+      finance: ['💸', 'Финансы'],
+      search: ['🔎', 'Поиск'],
+      tasks: ['📌', 'Задачи + календарь'],
+      habits: ['✅', 'Привычки + состояние'],
+      goals: ['🎯', 'SMART-цели'],
+      people: ['👥', 'Люди'],
+      wishes: ['💛', 'Хотелки'],
+      books: ['📚', 'Книги'],
+      trading: ['📈', 'Трейдинг'],
+      sync: ['☁️', 'Синхронизация'],
+      settings: ['⚙️', 'Настройки']
+    };
+    Object.entries(labels).forEach(([id, [icon, label]]) => {
+      const p = pages.find(x => x[0] === id);
+      if (p) { p[1] = icon; p[2] = label; }
+    });
+  }
+
+  function v16NormalizePage() {
+    if (V16_FINANCE_SECTION_BY_PAGE[activePage]) {
+      state.settings.financeSection = V16_FINANCE_SECTION_BY_PAGE[activePage];
+      activePage = 'finance';
+    }
+    activePage = V16_PAGE_ALIASES[activePage] || activePage;
+  }
+
+  function v16PageButton(id) {
+    const p = pages.find(x => x[0] === id);
+    if (!p || V16_HIDDEN_PAGES.has(id)) return '';
+    return `<button data-page="${id}" class="${activePage===id?'active':''}"><span>${p[1]}</span>${escapeHtml(p[2])}</button>`;
+  }
+
+  renderNav = function() {
+    v16EnsureState();
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const groups = [
+      ['Пульт', ['dashboard', 'finance', 'search']],
+      ['День', ['today', 'tasks', 'habits', 'goals']],
+      ['База', ['people', 'wishes', 'books', 'trading']],
+      ['Инструменты', ['quick', 'sync', 'settings']]
+    ];
+    nav.innerHTML = groups.map(([title, ids]) => {
+      const buttons = ids.filter(id => pages.some(p => p[0] === id) && !V16_HIDDEN_PAGES.has(id)).map(v16PageButton).join('');
+      return buttons ? `<div class="nav-group-label">${title}</div>${buttons}` : '';
+    }).join('');
+    nav.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => { activePage = btn.dataset.page; render(); }));
+  };
+
+  function v16TitleForPage() {
+    const page = pages.find(p => p[0] === activePage);
+    return page ? page[2] : 'Second Brain';
+  }
+
+  function v16RenderShell(html) {
+    renderNav();
+    const title = document.getElementById('pageTitle');
+    if (title) title.textContent = v16TitleForPage();
+    const mini = document.getElementById('todayMini');
+    if (mini) mini.innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span>`;
+    const view = document.getElementById('view');
+    if (view) view.innerHTML = html;
+    bindView();
+    v16ApplyChrome();
+  }
+
+  function v16ApplyChrome() {
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'FOCUS SYSTEM V16';
+    const search = document.getElementById('globalSearch');
+    if (search) {
+      search.placeholder = 'Найти задачу, расход, человека, цель...';
+      search.value = activePage === 'search' ? (localStorage.getItem('v16.search') || search.value || '') : search.value;
+      search.oninput = (e) => {
+        localStorage.setItem('v16.search', e.target.value || '');
+        activePage = 'search';
+        render({ search: e.target.value || '' });
+      };
+    }
+    const fab = document.getElementById('fabAdd');
+    if (fab) {
+      fab.classList.add('v16-fab');
+      fab.title = 'Универсальное добавление';
+      fab.onclick = v16OpenUniversalAdd;
+    }
+    v16RenderBottomNav();
+  }
+
+  function v16RenderBottomNav() {
+    let bar = document.getElementById('v16BottomNav');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'v16BottomNav';
+      bar.className = 'v16-bottom-nav';
+      document.body.appendChild(bar);
+    }
+    const items = [
+      ['dashboard', '🏠', 'День'],
+      ['finance', '💸', 'Деньги'],
+      ['add', '＋', 'Добавить'],
+      ['tasks', '📌', 'Задачи'],
+      ['habits', '✅', 'Ритм']
+    ];
+    bar.innerHTML = items.map(([id, icon, label]) => id === 'add'
+      ? `<button class="v16-bottom-add" data-action="v16UniversalAdd"><span>${icon}</span><small>${label}</small></button>`
+      : `<button class="${activePage===id?'active':''}" data-page-jump="${id}"><span>${icon}</span><small>${label}</small></button>`
+    ).join('');
+  }
+
+  function v16DateFromOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return toDateKey(d);
+  }
+  function v16NextWeekdayDates(count) {
+    const out = [];
+    let i = 0;
+    while (out.length < count && i < count + 10) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const day = d.getDay();
+      if (day >= 1 && day <= 5) out.push(toDateKey(d));
+      i += 1;
+    }
+    return out;
+  }
+  function v16EnsureQuestionHabit() {
+    const name = 'Ответить на вопрос дня';
+    const exists = state.habits.some(h => String(h.name || '').toLowerCase() === name.toLowerCase());
+    if (!exists) state.habits.push({ id: uid(), name, area: 'Личное', active: true, targetPerWeek: 5, systemType: 'dailyQuestion' });
+  }
+  function v16EnsureDailyQuestionTasks(days = 14) {
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    v16NextWeekdayDates(days).forEach(date => {
+      let t = state.tasks.find(x => x.systemType === 'dailyQuestion' && x.due === date);
+      if (!t) {
+        t = { id: uid(), title: 'Ответить на вопрос дня', area: 'Личное', due: date, time: '18:00', duration: 15, reminder: 'В Google Calendar', priority: 'Высокий', status: 'В работе', nextAction: v16DailyPrompt(date), calendarAdded: false, systemType: 'dailyQuestion', required: true };
+        state.tasks.push(t);
+      } else {
+        t.time = '18:00';
+        t.priority = t.priority || 'Высокий';
+        t.required = true;
+        t.nextAction = t.nextAction || v16DailyPrompt(date);
+      }
+    });
+  }
+  function v16DailyPrompt(dateKey = todayKey()) {
+    const prompts = [
+      'Что я сегодня избегаю, хотя это важно?',
+      'Какой один маленький шаг даст мне ощущение контроля?',
+      'Где я сейчас обманываю себя словами «потом»?',
+      'Что я хочу на самом деле, но не формулирую вслух?',
+      'Какая привычка сегодня покупает мне спокойствие, а какая — тревогу?',
+      'Что я могу сделать сегодня для будущего себя?',
+      'С каким человеком мне стоит восстановить контакт?',
+      'Что я понял о себе за последние сутки?',
+      'Что сегодня будет победой, даже если день тяжёлый?',
+      'Какой страх мешает мне действовать проще?'
+    ];
+    const sum = String(dateKey).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    return prompts[sum % prompts.length];
+  }
+
+  function v16PriorityRank(t) {
+    if (t.priority === 'Высокий') return 0;
+    if (t.priority === 'Средний') return 1;
+    return 2;
+  }
+  function v16OpenTasks() { return state.tasks.filter(t => taskIsOpen(t)).sort((a,b) => (a.due || '9999-99-99').localeCompare(b.due || '9999-99-99') || v16PriorityRank(a) - v16PriorityRank(b)); }
+  function v16MainTasks() {
+    const today = todayKey();
+    return v16OpenTasks().sort((a,b) => {
+      const ad = a.due === today ? 0 : (a.due && a.due < today ? -1 : 1);
+      const bd = b.due === today ? 0 : (b.due && b.due < today ? -1 : 1);
+      return ad - bd || v16PriorityRank(a) - v16PriorityRank(b);
+    }).slice(0, 3);
+  }
+  function v16MiniTask(t) {
+    const danger = t.due && t.due < todayKey() && taskIsOpen(t);
+    return `<div class="v16-mini-task ${danger?'danger':''}">
+      <div><b>${escapeHtml(t.title || 'Без названия')}</b><small>${escapeHtml(t.due || 'без даты')}${t.time ? ' · ' + escapeHtml(t.time) : ''}${t.nextAction ? ' · ' + escapeHtml(t.nextAction) : ''}</small></div>
+      <div class="v16-mini-actions"><button class="soft-btn" data-action="v16TaskTomorrow" data-task-id="${t.id}">завтра</button><button class="primary-btn" data-toggle-task="${t.id}">готово</button></div>
+    </div>`;
+  }
+  function v16TaskCard(t) {
+    const goal = state.goals.find(g => g.id === t.goalId);
+    const danger = t.due && t.due < todayKey() && taskIsOpen(t);
+    const question = t.systemType === 'dailyQuestion';
+    const dateTag = t.due ? `<span class="tag ${danger?'danger':'blue'}">${escapeHtml(t.due)}${t.time ? ' · ' + escapeHtml(t.time) : ''}</span>` : '<span class="tag warn">Без даты</span>';
+    return `<article class="v16-task-card ${danger?'danger':''} ${question?'question':''}">
+      <div class="v16-task-left"><span>${question ? '🧠' : danger ? '🔥' : '📌'}</span></div>
+      <div class="v16-task-body"><b>${escapeHtml(t.title || 'Без названия')}</b><div class="task-meta">${dateTag}<span class="tag">${escapeHtml(t.priority || 'Средний')}</span>${goal ? `<span class="tag green">${escapeHtml(goal.title)}</span>` : ''}${question ? '<span class="tag warn">будни 18:00</span>' : ''}</div>${t.nextAction ? `<p>${escapeHtml(t.nextAction)}</p>` : ''}</div>
+      <div class="v16-task-actions"><button data-action="v16TaskToday" data-task-id="${t.id}">сегодня</button><button data-action="v16TaskTomorrow" data-task-id="${t.id}">завтра</button><button data-action="v16TaskWeek" data-task-id="${t.id}">неделя</button><button data-action="v16TaskNoDate" data-task-id="${t.id}">без даты</button><button data-edit-task="${t.id}">✏️</button><a href="${buildGoogleCalendarUrl(t)}" target="_blank" rel="noopener" data-calendar-task="${t.id}">📅</a><button class="done" data-toggle-task="${t.id}">${t.status === 'Готово' ? 'вернуть' : 'готово'}</button></div>
+    </article>`;
+  }
+  function v16TaskColumn(title, list, tone = '') {
+    return `<section class="v16-task-column ${tone}"><div class="section-head"><h3>${title}</h3><span class="tag">${list.length}</span></div>${list.length ? list.slice(0, 10).map(v16TaskCard).join('') : `<div class="empty">Пусто</div>`}</section>`;
+  }
+
+  function v16UpcomingPeople(limit = 3) {
+    const now = new Date();
+    return (state.people || []).filter(p => p.birthday).map(p => {
+      const normalized = v16NormalizeBirthday(p.birthday);
+      if (!normalized) return null;
+      const [, mm, dd] = normalized.split('-');
+      let date = new Date(`${now.getFullYear()}-${mm}-${dd}T00:00:00`);
+      if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate())) date = new Date(`${now.getFullYear()+1}-${mm}-${dd}T00:00:00`);
+      return { person:p, date:toDateKey(date) };
+    }).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date)).slice(0, limit);
+  }
+  function v16NormalizeBirthday(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const m = raw.match(/^(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?$/);
+    if (!m) return '';
+    const y = m[3] ? (m[3].length === 2 ? `20${m[3]}` : m[3]) : '2000';
+    return `${y}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`;
+  }
+
+  function v16UpcomingBlock() {
+    const debt = typeof debtSummary === 'function' ? debtSummary() : { dueSoon: [] };
+    const payments = [];
+    if (typeof financialCalendarItems === 'function') {
+      try { payments.push(...financialCalendarItems(state.settings.currentMonth).slice(0, 4)); } catch(e) {}
+    }
+    if (!payments.length && Array.isArray(state.plannedExpenses)) {
+      payments.push(...state.plannedExpenses.filter(x => x.active !== false).slice(0,4).map(x => ({ date:`${state.settings.currentMonth}-${String(x.day || 1).padStart(2,'0')}`, title:x.title || x.category, icon:'📆' })));
+    }
+    const people = v16UpcomingPeople(3);
+    return `<div class="card v16-upcoming"><div class="section-head"><div><h3>⏭ Ближайшее</h3><p class="sub">Платежи, долги, дни рождения и важные даты.</p></div></div>
+      ${debt.dueSoon?.length ? `<div class="attention-item danger"><b>💳 Ближайший долг</b><span>${escapeHtml(debt.dueSoon[0].due || 'без даты')} · ${money(debt.dueSoon[0].remaining || debt.dueSoon[0].amount || 0)} · ${escapeHtml(debt.dueSoon[0].title || '')}</span></div>` : ''}
+      ${payments.length ? `<div class="v16-small-list">${payments.slice(0,4).map(p=>`<div><b>${escapeHtml(p.icon || '📆')} ${escapeHtml(p.title || 'Платёж')}</b><small>${escapeHtml(p.date || '')}</small></div>`).join('')}</div>` : empty('Пока нет ближайших платежей')}
+      ${people.length ? `<div class="v16-small-list people">${people.map(x=>`<div><b>🎂 ${escapeHtml(x.person.name || 'Человек')}</b><small>${x.date}${x.person.gifts ? ' · 🎁 ' + escapeHtml(x.person.gifts) : ''}</small></div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
+  function v16FinancialForecast() {
+    const month = state.settings.currentMonth;
+    const [y,m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const today = new Date();
+    const elapsed = today.getFullYear() === y && today.getMonth()+1 === m ? today.getDate() : daysInMonth;
+    const s = monthSummary();
+    const dailyFact = s.expenses / Math.max(1, elapsed);
+    const forecastExpense = Math.round(dailyFact * daysInMonth);
+    const plannedLeft = (state.plannedExpenses || []).filter(p => p.active !== false && (!p.month || p.month === month) && Number(p.day || 1) >= elapsed).reduce((sum,p)=>sum+num(p.amount),0);
+    const forecastLeft = Math.round(s.income - forecastExpense - plannedLeft - (s.allocations || 0));
+    const tone = forecastLeft < 0 ? 'danger' : forecastLeft < s.income * .1 ? 'warn' : 'green';
+    return { month, elapsed, daysInMonth, dailyFact, forecastExpense, plannedLeft, forecastLeft, tone };
+  }
+  function v16FinancialForecastCard() {
+    const f = v16FinancialForecast();
+    const msg = f.tone === 'danger' ? 'Если темп сохранится, месяц уйдёт в минус.' : f.tone === 'warn' ? 'Запас есть, но лучше снизить темп расходов.' : 'Темп нормальный, запас сохраняется.';
+    return `<div class="card v16-forecast ${f.tone}"><div class="section-head"><div><h3>🔮 Прогноз до конца месяца</h3><p class="sub">Считает текущий темп расходов + оставшиеся плановые платежи.</p></div><span class="tag ${f.tone}">${msg}</span></div><div class="v16-forecast-grid"><div><span>Темп/день</span><b>${money(f.dailyFact)}</b></div><div><span>Прогноз расходов</span><b>${money(f.forecastExpense)}</b></div><div><span>Плановые впереди</span><b>${money(f.plannedLeft)}</b></div><div><span>Остаток прогноза</span><b>${money(f.forecastLeft)}</b></div></div></div>`;
+  }
+
+  function v16Dashboard() {
+    v16EnsureState();
+    const s = monthSummary();
+    const h = habitMonthStats();
+    const t = tasksStats();
+    const main = v16MainTasks();
+    const habits = state.habits.filter(h => h.active).slice(0, 8);
+    const today = todayKey();
+    const latestInsight = [...(state.journalEntries || []), ...(state.journal || [])].sort((a,b)=>String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || '')))[0];
+    return `<div class="v16-dashboard">
+      <section class="v16-day-hero"><div><div class="tiny-label">${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</div><h2>Центр дня</h2><p>Открыл → понял → сделал. Здесь только то, что влияет на сегодняшний день: 3 задачи, деньги, привычки, вопрос дня и ближайшие даты.</p><div class="actions-row"><button class="primary-btn" data-action="v16UniversalAdd">＋ Добавить</button><button class="soft-btn" data-action="v16SmartQuick">🧠 Умный ввод</button><button class="soft-btn" data-action="v16CreateWeeklyReview">📅 Обзор недели</button><button class="soft-btn" data-action="backup">⬇️ Бэкап</button></div></div><div class="v16-score-card"><span>${lifeScore()}</span><small>Life Score</small><em>${scoreText(lifeScore())}</em></div></section>
+      <div class="v16-today-grid">
+        <div class="card v16-focus-card"><div class="section-head"><div><h3>🎯 3 главные задачи</h3><p class="sub">Не всё подряд, а то, что двигает день.</p></div><button class="soft-btn" data-page-jump="tasks">Все задачи</button></div>${main.length ? main.map(v16MiniTask).join('') : empty('Нет активных задач. Создай один фокус дня.')}<button class="primary-btn full-width" data-open-modal="quickTask">+ Задача</button></div>
+        <div class="card v16-money-card"><div class="section-head"><div><h3>💸 Деньги дня</h3><p class="sub">Сколько можно тратить без вреда.</p></div><button class="soft-btn" data-page-jump="finance">Финансы</button></div><div class="v16-money-hero"><span>Можно сегодня</span><b>${money(s.dailyLimit)}</b><small>Остаток месяца: ${money(s.left)}</small></div>${v16FinancialForecastCard()}</div>
+      </div>
+      <div class="grid cards">${kpi('📌','Задачи сегодня', t.today, `${t.overdue} просрочено`)}${kpi('✅','Привычки', `${h.percent}%`, `${h.done} отметок за месяц`)}${kpi('💰','Доход месяца', money(s.income), 'операции')}${kpi('💸','Расходы', money(s.expenses), 'темп месяца')}</div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card v16-question-card"><div class="section-head"><div><h3>🧠 Вопрос дня</h3><p class="sub">Обязательная будняя задача создаётся на 18:00.</p></div><span class="tag warn">18:00</span></div><div class="v16-question-text">${escapeHtml(v16DailyPrompt(today))}</div><div class="actions-row"><button class="primary-btn" data-action="v16AnswerQuestion">Ответить</button><button class="soft-btn" data-page-jump="habits">В привычки</button></div></div>
+        <div class="card"><div class="section-head"><div><h3>✅ Ритм дня</h3><p class="sub">Быстрые отметки привычек.</p></div><button class="soft-btn" data-page-jump="habits">Открыть</button></div><div class="checkbox-grid v16-habit-mini">${habits.map(habit => `<label class="check-card"><span><b>${escapeHtml(habit.name)}</b><br><span class="sub">${escapeHtml(habit.area || '')}</span></span><input type="checkbox" data-habit="${habit.id}" ${state.habitLogs[today]?.[habit.id] ? 'checked' : ''}></label>`).join('')}</div></div>
+      </div>
+      <div class="grid two" style="margin-top:16px">${v16UpcomingBlock()}<div class="card"><div class="section-head"><div><h3>✨ Последний инсайт</h3><p class="sub">Мысли, выводы и повторяющиеся темы.</p></div><button class="soft-btn" data-action="v16SmartQuick">+ Инсайт</button></div>${latestInsight ? `<div class="v16-insight-preview"><b>${escapeHtml(latestInsight.prompt || latestInsight.tags || latestInsight.date || 'Инсайт')}</b><p>${escapeHtml(latestInsight.answer || latestInsight.text || latestInsight.note || '')}</p></div>` : empty('Инсайтов пока нет. Запиши мысль через умный ввод: «мысль: ...»')}</div></div>
+    </div>`;
+  }
+
+  function v16Tasks() {
+    v16EnsureState();
+    const today = todayKey();
+    const tomorrow = v16DateFromOffset(1);
+    const open = v16OpenTasks();
+    const backlog = open.filter(t => !t.due || t.due > v16DateFromOffset(7));
+    const week = open.filter(t => t.due && t.due > today && t.due <= v16DateFromOffset(7));
+    const done = state.tasks.filter(t => t.status === 'Готово').sort(taskSort).slice(0, 12);
+    return `<div class="v16-tasks-page"><section class="v16-folder-hero v16-task-hero"><div><div class="tiny-label">Фокус + календарь</div><h2>Задачи без каши</h2><p>Три режима: сегодня, неделя, бэклог. Быстрые кнопки переносят задачу без открытия формы.</p></div><div class="actions-row"><button class="primary-btn" data-open-modal="quickTask">+ Задача</button><button class="soft-btn" data-action="v16SmartQuick">Умный ввод</button></div></section>
+      <div class="grid cards">${kpi('🔥','Просрочено', overdueTasks().length, 'закрыть или перенести')}${kpi('🌤','Сегодня', tasksForDay(today).length, 'фокус дня')}${kpi('🌅','Завтра', tasksForDay(tomorrow).length, 'следующий день')}${kpi('📚','Бэклог', backlog.length, 'без спешки')}</div>
+      <div class="v16-task-board">${v16TaskColumn('🔥 Просрочено', overdueTasks(), 'danger')}${v16TaskColumn('🌤 Сегодня', tasksForDay(today), 'green')}${v16TaskColumn('🗓 Неделя', week, 'blue')}${v16TaskColumn('📚 Бэклог', backlog, 'soft')}</div>
+      <div class="card"><div class="section-head"><h3>✅ Завершённые</h3><span class="tag">${done.length}</span></div>${done.length ? done.map(v16TaskCard).join('') : empty('Пока нет завершённых задач')}</div>
+    </div>`;
+  }
+
+  function v16StateCorrelationCard() {
+    const rows = (state.states || []).slice(-14);
+    if (rows.length < 3) return `<div class="card"><h3>📈 Связи состояния</h3>${empty('Нужно хотя бы 3 закрытых дня, чтобы увидеть закономерности.')}</div>`;
+    const avg = key => rows.reduce((s,x)=>s+num(x[key]),0) / rows.length;
+    const sleep = avg('sleep'), energy = avg('energy'), mood = avg('mood'), stress = avg('stress');
+    const insights = [];
+    if (sleep < 6.5) insights.push(['😴 Сон тянет систему вниз', 'Средний сон ниже 6.5 часов. Это почти всегда бьёт по энергии и импульсивным тратам.']);
+    if (stress > 6) insights.push(['🔥 Высокий стресс', 'Добавь короткую разгрузку в привычки и не планируй слишком много задач.']);
+    if (energy >= 7 && mood >= 7) insights.push(['⚡ Хорошее окно энергии', 'Можно ставить более сложные задачи в первой половине дня.']);
+    if (!insights.length) insights.push(['🌿 Состояние ровное', 'Продолжай закрывать день: через 2 недели появится точнее аналитика.']);
+    return `<div class="card"><div class="section-head"><div><h3>📈 Связи состояния</h3><p class="sub">Последние ${rows.length} дней.</p></div></div><div class="v16-forecast-grid"><div><span>Сон</span><b>${sleep.toFixed(1)} ч</b></div><div><span>Энергия</span><b>${energy.toFixed(1)}/10</b></div><div><span>Настроение</span><b>${mood.toFixed(1)}/10</b></div><div><span>Стресс</span><b>${stress.toFixed(1)}/10</b></div></div>${insights.map(x=>`<div class="attention-item"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>`;
+  }
+
+  function v16Habits() {
+    v16EnsureState();
+    const key = todayKey();
+    const active = state.habits.filter(h => h.active);
+    const answered = (state.journalEntries || []).some(e => e.date === key && e.systemType === 'dailyQuestion');
+    return `<div class="v16-habits-page"><section class="v16-folder-hero v16-habit-hero"><div><div class="tiny-label">Ежедневная система</div><h2>Привычки + состояние</h2><p>Здесь объединены привычки, вопрос дня, состояние и инсайты. Это не галочки, а диагностика ритма.</p></div><div class="actions-row"><button class="primary-btn" data-open-modal="closeDay">Закрыть день</button><button class="soft-btn" data-open-modal="addHabit">+ Привычка</button></div></section>
+      <div class="grid two"><div class="card v16-question-card"><div class="section-head"><div><h3>🧠 Вопрос дня</h3><p class="sub">Будни · автоматическая задача на 18:00.</p></div><span class="tag ${answered?'green':'warn'}">${answered?'готово':'обязательно'}</span></div><div class="v16-question-text">${escapeHtml(v16DailyPrompt(key))}</div><div class="actions-row"><button class="primary-btn" data-action="v16AnswerQuestion">Ответить</button><button class="soft-btn" data-page-jump="tasks">Задача 18:00</button></div></div>${v16StateCorrelationCard()}</div>
+      <div class="grid two" style="margin-top:16px"><div class="card"><div class="section-head"><div><h3>✅ Привычки сегодня</h3><p class="sub">Отметь ритм без лишней формы.</p></div><span class="tag">${todayHabitCount()}/${active.length}</span></div><div class="checkbox-grid">${active.map(h => `<label class="check-card"><span><b>${escapeHtml(h.name)}</b><br><span class="sub">${escapeHtml(h.area || '')} · ${h.targetPerWeek || 0}/нед.</span></span><input type="checkbox" data-habit="${h.id}" ${state.habitLogs[key]?.[h.id] ? 'checked' : ''}></label>`).join('')}</div></div><div class="card"><div class="section-head"><div><h3>✨ Инсайты</h3><p class="sub">Быстрые мысли, ответы и итоги дня.</p></div><button class="soft-btn" data-action="v16SmartQuick">+ Инсайт</button></div>${v16InsightsList()}</div></div>
+      <div class="card" style="margin-top:16px"><div class="section-head"><div><h3>Управление привычками</h3><p class="sub">Скрытие не удаляет историю.</p></div><button class="soft-btn" data-open-modal="addHabit">Добавить</button></div>${table(['Привычка','Сфера','Цель/нед.',''], state.habits.map(h=>[escapeHtml(h.name), escapeHtml(h.area), h.targetPerWeek, h.active ? `<button class="ghost-btn" data-hide-habit="${h.id}">Скрыть</button>` : '<span class="tag">Скрыта</span>']))}</div>
+    </div>`;
+  }
+  function v16InsightsList() {
+    const items = [...(state.journalEntries || []).map(x => ({ date:x.date, title:x.prompt || 'Ответ', text:x.answer || '', type:'entry' })), ...(state.journal || []).map(x => ({ date:x.date, title:x.tags || 'Заметка', text:x.text || x.note || '', type:'journal' }))]
+      .filter(x => x.text).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0, 8);
+    return items.length ? `<div class="v16-insight-list">${items.map(x=>`<div><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.date || '')}</small><p>${escapeHtml(x.text)}</p></div>`).join('')}</div>` : empty('Пока пусто. Напиши: «мысль: ...» через умный ввод.');
+  }
+
+  function v16GoalCockpit() {
+    const active = state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+    const noAction = active.filter(g => !String(g.nextAction || '').trim()).length;
+    const noMetric = active.filter(g => !g.metric || !num(g.targetValue)).length;
+    const noDeadline = active.filter(g => !g.deadline).length;
+    const next = active.find(g => String(g.nextAction || '').trim());
+    return `<div class="card v16-goal-cockpit"><div class="section-head"><div><h3>🧭 Пульт SMART-целей</h3><p class="sub">Цель должна иметь метрику, срок и следующий шаг. Иначе это просто желание.</p></div><button class="primary-btn" data-open-modal="quickGoal">+ Цель</button></div><div class="v16-forecast-grid"><div><span>Активных</span><b>${active.length}</b></div><div><span>Без шага</span><b>${noAction}</b></div><div><span>Без метрики</span><b>${noMetric}</b></div><div><span>Без срока</span><b>${noDeadline}</b></div></div>${next ? `<div class="v16-next-action"><span>Следующее действие</span><b>${escapeHtml(next.nextAction)}</b><small>${escapeHtml(next.title)}</small></div>` : `<div class="attention-item warn"><b>Нет следующего действия</b><span>Выбери одну цель и создай задачу на сегодня/неделю.</span></div>`}</div>`;
+  }
+  function v16Goals() {
+    const base = __v16BaseGoals ? __v16BaseGoals() : '';
+    return `<div class="v16-goals-page">${v16GoalCockpit()}${base}</div>`;
+  }
+
+  function v16Finance() {
+    v16EnsureState();
+    return `<div class="v16-finance-page">${v16FinancialForecastCard()}${__v16BaseFinance()}</div>`;
+  }
+
+  function v16Quick() {
+    return `<div class="v16-quick-page"><section class="v16-folder-hero"><div><div class="tiny-label">Capture first</div><h2>Быстрый ввод</h2><p>Не ищи раздел. Напиши одной строкой — система сама разнесёт расход, доход, задачу, долг или инсайт.</p></div><button class="primary-btn" data-action="v16UniversalAdd">＋ Меню добавления</button></section><div class="card v16-smart-input-card"><div class="section-head"><div><h3>🧠 Умный ввод</h3><p class="sub">Каждая строка — отдельная запись.</p></div><button class="soft-btn" data-action="v16SmartQuick">Открыть окном</button></div><textarea id="v16SmartInline" class="note-area" rows="6" placeholder="кофе 350\nполучил 30000 от проекта\nзадача позвонить врачу завтра 12:00\nдолг Юля 4000 вернуть 25.06\nмысль: я распыляюсь и теряю фокус"></textarea><div class="actions-row"><button class="primary-btn" data-action="v16SaveSmartInline">Разнести по системе</button><button class="soft-btn" data-open-modal="quickExpense">Расход вручную</button><button class="soft-btn" data-open-modal="quickTask">Задача вручную</button></div></div><div class="grid cards">${kpi('💸','Расход','кофе 350','создаст расход')}${kpi('💰','Доход','получил 30000','создаст доход')}${kpi('📌','Задача','задача ... завтра 12:00','создаст задачу')}${kpi('✨','Инсайт','мысль: ...','сохранит вывод')}</div></div>`;
+  }
+
+  function v16GlobalResults(query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return [];
+    const match = (...parts) => parts.some(x => String(x || '').toLowerCase().includes(q));
+    const res = [];
+    state.operations.forEach(o => { if (match(o.note, o.category, o.date, o.amount)) res.push({ icon:o.type==='income'?'💰':'💸', title:`${operationTypeLabel(o.type)} ${money(o.amount)}`, sub:`${o.date} · ${o.category || ''} · ${o.note || ''}`, page:'finance' }); });
+    state.tasks.forEach(t => { if (match(t.title, t.nextAction, t.area, t.due)) res.push({ icon:'📌', title:t.title, sub:`${t.due || 'без даты'} · ${t.status || ''}`, page:'tasks' }); });
+    state.goals.forEach(g => { if (match(g.title, g.why, g.nextAction, g.area)) res.push({ icon:'🎯', title:g.title, sub:`${g.status || ''} · ${g.deadline || 'без срока'}`, page:'goals' }); });
+    (state.people || []).forEach(p => { if (match(p.name, p.relation, p.likes, p.gifts, p.talkIdeas, p.notes)) res.push({ icon:'👥', title:p.name, sub:`${p.relation || ''} · ${p.birthday || ''}`, page:'people' }); });
+    (state.wishes || []).forEach(w => { if (match(w.title, w.note, w.owner, w.priority)) res.push({ icon:'💛', title:w.title, sub:`${w.owner || ''} · ${w.priority || ''}`, page:'wishes' }); });
+    (state.books || []).forEach(b => { if (match(b.title, b.author, b.insight, b.quote)) res.push({ icon:'📚', title:b.title, sub:`${b.author || ''} · ${b.status || ''}`, page:'books' }); });
+    [...(state.journal || []), ...(state.journalEntries || [])].forEach(j => { if (match(j.text, j.answer, j.prompt, j.tags, j.date)) res.push({ icon:'✨', title:j.prompt || j.tags || 'Инсайт', sub:j.answer || j.text || '', page:'habits' }); });
+    return res.slice(0, 80);
+  }
+  function v16Search(opts = {}) {
+    const q = opts.search ?? localStorage.getItem('v16.search') ?? document.getElementById('globalSearch')?.value ?? '';
+    const results = v16GlobalResults(q);
+    return `<div class="v16-search-page"><section class="v16-folder-hero"><div><div class="tiny-label">Глобальный поиск</div><h2>Найти по жизни</h2><p>Ищет по задачам, расходам, долгам, людям, целям, книгам, инсайтам и хотелкам.</p></div><span class="tag">${results.length} найдено</span></section><div class="card"><input id="v16SearchInput" class="search v16-search-input" value="${escapeAttr(q)}" placeholder="Например: Полина, кофе, долг, цель, книга"><div class="v16-results">${q ? (results.length ? results.map(r=>`<button class="v16-result" data-page-jump="${r.page}"><span>${r.icon}</span><b>${escapeHtml(r.title || 'Без названия')}</b><small>${escapeHtml(r.sub || '')}</small></button>`).join('') : empty('Ничего не найдено')) : empty('Начни вводить запрос сверху или здесь.')}</div></div></div>`;
+  }
+
+  function v16OpenUniversalAdd() {
+    openCustomModal('＋ Что добавить?', `<div class="v16-universal-grid">
+      <button class="v16-add-tile black" data-action="v16SmartQuick"><i>🧠</i><b>Умный ввод</b><small>одной строкой</small></button>
+      <button class="v16-add-tile" data-open-modal="quickExpense"><i>💸</i><b>Расход</b><small>покупка, кафе, такси</small></button>
+      <button class="v16-add-tile green" data-open-modal="quickIncome"><i>💰</i><b>Доход</b><small>зарплата, проект</small></button>
+      <button class="v16-add-tile" data-open-modal="quickTask"><i>📌</i><b>Задача</b><small>дата и время</small></button>
+      <button class="v16-add-tile" data-action="openDebtModal"><i>💳</i><b>Долг</b><small>взял / дал</small></button>
+      <button class="v16-add-tile" data-open-modal="quickGoal"><i>🎯</i><b>Цель</b><small>SMART</small></button>
+      <button class="v16-add-tile" data-open-modal="person"><i>👥</i><b>Человек</b><small>мини-CRM</small></button>
+      <button class="v16-add-tile" data-open-modal="wish"><i>💛</i><b>Хотелка</b><small>покупка / мечта</small></button>
+      <button class="v16-add-tile" data-open-modal="book"><i>📚</i><b>Книга</b><small>идея / цитата</small></button>
+      <button class="v16-add-tile" data-open-modal="trade"><i>📈</i><b>Сделка</b><small>trading journal</small></button>
+      <button class="v16-add-tile" data-open-modal="closeDay"><i>🌙</i><b>Закрыть день</b><small>сон, энергия</small></button>
+    </div>`);
+  }
+  function v16OpenSmartQuickModal() {
+    openCustomModal('🧠 Умный ввод', `<p class="sub">Пиши как в заметках. Каждая строка — отдельная запись.</p><textarea id="v16SmartText" class="note-area" rows="7" placeholder="кофе 350\nполучил 30000 от проекта\nзадача позвонить врачу завтра 12:00\nдолг Юля 4000 вернуть 25.06\nмысль: надо меньше распыляться"></textarea><div class="actions-row"><button class="primary-btn" data-action="v16SaveSmartQuick">Разнести по системе</button><button class="soft-btn" data-close-modal>Отмена</button></div>`);
+    const close = document.querySelector('#modalRoot [data-close-modal]');
+    if (close) close.onclick = closeModal;
+  }
+
+  function v16ExtractDate(raw) {
+    let line = String(raw || '');
+    const now = new Date();
+    let date = '';
+    let time = '';
+    const timeMatch = line.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+    if (timeMatch) { time = `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`; line = line.replace(timeMatch[0], ' '); }
+    if (/\bсегодня\b/i.test(line)) { date = todayKey(); line = line.replace(/\bсегодня\b/ig, ' '); }
+    if (/\bзавтра\b/i.test(line)) { date = v16DateFromOffset(1); line = line.replace(/\bзавтра\b/ig, ' '); }
+    const iso = line.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+    if (iso) { date = iso[1]; line = line.replace(iso[0], ' '); }
+    const dm = line.match(/\b(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?\b/);
+    if (dm) {
+      const y = dm[3] ? (dm[3].length === 2 ? `20${dm[3]}` : dm[3]) : String(now.getFullYear());
+      date = `${y}-${String(Number(dm[2])).padStart(2,'0')}-${String(Number(dm[1])).padStart(2,'0')}`;
+      line = line.replace(dm[0], ' ');
+    }
+    return { line: line.replace(/\s+/g,' ').trim(), date, time };
+  }
+  function v16ExtractAmount(raw) {
+    const cleaned = String(raw || '').replace(/\b\d{1,2}[.\/]\d{1,2}(?:[.\/]\d{2,4})?\b/g, ' ');
+    const matches = [...cleaned.matchAll(/(?:^|\s)(\d[\d\s]*(?:[,.]\d+)?)(?:\s*(?:₽|руб|р|k|к))?(?=\s|$)/gi)];
+    if (!matches.length) return 0;
+    const last = matches[matches.length - 1][1];
+    return num(last.replace(/[кk]$/i, '000'));
+  }
+  function v16GuessExpenseCategory(text) {
+    const s = String(text || '').toLowerCase();
+    if (/кофе|кафе|ресторан|еда|обед|ужин/.test(s)) return 'Кафе';
+    if (/продукт|магаз|пятер|перек|лента|магнит/.test(s)) return 'Продукты';
+    if (/такси|метро|автобус|бензин|транспорт/.test(s)) return 'Транспорт';
+    if (/врач|лекар|аптек|здоров/.test(s)) return 'Здоровье';
+    if (/одеж|обув|кросс/.test(s)) return 'Одежда';
+    if (/подпис|сервис/.test(s)) return 'Подписки';
+    return 'Другое';
+  }
+  function v16ParseLine(raw) {
+    const original = String(raw || '').trim();
+    if (!original) return null;
+    const extracted = v16ExtractDate(original);
+    const line = extracted.line;
+    const amount = v16ExtractAmount(line);
+    const lower = line.toLowerCase();
+    if (/^(мысль|инсайт|вывод|заметка)\s*:/i.test(original)) {
+      const text = original.replace(/^(мысль|инсайт|вывод|заметка)\s*:/i, '').trim();
+      return { kind:'insight', text, original };
+    }
+    if (/\b(задача|сделать|позвонить|написать|купить)\b/i.test(lower) && (!amount || /^задача/i.test(lower))) {
+      const title = line.replace(/^задача\s*/i,'').trim();
+      return { kind:'task', title, date: extracted.date || todayKey(), time: extracted.time || '', original };
+    }
+    if (/\b(долг|занял|займ|вернуть|кредит)\b/i.test(lower) && amount) {
+      const direction = /мне должны|дал в долг|я дал/i.test(lower) ? 'receivable' : 'owe';
+      const title = line.replace(String(amount), '').replace(/\b(долг|занял|займ|вернуть|кредит)\b/ig, '').trim() || original;
+      return { kind:'debt', amount, direction, title, due: extracted.date, original };
+    }
+    if (/\b(получил|получила|доход|зарплата|зп|аванс|пришло|поступило|проект)\b/i.test(lower) && amount) {
+      const note = line.replace(/\b(получил|получила|доход|зарплата|зп|аванс|пришло|поступило)\b/ig, '').replace(String(amount),'').trim() || original;
+      return { kind:'income', amount, category:/зарплата|зп|аванс/i.test(lower)?'Зарплата':'Проект', note, date: extracted.date || todayKey(), original };
+    }
+    if (amount) {
+      const note = line.replace(String(amount),'').trim() || original;
+      return { kind:'expense', amount, category:v16GuessExpenseCategory(line), note, date: extracted.date || todayKey(), original };
+    }
+    return { kind:'insight', text: original, original };
+  }
+  function v16ApplyParsed(items) {
+    const created = [];
+    items.forEach(item => {
+      if (!item) return;
+      if (item.kind === 'expense') {
+        addCategory('expense', item.category || 'Другое');
+        state.operations.push({ id: uid(), date:item.date || todayKey(), type:'expense', amount:item.amount, category:item.category || 'Другое', note:item.note || item.original, emotion:'Быстрый ввод', source:'v16SmartQuick' });
+        created.push('расход');
+      }
+      if (item.kind === 'income') {
+        addCategory('income', item.category || 'Проект');
+        state.operations.push({ id: uid(), date:item.date || todayKey(), type:'income', amount:item.amount, category:item.category || 'Проект', note:item.note || item.original, emotion:'Быстрый ввод', source:'v16SmartQuick' });
+        created.push('доход');
+      }
+      if (item.kind === 'task') {
+        state.tasks.push({ id: uid(), title:item.title || item.original, area:'Личное', due:item.date || todayKey(), time:item.time || '', duration:30, reminder:'В Google Calendar', priority:'Средний', status:'В работе', nextAction:item.title || item.original, calendarAdded:false, source:'v16SmartQuick' });
+        created.push('задача');
+      }
+      if (item.kind === 'debt') {
+        const type = item.direction === 'owe' ? 'income' : 'expense';
+        const category = item.direction === 'owe' ? 'Взял в долг' : 'Дал в долг';
+        addCategory(type, category);
+        const id = uid();
+        state.operations.push({ id, date:todayKey(), type, amount:item.amount, category, note:item.title || item.original, debtDue:item.due || '', debtDirection:item.direction, emotion:'Долг', source:'v16SmartQuick' });
+        if (item.direction === 'owe' && item.due) state.tasks.push({ id:uid(), title:`Вернуть ${money(item.amount)} — ${item.title || 'долг'}`, area:'Финансы', due:item.due, time:'10:00', duration:30, reminder:'В Google Calendar', priority:'Высокий', status:'В работе', nextAction:'Вернуть заемные средства', linkedOperationId:id });
+        created.push('долг');
+      }
+      if (item.kind === 'insight') {
+        const text = item.text || item.original;
+        state.journal.push({ id:uid(), date:todayKey(), text, tags:'инсайт', source:'v16SmartQuick', createdAt:new Date().toISOString() });
+        created.push('инсайт');
+      }
+      state.quickInbox.unshift({ id: uid(), date: todayKey(), original:item.original, kind:item.kind, createdAt:new Date().toISOString() });
+    });
+    state.quickInbox = state.quickInbox.slice(0, 80);
+    return created;
+  }
+  function v16SaveSmartText(text) {
+    const lines = String(text || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
+    if (!lines.length) return toast('Напиши хотя бы одну строку');
+    if (typeof pushUndo === 'function') pushUndo('умный ввод');
+    const parsed = lines.map(v16ParseLine);
+    const created = v16ApplyParsed(parsed);
+    save();
+    closeModal();
+    render();
+    toast(`Создано: ${created.length} · ${created.join(', ')}`);
+  }
+
+  function v16AnswerQuestion() {
+    const prompt = v16DailyPrompt(todayKey());
+    openCustomModal('🧠 Ответ на вопрос дня', `<p class="sub">${escapeHtml(prompt)}</p><textarea id="v16QuestionAnswer" class="note-area" rows="6" placeholder="Напиши честный ответ без красивости..."></textarea><div class="actions-row"><button class="primary-btn" data-action="v16SaveQuestionAnswer">Сохранить ответ</button></div>`);
+  }
+  function v16SaveQuestionAnswer() {
+    const answer = val('v16QuestionAnswer');
+    if (!answer.trim()) return toast('Напиши ответ');
+    if (typeof pushUndo === 'function') pushUndo('ответ на вопрос дня');
+    const date = todayKey();
+    state.journalEntries = (state.journalEntries || []).filter(e => !(e.date === date && e.systemType === 'dailyQuestion'));
+    state.journalEntries.unshift({ id:uid(), date, prompt:v16DailyPrompt(date), answer, systemType:'dailyQuestion', createdAt:new Date().toISOString() });
+    const habit = state.habits.find(h => h.systemType === 'dailyQuestion' || h.name === 'Ответить на вопрос дня');
+    if (habit) { state.habitLogs[date] = state.habitLogs[date] || {}; state.habitLogs[date][habit.id] = true; }
+    state.tasks.filter(t => t.systemType === 'dailyQuestion' && t.due === date).forEach(t => t.status = 'Готово');
+    save(); closeModal(); render(); toast('Ответ сохранён');
+  }
+
+  function v16CreateWeeklyReview() {
+    const to = todayKey();
+    const d = new Date(); d.setDate(d.getDate() - 6);
+    const from = toDateKey(d);
+    const ops = state.operations.filter(o => dateBetween(o.date, from, to));
+    const income = total(ops.filter(o => o.type === 'income'));
+    const expense = total(ops.filter(o => o.type === 'expense'));
+    const tasksDone = state.tasks.filter(t => t.status === 'Готово' && dateBetween(t.due || t.updatedAt || t.createdAt || to, from, to)).length;
+    const tasksOpen = state.tasks.filter(t => taskIsOpen(t)).length;
+    const h = habitMonthStats();
+    const st = stateStats(7);
+    const top = categoryTotals(from, to)[0] || ['нет', 0];
+    const text = `Неделя ${from} — ${to}: доход ${money(income)}, расход ${money(expense)}, топ-категория ${top[0]} (${money(top[1])}), выполнено задач ${tasksDone}, открыто задач ${tasksOpen}, привычки ${h.percent}%, энергия ${st.energy.toFixed(1)}/10. Фокус следующей недели: ${tasksOpen ? 'закрыть/перенести хвосты задач' : 'поддерживать ритм'}.`;
+    const review = { id:uid(), from, to, income, expense, topCategory:top[0], topAmount:top[1], tasksDone, tasksOpen, habitsPercent:h.percent, energy:st.energy, text, createdAt:new Date().toISOString() };
+    if (typeof pushUndo === 'function') pushUndo('недельный обзор');
+    state.weeklyReviews.unshift(review);
+    state.reports.push({ id:review.id, date:to, from, to, text });
+    state.journal.push({ id:uid(), date:to, text, tags:'недельный обзор', createdAt:new Date().toISOString() });
+    save(); render();
+    openCustomModal('📅 Еженедельный обзор', `<div class="v16-week-review"><p>${escapeHtml(text)}</p><div class="v16-forecast-grid"><div><span>Доход</span><b>${money(income)}</b></div><div><span>Расход</span><b>${money(expense)}</b></div><div><span>Топ</span><b>${escapeHtml(top[0])}</b></div><div><span>Привычки</span><b>${h.percent}%</b></div></div></div>`);
+  }
+
+  function v16MoveTask(taskId, mode) {
+    const t = state.tasks.find(x => x.id === taskId);
+    if (!t) return toast('Задача не найдена');
+    if (typeof pushUndo === 'function') pushUndo('перенос задачи');
+    if (mode === 'today') t.due = todayKey();
+    if (mode === 'tomorrow') t.due = v16DateFromOffset(1);
+    if (mode === 'week') t.due = v16DateFromOffset(7);
+    if (mode === 'nodate') t.due = '';
+    if (!t.time && mode !== 'nodate') t.time = '09:00';
+    save(); render(); toast('Задача перенесена');
+  }
+
+  function v16BindExtraInputs() {
+    const q = document.getElementById('v16SearchInput');
+    if (q) q.oninput = (e) => { localStorage.setItem('v16.search', e.target.value || ''); render({ search:e.target.value || '' }); };
+  }
+
+  routeAction = function(a, el, e) {
+    v16EnsureState();
+    if (a === 'v16UniversalAdd') return v16OpenUniversalAdd();
+    if (a === 'v16SmartQuick') return v16OpenSmartQuickModal();
+    if (a === 'v16SaveSmartQuick') return v16SaveSmartText(val('v16SmartText'));
+    if (a === 'v16SaveSmartInline') return v16SaveSmartText(val('v16SmartInline'));
+    if (a === 'v16AnswerQuestion') return v16AnswerQuestion();
+    if (a === 'v16SaveQuestionAnswer') return v16SaveQuestionAnswer();
+    if (a === 'v16CreateWeeklyReview') return v16CreateWeeklyReview();
+    if (a === 'v16TaskToday') return v16MoveTask(el.dataset.taskId, 'today');
+    if (a === 'v16TaskTomorrow') return v16MoveTask(el.dataset.taskId, 'tomorrow');
+    if (a === 'v16TaskWeek') return v16MoveTask(el.dataset.taskId, 'week');
+    if (a === 'v16TaskNoDate') return v16MoveTask(el.dataset.taskId, 'nodate');
+    return __v16BaseRouteAction(a, el, e);
+  };
+
+  const __v16BaseGoPage = typeof goPage === 'function' ? goPage : null;
+  if (__v16BaseGoPage) {
+    goPage = function(page, message) {
+      if (V16_FINANCE_SECTION_BY_PAGE[page]) state.settings.financeSection = V16_FINANCE_SECTION_BY_PAGE[page];
+      activePage = V16_PAGE_ALIASES[page] || page;
+      render();
+      if (message) setTimeout(() => toast(message), 50);
+    };
+  }
+
+  render = function(opts = {}) {
+    v16EnsureState();
+    v16NormalizePage();
+    const own = { dashboard:v16Dashboard, search:v16Search, tasks:v16Tasks, habits:v16Habits, goals:v16Goals, quick:v16Quick, finance:v16Finance };
+    if (own[activePage]) {
+      v16RenderShell(own[activePage](opts));
+      v16BindExtraInputs();
+      return;
+    }
+    __v16BaseRender(opts);
+    v16ApplyChrome();
+    v16BindExtraInputs();
+  };
+
+  if (window.SecondBrainApp) {
+    window.SecondBrainApp.render = render;
+    window.SecondBrainApp.getState = () => state;
+  }
+
+  v16EnsureState();
+  save({ skipCloud:true });
+  setTimeout(() => { try { render(); } catch(e) { console.error('V16 render failed', e); } }, 50);
+  console.log('Second Brain FOCUS SYSTEM V16 loaded:', V16_VERSION);
+})();
+
+/* =========================
+   LIFE CONTROL SYSTEM V17 PATCH 2026-06-25
+   Командный центр недели, проверка хаоса, повторы, связи, теги, архив.
+   ========================= */
+(function installV17LifeControlSystem(){
+  if (window.__SECOND_BRAIN_V17_LIFE_CONTROL__) return;
+  window.__SECOND_BRAIN_V17_LIFE_CONTROL__ = true;
+
+  const V17_VERSION = 'v17-life-control-system-20260625';
+  const V17_HIDDEN_PAGES = new Set(['bank', 'debts', 'panel', 'calendar', 'state', 'insights', 'journal']);
+  const V17_PAGE_ALIASES = { bank:'finance', debts:'finance', panel:'finance', calendar:'tasks', state:'habits', insights:'habits', journal:'habits', archive:'control' };
+  const V17_FINANCE_SECTION_BY_PAGE = { bank:'import', debts:'debts', panel:'analysis' };
+
+  const __v17BaseRender = render;
+  const __v17BaseRouteAction = routeAction;
+  const __v17BaseGoPage = typeof goPage === 'function' ? goPage : null;
+
+  function v17UpsertPage(afterId, def) {
+    const existing = pages.find(p => p[0] === def[0]);
+    if (existing) { existing[1] = def[1]; existing[2] = def[2]; return; }
+    const index = pages.findIndex(p => p[0] === afterId);
+    pages.splice(index >= 0 ? index + 1 : pages.length, 0, def);
+  }
+
+  function v17EnsureState() {
+    state.settings = state.settings || {};
+    state.settings.weekFocus = state.settings.weekFocus || '';
+    state.settings.weekNoList = state.settings.weekNoList || '';
+    state.settings.tags = Array.isArray(state.settings.tags) ? state.settings.tags : ['работа','деньги','здоровье','семья','обучение','важно','трейдинг'];
+    state.recurringTasks = Array.isArray(state.recurringTasks) ? state.recurringTasks : [];
+    state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+    state.archived = state.archived || { tasks: [], goals: [], debts: [], wishes: [], books: [], trades: [] };
+    Object.keys({ tasks:1, goals:1, debts:1, wishes:1, books:1, trades:1 }).forEach(k => { if (!Array.isArray(state.archived[k])) state.archived[k] = []; });
+    state.weeklyReviews = Array.isArray(state.weeklyReviews) ? state.weeklyReviews : [];
+    state.people = Array.isArray(state.people) ? state.people : [];
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    state.goals = Array.isArray(state.goals) ? state.goals : [];
+    state.operations = Array.isArray(state.operations) ? state.operations : [];
+    state.recurring = Array.isArray(state.recurring) ? state.recurring : [];
+    state.habits = Array.isArray(state.habits) ? state.habits : [];
+    state.habitLogs = state.habitLogs || {};
+    v17UpsertPage('dashboard', ['week', '🧭', 'Неделя']);
+    v17UpsertPage('week', ['control', '🧹', 'Контроль']);
+    v17UpsertPage('finance', ['search', '🔎', 'Поиск']);
+    v17RelabelPages();
+    v17GenerateRecurringTasks(45, false);
+  }
+
+  function v17RelabelPages() {
+    const labels = {
+      dashboard: ['🏠', 'Центр дня'],
+      week: ['🧭', 'Неделя'],
+      control: ['🧹', 'Контроль'],
+      quick: ['⚡', 'Быстрый ввод'],
+      finance: ['💸', 'Финансы'],
+      search: ['🔎', 'Поиск'],
+      tasks: ['📌', 'Задачи + календарь'],
+      habits: ['✅', 'Привычки + состояние'],
+      goals: ['🎯', 'SMART-цели'],
+      people: ['👥', 'Люди'],
+      wishes: ['💛', 'Хотелки'],
+      books: ['📚', 'Книги'],
+      trading: ['📈', 'Трейдинг'],
+      sync: ['☁️', 'Синхронизация'],
+      settings: ['⚙️', 'Настройки']
+    };
+    Object.entries(labels).forEach(([id, [icon, label]]) => {
+      const p = pages.find(x => x[0] === id);
+      if (p) { p[1] = icon; p[2] = label; }
+    });
+  }
+
+  function v17NormalizePage() {
+    if (V17_FINANCE_SECTION_BY_PAGE[activePage]) {
+      state.settings.financeSection = V17_FINANCE_SECTION_BY_PAGE[activePage];
+      activePage = 'finance';
+    }
+    activePage = V17_PAGE_ALIASES[activePage] || activePage;
+  }
+
+  function v17PageButton(id) {
+    const p = pages.find(x => x[0] === id);
+    if (!p || V17_HIDDEN_PAGES.has(id)) return '';
+    return `<button data-page="${id}" class="${activePage===id?'active':''}"><span>${p[1]}</span>${escapeHtml(p[2])}</button>`;
+  }
+
+  renderNav = function() {
+    v17EnsureState();
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const groups = [
+      ['Пульт', ['dashboard', 'week', 'finance', 'control', 'search']],
+      ['День', ['today', 'tasks', 'habits', 'goals']],
+      ['База', ['people', 'wishes', 'books', 'trading']],
+      ['Инструменты', ['quick', 'sync', 'settings']]
+    ];
+    nav.innerHTML = groups.map(([title, ids]) => {
+      const buttons = ids.filter(id => pages.some(p => p[0] === id) && !V17_HIDDEN_PAGES.has(id)).map(v17PageButton).join('');
+      return buttons ? `<div class="nav-group-label">${title}</div>${buttons}` : '';
+    }).join('');
+    nav.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => { activePage = btn.dataset.page; render(); }));
+  };
+
+  function v17TitleForPage() {
+    const page = pages.find(p => p[0] === activePage);
+    return page ? page[2] : 'Second Brain';
+  }
+
+  function v17RenderShell(html) {
+    renderNav();
+    const title = document.getElementById('pageTitle');
+    if (title) title.textContent = v17TitleForPage();
+    const mini = document.getElementById('todayMini');
+    if (mini) mini.innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span><br><span class="tag">V17</span>`;
+    const view = document.getElementById('view');
+    if (view) view.innerHTML = html;
+    bindView();
+    v17ApplyChrome();
+  }
+
+  function v17ApplyChrome() {
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'LIFE CONTROL V17';
+    const search = document.getElementById('globalSearch');
+    if (search) {
+      search.placeholder = 'Поиск: задача, человек, долг, тег...';
+      search.oninput = (e) => {
+        localStorage.setItem('v16.search', e.target.value || '');
+        activePage = 'search';
+        render({ search: e.target.value || '' });
+      };
+    }
+    const quickBtn = document.querySelector('[data-action="quick"]');
+    if (quickBtn) quickBtn.onclick = () => { activePage = 'quick'; render(); };
+    const fab = document.getElementById('fabAdd');
+    if (fab) {
+      fab.classList.add('v16-fab', 'v17-fab');
+      fab.title = 'Универсальное добавление';
+      fab.onclick = () => routeAction('v17UniversalAdd');
+    }
+    v17RenderBottomNav();
+  }
+
+  function v17RenderBottomNav() {
+    let bar = document.getElementById('v16BottomNav');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'v16BottomNav';
+      bar.className = 'v16-bottom-nav';
+      document.body.appendChild(bar);
+    }
+    bar.classList.add('v17-bottom-nav');
+    const items = [
+      ['dashboard', '🏠', 'День'],
+      ['week', '🧭', 'Неделя'],
+      ['add', '＋', 'Добавить'],
+      ['finance', '💸', 'Деньги'],
+      ['control', '🧹', 'Контроль']
+    ];
+    bar.innerHTML = items.map(([id, icon, label]) => id === 'add'
+      ? `<button class="v16-bottom-add" data-action="v17UniversalAdd"><span>${icon}</span><small>${label}</small></button>`
+      : `<button class="${activePage===id?'active':''}" data-page-jump="${id}"><span>${icon}</span><small>${label}</small></button>`
+    ).join('');
+  }
+
+  function v17DateOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return toDateKey(d);
+  }
+
+  function v17WeekBounds(date = new Date()) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = d.getDay() || 7;
+    const start = new Date(d); start.setDate(d.getDate() - day + 1);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return { start: toDateKey(start), end: toDateKey(end) };
+  }
+
+  function v17DateFromWeekday(base, weekday) {
+    const b = v17WeekBounds(base);
+    const d = new Date(b.start);
+    d.setDate(d.getDate() + Math.max(1, Math.min(7, Number(weekday || 1))) - 1);
+    return toDateKey(d);
+  }
+
+  function v17OpenTasks() { return state.tasks.filter(t => taskIsOpen(t)); }
+  function v17WeekTasks() { const w = v17WeekBounds(); return v17OpenTasks().filter(t => t.due && dateBetween(t.due, w.start, w.end)).sort((a,b)=>String(a.due||'').localeCompare(String(b.due||''))); }
+  function v17WeekOps() { const w = v17WeekBounds(); return state.operations.filter(o => o.date && dateBetween(o.date, w.start, w.end)); }
+  function v17ActiveGoals() { return state.goals.filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && g.archived !== true); }
+  function v17DoneTasksWeek() { const w = v17WeekBounds(); return state.tasks.filter(t => t.status === 'Готово' && dateBetween(String(t.doneAt || t.updatedAt || t.due || todayKey()).slice(0,10), w.start, w.end)); }
+
+  function v17PlannedThisWeek() {
+    const w = v17WeekBounds();
+    const items = [];
+    const month = state.settings.currentMonth || toMonthKey(new Date());
+    state.plannedExpenses.filter(p => p.active !== false).forEach(p => {
+      let date = p.date || '';
+      if (!date && p.day) date = `${month}-${String(p.day).padStart(2,'0')}`;
+      if (date && dateBetween(date, w.start, w.end)) items.push({ ...p, date });
+    });
+    state.recurring.filter(r => r.active !== false).forEach(r => {
+      const date = `${month}-${String(r.day || r.date || 1).padStart(2,'0')}`;
+      if (dateBetween(date, w.start, w.end)) items.push({ title:r.title || r.category || 'Регулярный платёж', amount:r.amount || 0, category:r.category || '', date, recurring:true });
+    });
+    return items.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  }
+
+  function v17PeopleToContact() {
+    const today = todayKey();
+    return state.people.map(p => {
+      const last = p.lastContact || p.lastContactDate || p.updatedAt || '';
+      let stale = 999;
+      if (last) stale = Math.floor((new Date(today) - new Date(String(last).slice(0,10))) / 86400000);
+      return { ...p, last, stale };
+    }).filter(p => !p.last || p.nextContact || p.stale >= 30).sort((a,b)=>(b.stale||0)-(a.stale||0)).slice(0,5);
+  }
+
+  function v17LifeRisk() {
+    const overdue = v17OpenTasks().filter(t => t.due && t.due < todayKey()).length;
+    const noDate = v17OpenTasks().filter(t => !t.due).length;
+    const month = monthSummary();
+    const left = Number(month.left || 0);
+    const h = habitMonthStats();
+    let score = 0;
+    if (overdue) score += Math.min(35, overdue * 7);
+    if (noDate > 5) score += 15;
+    if (left < 0) score += 35;
+    if (h.percent < 45) score += 20;
+    const tone = score >= 60 ? 'danger' : score >= 30 ? 'warn' : 'green';
+    const label = score >= 60 ? 'высокий' : score >= 30 ? 'средний' : 'низкий';
+    return { score: clamp(score, 0, 100), tone, label, overdue, noDate, left, habits:h.percent };
+  }
+
+  function v17TagList(tags) {
+    const list = Array.isArray(tags) ? tags : String(tags || '').split(/[#,;]+/).map(x=>x.trim()).filter(Boolean);
+    return list.length ? `<div class="v17-tags">${list.slice(0,6).map(t=>`<span>#${escapeHtml(t.replace(/^#/,''))}</span>`).join('')}</div>` : '';
+  }
+
+  function v17RelationLine(obj) {
+    const chunks = [];
+    if (obj.goalId) { const g = state.goals.find(x=>x.id===obj.goalId); if (g) chunks.push(`🎯 ${escapeHtml(g.title || 'цель')}`); }
+    if (obj.personId) { const p = state.people.find(x=>x.id===obj.personId); if (p) chunks.push(`👤 ${escapeHtml(p.name || 'человек')}`); }
+    if (obj.linkedOperationId || obj.debtOperationId) chunks.push('💳 долг/операция');
+    return chunks.length ? `<small class="v17-relations">${chunks.join(' · ')}</small>` : '';
+  }
+
+  function v17TaskMini(t) {
+    const danger = t.due && t.due < todayKey() && taskIsOpen(t);
+    return `<article class="v17-mini-row ${danger?'danger':''}">
+      <div><b>${escapeHtml(t.title || 'Без названия')}</b><small>${escapeHtml(t.due || 'без даты')}${t.time ? ' · ' + escapeHtml(t.time) : ''}</small>${v17RelationLine(t)}${v17TagList(t.tags)}</div>
+      <div class="actions-row"><button class="soft-btn" data-action="v17LinkTask" data-task-id="${t.id}">Связать</button><button class="ghost-btn" data-action="v17ArchiveTask" data-task-id="${t.id}">Архив</button></div>
+    </article>`;
+  }
+
+  function v17GoalMini(g) {
+    const related = state.tasks.filter(t => t.goalId === g.id && taskIsOpen(t)).length;
+    const pct = Number(g.progress || g.currentValue || 0) && Number(g.targetValue || 0) ? Math.round(Number(g.currentValue || 0) / Number(g.targetValue || 1) * 100) : Number(g.progress || 0);
+    return `<article class="v17-mini-row"><div><b>${escapeHtml(g.title || 'Цель')}</b><small>${escapeHtml(g.deadline || 'без срока')} · связанных задач: ${related}</small>${v17TagList(g.tags)}</div><span class="tag ${pct>=70?'green':''}">${clamp(pct||0)}%</span></article>`;
+  }
+
+  function v17MoneyPilotCard() {
+    const s = monthSummary();
+    const forecast = typeof v10SafeDailyLimit === 'function' ? v10SafeDailyLimit() : { safeLimit:s.dailyLimit || 0, projectedLeft:s.left || 0, daysLeft:daysLeftInMonth() };
+    const risk = forecast.projectedLeft < 0 ? 'danger' : forecast.safeLimit < 500 ? 'warn' : 'green';
+    return `<div class="card v17-money-pilot ${risk}"><div class="section-head"><div><div class="tiny-label">Финансовый пилот</div><h3>Можно тратить сегодня: ${money(forecast.safeLimit || 0)}</h3><p class="sub">Прогноз остатка к концу месяца: ${money(forecast.projectedLeft || s.left || 0)} · дней осталось: ${forecast.daysLeft || daysLeftInMonth()}</p></div><button class="soft-btn" data-page-jump="finance">Открыть</button></div></div>`;
+  }
+
+  function v17WeekCenter() {
+    v17EnsureState();
+    const w = v17WeekBounds();
+    const tasks = v17WeekTasks();
+    const ops = v17WeekOps();
+    const income = total(ops.filter(o=>o.type==='income'));
+    const expense = total(ops.filter(o=>o.type==='expense'));
+    const payments = v17PlannedThisWeek();
+    const people = v17PeopleToContact();
+    const goals = v17ActiveGoals().slice(0,3);
+    const risk = v17LifeRisk();
+    const done = v17DoneTasksWeek().length;
+    return `${typeof undoBar === 'function' ? undoBar() : ''}<section class="v17-week-hero card">
+      <div><div class="tiny-label">LIFE CONTROL SYSTEM</div><h2>Командный центр недели</h2><p>${w.start} — ${w.end}. Здесь видно, куда движется неделя и где просадка.</p></div>
+      <div class="v17-week-score ${risk.tone}"><span>Риск недели</span><b>${risk.label}</b><small>${risk.score}/100</small></div>
+    </section>
+    <div class="grid cards v17-kpis">
+      ${kpi('📌','Задачи недели', `${done}/${tasks.length + done}`, 'готово / всего')}
+      ${kpi('💸','Расход недели', money(expense), `доход ${money(income)}`)}
+      ${kpi('🎯','Активные цели', goals.length, 'в фокусе')}
+      ${kpi('✅','Привычки', `${habitMonthStats().percent}%`, 'ритм месяца')}
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><div><h3>🎯 Главные цели недели</h3><p class="sub">Не больше трёх, иначе система превращается в шум.</p></div><button class="soft-btn" data-page-jump="goals">Все цели</button></div>${goals.length ? goals.map(v17GoalMini).join('') : empty('Выбери или создай цель недели.')}</div>
+      <div class="card"><div class="section-head"><div><h3>📌 Задачи недели</h3><p class="sub">Ближайшие действия и обязательные хвосты.</p></div><button class="primary-btn" data-open-modal="quickTask">+ Задача</button></div>${tasks.length ? tasks.slice(0,8).map(v17TaskMini).join('') : empty('На эту неделю задач нет.')}</div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      ${v17MoneyPilotCard()}
+      <div class="card"><div class="section-head"><div><h3>🔁 Повторы</h3><p class="sub">Регулярные задачи и платежи сами попадают в неделю.</p></div><button class="primary-btn" data-action="v17OpenRecurringTask">+ Повтор</button></div><div class="actions-row"><button class="soft-btn" data-action="v17OpenRecurringPayment">+ Регулярный платёж</button><button class="soft-btn" data-action="v17GenerateRecurringTasks">Сгенерировать задачи</button></div>${payments.length ? `<div class="mini-timeline">${payments.slice(0,6).map(p=>`<div class="timeline-item recurring"><span>${String(p.date||'').slice(8,10)}</span><b>${escapeHtml(p.title || p.category || 'Платёж')} · ${money(p.amount)}</b><small>${escapeHtml(p.category || '')}${p.recurring?' · каждый месяц':''}</small></div>`).join('')}</div>` : empty('На эту неделю платежей не найдено.')}</div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><div><h3>👥 Люди недели</h3><p class="sub">Кого стоит не потерять из поля внимания.</p></div><button class="soft-btn" data-page-jump="people">Люди</button></div>${people.length ? people.map(p=>`<article class="v17-mini-row"><div><b>${escapeHtml(p.name || 'Без имени')}</b><small>${p.nextContact ? 'следующий контакт: '+escapeHtml(p.nextContact) : p.last ? 'не общались '+p.stale+' дн.' : 'нет даты последнего контакта'}</small></div><button class="soft-btn" data-action="v17Contacted" data-person-id="${p.id}">Связался</button></article>`).join('') : empty('Нет людей, требующих внимания.')}</div>
+      <div class="card"><div class="section-head"><div><h3>🧭 Фокус недели</h3><p class="sub">Что делаем и чего не делаем.</p></div><button class="primary-btn" data-action="v17SaveWeekFocus">Сохранить</button></div><label>Главный фокус<textarea id="v17WeekFocus" class="note-area" rows="3" placeholder="Например: закрыть долги по задачам и не распыляться на новые идеи">${escapeHtml(state.settings.weekFocus || '')}</textarea></label><label>Что нельзя делать<textarea id="v17WeekNoList" class="note-area" rows="3" placeholder="Например: не брать новые обязательства без оценки времени">${escapeHtml(state.settings.weekNoList || '')}</textarea></label></div>
+    </div>`;
+  }
+
+  function v17ChaosIssues() {
+    const today = todayKey();
+    const open = v17OpenTasks();
+    const overdue = open.filter(t => t.due && t.due < today);
+    const noDate = open.filter(t => !t.due);
+    const goalsNoTasks = v17ActiveGoals().filter(g => !state.tasks.some(t => t.goalId === g.id && taskIsOpen(t)));
+    const debtsNoDue = state.operations.filter(o => (o.debtDirection || /долг|в долг/i.test(o.category || '')) && !o.debtDue && !o.due && !o.closed);
+    const expensesNoCategory = state.operations.filter(o => o.type === 'expense' && (!o.category || o.category === 'Другое'));
+    const peopleNoContact = state.people.filter(p => !p.lastContact && !p.lastContactDate);
+    const goalsNoDeadline = v17ActiveGoals().filter(g => !g.deadline);
+    return [
+      { key:'overdue', icon:'⏰', title:'Просроченные задачи', count:overdue.length, tone:overdue.length?'danger':'green', page:'tasks', hint:'сразу перенести, закрыть или удалить' },
+      { key:'nodate', icon:'📌', title:'Задачи без даты', count:noDate.length, tone:noDate.length?'warn':'green', page:'tasks', hint:'дать дату или убрать в бэклог' },
+      { key:'goalsNoTasks', icon:'🎯', title:'Цели без задач', count:goalsNoTasks.length, tone:goalsNoTasks.length?'warn':'green', page:'goals', hint:'цель должна иметь следующий шаг' },
+      { key:'goalsNoDeadline', icon:'📅', title:'Цели без дедлайна', count:goalsNoDeadline.length, tone:goalsNoDeadline.length?'warn':'green', page:'goals', hint:'иначе цель не давит на действие' },
+      { key:'debtsNoDue', icon:'💳', title:'Долги без срока', count:debtsNoDue.length, tone:debtsNoDue.length?'warn':'green', page:'finance', hint:'добавить дату возврата' },
+      { key:'expensesNoCategory', icon:'🧾', title:'Расходы без категории', count:expensesNoCategory.length, tone:expensesNoCategory.length?'warn':'green', page:'finance', hint:'аналитика станет точнее' },
+      { key:'peopleNoContact', icon:'👥', title:'Люди без последнего контакта', count:peopleNoContact.length, tone:peopleNoContact.length?'warn':'green', page:'people', hint:'личная CRM работает только с датами' }
+    ];
+  }
+
+  function v17ArchiveStats() {
+    const a = state.archived || {};
+    return Object.entries(a).map(([k, arr]) => ({ key:k, count:Array.isArray(arr) ? arr.length : 0 })).filter(x=>x.count);
+  }
+
+  function v17ControlCenter() {
+    v17EnsureState();
+    const issues = v17ChaosIssues();
+    const totalIssues = issues.reduce((s,i)=>s+i.count,0);
+    const risk = v17LifeRisk();
+    const archives = v17ArchiveStats();
+    return `${typeof undoBar === 'function' ? undoBar() : ''}<section class="v17-control-hero card">
+      <div><div class="tiny-label">Еженедельное ТО</div><h2>Проверка хаоса</h2><p>Экран показывает, где система захламляется: хвосты, цели без действий, финансы без категорий, люди без контакта.</p></div>
+      <div class="v17-week-score ${risk.tone}"><span>Проблем</span><b>${totalIssues}</b><small>риск ${risk.label}</small></div>
+    </section>
+    <div class="v17-chaos-grid">${issues.map(i=>`<article class="card v17-chaos-card ${i.tone}"><div><span>${i.icon}</span><h3>${escapeHtml(i.title)}</h3><b>${i.count}</b><p class="sub">${escapeHtml(i.hint)}</p></div><button class="soft-btn" data-page-jump="${i.page}">Открыть</button></article>`).join('')}</div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><div><h3>🔗 Связи объектов</h3><p class="sub">Главная логика V17: цель → задача → привычка → человек → финансы.</p></div><button class="primary-btn" data-action="v17OpenLinkHub">Открыть связи</button></div><div class="v17-link-map"><span>🎯 Цель</span><i>→</i><span>📌 Задачи</span><i>→</i><span>✅ Привычки</span><i>→</i><span>📈 Прогресс</span></div><p class="sub">Начни с задач: у каждой важной задачи должна быть связь с целью, человеком или долгом.</p></div>
+      <div class="card"><div class="section-head"><div><h3>🏷 Теги</h3><p class="sub">Не плодим папки — помечаем смысл.</p></div><button class="soft-btn" data-action="v17OpenTags">Редактировать</button></div>${v17TagList(state.settings.tags)}<p class="sub">Рекомендуемые: #работа #деньги #здоровье #семья #обучение #важно #трейдинг.</p></div>
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="card"><div class="section-head"><div><h3>📦 Архив</h3><p class="sub">Завершённое не должно шуметь на главных экранах.</p></div><button class="soft-btn" data-action="v17AutoArchiveDone">Автоархив</button></div>${archives.length ? archives.map(x=>`<div class="v17-mini-row"><b>${escapeHtml(x.key)}</b><span class="tag">${x.count}</span></div>`).join('') : empty('Архив пока пуст. Завершённые задачи можно отправлять сюда.')}</div>
+      <div class="card"><div class="section-head"><div><h3>📅 Недельный отчёт</h3><p class="sub">Сводка сохраняется в историю отчётов и журнал.</p></div><button class="primary-btn" data-action="v16CreateWeeklyReview">Сформировать</button></div>${state.weeklyReviews.length ? state.weeklyReviews.slice(0,2).map(r=>`<article class="v17-mini-row"><div><b>${escapeHtml(r.from)} — ${escapeHtml(r.to)}</b><small>${escapeHtml(r.text || '')}</small></div></article>`).join('') : empty('Ещё нет недельных отчётов.')}</div>
+    </div>`;
+  }
+
+  function v17OpenUniversalAdd() {
+    openCustomModal('＋ Добавить в Second Brain', `<div class="v16-add-grid v17-add-grid">
+      <button data-open-modal="quickExpense">💸 <b>Расход</b><small>деньги</small></button>
+      <button data-open-modal="quickIncome">💰 <b>Доход</b><small>поступление</small></button>
+      <button data-open-modal="quickTask">📌 <b>Задача</b><small>действие</small></button>
+      <button data-action="v17OpenRecurringTask">🔁 <b>Повтор</b><small>регулярная задача</small></button>
+      <button data-action="v17OpenRecurringPayment">💳 <b>Платёж</b><small>каждый месяц</small></button>
+      <button data-open-modal="quickGoal">🎯 <b>Цель</b><small>SMART</small></button>
+      <button data-open-modal="person">👥 <b>Человек</b><small>личная CRM</small></button>
+      <button data-action="v16SmartQuick">⚡ <b>Умная строка</b><small>разбор текста</small></button>
+    </div>`);
+  }
+
+  function v17OpenRecurringTaskModal() {
+    openCustomModal('🔁 Повторяющаяся задача', `<div class="form-grid">
+      <label>Название<input id="v17RecTitle" placeholder="Например: Заполнить финансы"></label>
+      <label>Ритм<select id="v17RecFreq"><option value="daily">Каждый день</option><option value="weekdays">По будням</option><option value="weekly">Каждую неделю</option><option value="monthly">Каждый месяц</option></select></label>
+      <label>Время<input id="v17RecTime" type="time" value="21:00"></label>
+      <label>День недели<select id="v17RecWeekday"><option value="1">Понедельник</option><option value="2">Вторник</option><option value="3">Среда</option><option value="4">Четверг</option><option value="5">Пятница</option><option value="6">Суббота</option><option value="7">Воскресенье</option></select></label>
+      <label>День месяца<input id="v17RecMonthDay" type="number" min="1" max="31" value="1"></label>
+      <label>Сфера<input id="v17RecArea" value="Личное"></label>
+      <label>Теги<input id="v17RecTags" placeholder="работа, важно"></label>
+    </div><div class="actions-row"><button class="primary-btn" data-action="v17SaveRecurringTask">Сохранить и создать задачи</button></div>`);
+  }
+
+  function v17SaveRecurringTask() {
+    const title = val('v17RecTitle').trim();
+    if (!title) return toast('Введи название');
+    const rec = { id:uid(), title, freq:val('v17RecFreq') || 'daily', time:val('v17RecTime') || '', weekday:Number(val('v17RecWeekday') || 1), monthDay:Number(val('v17RecMonthDay') || 1), area:val('v17RecArea') || 'Личное', tags:val('v17RecTags').split(/[,#;]/).map(x=>x.trim()).filter(Boolean), active:true, createdAt:new Date().toISOString() };
+    if (typeof pushUndo === 'function') pushUndo('повторяющаяся задача');
+    state.recurringTasks.push(rec);
+    v17GenerateRecurringTasks(45, false);
+    save(); closeModal(); activePage = 'week'; render(); toast('Повтор создан');
+  }
+
+  function v17ShouldCreateRecurringOnDate(rec, dateKey) {
+    const d = new Date(dateKey);
+    const day = d.getDay() || 7;
+    const monthDay = d.getDate();
+    if (rec.freq === 'daily') return true;
+    if (rec.freq === 'weekdays') return day >= 1 && day <= 5;
+    if (rec.freq === 'weekly') return day === Number(rec.weekday || 1);
+    if (rec.freq === 'monthly') return monthDay === Number(rec.monthDay || 1);
+    return false;
+  }
+
+  function v17GenerateRecurringTasks(days = 45, showToast = true) {
+    state.recurringTasks = Array.isArray(state.recurringTasks) ? state.recurringTasks : [];
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    let created = 0;
+    state.recurringTasks.filter(r => r.active !== false).forEach(rec => {
+      for (let i = 0; i <= days; i += 1) {
+        const date = v17DateOffset(i);
+        if (!v17ShouldCreateRecurringOnDate(rec, date)) continue;
+        const exists = state.tasks.some(t => t.systemType === 'recurringTask' && t.recurringId === rec.id && t.due === date);
+        if (!exists) {
+          state.tasks.push({ id:uid(), title:rec.title, area:rec.area || 'Личное', due:date, time:rec.time || '', duration:30, reminder:'В Google Calendar', priority:'Средний', status:'В работе', nextAction:rec.title, tags:rec.tags || [], systemType:'recurringTask', recurringId:rec.id, createdAt:new Date().toISOString() });
+          created += 1;
+        }
+      }
+    });
+    if (created) save({ skipCloud:true });
+    if (showToast) toast(created ? `Создано повторов: ${created}` : 'Новых повторов нет');
+    return created;
+  }
+
+  function v17OpenRecurringPaymentModal() {
+    openCustomModal('💳 Регулярный платёж', `<div class="form-grid">
+      <label>Название<input id="v17PayTitle" placeholder="Аренда / связь / подписка"></label>
+      <label>Сумма<input id="v17PayAmount" inputmode="decimal" placeholder="35000"></label>
+      <label>Категория<input id="v17PayCategory" value="Обязательные платежи"></label>
+      <label>День месяца<input id="v17PayDay" type="number" min="1" max="31" value="1"></label>
+      <label>Учитывать в лимите<select id="v17PayMandatory"><option value="yes">Да, обязательный</option><option value="no">Нет</option></select></label>
+    </div><div class="actions-row"><button class="primary-btn" data-action="v17SaveRecurringPayment">Сохранить платёж</button></div>`);
+  }
+
+  function v17SaveRecurringPayment() {
+    const amount = num(val('v17PayAmount'));
+    if (!amount) return toast('Введи сумму');
+    if (typeof pushUndo === 'function') pushUndo('регулярный платёж');
+    state.plannedExpenses.push({ id:uid(), title:val('v17PayTitle') || val('v17PayCategory') || 'Регулярный платёж', amount, category:val('v17PayCategory') || 'Обязательные платежи', day:Number(val('v17PayDay') || 1), month:state.settings.currentMonth || toMonthKey(new Date()), mandatory:val('v17PayMandatory') !== 'no', recurring:true, active:true, createdAt:new Date().toISOString() });
+    save(); closeModal(); activePage='finance'; state.settings.financeSection='planned'; render(); toast('Регулярный платёж добавлен');
+  }
+
+  function v17OpenTagsModal() {
+    openCustomModal('🏷 Теги системы', `<p class="sub">Теги помогают искать смысл поперёк папок: задачи, цели, заметки, финансы, люди.</p><textarea id="v17TagsText" class="note-area" rows="5">${escapeHtml((state.settings.tags || []).join(', '))}</textarea><div class="actions-row"><button class="primary-btn" data-action="v17SaveTags">Сохранить теги</button></div>`);
+  }
+
+  function v17SaveTags() {
+    state.settings.tags = val('v17TagsText').split(/[,#;\n]/).map(x=>x.trim().replace(/^#/, '')).filter(Boolean);
+    save(); closeModal(); render(); toast('Теги сохранены');
+  }
+
+  function v17OpenLinkHub() {
+    const unlinked = v17OpenTasks().filter(t => !t.goalId && !t.personId && !t.linkedOperationId && !t.debtOperationId).slice(0,10);
+    openCustomModal('🔗 Связи Second Brain', `<p class="sub">Свяжи важные задачи с целью, человеком или долгом — так система начнёт показывать реальный прогресс.</p>${unlinked.length ? unlinked.map(t=>v17TaskMini(t)).join('') : empty('Все ближайшие задачи уже имеют связи или задач пока нет.')}<div class="actions-row"><button class="soft-btn" data-page-jump="tasks">Открыть задачи</button><button class="soft-btn" data-page-jump="goals">Открыть цели</button></div>`);
+  }
+
+  function v17LinkTaskModal(taskId) {
+    const t = state.tasks.find(x=>x.id===taskId);
+    if (!t) return toast('Задача не найдена');
+    const goalOptions = ['<option value="">Без цели</option>'].concat(state.goals.map(g=>`<option value="${g.id}" ${t.goalId===g.id?'selected':''}>${escapeHtml(g.title || 'Цель')}</option>`)).join('');
+    const peopleOptions = ['<option value="">Без человека</option>'].concat(state.people.map(p=>`<option value="${p.id}" ${t.personId===p.id?'selected':''}>${escapeHtml(p.name || 'Человек')}</option>`)).join('');
+    openCustomModal('🔗 Связать задачу', `<p><b>${escapeHtml(t.title || 'Задача')}</b></p><div class="form-grid"><label>Цель<select id="v17TaskGoal">${goalOptions}</select></label><label>Человек<select id="v17TaskPerson">${peopleOptions}</select></label><label>Теги<input id="v17TaskTags" value="${escapeAttr(Array.isArray(t.tags)?t.tags.join(', '):(t.tags||''))}" placeholder="деньги, важно"></label></div><div class="actions-row"><button class="primary-btn" data-action="v17SaveTaskLinks" data-task-id="${t.id}">Сохранить связи</button></div>`);
+  }
+
+  function v17SaveTaskLinks(taskId) {
+    const t = state.tasks.find(x=>x.id===taskId);
+    if (!t) return toast('Задача не найдена');
+    if (typeof pushUndo === 'function') pushUndo('связи задачи');
+    t.goalId = val('v17TaskGoal') || '';
+    t.personId = val('v17TaskPerson') || '';
+    t.tags = val('v17TaskTags').split(/[,#;]/).map(x=>x.trim().replace(/^#/, '')).filter(Boolean);
+    save(); closeModal(); render(); toast('Связи сохранены');
+  }
+
+  function v17Contacted(personId) {
+    const p = state.people.find(x=>x.id===personId);
+    if (!p) return;
+    p.lastContact = todayKey();
+    save(); render(); toast('Контакт отмечен');
+  }
+
+  function v17SaveWeekFocus() {
+    state.settings.weekFocus = val('v17WeekFocus');
+    state.settings.weekNoList = val('v17WeekNoList');
+    save(); render(); toast('Фокус недели сохранён');
+  }
+
+  function v17ArchiveTask(taskId) {
+    const idx = state.tasks.findIndex(x=>x.id===taskId);
+    if (idx < 0) return;
+    if (typeof pushUndo === 'function') pushUndo('архив задачи');
+    const [t] = state.tasks.splice(idx, 1);
+    t.archivedAt = new Date().toISOString();
+    state.archived.tasks.unshift(t);
+    save(); render(); toast('Задача отправлена в архив');
+  }
+
+  function v17AutoArchiveDone() {
+    const before = state.tasks.length;
+    const done = [];
+    state.tasks = state.tasks.filter(t => {
+      const completed = t.status === 'Готово' || t.status === 'Отменена';
+      if (completed) { t.archivedAt = new Date().toISOString(); done.push(t); }
+      return !completed;
+    });
+    state.archived.tasks.unshift(...done);
+    save(); render(); toast(`В архив отправлено: ${before - state.tasks.length}`);
+  }
+
+  function v17EnhancedSearch(query) {
+    const q = String(query || localStorage.getItem('v16.search') || '').trim().toLowerCase();
+    if (!q) return '';
+    const tagMatch = (x) => Array.isArray(x.tags) && x.tags.some(t=>String(t).toLowerCase().includes(q.replace('#','')));
+    const people = state.people.filter(p => [p.name,p.relation,p.talkIdeas,p.likes,p.gifts,p.notes].join(' ').toLowerCase().includes(q));
+    const tasks = state.tasks.filter(t => [t.title,t.area,t.nextAction,t.status].join(' ').toLowerCase().includes(q) || tagMatch(t));
+    const goals = state.goals.filter(g => [g.title,g.area,g.metric,g.why,g.nextAction].join(' ').toLowerCase().includes(q) || tagMatch(g));
+    return `<div class="card v17-search-extra"><div class="section-head"><div><h3>🔎 V17 связи и теги</h3><p class="sub">Расширенный поиск по людям, задачам, целям и тегам.</p></div></div><div class="grid three"><div><b>Задачи</b>${tasks.slice(0,6).map(v17TaskMini).join('') || empty('нет')}</div><div><b>Цели</b>${goals.slice(0,6).map(v17GoalMini).join('') || empty('нет')}</div><div><b>Люди</b>${people.slice(0,6).map(p=>`<div class="v17-mini-row"><b>${escapeHtml(p.name || 'Без имени')}</b><small>${escapeHtml(p.relation || '')}</small></div>`).join('') || empty('нет')}</div></div></div>`;
+  }
+
+  routeAction = function(a, el, e) {
+    v17EnsureState();
+    if (a === 'v17UniversalAdd') return v17OpenUniversalAdd();
+    if (a === 'v17OpenRecurringTask') return v17OpenRecurringTaskModal();
+    if (a === 'v17SaveRecurringTask') return v17SaveRecurringTask();
+    if (a === 'v17GenerateRecurringTasks') { v17GenerateRecurringTasks(60, true); save(); return render(); }
+    if (a === 'v17OpenRecurringPayment') return v17OpenRecurringPaymentModal();
+    if (a === 'v17SaveRecurringPayment') return v17SaveRecurringPayment();
+    if (a === 'v17OpenTags') return v17OpenTagsModal();
+    if (a === 'v17SaveTags') return v17SaveTags();
+    if (a === 'v17OpenLinkHub') return v17OpenLinkHub();
+    if (a === 'v17LinkTask') return v17LinkTaskModal(el?.dataset?.taskId);
+    if (a === 'v17SaveTaskLinks') return v17SaveTaskLinks(el?.dataset?.taskId);
+    if (a === 'v17Contacted') return v17Contacted(el?.dataset?.personId);
+    if (a === 'v17SaveWeekFocus') return v17SaveWeekFocus();
+    if (a === 'v17ArchiveTask') return v17ArchiveTask(el?.dataset?.taskId);
+    if (a === 'v17AutoArchiveDone') return v17AutoArchiveDone();
+    return __v17BaseRouteAction(a, el, e);
+  };
+
+  if (__v17BaseGoPage) {
+    goPage = function(page, message) {
+      if (V17_FINANCE_SECTION_BY_PAGE[page]) state.settings.financeSection = V17_FINANCE_SECTION_BY_PAGE[page];
+      activePage = V17_PAGE_ALIASES[page] || page;
+      render();
+      if (message) setTimeout(() => toast(message), 50);
+    };
+  }
+
+  render = function(opts = {}) {
+    v17EnsureState();
+    v17NormalizePage();
+    if (activePage === 'week') return v17RenderShell(v17WeekCenter(opts));
+    if (activePage === 'control') return v17RenderShell(v17ControlCenter(opts));
+    if (activePage === 'search') {
+      __v17BaseRender(opts);
+      const view = document.getElementById('view');
+      if (view) view.insertAdjacentHTML('beforeend', v17EnhancedSearch(opts.search || localStorage.getItem('v16.search') || ''));
+      v17ApplyChrome();
+      bindView();
+      return;
+    }
+    __v17BaseRender(opts);
+    v17ApplyChrome();
+  };
+
+  if (window.SecondBrainApp) {
+    window.SecondBrainApp.render = render;
+    window.SecondBrainApp.getState = () => state;
+  }
+
+  v17EnsureState();
+  save({ skipCloud:true });
+  setTimeout(() => { try { render(); } catch(e) { console.error('V17 render failed', e); } }, 80);
+  console.log('Second Brain LIFE CONTROL SYSTEM V17 loaded:', V17_VERSION);
+})();
