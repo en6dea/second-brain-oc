@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <title>Second Brain OS</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v36-pwa-foundation-private-20260626" />
+  <link rel="manifest" href="manifest.webmanifest?v=v37-mobile-ux-private-20260626" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -88,7 +88,7 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 @media (max-width:1440px){.celebration-grid,.gift-grid{grid-template-columns:1fr}}
 
 
-/* V36 PWA foundation + private mobile base */
+/* V37 mobile UX private */
 .install-hint{position:fixed;right:18px;bottom:18px;z-index:950;display:flex;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:18px;background:rgba(255,253,250,.92);box-shadow:0 14px 40px rgba(72,54,34,.12);backdrop-filter:blur(14px)}
 .install-hint b{font-size:14px}.install-hint span{font-size:12px;color:var(--muted)}.install-hint .ghost{box-shadow:none}
 .pwa-status{display:inline-flex;gap:8px;align-items:center;padding:7px 10px;border-radius:999px;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:800}
@@ -104,19 +104,50 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   h1{font-size:30px}.home-head,.goals-head{flex-direction:column}.home-grid,.goal-tab,.overview-grid,.analytics-grid,.notes-layout,.today-grid{grid-template-columns:1fr!important}.top-grid,.mid-grid,.premium-metrics,.premium-charts,.kanban,.people-grid,.gift-grid,.celebration-grid{grid-template-columns:1fr!important}.right-rail,.rail{grid-template-columns:1fr!important}.card{border-radius:20px;padding:16px}.hero-card{min-height:auto}.big{font-size:48px}.mini-grid{grid-template-columns:repeat(2,1fr);gap:12px}.task-line{grid-template-columns:26px minmax(0,1fr) auto!important}.task-line time{grid-column:auto}.tag.blue{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.habit-line{grid-template-columns:minmax(0,1fr) auto 22px}.graph{min-height:300px!important}.modal-backdrop{align-items:flex-end;padding:0}.modal{width:100%;max-height:88vh;overflow:auto;border-radius:26px 26px 0 0;padding:18px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.quick-grid{grid-template-columns:1fr}.install-hint{left:12px;right:12px;bottom:92px;justify-content:space-between}.install-hint span{display:none}
 }
 
+
+/* V37 MOBILE UX PRIVATE */
+.mobile-tabbar,.mobile-page-title{display:none}
+.mobile-menu-grid{display:grid;gap:14px}
+.mobile-menu-section{display:grid;gap:10px}
+.mobile-menu-section h4{margin:0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.mobile-menu-section div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mobile-menu-section button{display:flex;align-items:center;gap:10px;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:#fff;text-align:left}
+.mobile-menu-section button span{width:22px;text-align:center}.mobile-menu-section button b{font-size:14px}
+@media (max-width: 760px){
+  body{min-width:0;overflow-x:hidden;background:linear-gradient(180deg,#fbf8f2,#f6f0e7);-webkit-tap-highlight-color:transparent}
+  .app{display:block;min-height:100vh}.sidebar{display:none!important}.main{padding:12px 12px calc(104px + env(safe-area-inset-bottom));overflow:hidden}
+  .topbar{position:sticky;top:0;z-index:80;margin:-12px -12px 10px;padding:10px 12px 8px;background:rgba(248,244,237,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(234,223,206,.55)}
+  .topbar-spacer{display:none}.topbar-tools{width:100%;gap:8px;margin-left:0}.search-box{height:42px;flex:1;min-width:0;width:auto;border-radius:16px;background:rgba(255,253,250,.86)}
+  .search-box input{font-size:16px}.icon-btn,.avatar-btn{width:42px;height:42px;flex:0 0 42px}.topbar .ghost,.pwa-only-hide{display:none!important}
+  .mobile-page-title{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;color:var(--muted);font-size:13px}.mobile-page-title b{color:var(--text);font-size:15px}
+  h1{font-size:32px;letter-spacing:-.04em}.home-head,.goals-head{display:flex;flex-direction:column;gap:8px;margin-bottom:2px}.home-head .sub,.goals-head .sub{font-size:13px}.page-label{font-size:12px}
+  .home-grid,.goal-tab,.overview-grid,.analytics-grid,.notes-layout,.today-grid{grid-template-columns:1fr!important;gap:14px}.home-main{gap:14px}.top-grid,.mid-grid,.premium-metrics,.premium-charts,.kanban,.people-grid,.gift-grid,.celebration-grid,.metrics{grid-template-columns:1fr!important;gap:12px}.right-rail,.rail{grid-template-columns:1fr!important;gap:12px}
+  .card{border-radius:22px;padding:16px;box-shadow:0 10px 28px rgba(72,54,34,.055)}.hero-card{min-height:auto}.day-card .mountain-decor{opacity:.65}.big{font-size:52px}.mini-grid{grid-template-columns:repeat(2,1fr);gap:12px}.mini-grid>div{padding:10px;border:1px solid var(--line2);border-radius:14px;background:rgba(255,255,255,.55)}
+  .task-line,.habit-line{align-items:center;gap:10px}.task-line{display:grid;grid-template-columns:28px minmax(0,1fr) auto!important}.task-line time{grid-column:2;margin-top:-4px}.task-main b{font-size:14px}.task-main p{font-size:12px}.tag.blue{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.habit-line{display:grid;grid-template-columns:minmax(0,1fr) auto 24px!important}.habit-main b{font-size:14px}.habit-meta{font-size:12px}
+  .tab-row{gap:12px;overflow-x:auto;padding-bottom:4px}.tab-row::-webkit-scrollbar{display:none}.metric{border-radius:18px}.charts .chart-box,.chart-box{min-height:auto}.bar-chart{height:130px}.donut-wrap{grid-template-columns:112px 1fr}.donut{width:96px;height:96px}.heatmap{font-size:11px;gap:4px}.heatmap i{height:22px}
+  .graph,.premium-graph{min-height:300px!important;transform:scale(.92);transform-origin:center top;margin-bottom:-18px}.graph-node{width:112px}.graph-core{width:138px;min-height:138px}.graph-core b{font-size:16px}
+  .goal-switch{grid-template-columns:1fr!important}.goal-shell{gap:14px}.goal-top{display:flex;flex-direction:column;gap:10px}.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.tabs::-webkit-scrollbar{display:none}.tabs button{white-space:nowrap}.mission-top{flex-direction:column}.mission-score{width:100%;height:auto;min-height:88px;border-radius:20px}.mission-kpis,.rpg-stats,.props-grid{grid-template-columns:1fr 1fr!important}.prop.wide{grid-column:1/-1}.avatar-block{align-items:flex-start}.avatar-ring{width:92px;height:92px;flex:0 0 92px}
+  .table-wrap{overflow-x:auto}.table{min-width:680px}.pay-row{grid-template-columns:1fr auto}.pay-row small{grid-column:1/-1}.people-grid{grid-template-columns:1fr!important}.birthday-card,.gift-card{border-radius:20px}.celebration-hero{min-height:180px}
+  .modal-backdrop{align-items:flex-end;padding:0}.modal{width:100%;max-height:88vh;overflow:auto;border-radius:28px 28px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));animation:sheetIn .18s ease-out}.modal-head{position:sticky;top:0;background:var(--paper);z-index:2;padding-bottom:8px}.close{width:44px;height:44px;font-size:24px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.form-grid input,.form-grid textarea,.form-grid select{font-size:16px;min-height:46px}.quick-grid{grid-template-columns:1fr 1fr;gap:10px}.quick-tile{min-height:100px;border-radius:20px}
+  .mobile-tabbar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));height:72px;z-index:930;display:grid;grid-template-columns:1fr 1fr 82px 1fr 1fr;gap:8px;padding:8px;border:1px solid var(--line);border-radius:26px;background:rgba(255,253,250,.94);box-shadow:0 18px 44px rgba(72,54,34,.16);backdrop-filter:blur(18px)}
+  .mobile-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:18px;color:var(--muted);font-weight:800;min-width:0}.mobile-tab span{font-size:19px;line-height:1}.mobile-tab b{font-size:11px;line-height:1}.mobile-tab.active{background:#f4ebdd;color:var(--text)}.mobile-tab-main{height:64px;margin-top:-18px;border-radius:24px;background:linear-gradient(180deg,#5c9661,#3f804d);color:#fff;box-shadow:0 12px 24px rgba(77,135,88,.28)}.mobile-tab-main span{font-size:32px;line-height:.9}
+  .install-hint{display:none!important}#releaseBadge{bottom:calc(92px + env(safe-area-inset-bottom));left:12px;display:none}
+}
+@keyframes sheetIn{from{transform:translateY(24px);opacity:.92}to{transform:translateY(0);opacity:1}}
+
   </style>
 </head>
 <body>
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">PWA FOUNDATION PRIVATE V36</div>
+  <div id="releaseBadge">MOBILE UX PRIVATE V37</div>
   <script>
 try {
-/* Second Brain OS — PWA Foundation Private V36 */
+/* Second Brain OS — Mobile UX Private V37 */
 'use strict';
 
-const RELEASE = 'v36-pwa-foundation-private-20260626';
+const RELEASE = 'v37-mobile-ux-private-20260626';
 const STORE_KEY = 'secondBrainOS.v1';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -243,9 +274,34 @@ function graph(g){
   return `<div class="graph premium-graph"><div class="graph-core"><small>Цель</small><b>${esc(g?.title||'SMART-цель')}</b><span>${goalProgress(g)}%</span></div><button class="graph-node n-top" data-page="tasks"><strong>Задача</strong><span>${esc(task?.title||'Шаг')}</span></button><button class="graph-node n-left" data-page="notes"><strong>Заметка</strong><span>${esc(note?.title||'Идея')}</span></button><button class="graph-node n-right" data-page="finance"><strong>Финансы</strong><span>${money(g?.targetValue||0)}</span></button><button class="graph-node n-bottom-left" data-page="habits"><strong>Привычка</strong><span>${esc(habit?.name||'Ритуал')}</span></button><button class="graph-node n-bottom-right" data-page="people"><strong>Союзник</strong><span>${esc(person?.name||'Полина')}</span></button></div>`;
 }
 
+
+function mobileNav(){
+  const items = [
+    ['dashboard','⌂','Главная'],
+    ['today','◫','Сегодня'],
+    ['quick','＋',''],
+    ['finance','₽','Финансы'],
+    ['more','☷','Ещё']
+  ];
+  return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label]) => id==='quick'
+    ? `<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`
+    : id==='more'
+      ? `<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`
+      : `<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`
+  ).join('')}</nav>`;
+}
+function mobileMore(){
+  const groups = navGroups.map(([title,items]) => `<section class="mobile-menu-section"><h4>${title}</h4><div>${items.map(([id,ic,label])=>`<button data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</div></section>`).join('');
+  openModal('Меню Second Brain', `<div class="mobile-menu-grid">${groups}</div>`);
+}
+function mobileHeaderTitle(){
+  const found = navGroups.flatMap(g=>g[1]).find(x=>x[0]===activePage);
+  return found ? found[2] : 'Second Brain';
+}
+
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="view premium-view">${route()}</section></main></div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -376,7 +432,7 @@ function hideInstallHint(){ localStorage.setItem('secondBrainOS.hideInstallHint'
 function handleAction(a, el){
   const id=el?.dataset?.id;
   if(a==='installApp') return installApp(); if(a==='hideInstallHint') return hideInstallHint(); if(a==='theme'){ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'':'dark'; localStorage.setItem('secondBrainTheme', document.documentElement.dataset.theme||'warm'); return; }
-  if(a==='quickMenu') return quickMenu(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
+  if(a==='quickMenu') return quickMenu(); if(a==='mobileMore') return mobileMore(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
   if(a==='addTask') return addTask(); if(a==='addGoalTask') return addTask(id); if(a==='saveTask') return saveTask(); if(a==='editTask') return editTask(id); if(a==='saveTaskEdit') return saveTaskEdit(id); if(a==='deleteTask'){ state.tasks=state.tasks.filter(t=>t.id!==id); save(); closeModal(); render(); return toast('Удалено'); }
   if(a==='addExpense') return addOperation('expense'); if(a==='addIncome') return addOperation('income'); if(a==='saveOperation') return saveOperation(el.dataset.type); if(a==='addPayment') return addPayment(); if(a==='savePayment') return savePayment();
   if(a==='addGoal') return addGoal(); if(a==='saveGoal') return saveGoal(); if(a==='progressGoal') return progressGoal(id); if(a==='saveProgress') return saveProgress(id); if(a==='smartPlan') return smartPlan(id); if(a==='completeGoal'){ const g=state.goals.find(x=>x.id===id); if(g){g.status=g.status==='Готово'?'Активна':'Готово'; save(); render(); toast('Статус цели изменён');} return; }
@@ -393,7 +449,7 @@ function render(){
   const navScroll=document.querySelector('.nav')?.scrollTop || 0;
   document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
   $('#app').innerHTML=shell();
-  $('#releaseBadge').textContent='PWA FOUNDATION PRIVATE V36';
+  $('#releaseBadge').textContent='MOBILE UX PRIVATE V37';
   const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
   bind();
 }
@@ -408,7 +464,7 @@ installSW(); render(); setTimeout(renderInstallHint, 700);
 } catch(e) {
   console.error(e);
   const app = document.getElementById('app');
-  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v36-pwa-foundation-private-20260626</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
+  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v37-mobile-ux-private-20260626</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
 }
   </script>
 </body>
