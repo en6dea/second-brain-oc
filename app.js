@@ -7020,3 +7020,278 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   setTimeout(applyV25Marker, 300);
   console.log('Second Brain SYNC INSPECTION FIX V25 loaded:', V25_VERSION);
 })();
+
+
+/* =========================
+   V26 OBSIDIAN LINKS DASHBOARD
+   Добивка дизайна + активные кнопки + связи как в Obsidian
+   ========================= */
+(function installV26ObsidianLinksDashboard(){
+  if (window.__SECOND_BRAIN_V26_OBSIDIAN__) return;
+  window.__SECOND_BRAIN_V26_OBSIDIAN__ = true;
+  const V26_VERSION = 'v26-obsidian-links-dashboard-20260626';
+
+  function v26Esc(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
+  function v26EnsureState(){
+    state.notes = Array.isArray(state.notes) ? state.notes : [];
+    state.people = Array.isArray(state.people) ? state.people : [];
+    state.goalNotes = Array.isArray(state.goalNotes) ? state.goalNotes : [];
+    state.archived = state.archived || { tasks:[], notes:[] };
+    state.settings = state.settings || {};
+  }
+  v26EnsureState();
+
+  function v26ActiveTasks(){ return (state.tasks || []).filter(t => t.status !== 'Готово' && t.status !== 'Отменена'); }
+  function v26MainGoal(){
+    return (state.goals || []).filter(g => g.status !== 'Готово' && g.status !== 'Отменена').sort((a,b)=>goalProgress(b)-goalProgress(a))[0] || null;
+  }
+  function v26LatestGoalNote(goalId){
+    const list = (state.goalNotes || []).filter(n => !goalId || n.goalId === goalId).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    return list[0] || null;
+  }
+  function v26ConnectedTasks(goal){
+    const list = v26ActiveTasks().filter(t => !goal || t.goalId === goal.id).sort(taskSort);
+    return list.slice(0, 3);
+  }
+  function v26LinkedPeople(goal){
+    const taskPeople = new Set(v26ActiveTasks().filter(t => !goal || t.goalId === goal.id).map(t => t.personId).filter(Boolean));
+    const list = (state.people || []).filter(p => taskPeople.has(p.id));
+    if (list.length) return list.slice(0,1);
+    return (state.people || []).slice(0,1);
+  }
+  function v26LatestInsight(){
+    const a = (state.journal || []).map(x => ({ title: 'Вопрос дня', text: x.insight || x.answer || '', date: x.date || x.createdAt || todayKey(), tags:['вопрос дня','рефлексия'], goalId:'' }));
+    const b = (state.notes || []).map(x => ({ title: x.title, text: x.text, date: x.createdAt || todayKey(), tags:x.tags||[], goalId:x.goalId||'' }));
+    const c = (state.goalNotes || []).map(x => ({ title:'Заметка по цели', text:x.text, date:x.date||todayKey(), tags:['цель'], goalId:x.goalId||'' }));
+    return [...b, ...c, ...a].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')))[0] || null;
+  }
+  function v26ObsConnectionsCard(){
+    const goal = v26MainGoal();
+    const task = v26ConnectedTasks(goal)[0];
+    const note = (state.notes || []).find(n => goal && n.goalId === goal.id) || v26LatestGoalNote(goal && goal.id) || v26LatestInsight();
+    const person = v26LinkedPeople(goal)[0];
+    const habit = (state.habits || []).filter(h => h.active).find(h => !goal || h.area === goal.area || h.area === 'Финансы') || (state.habits || []).find(h => h.active);
+    const project = task && task.tags && task.tags.length ? task.tags[0] : (goal ? goal.area : 'Личное');
+    const center = goal ? `<div class="v26-graph-center"><b>Цель</b><span>${v26Esc(goal.title)}</span></div>` : `<div class="v26-graph-center"><b>Цель</b><span>Добавь SMART-цель</span></div>`;
+    return `<section class="card v26-obs-card">
+      <div class="section-head"><div><h3>Связи как в Obsidian</h3><p class="sub">Смысловые связи между задачами, целями, заметками, финансами, привычками и людьми.</p></div><button class="ghost-btn" data-action="v17OpenLinkHub">Открыть связи</button></div>
+      <div class="v26-graph-wrap">
+        ${center}
+        <button class="v26-graph-node top" data-page-jump="tasks"><b>Задача</b><span>${v26Esc(task?.title || 'Привязать действие')}</span></button>
+        <button class="v26-graph-node left" data-page-jump="insights"><b>Заметка</b><span>${v26Esc(note?.title || 'Идея / инсайт')}</span></button>
+        <button class="v26-graph-node right" data-page-jump="finance"><b>Финансы</b><span>${goal ? 'Финансовая цель' : 'Обзор денег'}</span></button>
+        <button class="v26-graph-node bottom-left" data-page-jump="habits"><b>Привычка</b><span>${v26Esc(habit?.name || 'Ежедневный ритуал')}</span></button>
+        <button class="v26-graph-node bottom-right" data-page-jump="goals"><b>Проект</b><span>${v26Esc(project || 'Проект')}</span></button>
+        <button class="v26-graph-node far-left" data-page-jump="people"><b>Человек</b><span>${v26Esc(person?.name || 'Полина / клиент / друг')}</span></button>
+      </div>
+    </section>`;
+  }
+  function v26NotePreviewCard(){
+    const goal = v26MainGoal();
+    const note = (state.notes || []).find(n => goal && n.goalId === goal.id) || (state.notes || [])[0] || null;
+    const fallbackTitle = goal ? `Идеи по цели: ${goal.title}` : 'Идея по доходу';
+    const fallbackText = goal ? `Зафиксируй мысли по цели, следующие шаги и варианты действий. Потом эта заметка будет связана с задачами и людьми.` : `Например: «Онлайн-курс», «Консультации», «Партнёрская программа».`;
+    const links = [];
+    if (goal) links.push(`[[${goal.title}]]`);
+    const task = v26ConnectedTasks(goal)[0];
+    if (task) links.push(`[[${task.title}]]`);
+    const person = v26LinkedPeople(goal)[0];
+    if (person) links.push(`[[${person.name}]]`);
+    return `<section class="card v26-note-card">
+      <div class="section-head"><div><h3>Пример страницы заметки</h3><p class="sub">Простая заметка с двусторонними ссылками и быстрым поиском смыслов.</p></div><button class="ghost-btn" data-action="v26OpenNote">＋ Заметка</button></div>
+      <div class="v26-note-preview">
+        <div class="v26-note-breadcrumb">Заметки / ${v26Esc(note?.title || fallbackTitle)}</div>
+        <h4>${v26Esc(note?.title || fallbackTitle)}</h4>
+        <div class="v26-note-links"><b>Связано с</b>${links.length ? links.map(x=>`<a href="javascript:void(0)" data-page-jump="goals">${v26Esc(x)}</a>`).join('') : '<span>Добавь цель или задачу</span>'}</div>
+        <ul>${(note?.text || fallbackText).split(/\n+/).filter(Boolean).slice(0,3).map(x=>`<li>${v26Esc(x)}</li>`).join('')}</ul>
+        <div class="v26-note-tags">${(note?.tags || ['идея','доход','фокус']).slice(0,3).map(t=>`<span>#${v26Esc(t)}</span>`).join('')}</div>
+      </div>
+    </section>`;
+  }
+  function v26MetricCard(title, value, sub, body, actionPage=''){ return `<div class="v26-metric ${actionPage ? 'clickable' : ''}" ${actionPage ? `data-page-jump="${actionPage}"` : ''}><b>${value}</b><span>${v26Esc(title)}</span><small>${v26Esc(sub)}</small>${body||''}</div>`; }
+  function v26AnalyticsTabs(){
+    return `<div class="v26-analytics-tabs"><button class="active">Обзор</button><button data-page-jump="finance">Финансы</button><button data-page-jump="tasks">Задачи</button><button data-page-jump="habits">Привычки</button><button data-page-jump="goals">Цели</button></div>`;
+  }
+  function v26Dashboard(){
+    v26EnsureState();
+    const s = monthSummary();
+    const todayMap = state.habitLogs?.[todayKey()] || {};
+    const activeHabits = (state.habits || []).filter(h=>h.active).slice(0,5);
+    const tasks = tasksForDay(todayKey()).slice(0,5);
+    const focus = v26MainGoal();
+    const linkedTasks = v26ConnectedTasks(focus);
+    const attention = (typeof v20AttentionItems === 'function' ? v20AttentionItems() : []).slice(0,3);
+    const expenseSeries = (typeof v20Series === 'function' ? v20Series(7,'expense') : []).slice(-7);
+    const incomeSeries = (typeof v20Series === 'function' ? v20Series(7,'income') : []).slice(-7);
+    const todayExpenses = total((state.operations || []).filter(o=>o.type==='expense' && o.date===todayKey()));
+    const todayIncome = total((state.operations || []).filter(o=>o.type==='income' && o.date===todayKey()));
+    const safePct = s.dailyLimit ? Math.min(100, Math.round(todayExpenses / Math.max(1, s.dailyLimit) * 100)) : 0;
+    const catSeries = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,4);
+    const payments = ((state.plannedExpenses || []).filter(p=>!p.completed).map(p=>({title:p.title||p.category||'Платёж',amount:p.amount,dateText:`${String(p.day||1).padStart(2,'0')} число`}))).slice(0,4);
+    const insight = v26LatestInsight();
+    const noList = (state.settings.weekNoList || 'Прокрастинировать по мелочам\nТратить на импульсивные покупки\nБрать новые задачи без оценки').split(/\n+/).filter(Boolean).slice(0,3);
+
+    return `<div class="v26-home">
+      <div class="v26-breadcrumbs">Личная система</div>
+      <section class="v26-heading">
+        <div><div class="tiny-label">Центр дня</div><h1>${v20Greeting ? v20Greeting() : 'Доброе утро'}, Алексей! 👋</h1><p>${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</p></div>
+        <div class="actions-row"><button class="primary-btn" data-action="v16UniversalAdd">＋ Добавить</button><button class="soft-btn" data-action="v16SmartQuick">🧠 Умный ввод</button><button class="soft-btn" data-action="v16CreateWeeklyReview">📅 Обзор недели</button><button class="soft-btn" data-action="backup">⬇️ Бэкап</button></div>
+      </section>
+
+      <div class="v26-shell-grid">
+        <div class="v26-main-col">
+          <div class="v26-top-grid">
+            <section class="card v26-hero-card">
+              <div class="section-head"><h3>Порядок дня</h3><button class="ghost-btn" data-page-jump="today">i</button></div>
+              <div class="v20-big-number">${lifeScore()}%</div>
+              <div class="v20-progress"><span style="width:${lifeScore()}%"></span></div>
+              <p class="sub">Отличный прогресс! Продолжай в том же духе.</p>
+              <div class="v20-mini-stats">
+                <div><b>${Math.max(1, tasks.length)}</b><span>Главные задачи</span></div>
+                <div><b>${Object.keys(todayMap).length}/${Math.max(activeHabits.length,1)}</b><span>Привычек</span></div>
+                <div><b>${money(s.left)}</b><span>Остаток месяца</span></div>
+                <div><b>18:00</b><span>Вопрос дня</span></div>
+              </div>
+            </section>
+            <section class="card v26-money-card">
+              <div class="section-head"><h3>Можно тратить сегодня</h3><button class="ghost-btn" data-action="todayLimit">i</button></div>
+              <div class="v20-money-big">${money(s.dailyLimit)}</div>
+              <small>из ${money(Math.max(1, s.dailyLimit + todayExpenses))}</small>
+              <div class="v20-progress green"><span style="width:${Math.min(safePct,100)}%"></span></div>
+              <div class="v20-safe-bottom"><span>Лимит на сегодня</span><b>${safePct}%</b></div>
+            </section>
+            <section class="card v26-attention-card">
+              <div class="section-head"><h3>Что требует внимания</h3><span class="tag warn">${attention.length || 1}</span></div>
+              <div class="v26-attention-list">${attention.length ? attention.map(a=>`<div class="v26-att-row ${v26Esc(a.tone||'')}"><span>${v26Esc(a.icon||'•')}</span><b>${v26Esc(a.text||'')}</b></div>`).join('') : '<div class="v26-att-row warn"><span>?</span><b>Вопрос дня не заполнен</b></div>'}</div>
+              <button class="ghost-btn align-left" data-page-jump="panel">Перейти к контролю →</button>
+            </section>
+          </div>
+
+          <div class="v26-middle-grid">
+            <section class="card v20-list-card">
+              <div class="section-head"><h3>Задачи на сегодня</h3><button class="ghost-btn" data-open-modal="quickTask">＋</button></div>
+              <div class="v20-list">${tasks.length ? tasks.map(t => `<div class="v20-row-task"><button class="v20-check-btn" data-toggle-task="${t.id}">${t.status==='Готово'?'✓':'○'}</button><span class="name">${v26Esc(t.title || 'Задача')}</span><button class="tag blue" data-action="v17LinkTask" data-task-id="${t.id}">${v26Esc(t.area || 'Личное')}</button><time>${v26Esc(t.time || '—')}</time></div>`).join('') : `<div class="empty">Сегодня пусто — добавь 1 фокус дня</div>`}</div>
+              <button class="ghost-btn align-left" data-open-modal="quickTask">＋ Новая задача</button>
+            </section>
+            <section class="card v20-list-card">
+              <div class="section-head"><h3>Привычки</h3><button class="ghost-btn" data-open-modal="addHabit">＋</button></div>
+              <div class="v20-list">${activeHabits.length ? activeHabits.map(hb => `<label class="v20-row-habit"><span class="name">${v26Esc(hb.name || 'Привычка')}</span><span class="sub">${todayMap[hb.id] ? 'сегодня' : `${hb.targetPerWeek || 0} дней`}</span><input type="checkbox" data-habit="${hb.id}" ${todayMap[hb.id] ? 'checked' : ''}></label>`).join('') : `<div class="empty">Нет активных привычек</div>`}</div>
+              <button class="ghost-btn align-left" data-page-jump="habits">Открыть привычки →</button>
+            </section>
+            <section class="card v20-list-card">
+              <div class="section-head"><h3>Финансы сегодня</h3><button class="ghost-btn" data-open-modal="quickExpense">＋</button></div>
+              <div class="v20-money-list"><div><span>Расходы</span><b class="danger">${money(todayExpenses)}</b></div><div><span>Доходы</span><b class="green">${money(todayIncome)}</b></div></div>
+              ${typeof v20Sparkline === 'function' ? v20Sparkline(expenseSeries.map(x=>x.value), '#5C8E65') : ''}
+              <button class="ghost-btn align-left" data-page-jump="finance">Смотреть финансы →</button>
+            </section>
+            <section class="card v20-focus-card">
+              <div class="section-head"><h3>Фокус недели</h3><button class="ghost-btn" data-page-jump="goals">→</button></div>
+              ${focus ? `<div class="v20-goal-box"><div class="v20-goal-title"><span class="flag">⚑</span><div><b>Главная цель недели</b><p>${v26Esc(focus.title)}</p></div></div><div class="v20-progress"><span style="width:${goalProgress(focus)}%"></span></div><div class="v20-goal-meta"><span>${v26Esc(focus.nextAction || 'Следующий шаг не указан')}</span><b>${goalProgress(focus)}%</b></div></div>` : `<div class="empty">Нет активной цели недели</div>`}
+              <div class="v20-no-list"><h4>Что нельзя делать</h4><ul>${noList.map(x=>`<li>${v26Esc(x)}</li>`).join('')}</ul></div>
+            </section>
+          </div>
+
+          <div class="v26-bottom-grid">
+            <section class="card v26-analytics-card">
+              <div class="section-head"><div><h3>Аналитика недели</h3><p class="sub">19 – 26 июня</p></div>${v26AnalyticsTabs()}</div>
+              <div class="v26-metric-grid">
+                ${v26MetricCard('Расходы', money(s.expenses), 'месяц', typeof v20Sparkline === 'function' ? v20Sparkline(expenseSeries.map(x=>x.value), '#7AA0D8') : '', 'finance')}
+                ${v26MetricCard('Доходы', money(s.income), 'месяц', typeof v20Sparkline === 'function' ? v20Sparkline(incomeSeries.map(x=>x.value), '#74B57F') : '', 'finance')}
+                ${v26MetricCard('Сбережения', money(s.savings + s.cushion + s.goal), 'подушка + цель', typeof v20Sparkline === 'function' ? v20Sparkline(expenseSeries.map((x,i)=>incomeSeries[i]?Math.max(0,incomeSeries[i].value-x.value):0), '#74B57F') : '', 'finance')}
+                ${v26MetricCard('Порядок дня', `${lifeScore()}%`, 'общая форма', `<div class="v20-inline-progress"><span style="width:${lifeScore()}%"></span></div>`, 'today')}
+              </div>
+              <div class="v26-chart-grid">
+                <div class="v26-chart-box"><h4>Динамика расходов</h4>${typeof v20BarChart === 'function' ? v20BarChart(expenseSeries) : ''}</div>
+                <div class="v26-chart-box"><h4>Расходы по категориям</h4>${catSeries.length && typeof v20Donut === 'function' ? v20Donut(catSeries) : `<div class="empty">Нет данных по расходам</div>`}</div>
+                <div class="v26-chart-box"><h4>Динамика привычек</h4>${typeof v20Heatmap === 'function' ? v20Heatmap() : ''}</div>
+              </div>
+            </section>
+            <div class="v26-side-stack">
+              <section class="card v20-side-card">
+                <div class="section-head"><h3>Ближайшие платежи</h3><button class="ghost-btn" data-action="v17OpenRecurringPayment">＋</button></div>
+                ${payments.length ? payments.map(p => `<div class="v20-pay-row"><span>${v26Esc(p.title || 'Платёж')}</span><b>${money(p.amount)}</b><small>${v26Esc(p.dateText)}</small></div>`).join('') : `<div class="empty">Платежей пока нет</div>`}
+                <button class="ghost-btn align-left" data-page-jump="finance">Все платежи →</button>
+              </section>
+              <section class="card v20-side-card v20-insight-card">
+                <div class="section-head"><h3>Последний инсайт</h3><button class="ghost-btn" data-page-jump="insights">→</button></div>
+                ${insight ? `<blockquote>${v26Esc(insight.text || '')}</blockquote><small>${v26Esc(insight.date || 'Сегодня')}</small>` : `<div class="empty">Когда записываешь мысли, здесь появится последний инсайт.</div>`}
+              </section>
+            </div>
+          </div>
+        </div>
+        <aside class="v26-rail-col">
+          ${v26ObsConnectionsCard()}
+          ${v26NotePreviewCard()}
+        </aside>
+      </div>
+    </div>`;
+  }
+
+  dashboard = v26Dashboard;
+
+  function v26Backlinks(note){
+    const res = [];
+    if (note.goalId) {
+      const g = (state.goals || []).find(x=>x.id===note.goalId);
+      if (g) res.push({type:'Цель', label:g.title, page:'goals'});
+      const tasks = (state.tasks || []).filter(t=>t.goalId===note.goalId).slice(0,3);
+      tasks.forEach(t=>res.push({type:'Задача', label:t.title, page:'tasks'}));
+    }
+    if (note.personId) {
+      const p = (state.people || []).find(x=>x.id===note.personId);
+      if (p) res.push({type:'Человек', label:p.name, page:'people'});
+    }
+    return res;
+  }
+  const __baseInsightsV26 = insightsView;
+  insightsView = function(){
+    v26EnsureState();
+    const notes = (state.notes || []).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    const latestGoalNotes = (state.goalNotes || []).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5).map(n => ({ id:n.id||uid(), title:'Заметка по цели', text:n.text || '', createdAt:n.date || todayKey(), goalId:n.goalId || '', tags:['цель'] }));
+    const combined = [...notes, ...latestGoalNotes].slice(0,12);
+    return `<div class="v26-page">${typeof pageTop === 'function' ? pageTop('Заметки и связи','Личная база знаний в духе Obsidian: заметки, двусторонние связи, теги и быстрые переходы.',`<button class="primary-btn" data-action="v26OpenNote">＋ Новая заметка</button>`) : ''}<div class="v26-notes-layout"><section class="card v26-notes-list"><div class="section-head"><h3>Все заметки</h3><button class="ghost-btn" data-action="v17OpenLinkHub">Связи</button></div>${combined.length ? combined.map(n=>`<article class="v26-note-list-item"><div><b>${v26Esc(n.title || 'Без названия')}</b><p>${v26Esc(String(n.text || '').slice(0,180))}</p><div class="v26-note-tags">${(n.tags || []).slice(0,4).map(t=>`<span>#${v26Esc(t)}</span>`).join('')}</div></div><div class="v26-note-actions"><small>${v26Esc(n.createdAt || '')}</small><button class="ghost-btn" data-action="v26OpenLinkedNote" data-note-id="${n.id}">Открыть</button></div></article>`).join('') : '<div class="empty">Заметок пока нет</div>'}</section><section class="card v26-note-help"><h3>Как это работает</h3><ul><li>Заметка может быть связана с целью, человеком и тегами.</li><li>Задачи наследуют смысл через связь с целью.</li><li>На дашборде и в поиске эти связи начинают показывать реальную картину.</li></ul><div class="actions-row"><button class="soft-btn" data-page-jump="goals">Открыть цели</button><button class="soft-btn" data-page-jump="tasks">Открыть задачи</button></div></section></div></div>`;
+  };
+
+  function v26OpenNote(){
+    v26EnsureState();
+    const goalOptions = ['<option value="">Без цели</option>'].concat((state.goals||[]).map(g=>`<option value="${g.id}">${v26Esc(g.title || 'Цель')}</option>`)).join('');
+    const peopleOptions = ['<option value="">Без человека</option>'].concat((state.people||[]).map(p=>`<option value="${p.id}">${v26Esc(p.name || 'Человек')}</option>`)).join('');
+    openCustomModal('📝 Новая заметка', `<div class="form-grid"><label class="full">Название<input id="v26NoteTitle" placeholder="Например: идеи доп. дохода"></label><label>Цель<select id="v26NoteGoal">${goalOptions}</select></label><label>Человек<select id="v26NotePerson">${peopleOptions}</select></label><label class="full">Теги<input id="v26NoteTags" placeholder="доход, идея, фокус"></label><label class="full">Текст<textarea id="v26NoteText" rows="7" class="note-area" placeholder="Сюда можно выгружать идеи, наблюдения, тезисы и решения."></textarea></label></div><div class="actions-row"><button class="primary-btn" data-action="v26SaveNote">Сохранить заметку</button></div>`);
+  }
+  function v26SaveNote(){
+    v26EnsureState();
+    const title = val('v26NoteTitle').trim();
+    const text = val('v26NoteText').trim();
+    if (!title && !text) return toast('Заполни название или текст заметки');
+    const note = { id:uid(), title:title || 'Без названия', text, goalId:val('v26NoteGoal') || '', personId:val('v26NotePerson') || '', tags: val('v26NoteTags').split(/[,#;]/).map(x=>x.trim().replace(/^#/, '')).filter(Boolean), createdAt: new Date().toISOString().slice(0,10) };
+    state.notes.unshift(note);
+    save(); closeModal(); activePage='insights'; render(); toast('Заметка сохранена');
+  }
+  function v26OpenLinkedNote(noteId){
+    v26EnsureState();
+    const source = [...(state.notes||[]), ...(state.goalNotes||[]).map(n=>({id:n.id||uid(), title:'Заметка по цели', text:n.text||'', createdAt:n.date||todayKey(), goalId:n.goalId||'', tags:['цель']}))].find(n=>n.id===noteId);
+    if (!source) return toast('Заметка не найдена');
+    const links = v26Backlinks(source);
+    openCustomModal('📝 ' + v26Esc(source.title || 'Заметка'), `<div class="v26-open-note"><div class="v26-note-breadcrumb">Заметки / ${v26Esc(source.title || 'Заметка')}</div><p>${v26Esc(source.text || 'Текст пуст')}</p><div class="v26-note-links"><b>Связано с</b>${links.length ? links.map(l=>`<button class="ghost-btn" data-page-jump="${l.page}">${v26Esc(l.type)}: ${v26Esc(l.label)}</button>`).join('') : '<span>Связей пока нет</span>'}</div><div class="v26-note-tags">${(source.tags || []).map(t=>`<span>#${v26Esc(t)}</span>`).join('')}</div></div>`);
+  }
+
+  const __baseRouteAction_V26 = routeAction;
+  routeAction = function(a, el, e){
+    if (a === 'v26OpenNote') return v26OpenNote();
+    if (a === 'v26SaveNote') return v26SaveNote();
+    if (a === 'v26OpenLinkedNote') return v26OpenLinkedNote(el?.dataset?.noteId);
+    return __baseRouteAction_V26(a, el, e);
+  };
+
+  const __baseRender_V26 = render;
+  render = function(opts={}){
+    __baseRender_V26(opts);
+    document.body.classList.add('v26-shell');
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'OBSIDIAN LINKS DASHBOARD V26';
+  };
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  window.SecondBrainBuild = Object.assign({}, window.SecondBrainBuild || {}, { version: V26_VERSION, inspect(){ return { version: V26_VERSION, notes: (state.notes||[]).length, goals: (state.goals||[]).length, tasks: (state.tasks||[]).length, page: activePage }; } });
+  console.log('Second Brain OBSIDIAN LINKS DASHBOARD V26 loaded:', V26_VERSION);
+})();

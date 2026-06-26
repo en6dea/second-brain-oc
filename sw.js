@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-v25-sync-inspection-fix-20260626';
+const CACHE_NAME = 'second-brain-os-v26-obsidian-links-dashboard-20260626';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => {
   event.waitUntil(
