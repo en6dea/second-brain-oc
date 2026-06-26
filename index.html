@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=v23-reference-match-20260626" />
+  <link rel="stylesheet" href="styles.css?v=v24-goal-object-match-20260626" />
 </head>
 <body class="v18-shell" data-v18-theme="light">
   <div id="app" class="app-shell">
@@ -51,13 +51,13 @@
   <button id="fabAdd" class="fab-add" aria-label="Быстро добавить">＋</button>
   <div id="modalRoot"></div>
   <div id="toast" class="toast"></div>
-  <div id="releaseBadge" style="position:fixed;left:10px;bottom:10px;z-index:999999;padding:6px 9px;border-radius:999px;background:#111827;color:#fff;font:12px/1.2 system-ui;opacity:.72;pointer-events:none">REFERENCE MATCH V23</div>
+  <div id="releaseBadge" style="position:fixed;left:10px;bottom:10px;z-index:999999;padding:6px 9px;border-radius:999px;background:#111827;color:#fff;font:12px/1.2 system-ui;opacity:.72;pointer-events:none">GOAL OBJECT MATCH V24</div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
-    window.SECOND_BRAIN_RELEASE = 'v23-reference-match-20260626';
+    window.SECOND_BRAIN_RELEASE = 'v24-goal-object-match-20260626';
     window.SECOND_BRAIN_FIREBASE_CONFIG = {
       apiKey: "AIzaSyAuxWvGfr_0cReaEQdIkvPIUoEjurDcabY",
       authDomain: "second-brain-os-7e27d.firebaseapp.com",
@@ -295,9 +295,9 @@
 
   </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=v23-reference-match-20260626"></script>
+  <script src="app.js?v=v24-goal-object-match-20260626"></script>
   <script>
-    console.log('REFERENCE MATCH V23 BOOT CHECK', {
+    console.log('GOAL OBJECT MATCH V24 BOOT CHECK', {
       firebaseConfig: !!window.SECOND_BRAIN_FIREBASE_CONFIG?.apiKey,
       cloud: !!window.SecondBrainCloud,
       app: !!window.SecondBrainApp
@@ -307,7 +307,7 @@
         if (window.SecondBrainCloud && window.SecondBrainApp) {
           window.SecondBrainCloud.init().then(function(){ window.SecondBrainApp.render(); });
         }
-      } catch(e) { console.warn('REFERENCE MATCH V23 boot retry error', e); }
+      } catch(e) { console.warn('GOAL OBJECT MATCH V24 boot retry error', e); }
     }, 500);
   </script>
 </body>

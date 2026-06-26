@@ -6786,3 +6786,160 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   if(window.SecondBrainApp) window.SecondBrainApp.render=render;
   console.log('Second Brain REFERENCE MATCH V23 loaded:',V23_VERSION);
 })();
+
+
+/* =========================
+   V24 GOAL OBJECT MATCH
+   Goal page brought closer to the selected reference
+   ========================= */
+(function installV24GoalObjectMatch(){
+  if (window.__SECOND_BRAIN_V24_GOAL_OBJECT_MATCH__) return;
+  window.__SECOND_BRAIN_V24_GOAL_OBJECT_MATCH__ = true;
+
+  const V24_VERSION = 'v24-goal-object-match-20260626';
+  const GOAL_KEY = 'secondBrainOS.v24.currentGoal';
+  const TAB_KEY = 'secondBrainOS.v24.goalTab';
+  function esc(v){return String(v??'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
+  function actGoals(){return (state.goals||[]).filter(g=>g.status!=='Готово'&&g.status!=='Отменена');}
+  function valFmt(goal,val){
+    const n = Number(val || 0);
+    const metric = String(goal?.metric || '').trim();
+    if (!n && !val) return '—';
+    if (/₽|руб|rur|rub/i.test(metric) || /доход|деньги|финанс/i.test(String(goal?.area||''))) return money(n || Number(val));
+    return metric ? `${n || val} ${metric}` : String(n || val);
+  }
+  function currentGoal(){
+    const gs = actGoals().sort((a,b)=>goalProgress(b)-goalProgress(a));
+    if (!gs.length) return null;
+    const saved = localStorage.getItem(GOAL_KEY);
+    const g = gs.find(x=>x.id===saved) || gs[0];
+    if (g && saved !== g.id) localStorage.setItem(GOAL_KEY, g.id);
+    return g;
+  }
+  function currentTab(){ return localStorage.getItem(TAB_KEY) || 'overview'; }
+  function chartSeries(goal){
+    const p = goalProgress(goal);
+    const base = Math.max(4, Math.round((Number(goal.currentValue)||0) / Math.max(1, Number(goal.targetValue)||100) * 100));
+    const steps = [Math.max(4, Math.round(base*0.18)), Math.max(10, Math.round(base*0.35)), Math.max(16, Math.round(base*0.48)), Math.max(22, Math.round(base*0.62)), Math.max(30, Math.round(base*0.79)), Math.max(38, Math.round(base*0.91)), Math.max(44, Math.round(p))];
+    return steps.map(v => Math.min(100, v));
+  }
+  function lineChart(goal){
+    const vals = chartSeries(goal); const w=420,h=180,p=18;
+    const pts = vals.map((v,i)=>{
+      const x = p + (w-p*2)*(vals.length===1?0:i/(vals.length-1));
+      const y = h-p - (v/100)*(h-p*2);
+      return [x,y];
+    });
+    const poly = pts.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    const area = `M ${p},${h-p} L ${pts.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' L ')} L ${w-p},${h-p} Z`;
+    const months = ['Май','Июн','Июл','Авг','Сен','Окт','Ноя'];
+    return `<div class="v24-goal-chart-box"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="v24-goal-chart-svg"><g class="v24-grid">${[0,1,2,3].map(i=>`<line x1="${p}" y1="${p + (h-p*2)*(i/3)}" x2="${w-p}" y2="${p + (h-p*2)*(i/3)}"></line>`).join('')}</g><path d="${area}" class="v24-area"></path><polyline points="${poly}" class="v24-line"></polyline>${pts.map(([x,y],i)=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i===pts.length-1?4.5:3}" class="v24-dot ${i===pts.length-1?'active':''}"></circle>`).join('')}</svg><div class="v24-axis">${months.map(m=>`<span>${m}</span>`).join('')}</div></div>`;
+  }
+  function propRow(icon,label,value,wide=false){
+    return `<div class="v24-prop-row ${wide?'wide':''}"><i>${icon}</i><span>${esc(label)}</span><b>${value}</b></div>`;
+  }
+  function goalsPicker(goals, currentId){
+    if (goals.length < 2) return '';
+    return `<div class="v24-goal-picker">${goals.map(g=>`<button class="${g.id===currentId?'active':''}" data-action="v24GoalPick" data-goal-id="${g.id}"><b>${esc(g.title || 'Цель')}</b><span>${goalProgress(g)}%</span></button>`).join('')}</div>`;
+  }
+  function linkedTasks(goal){ return (state.tasks||[]).filter(t=>t.goalId===goal.id).sort(taskSort); }
+  function goalTabs(goal, tab){
+    const tasks = linkedTasks(goal);
+    const notes = (typeof goalNotes === 'function' ? goalNotes(goal.id) : (state.goalNotes||[]).filter(n=>n.goalId===goal.id));
+    if (tab === 'tasks') {
+      return `<div class="v24-panel-body"><section class="v24-subpanel"><div class="v24-subhead"><h4>Связанные задачи</h4><button class="ghost-btn" data-action="goalAction" data-goal-id="${goal.id}">＋ Добавить задачу</button></div>${tasks.length ? tasks.map(t=>`<label class="v24-check-row"><button class="v24-check" data-toggle-task="${t.id}">${t.status==='Готово'?'✓':'□'}</button><div><b>${esc(t.title||'Задача')}</b><small>${t.due?esc(formatTaskDate(t)):'Без даты'}${t.time?' · '+esc(t.time):''}</small></div><span class="tag ${String(t.priority||'').toLowerCase().includes('выс')?'danger':String(t.priority||'').toLowerCase().includes('низ')?'green':'warn'}">${esc(t.priority||'Средний')}</span></label>`).join('') : `<div class="empty">Пока нет связанных задач</div>`}</section></div>`;
+    }
+    if (tab === 'notes') {
+      return `<div class="v24-panel-body"><section class="v24-subpanel"><div class="v24-subhead"><h4>Заметки по цели</h4><button class="ghost-btn" data-action="goalNote" data-goal-id="${goal.id}">＋ Добавить заметку</button></div>${notes.length ? notes.map(n=>`<article class="v24-note-row"><b>${esc(n.date || '')}</b><p>${esc(n.text || '')}</p></article>`).join('') : `<div class="empty">Заметок пока нет</div>`}</section></div>`;
+    }
+    if (tab === 'files') {
+      return `<div class="v24-panel-body"><section class="v24-subpanel"><div class="v24-file-empty"><b>Файлы</b><p>Этот блок подготовлен под будущую загрузку материалов к цели: брифы, PDF, скрины, ссылки.</p><button class="soft-btn" data-action="goalNote" data-goal-id="${goal.id}">Пока использовать заметки</button></div></section></div>`;
+    }
+    if (tab === 'history') {
+      const doneCount = tasks.filter(t=>t.status==='Готово').length;
+      return `<div class="v24-panel-body"><section class="v24-subpanel"><div class="v24-history-list"><div><span>Текущий прогресс</span><b>${goalProgress(goal)}%</b></div><div><span>Связанных задач</span><b>${tasks.length}</b></div><div><span>Выполнено задач</span><b>${doneCount}</b></div><div><span>Последняя заметка</span><b>${notes[0]?.date ? esc(notes[0].date) : '—'}</b></div></div></section></div>`;
+    }
+    const progress = goalProgress(goal);
+    return `<div class="v24-panel-body v24-overview-grid">
+      <section class="v24-props-card">
+        <h4>Свойства</h4>
+        <div class="v24-props-list">
+          ${propRow('◎','Статус', `<span class="tag green">${esc(goal.status||'Активна')}</span>`)}
+          ${propRow('↗','Прогресс', `<span class="v24-inline-progress"><i style="width:${progress}%"></i></span><em>${progress}%</em>`, true)}
+          ${propRow('◌','Цель', esc(valFmt(goal, goal.targetValue)))}
+          ${propRow('◔','Текущее', esc(valFmt(goal, goal.currentValue)))}
+          ${propRow('◷','К дедлайну', esc(goal.deadline || '—'))}
+          ${propRow('◳','Приоритет', `<span class="tag warn">${esc(goal.area||'Личное')}</span>`)}
+          ${propRow('◉','Создана', esc(goal.createdAt ? String(goal.createdAt).slice(0,10) : todayKey()))}
+          ${propRow('→','Следующий шаг', esc(goal.nextAction || 'Не указан'), true)}
+          ${propRow('∞','Связано', `${tasks.length} задач`)}
+        </div>
+      </section>
+      <div class="v24-right-stack">
+        <section class="v24-chart-panel">
+          <div class="v24-subhead"><h4>Прогресс цели</h4><span class="tag blue">${esc(goal.metric || 'метрика')}</span></div>
+          ${lineChart(goal)}
+        </section>
+        <section class="v24-linked-panel">
+          <div class="v24-subhead"><h4>Связанные задачи</h4><button class="ghost-btn" data-action="goalAction" data-goal-id="${goal.id}">＋ Задача</button></div>
+          <div class="v24-linked-list">${tasks.length ? tasks.slice(0,4).map(t=>`<label class="v24-check-row compact"><button class="v24-check" data-toggle-task="${t.id}">${t.status==='Готово'?'✓':'□'}</button><div><b>${esc(t.title||'Задача')}</b><small>${t.due?esc(formatTaskDate(t)):'Без даты'}</small></div><span class="tag ${String(t.status||'').includes('Готово')?'green':'blue'}">${String(t.status||'В работе').includes('В работе')?'В работе':esc(t.status||'')}</span></label>`).join('') : `<div class="empty">Пока нет связанных задач</div>`}</div>
+        </section>
+      </div>
+    </div>`;
+  }
+  function goalsPageV24(){
+    const goals = actGoals().sort((a,b)=>goalProgress(b)-goalProgress(a));
+    const g = currentGoal();
+    if (!g) return `<div class="v24-page">${pageTop('SMART-цели','Создай первую цель и она появится как объект-страница.',`<button class="primary-btn" data-open-modal="quickGoal">＋ Новая цель</button>`)}<div class="empty">Целей пока нет</div></div>`;
+    const tab = currentTab();
+    const subtabs = [['overview','Обзор'],['tasks','Задачи'],['notes','Заметки'],['files','Файлы'],['history','История']];
+    return `<div class="v24-page">
+      ${pageTop('SMART-цели','Страница объекта в стиле референса: свойства, прогресс и связанные сущности.',`<button class="primary-btn" data-open-modal="quickGoal">＋ Новая цель</button>`)}
+      ${goalsPicker(goals, g.id)}
+      <section class="card v24-goal-object">
+        <div class="v24-object-head">
+          <div><div class="v24-object-breadcrumb">Second Brain / ${esc(g.title || 'SMART-цель')}</div><h3>${esc(g.title || 'SMART-цель')}</h3><p>${esc(g.why || 'Понимание зачем даёт устойчивость и удерживает фокус на реальном результате.')}</p></div>
+          <div class="v24-object-actions">
+            <button class="soft-btn" data-action="goalProgress" data-goal-id="${g.id}">Обновить прогресс</button>
+            <button class="soft-btn" data-action="goalNote" data-goal-id="${g.id}">Заметка</button>
+            <button class="soft-btn" data-action="goalAction" data-goal-id="${g.id}">Новая задача</button>
+          </div>
+        </div>
+        ${goalTabs(g, tab)}
+        <div class="v24-goal-tabs">${subtabs.map(([id,label])=>`<button class="${tab===id?'active':''}" data-action="v24GoalTab" data-view="${id}">${label}</button>`).join('')}</div>
+      </section>
+    </div>`;
+  }
+
+  const prevRender = render;
+  render = function(opts={}){
+    if (activePage === 'goals') {
+      return (function(html){
+        const app=document.getElementById('app'); if(!app) return;
+        app.innerHTML = renderShell();
+        renderNav();
+        const p=pages.find(x=>x[0]===activePage);
+        const title=document.getElementById('pageTitle'); if(title) title.textContent=p?p[2]:'Second Brain';
+        const mini=document.getElementById('todayMini'); if(mini) mini.innerHTML=`${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span><br><span class="tag">V24</span>`;
+        const view=document.getElementById('view'); if(view) view.innerHTML=html;
+        document.body.classList.add('v18-shell','v19-shell','v21-shell','v22-shell','v23-shell','v24-shell');
+        const badge=document.getElementById('releaseBadge'); if(badge) badge.textContent='GOAL OBJECT MATCH V24';
+        bindView(); bindGlobal(); applyTheme?.();
+      })(goalsPageV24());
+    }
+    prevRender(opts);
+    document.body.classList.add('v24-shell');
+    const badge=document.getElementById('releaseBadge'); if(badge && activePage==='goals') badge.textContent='GOAL OBJECT MATCH V24';
+  };
+
+  const prevAction = actionHandler;
+  actionHandler = function(e){
+    const a = e.currentTarget.dataset.action;
+    if (a === 'v24GoalPick') { localStorage.setItem(GOAL_KEY, e.currentTarget.dataset.goalId || ''); localStorage.setItem(TAB_KEY, 'overview'); render(); return; }
+    if (a === 'v24GoalTab') { localStorage.setItem(TAB_KEY, e.currentTarget.dataset.view || 'overview'); render(); return; }
+    prevAction(e);
+  };
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  console.log('Second Brain GOAL OBJECT MATCH V24 loaded:', V24_VERSION);
+})();
