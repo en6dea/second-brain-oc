@@ -6074,3 +6074,137 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   setTimeout(() => { try { render(); } catch(e) { console.error('V18 render failed', e); } }, 120);
   console.log('Second Brain VISUAL PREMIUM SYSTEM V18 loaded:', V18_VERSION);
 })();
+
+
+/* =========================
+   V19 DESIGN REFINEMENT SYSTEM
+   Основная тема: Warm Premium Life OS
+   Вторая тема: Deep Focus Dark
+   ========================= */
+(function installV19DesignRefinementSystem(){
+  if (window.__SECOND_BRAIN_V19_DESIGN_REFINEMENT__) return;
+  window.__SECOND_BRAIN_V19_DESIGN_REFINEMENT__ = true;
+
+  const V19_VERSION = 'v19-design-refinement-system-20260626';
+  const V19_THEME_KEY = 'secondBrainOS.v19Theme';
+  const V19_HIDDEN_PAGES = new Set(['bank', 'panel', 'calendar', 'state', 'insights', 'journal', 'debts']);
+  const V19_ICON = {
+    dashboard:'◉', week:'▦', today:'◐', tasks:'✓', habits:'◌', finance:'₽', goals:'⚑', people:'◎', wishes:'◇', books:'▤', trading:'↗', control:'⌁', search:'⌕', quick:'＋', sync:'☁', settings:'⚙'
+  };
+
+  function v19GetTheme() {
+    const raw = localStorage.getItem(V19_THEME_KEY) || localStorage.getItem('secondBrainOS.v18Theme') || 'warm';
+    if (raw === 'light') return 'warm';
+    if (raw === 'dark') return 'dark';
+    return raw === 'warm' || raw === 'dark' ? raw : 'warm';
+  }
+
+  function v19SetTheme(theme, showToast = false) {
+    const next = theme === 'dark' ? 'dark' : 'warm';
+    localStorage.setItem(V19_THEME_KEY, next);
+    localStorage.setItem('secondBrainOS.v18Theme', next === 'dark' ? 'dark' : 'light');
+    if (state && state.settings) state.settings.visualTheme = next;
+    v19ApplyTheme();
+    if (showToast && typeof toast === 'function') toast(next === 'dark' ? 'Deep Focus Dark включена' : 'Warm Premium Life OS включена');
+  }
+
+  function v19ApplyTheme() {
+    const theme = v19GetTheme();
+    document.documentElement.dataset.v19Theme = theme;
+    document.body.dataset.v19Theme = theme;
+    document.documentElement.dataset.v18Theme = theme === 'dark' ? 'dark' : 'light';
+    document.body.dataset.v18Theme = theme === 'dark' ? 'dark' : 'light';
+    const btn = document.querySelector('[data-action="theme"]');
+    if (btn) {
+      btn.innerHTML = theme === 'dark' ? '☀ Warm' : '☾ Deep';
+      btn.title = theme === 'dark' ? 'Переключить на Warm Premium Life OS' : 'Переключить на Deep Focus Dark';
+    }
+  }
+
+  function v19ToggleTheme() { v19SetTheme(v19GetTheme() === 'dark' ? 'warm' : 'dark', true); }
+
+  function v19Esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+  }
+
+  function v19PageMeta(id) {
+    const p = pages.find(x => x[0] === id);
+    if (!p || V19_HIDDEN_PAGES.has(id)) return null;
+    return { id, label: p[2], icon: V19_ICON[id] || p[1] || '•' };
+  }
+
+  function v19NavButton(id) {
+    const p = v19PageMeta(id);
+    if (!p) return '';
+    return `<button data-page="${p.id}" class="${activePage===id?'active':''}" aria-label="${v19Esc(p.label)}"><span class="v18-icon">${p.icon}</span><em>${v19Esc(p.label)}</em></button>`;
+  }
+
+  renderNav = function() {
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const groups = [
+      ['День', ['dashboard', 'week', 'tasks', 'habits']],
+      ['Деньги', ['finance']],
+      ['Рост', ['goals', 'books', 'wishes', 'trading']],
+      ['Люди', ['people']],
+      ['Система', ['control', 'search', 'quick', 'sync', 'settings']]
+    ];
+    nav.innerHTML = groups.map(([title, ids]) => {
+      const buttons = ids.map(v19NavButton).filter(Boolean).join('');
+      return buttons ? `<section class="v18-nav-section v19-nav-section"><div class="nav-group-label">${title}</div>${buttons}</section>` : '';
+    }).join('');
+    nav.querySelectorAll('button[data-page]').forEach(btn => btn.addEventListener('click', () => { activePage = btn.dataset.page; render(); }));
+  };
+
+  function v19ApplyChrome() {
+    document.body.classList.add('v19-shell');
+    document.body.dataset.v19Page = activePage || 'dashboard';
+    v19ApplyTheme();
+
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'DESIGN REFINEMENT V19';
+
+    const themeBtn = document.querySelector('[data-action="theme"]');
+    if (themeBtn) themeBtn.onclick = v19ToggleTheme;
+
+    const quickBtn = document.querySelector('[data-action="quick"]');
+    if (quickBtn) quickBtn.innerHTML = '＋ Добавить';
+
+    const search = document.getElementById('globalSearch');
+    if (search) search.placeholder = 'Найти задачу, расход, человека, тег...';
+
+    const view = document.getElementById('view');
+    if (view) {
+      view.classList.add('v19-view');
+    }
+
+    const mini = document.getElementById('todayMini');
+    if (mini) {
+      let sc = 0;
+      try { sc = typeof lifeScore === 'function' ? lifeScore() : 0; } catch(e) {}
+      let safeToday = '';
+      try { safeToday = typeof money === 'function' && typeof monthSummary === 'function' ? money(monthSummary().dailyLimit || 0) : ''; } catch(e) {}
+      mini.innerHTML = `<div class="v18-mini-date">${new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long' })}</div><div class="v18-mini-score"><b>${sc}/100</b><span>порядок системы</span></div>${safeToday ? `<div class="v18-mini-money">Сегодня можно: ${safeToday}</div>` : ''}<div class="v19-theme-chip">${v19GetTheme() === 'dark' ? 'Deep Focus Dark' : 'Warm Premium Life OS'}</div>`;
+    }
+  }
+
+  const __v19BaseRender = render;
+  render = function(opts = {}) {
+    __v19BaseRender(opts);
+    v19ApplyChrome();
+  };
+
+  const __v19BaseBindGlobal = typeof bindGlobal === 'function' ? bindGlobal : null;
+  if (__v19BaseBindGlobal) {
+    bindGlobal = function() {
+      __v19BaseBindGlobal();
+      const themeBtn = document.querySelector('[data-action="theme"]');
+      if (themeBtn) themeBtn.onclick = v19ToggleTheme;
+    };
+  }
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  v19SetTheme(v19GetTheme(), false);
+  setTimeout(() => { try { render(); } catch(e) { console.error('V19 render failed', e); } }, 150);
+  console.log('Second Brain DESIGN REFINEMENT V19 loaded:', V19_VERSION);
+})();
