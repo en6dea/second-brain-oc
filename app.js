@@ -6943,3 +6943,80 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   if (window.SecondBrainApp) window.SecondBrainApp.render = render;
   console.log('Second Brain GOAL OBJECT MATCH V24 loaded:', V24_VERSION);
 })();
+
+
+/* =========================
+   V25 SYNC INSPECTION FIX
+   Исправляет ложный V23 badge на страницах после V24 и добавляет диагностику сборки.
+   ========================= */
+(function installV25SyncInspectionFix(){
+  if (window.__SECOND_BRAIN_V25_SYNC_INSPECTION_FIX__) return;
+  window.__SECOND_BRAIN_V25_SYNC_INSPECTION_FIX__ = true;
+
+  const V25_VERSION = 'v25-sync-inspection-fix-20260626';
+  window.SECOND_BRAIN_ACTIVE_RELEASE = V25_VERSION;
+
+  function applyV25Marker(){
+    document.documentElement.dataset.secondBrainRelease = V25_VERSION;
+    document.body.dataset.secondBrainRelease = V25_VERSION;
+    document.body.classList.add('v25-shell');
+    const badge = document.getElementById('releaseBadge');
+    if (badge) {
+      badge.textContent = 'SYNC INSPECTION FIX V25';
+      badge.style.opacity = '.84';
+      badge.style.background = '#111827';
+      badge.style.color = '#fff';
+    }
+    const mini = document.getElementById('todayMini');
+    if (mini && !mini.dataset.v25Fixed) {
+      mini.dataset.v25Fixed = '1';
+      mini.innerHTML = `${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span><br><span class="tag">V25 активна</span>`;
+    }
+  }
+
+  window.SecondBrainBuild = {
+    version: V25_VERSION,
+    inspect(){
+      return {
+        version: V25_VERSION,
+        releaseBadge: document.getElementById('releaseBadge')?.textContent || null,
+        activePage,
+        scriptSrc: Array.from(document.scripts).map(s => s.src).filter(Boolean),
+        stylesheetHref: Array.from(document.styleSheets).map(s => s.href).filter(Boolean),
+        serviceWorkerController: Boolean(navigator.serviceWorker && navigator.serviceWorker.controller),
+        location: location.href
+      };
+    },
+    async resetCaches(){
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      location.reload(true);
+    }
+  };
+
+  const prevRender = render;
+  render = function(opts = {}){
+    const result = prevRender(opts);
+    applyV25Marker();
+    return result;
+  };
+
+  const prevBindGlobal = typeof bindGlobal === 'function' ? bindGlobal : null;
+  if (prevBindGlobal) {
+    bindGlobal = function(){
+      prevBindGlobal();
+      applyV25Marker();
+    };
+  }
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  setTimeout(applyV25Marker, 0);
+  setTimeout(applyV25Marker, 300);
+  console.log('Second Brain SYNC INSPECTION FIX V25 loaded:', V25_VERSION);
+})();

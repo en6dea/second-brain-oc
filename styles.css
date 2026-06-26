@@ -3508,3 +3508,8 @@ html[data-v19-theme="dark"] .v24-history-list div{background:rgba(255,255,255,.0
   .v24-inline-progress{width:100%;display:block;margin:6px 0 0;}
   .v24-history-list{grid-template-columns:1fr;}
 }
+
+
+/* V25 sync marker */
+body.v25-shell #releaseBadge{background:#111827!important;color:#fff!important;opacity:.84!important;}
+body.v25-shell[data-second-brain-release="v25-sync-inspection-fix-20260626"] #releaseBadge{letter-spacing:.01em;}
