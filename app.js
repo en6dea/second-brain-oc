@@ -7295,3 +7295,258 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   window.SecondBrainBuild = Object.assign({}, window.SecondBrainBuild || {}, { version: V26_VERSION, inspect(){ return { version: V26_VERSION, notes: (state.notes||[]).length, goals: (state.goals||[]).length, tasks: (state.tasks||[]).length, page: activePage }; } });
   console.log('Second Brain OBSIDIAN LINKS DASHBOARD V26 loaded:', V26_VERSION);
 })();
+
+
+/* =========================
+   V27 SMART GOALS OBSIDIAN FINAL
+   Один визуальный слой для главной и SMART-целей: Notion + Obsidian + активные кнопки
+   ========================= */
+(function installV27SmartGoalsObsidianFinal(){
+  if (window.__SECOND_BRAIN_V27_SMART_GOALS__) return;
+  window.__SECOND_BRAIN_V27_SMART_GOALS__ = true;
+
+  const V27_VERSION = 'v27-smart-goals-obsidian-final-20260626';
+  const GOAL_KEY = 'secondBrainOS.v27.currentGoal';
+  const TAB_KEY = 'secondBrainOS.v27.goalTab';
+
+  function esc(v){return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
+  function safeList(x){return Array.isArray(x) ? x : [];}
+  function ensureState(){
+    state.settings = state.settings || {};
+    state.operations = safeList(state.operations);
+    state.tasks = safeList(state.tasks);
+    state.goals = safeList(state.goals);
+    state.habits = safeList(state.habits);
+    state.people = safeList(state.people);
+    state.notes = safeList(state.notes);
+    state.goalNotes = safeList(state.goalNotes);
+    state.plannedExpenses = safeList(state.plannedExpenses);
+    state.habitLogs = state.habitLogs || {};
+  }
+  function activeGoals(){ensureState(); return state.goals.filter(g=>g.status!=='Готово' && g.status!=='Отменена');}
+  function currentGoal(){
+    const list=activeGoals().sort((a,b)=>goalProgress(b)-goalProgress(a));
+    if(!list.length) return null;
+    const id=localStorage.getItem(GOAL_KEY);
+    return list.find(g=>g.id===id) || list[0];
+  }
+  function setGoal(id){localStorage.setItem(GOAL_KEY,id||'');localStorage.setItem(TAB_KEY,'overview');render();}
+  function getGoalTab(){return localStorage.getItem(TAB_KEY)||'overview';}
+  function setGoalTab(tab){localStorage.setItem(TAB_KEY,tab||'overview');render();}
+  function valFmt(g,v){
+    const n=Number(v||0);
+    const metric=String(g?.metric||'').trim();
+    if(!n && !v) return '—';
+    if(/₽|руб|rur|rub/i.test(metric) || /финанс|деньг|доход/i.test(String(g?.area||''))) return money(n||Number(v));
+    return metric ? `${n||v} ${metric}` : String(n||v);
+  }
+  function daysLeft(date){
+    if(!date) return '—';
+    const d=new Date(date+'T00:00:00');
+    if(Number.isNaN(d.getTime())) return '—';
+    return Math.max(0, Math.ceil((d - new Date()) / 86400000));
+  }
+  function linkedTasks(goal){return state.tasks.filter(t=>goal && t.goalId===goal.id && t.status!=='Отменена').sort(taskSort);}
+  function linkedNotes(goal){
+    const a=state.notes.filter(n=>goal && n.goalId===goal.id).map(n=>({title:n.title||'Заметка', text:n.text||'', date:n.createdAt||'', tags:n.tags||[]}));
+    const b=state.goalNotes.filter(n=>goal && n.goalId===goal.id).map(n=>({title:'Заметка по цели', text:n.text||'', date:n.date||'', tags:['цель']}));
+    return [...a,...b].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
+  }
+  function linkedPeople(goal){
+    const ids=new Set(linkedTasks(goal).map(t=>t.personId).filter(Boolean));
+    return state.people.filter(p=>ids.has(p.id)).slice(0,3);
+  }
+  function linkedHabit(goal){
+    return state.habits.find(h=>h.active && goal && h.area===goal.area) || state.habits.find(h=>h.active) || null;
+  }
+  function spark(vals,color='#5C8E65'){
+    const points=(vals||[]).map(x=>Number(x)||0), w=260,h=72,p=6;
+    const max=Math.max(...points,1), min=Math.min(...points,0), span=Math.max(1,max-min);
+    const coords=points.map((v,i)=>[p+(w-p*2)*(points.length<=1?0:i/(points.length-1)),h-p-((v-min)/span)*(h-p*2)]);
+    const poly=coords.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    const area=`M 0 ${h} L ${coords.map(([x,y])=>`${x.toFixed(1)} ${y.toFixed(1)}`).join(' L ')} L ${w} ${h} Z`;
+    return `<svg class="v27-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${area}" fill="${color}" opacity=".08"></path><polyline points="${poly}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline><circle cx="${coords.at(-1)?.[0]||0}" cy="${coords.at(-1)?.[1]||0}" r="4" fill="${color}"></circle></svg>`;
+  }
+  function lineChart(goal){
+    const p=goalProgress(goal);
+    const vals=[8,16,24,Math.max(28,Math.round(p*.52)),Math.max(36,Math.round(p*.68)),Math.max(46,Math.round(p*.84)),p];
+    const w=560,h=210,pad=18;
+    const coords=vals.map((v,i)=>[pad+(w-pad*2)*(i/(vals.length-1)),h-pad-(v/100)*(h-pad*2)]);
+    const poly=coords.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    const area=`M ${pad},${h-pad} L ${coords.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' L ')} L ${w-pad},${h-pad} Z`;
+    const labels=['Май','Июн','Июл','Авг','Сен','Окт','Ноя'];
+    return `<div class="v27-line-chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${[0,1,2,3].map(i=>`<line x1="${pad}" y1="${pad+(h-pad*2)*(i/3)}" x2="${w-pad}" y2="${pad+(h-pad*2)*(i/3)}" class="grid"></line>`).join('')}<path d="${area}" class="area"></path><polyline points="${poly}" class="line"></polyline>${coords.map(([x,y],i)=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i===coords.length-1?5:3.5}" class="${i===coords.length-1?'active':''}"></circle>`).join('')}</svg><div>${labels.map(l=>`<span>${l}</span>`).join('')}</div></div>`;
+  }
+  function barChart(series){
+    const data=series||[], max=Math.max(...data.map(x=>Number(x.value)||0),1);
+    return `<div class="v27-bars">${data.map(x=>`<div><i style="height:${Math.max(8,(Number(x.value)||0)/max*100)}%"></i><span>${esc(x.label)}</span></div>`).join('')}</div>`;
+  }
+  function weekSeries(type='expense'){
+    const out=[];
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=toDateKey(d);out.push({label:key.slice(8), value:state.operations.filter(o=>o.type===type&&o.date===key).reduce((s,o)=>s+num(o.amount),0)});}
+    return out;
+  }
+  function donut(items){
+    const data=(items||[]).slice(0,4), total=data.reduce((s,x)=>s+(Number(x[1])||0),0)||1;
+    const colors=['#7aa6d9','#7dbb8a','#f0bd68','#d59aca']; let acc=0;
+    const stops=data.map((x,i)=>{const st=acc/total*360;acc+=Number(x[1])||0;const en=acc/total*360;return `${colors[i]} ${st}deg ${en}deg`;}).join(',');
+    return `<div class="v27-donut-wrap"><div class="v27-donut" style="background:conic-gradient(${stops})"></div><div class="v27-legend">${data.map((x,i)=>`<p><i style="background:${colors[i]}"></i><span>${esc(x[0])}</span><b>${Math.round((Number(x[1])||0)/total*100)}%</b></p>`).join('')}</div></div>`;
+  }
+  function heatmap(){
+    const habits=state.habits.filter(h=>h.active).slice(0,4);
+    const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return toDateKey(d);});
+    return `<div class="v27-heat"><aside>${habits.map(h=>`<span>${esc((h.name||'').split(' ')[0])}</span>`).join('')}</aside><section>${habits.map(h=>days.map(d=>`<i class="${state.habitLogs?.[d]?.[h.id]?'on':''}"></i>`).join('')).join('')}</section><footer>${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</footer></div>`;
+  }
+  function attentionItems(){
+    const open=state.tasks.filter(t=>t.status!=='Готово'&&t.status!=='Отменена'), today=todayKey(), arr=[];
+    const overdue=open.filter(t=>t.due&&t.due<today).length;
+    if(overdue) arr.push(['danger','⏰',`${overdue} просроченные задачи`]);
+    const next=state.plannedExpenses.filter(p=>p.active!==false).sort((a,b)=>Number(a.day||99)-Number(b.day||99))[0];
+    if(next) arr.push(['warn','🗓',`Ближайший платёж: ${money(next.amount)}`]);
+    const stuck=activeGoals().filter(g=>!String(g.nextAction||'').trim()).length;
+    if(stuck) arr.push(['warn','🎯',`${stuck} целей без следующего шага`]);
+    arr.push(['blue','🔗','Проверь связи задач и целей']);
+    return arr.slice(0,4);
+  }
+
+  function goalGraph(goal){
+    const task=linkedTasks(goal)[0], note=linkedNotes(goal)[0], person=linkedPeople(goal)[0], habit=linkedHabit(goal);
+    return `<div class="v27-goal-graph">
+      <div class="v27-graph-center"><b>Цель</b><span>${esc(goal?.title||'SMART-цель')}</span></div>
+      <button class="v27-node top" data-action="goalAction" data-goal-id="${goal?.id||''}"><b>Задача</b><span>${esc(task?.title||'Добавить действие')}</span></button>
+      <button class="v27-node left" data-action="goalNote" data-goal-id="${goal?.id||''}"><b>Заметка</b><span>${esc(note?.title||'Мысль / вывод')}</span></button>
+      <button class="v27-node right" data-page-jump="finance"><b>Финансы</b><span>${esc(goal?.metric||'Метрика')}</span></button>
+      <button class="v27-node bottom-left" data-page-jump="habits"><b>Привычка</b><span>${esc(habit?.name||'Ритуал')}</span></button>
+      <button class="v27-node bottom-right" data-page-jump="people"><b>Человек</b><span>${esc(person?.name||'Связать контакт')}</span></button>
+    </div>`;
+  }
+  function goalSwitch(list,current){
+    return `<div class="v27-goal-switch">${list.map(g=>`<button class="${current&&g.id===current.id?'active':''}" data-action="v27GoalPick" data-goal-id="${g.id}"><b>${esc(g.title||'Цель')}</b><span>${goalProgress(g)}%</span></button>`).join('')}<button data-open-modal="quickGoal"><b>＋ Новая цель</b><span>SMART</span></button></div>`;
+  }
+  function prop(icon,label,value,wide=''){return `<div class="v27-prop ${wide}"><i>${icon}</i><span>${esc(label)}</span><b>${value}</b></div>`;}
+  function linkedTaskRow(t){
+    const tone=String(t.priority||'').toLowerCase().includes('выс')?'danger':String(t.priority||'').toLowerCase().includes('низ')?'green':'warn';
+    return `<label class="v27-task-row"><button class="v27-check" data-toggle-task="${t.id}">${t.status==='Готово'?'✓':'□'}</button><div><b>${esc(t.title||'Задача')}</b><small>${t.due?esc(formatTaskDate(t)):'Без даты'}${t.time?' · '+esc(t.time):''}</small></div><span class="tag ${tone}">${esc(t.priority||'Средний')}</span></label>`;
+  }
+  function goalsPageV27(){
+    ensureState();
+    const goals=activeGoals().sort((a,b)=>goalProgress(b)-goalProgress(a));
+    const g=currentGoal();
+    if(!g){
+      return `<div class="v27-page"><div class="v27-breadcrumb">Second Brain / Рост / SMART-цели</div><section class="v27-page-head"><div><div class="tiny-label">SMART database</div><h2>SMART-цели</h2><p>Создай первую цель — она станет объектной страницей с графиком, задачами, заметками и связями.</p></div><button class="primary-btn" data-open-modal="quickGoal">＋ Новая цель</button></section><div class="empty">Целей пока нет</div></div>`;
+    }
+    const tab=getGoalTab(), progress=goalProgress(g), tasks=linkedTasks(g), notes=linkedNotes(g), done=tasks.filter(t=>t.status==='Готово').length;
+    const tabs=[['overview','Обзор'],['tasks','Задачи'],['notes','Заметки'],['links','Связи'],['database','База']];
+    let body='';
+    if(tab==='tasks') body=`<div class="v27-tab-body"><section class="card v27-inner"><div class="section-head"><h3>Связанные задачи</h3><button class="primary-btn" data-action="goalAction" data-goal-id="${g.id}">＋ Действие</button></div>${tasks.length?tasks.map(linkedTaskRow).join(''):'<div class="empty">Пока нет задач. Создай первое действие по цели.</div>'}</section></div>`;
+    else if(tab==='notes') body=`<div class="v27-tab-body"><section class="card v27-inner"><div class="section-head"><h3>Заметки и инсайты</h3><button class="primary-btn" data-action="goalNote" data-goal-id="${g.id}">＋ Заметка</button></div>${notes.length?notes.map(n=>`<article class="v27-note-row"><b>${esc(n.title||'Заметка')}</b><small>${esc(n.date||'')}</small><p>${esc(n.text||'')}</p><div class="v27-note-tags">${(n.tags||[]).map(t=>`<span>#${esc(t)}</span>`).join('')}</div></article>`).join(''):'<div class="empty">Заметок пока нет</div>'}</section></div>`;
+    else if(tab==='links') body=`<div class="v27-tab-body"><section class="card v27-inner"><div class="section-head"><h3>Граф связей цели</h3><button class="soft-btn" data-action="v17OpenLinkHub">Настроить связи</button></div>${goalGraph(g)}</section></div>`;
+    else if(tab==='database') body=`<div class="v27-tab-body"><section class="card v27-inner"><div class="section-head"><h3>База целей</h3><button class="primary-btn" data-open-modal="quickGoal">＋ Цель</button></div><div class="v27-goal-table">${goals.map(x=>`<button class="${x.id===g.id?'active':''}" data-action="v27GoalPick" data-goal-id="${x.id}"><b>${esc(x.title||'Цель')}</b><span>${esc(x.area||'Личное')}</span><em>${goalProgress(x)}%</em><small>${esc(x.deadline||'без срока')}</small></button>`).join('')}</div></section></div>`;
+    else body=`<div class="v27-goal-layout">
+      <section class="card v27-properties"><div class="section-head"><h3>Свойства</h3><span class="tag green">${progress}%</span></div><div class="v27-prop-list">
+        ${prop('◎','Статус',`<span class="tag green">${esc(g.status||'Активна')}</span>`)}
+        ${prop('↗','Прогресс',`<span class="v27-inline-progress"><i style="width:${progress}%"></i></span><em>${progress}%</em>`,'wide')}
+        ${prop('◌','Цель',esc(valFmt(g,g.targetValue)))}
+        ${prop('◔','Текущее',esc(valFmt(g,g.currentValue)))}
+        ${prop('◷','Дней до дедлайна',esc(daysLeft(g.deadline)))}
+        ${prop('◳','Сфера',`<span class="tag warn">${esc(g.area||'Личное')}</span>`)}
+        ${prop('→','Следующий шаг',esc(g.nextAction||'Не указан'),'wide')}
+        ${prop('∞','Связано',`${tasks.length} задач · ${notes.length} заметок`)}
+      </div></section>
+      <section class="card v27-chart-card"><div class="section-head"><h3>Прогресс цели</h3><span class="tag blue">${esc(g.metric||'метрика')}</span></div>${lineChart(g)}</section>
+      <section class="card v27-linked"><div class="section-head"><h3>Связанные задачи</h3><button class="ghost-btn" data-action="goalAction" data-goal-id="${g.id}">＋ Задача</button></div>${tasks.length?tasks.slice(0,5).map(linkedTaskRow).join(''):'<div class="empty">Пока нет связанных задач</div>'}</section>
+      <section class="card v27-graph-card"><div class="section-head"><h3>Obsidian-граф</h3><button class="ghost-btn" data-action="v17OpenLinkHub">Связать</button></div>${goalGraph(g)}</section>
+    </div>`;
+    return `<div class="v27-page">
+      <div class="v27-breadcrumb">Second Brain / Рост / SMART-цели</div>
+      <section class="v27-page-head">
+        <div><div class="tiny-label">Goal Object Page</div><h2>${esc(g.title||'SMART-цель')}</h2><p>${esc(g.why||'Цель должна иметь смысл, метрику, следующий шаг, связи и регулярный прогресс.')}</p></div>
+        <div class="v27-head-actions"><button class="soft-btn" data-action="goalProgress" data-goal-id="${g.id}">Обновить прогресс</button><button class="soft-btn" data-action="goalSmartPlan" data-goal-id="${g.id}">SMART-план</button><button class="soft-btn" data-action="goalNote" data-goal-id="${g.id}">Заметка</button><button class="primary-btn" data-action="goalAction" data-goal-id="${g.id}">＋ Действие</button></div>
+      </section>
+      ${goalSwitch(goals,g)}
+      <section class="card v27-goal-object">
+        <div class="v27-object-top">
+          <div><div class="v27-object-label">Object page</div><h3>${esc(g.title||'SMART-цель')}</h3><p>${esc(g.nextAction||'Добавь следующий шаг, чтобы цель стала рабочей.')}</p></div>
+          <div class="v27-object-score"><b>${progress}%</b><span>прогресс</span><button data-action="completeGoal" data-goal-id="${g.id}">Закрыть цель</button></div>
+        </div>
+        <div class="v27-tabs">${tabs.map(([id,label])=>`<button class="${tab===id?'active':''}" data-action="v27GoalTab" data-view="${id}">${label}</button>`).join('')}</div>
+        ${body}
+      </section>
+    </div>`;
+  }
+
+  function dashboardV27(){
+    ensureState();
+    const s=monthSummary(), ts=tasksStats(), life=lifeScore(), goal=currentGoal(), tasks=tasksForDay(todayKey()).slice(0,4), habits=state.habits.filter(h=>h.active).slice(0,5), todayMap=state.habitLogs?.[todayKey()]||{};
+    const expToday=total(state.operations.filter(o=>o.type==='expense'&&o.date===todayKey())), incToday=total(state.operations.filter(o=>o.type==='income'&&o.date===todayKey()));
+    const expSeries=weekSeries('expense'), incSeries=weekSeries('income'), cats=categoryTotals(`${state.settings.currentMonth}-01`,`${state.settings.currentMonth}-31`).slice(0,4);
+    const safePct=s.dailyLimit?Math.min(100,Math.round(expToday/Math.max(1,s.dailyLimit)*100)):0;
+    const payments=state.plannedExpenses.filter(p=>p.active!==false).slice(0,3);
+    return `<div class="v27-home">
+      <div class="v27-breadcrumb">Личная система / Dashboard</div>
+      <section class="v27-home-head"><div><div class="tiny-label">Second Brain OS</div><h1>Добрый день, Алексей! 👋</h1><p>${new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})}</p></div><div class="actions-row"><button class="primary-btn" data-action="v16UniversalAdd">＋ Добавить</button><button class="soft-btn" data-action="v16SmartQuick">Умный ввод</button><button class="soft-btn" data-action="v16CreateWeeklyReview">Обзор недели</button></div></section>
+      <div class="v27-dash-grid">
+        <main class="v27-dash-main">
+          <div class="v27-top-cards">
+            <section class="card v27-day-card"><div class="section-head"><h3>Порядок дня</h3><button class="ghost-btn" data-page-jump="today">i</button></div><strong>${life}%</strong><div class="v27-progress"><span style="width:${life}%"></span></div><p>Отличный прогресс! Продолжай в том же духе.</p><div class="v27-mini-stats"><div><b>${Math.max(tasks.length,1)}</b><span>Главные задачи</span></div><div><b>${Object.keys(todayMap).length}/${Math.max(habits.length,1)}</b><span>Привычек</span></div><div><b>${money(s.left)}</b><span>Остаток месяца</span></div><div><b>18:00</b><span>Вопрос дня</span></div></div></section>
+            <section class="card v27-money-today"><div class="section-head"><h3>Можно тратить сегодня</h3><button class="ghost-btn" data-action="todayLimit">i</button></div><strong>${money(s.dailyLimit)}</strong><small>из ${money(Math.max(1,s.dailyLimit+expToday))}</small><div class="v27-progress green"><span style="width:${safePct}%"></span></div><footer><span>Лимит на сегодня</span><b>${safePct}%</b></footer></section>
+            <section class="card v27-attention"><div class="section-head"><h3>Что требует внимания</h3><span class="tag warn">${attentionItems().length}</span></div>${attentionItems().map(x=>`<p class="${x[0]}"><i>${x[1]}</i><span>${esc(x[2])}</span></p>`).join('')}<button class="ghost-btn" data-page-jump="panel">Перейти к контролю →</button></section>
+          </div>
+          <div class="v27-mid-cards">
+            <section class="card"><div class="section-head"><h3>Задачи на сегодня</h3><button class="ghost-btn" data-open-modal="quickTask">＋</button></div>${tasks.length?tasks.map(t=>`<div class="v27-task-line"><button data-toggle-task="${t.id}">${t.status==='Готово'?'✓':'□'}</button><b>${esc(t.title||'Задача')}</b><span class="tag blue">${esc(t.area||'Личное')}</span><time>${esc(t.time||'—')}</time></div>`).join(''):'<div class="empty">Сегодня пусто — добавь фокус дня</div>'}<button class="ghost-btn align-left" data-open-modal="quickTask">＋ Новая задача</button></section>
+            <section class="card"><div class="section-head"><h3>Привычки</h3><button class="ghost-btn" data-open-modal="addHabit">＋</button></div>${habits.map(h=>`<label class="v27-habit-line"><span>${esc(h.name)}</span><em>${todayMap[h.id]?'сегодня':(h.targetPerWeek||0)+' дней'}</em><input type="checkbox" data-habit="${h.id}" ${todayMap[h.id]?'checked':''}></label>`).join('')||'<div class="empty">Нет привычек</div>'}</section>
+            <section class="card"><div class="section-head"><h3>Финансы сегодня</h3><button class="ghost-btn" data-open-modal="quickExpense">＋</button></div><div class="v27-money-list"><p><span>Расходы</span><b class="danger">${money(expToday)}</b></p><p><span>Доходы</span><b class="green">${money(incToday)}</b></p></div>${spark(expSeries.map(x=>x.value),'#5C8E65')}<button class="ghost-btn align-left" data-page-jump="finance">Смотреть финансы →</button></section>
+            <section class="card"><div class="section-head"><h3>Фокус недели</h3><button class="ghost-btn" data-page-jump="goals">→</button></div>${goal?`<div class="v27-goal-focus"><b>⚑ Главная цель недели</b><p>${esc(goal.title)}</p><div class="v27-progress"><span style="width:${goalProgress(goal)}%"></span></div><footer><span>${esc(goal.nextAction||'Следующий шаг не указан')}</span><b>${goalProgress(goal)}%</b></footer></div>`:'<div class="empty">Нет активной цели</div>'}</section>
+          </div>
+          <section class="card v27-analytics"><div class="section-head"><div><h3>Аналитика недели</h3><p class="sub">Главные показатели, графики и динамика.</p></div><div class="v27-tabs-simple"><button class="active">Обзор</button><button data-page-jump="finance">Финансы</button><button data-page-jump="tasks">Задачи</button><button data-page-jump="goals">Цели</button></div></div><div class="v27-metrics"><article data-page-jump="finance"><b>${money(s.expenses)}</b><span>Расходы</span>${spark(expSeries.map(x=>x.value),'#7AA0D8')}</article><article data-page-jump="finance"><b>${money(s.income)}</b><span>Доходы</span>${spark(incSeries.map(x=>x.value),'#74B57F')}</article><article data-page-jump="finance"><b>${money(s.savings+s.cushion+s.goal)}</b><span>Сбережения</span>${spark(incSeries.map((x,i)=>Math.max(0,x.value-(expSeries[i]?.value||0))),'#74B57F')}</article><article data-page-jump="today"><b>${life}%</b><span>Порядок дня</span><div class="v27-progress"><span style="width:${life}%"></span></div></article></div><div class="v27-charts"><article><h4>Динамика расходов</h4>${barChart(expSeries)}</article><article><h4>Расходы по категориям</h4>${cats.length?donut(cats):'<div class="empty">Нет данных</div>'}</article><article><h4>Динамика привычек</h4>${heatmap()}</article></div></section>
+        </main>
+        <aside class="v27-dash-rail">
+          <section class="card v27-graph-panel"><div class="section-head"><div><h3>Связи как в Obsidian</h3><p class="sub">Цель связана с задачами, заметками, финансами, привычками и людьми.</p></div><button class="ghost-btn" data-action="v17OpenLinkHub">Связи</button></div>${goal?goalGraph(goal):'<div class="empty">Добавь цель для графа связей</div>'}</section>
+          <section class="card v27-payments"><div class="section-head"><h3>Ближайшие платежи</h3><button class="ghost-btn" data-action="v17OpenRecurringPayment">＋</button></div>${payments.length?payments.map(p=>`<p><span>${esc(p.title||p.category||'Платёж')}</span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')} число</small></p>`).join(''):'<div class="empty">Платежей пока нет</div>'}</section>
+          <section class="card v27-note-preview"><div class="section-head"><h3>Последняя заметка</h3><button class="ghost-btn" data-action="v26OpenNote">＋</button></div>${linkedNotes(goal).length?`<blockquote>${esc(linkedNotes(goal)[0].text)}</blockquote><div class="v27-note-tags">${(linkedNotes(goal)[0].tags||['цель']).map(t=>`<span>#${esc(t)}</span>`).join('')}</div>`:'<div class="empty">Когда записываешь мысли, здесь появится последний инсайт.</div>'}</section>
+        </aside>
+      </div>
+    </div>`;
+  }
+
+  function renderV27Page(html){
+    const app=document.getElementById('app'); if(!app) return;
+    app.innerHTML=renderShell();
+    renderNav();
+    const p=pages.find(x=>x[0]===activePage);
+    const title=document.getElementById('pageTitle'); if(title) title.textContent=p?p[2]:'Second Brain';
+    const mini=document.getElementById('todayMini'); if(mini) mini.innerHTML=`${new Date().toLocaleDateString('ru-RU')}<br>${monthLabel(state.settings.currentMonth)}<br><span class="tag green">Life Score ${lifeScore()}/100</span><br><span class="tag">V27</span>`;
+    const view=document.getElementById('view'); if(view) view.innerHTML=html;
+    document.body.classList.add('v18-shell','v19-shell','v21-shell','v22-shell','v23-shell','v24-shell','v26-shell','v27-shell');
+    const badge=document.getElementById('releaseBadge'); if(badge) badge.textContent='SMART GOALS OBSIDIAN FINAL V27';
+    bindView(); bindGlobal();
+    if (typeof applyTheme === 'function') applyTheme();
+  }
+
+  const previousRender = render;
+  render=function(opts={}){
+    if(activePage==='dashboard') return renderV27Page(dashboardV27());
+    if(activePage==='goals') return renderV27Page(goalsPageV27());
+    previousRender(opts);
+    document.body.classList.add('v27-shell');
+    const badge=document.getElementById('releaseBadge'); if(badge) badge.textContent='SMART GOALS OBSIDIAN FINAL V27';
+  };
+
+  const previousActionHandler = actionHandler;
+  actionHandler=function(e){
+    const a=e.currentTarget.dataset.action;
+    if(a==='v27GoalPick'){setGoal(e.currentTarget.dataset.goalId);return;}
+    if(a==='v27GoalTab'){setGoalTab(e.currentTarget.dataset.view);return;}
+    return previousActionHandler(e);
+  };
+  const previousRouteAction = routeAction;
+  routeAction=function(a,el,e){
+    if(a==='v27GoalPick'){setGoal(el?.dataset?.goalId);return;}
+    if(a==='v27GoalTab'){setGoalTab(el?.dataset?.view);return;}
+    return previousRouteAction(a,el,e);
+  };
+
+  if(window.SecondBrainApp) window.SecondBrainApp.render=render;
+  window.SecondBrainBuild = Object.assign({}, window.SecondBrainBuild || {}, { version: V27_VERSION, inspect(){ return {version:V27_VERSION,page:activePage,goals:state.goals.length,tasks:state.tasks.length,notes:(state.notes||[]).length}; }});
+  console.log('Second Brain SMART GOALS OBSIDIAN FINAL V27 loaded:', V27_VERSION);
+})();
