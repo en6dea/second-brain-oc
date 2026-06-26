@@ -322,7 +322,7 @@ function init() {
   bindGlobal();
   render();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js?v=segmentation-v15-20260625').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js?v=v18-visual-premium-system-20260626').catch(console.warn);
   }
 }
 function renderNav() {
@@ -5903,4 +5903,174 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   save({ skipCloud:true });
   setTimeout(() => { try { render(); } catch(e) { console.error('V17 render failed', e); } }, 80);
   console.log('Second Brain LIFE CONTROL SYSTEM V17 loaded:', V17_VERSION);
+})();
+
+/* =========================
+   V18 VISUAL PREMIUM SYSTEM
+   Дизайн-полировка: премиальный shell, grouped nav, theme, attention card, cleaner chrome.
+   ========================= */
+(function installV18VisualPremiumSystem(){
+  if (window.__SECOND_BRAIN_V18_VISUAL_PREMIUM__) return;
+  window.__SECOND_BRAIN_V18_VISUAL_PREMIUM__ = true;
+
+  const V18_VERSION = 'v18-visual-premium-system-20260626';
+  const V18_HIDDEN_PAGES = new Set(['bank', 'panel', 'calendar', 'state', 'insights', 'journal', 'debts']);
+  const V18_ICON = {
+    dashboard:'⌂', week:'▦', today:'◐', tasks:'✓', habits:'◌', finance:'₽', goals:'⚑', people:'◎', wishes:'◇', books:'▤', trading:'↗', control:'⌁', search:'⌕', quick:'＋', sync:'☁', settings:'⚙'
+  };
+
+  function v18Escape(value) {
+    if (typeof escapeHtml === 'function') return escapeHtml(value);
+    return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[ch]));
+  }
+
+  function v18PageMeta(id) {
+    const p = pages.find(x => x[0] === id);
+    if (!p || V18_HIDDEN_PAGES.has(id)) return null;
+    return { id, label: p[2], icon: V18_ICON[id] || p[1] || '•' };
+  }
+
+  function v18NavButton(id) {
+    const p = v18PageMeta(id);
+    if (!p) return '';
+    const active = activePage === id ? 'active' : '';
+    return `<button data-page="${p.id}" class="${active}" aria-label="${v18Escape(p.label)}"><span class="v18-icon">${p.icon}</span><em>${v18Escape(p.label)}</em></button>`;
+  }
+
+  renderNav = function() {
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const groups = [
+      ['Пульт управления', ['dashboard', 'week', 'today']],
+      ['Рабочий день', ['tasks', 'habits', 'goals']],
+      ['Деньги', ['finance']],
+      ['Личная база', ['people', 'wishes', 'books', 'trading']],
+      ['Система', ['control', 'search', 'quick', 'sync', 'settings']]
+    ];
+    nav.innerHTML = groups.map(([title, ids]) => {
+      const buttons = ids.map(v18NavButton).filter(Boolean).join('');
+      return buttons ? `<section class="v18-nav-section"><div class="nav-group-label">${title}</div>${buttons}</section>` : '';
+    }).join('');
+    nav.querySelectorAll('button[data-page]').forEach(btn => btn.addEventListener('click', () => { activePage = btn.dataset.page; render(); }));
+  };
+
+  function v18Theme() {
+    return localStorage.getItem('secondBrainOS.v18Theme') || 'light';
+  }
+  function v18ApplyTheme() {
+    const theme = v18Theme();
+    document.documentElement.dataset.v18Theme = theme;
+    document.body.dataset.v18Theme = theme;
+    const themeBtn = document.querySelector('[data-action="theme"]');
+    if (themeBtn) themeBtn.innerHTML = theme === 'dark' ? '☀ Светлая' : '☾ Тёмная';
+  }
+  function v18ToggleTheme() {
+    const next = v18Theme() === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('secondBrainOS.v18Theme', next);
+    v18ApplyTheme();
+    if (typeof toast === 'function') toast(next === 'dark' ? 'Включена тёмная тема' : 'Включена светлая тема');
+  }
+
+  function v18AttentionItems() {
+    const today = typeof todayKey === 'function' ? todayKey() : new Date().toISOString().slice(0,10);
+    const openTasks = (state.tasks || []).filter(t => t.status !== 'Готово' && t.status !== 'Отменена');
+    const overdue = openTasks.filter(t => t.due && t.due < today).length;
+    const undated = openTasks.filter(t => !t.due).length;
+    const goalsNoMove = (state.goals || []).filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && !(g.nextAction || '').trim()).length;
+    const todayQuestion = openTasks.some(t => /вопрос дня/i.test(t.title || '') && t.due === today && t.status !== 'Готово');
+    const plannedSoon = (state.plannedExpenses || []).filter(p => p.active !== false && Number(p.day || 0) >= new Date().getDate() && Number(p.day || 0) <= new Date().getDate() + 3).length;
+    const oldContacts = (state.people || []).filter(p => !p.lastContact || Math.floor((new Date(today) - new Date(p.lastContact)) / 86400000) >= 30).length;
+    const items = [];
+    if (overdue) items.push(['danger', `${overdue} просроч.`, 'Закрыть или перенести задачи']);
+    if (todayQuestion) items.push(['warn', '18:00', 'Ответить на вопрос дня']);
+    if (plannedSoon) items.push(['warn', `${plannedSoon} платёж`, 'Проверить ближайшие списания']);
+    if (goalsNoMove) items.push(['blue', `${goalsNoMove} цели`, 'Добавить следующий шаг']);
+    if (undated) items.push(['blue', `${undated} без даты`, 'Разобрать бэклог']);
+    if (oldContacts) items.push(['green', `${oldContacts} людей`, 'Можно восстановить контакт']);
+    if (!items.length) items.push(['green', 'Чисто', 'Критичных зон внимания нет']);
+    return items.slice(0, 4);
+  }
+
+  function v18AttentionCard() {
+    const items = v18AttentionItems();
+    return `<section class="card v18-attention-card" data-v18-attention="1">
+      <div class="section-head">
+        <div><div class="tiny-label">Система</div><h3>Что требует внимания</h3></div>
+        <button class="soft-btn" data-page-jump="control">Открыть контроль</button>
+      </div>
+      <div class="v18-attention-grid">${items.map(([tone, value, text]) => `<div class="v18-attention-item ${tone}"><b>${v18Escape(value)}</b><span>${v18Escape(text)}</span></div>`).join('')}</div>
+    </section>`;
+  }
+
+  function v18BuildShellStats() {
+    let sc = 0;
+    try { sc = typeof lifeScore === 'function' ? lifeScore() : 0; } catch(e) {}
+    let safeToday = '';
+    try { safeToday = typeof money === 'function' && typeof monthSummary === 'function' ? money(monthSummary().dailyLimit || 0) : ''; } catch(e) {}
+    return { sc, safeToday };
+  }
+
+  function v18ApplyChrome() {
+    document.body.classList.add('v18-shell');
+    document.body.dataset.page = activePage || 'dashboard';
+    v18ApplyTheme();
+
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'VISUAL PREMIUM V18';
+
+    const page = pages.find(p => p[0] === activePage);
+    const title = document.getElementById('pageTitle');
+    if (title && page) title.textContent = page[2];
+
+    const mini = document.getElementById('todayMini');
+    if (mini) {
+      const { sc, safeToday } = v18BuildShellStats();
+      mini.innerHTML = `<div class="v18-mini-date">${new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long'})}</div><div class="v18-mini-score"><b>${sc}/100</b><span>порядок системы</span></div>${safeToday ? `<div class="v18-mini-money">Сегодня: ${safeToday}</div>` : ''}`;
+    }
+
+    const themeBtn = document.querySelector('[data-action="theme"]');
+    if (themeBtn) themeBtn.onclick = v18ToggleTheme;
+
+    const search = document.getElementById('globalSearch');
+    if (search) search.placeholder = 'Найти задачу, расход, человека, тег...';
+
+    const quickBtn = document.querySelector('[data-action="quick"]');
+    if (quickBtn) quickBtn.innerHTML = '＋ Добавить';
+
+    const view = document.getElementById('view');
+    if (view && ['dashboard','week','today','finance','tasks','habits','control'].includes(activePage) && !view.querySelector('[data-v18-attention]')) {
+      view.insertAdjacentHTML('afterbegin', v18AttentionCard());
+    }
+
+    document.querySelectorAll('.card, .v16-task-card, .v15-task-card, .v14-person-card, .v17-chaos-card').forEach((el, i) => {
+      if (!el.style.getPropertyValue('--v18-delay')) el.style.setProperty('--v18-delay', `${Math.min(i * 18, 180)}ms`);
+    });
+  }
+
+  const __v18BaseRender = render;
+  render = function(opts = {}) {
+    __v18BaseRender(opts);
+    v18ApplyChrome();
+  };
+
+  const __v18BaseBindGlobal = typeof bindGlobal === 'function' ? bindGlobal : null;
+  if (__v18BaseBindGlobal) {
+    bindGlobal = function() {
+      __v18BaseBindGlobal();
+      const themeBtn = document.querySelector('[data-action="theme"]');
+      if (themeBtn) themeBtn.onclick = v18ToggleTheme;
+    };
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      const input = document.getElementById('globalSearch');
+      if (input) input.focus();
+    }
+  });
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  setTimeout(() => { try { render(); } catch(e) { console.error('V18 render failed', e); } }, 120);
+  console.log('Second Brain VISUAL PREMIUM SYSTEM V18 loaded:', V18_VERSION);
 })();

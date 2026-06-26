@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#efe5d8" />
+  <meta name="theme-color" content="#f3eadf" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=v17-life-control-system-20260625" />
+  <link rel="stylesheet" href="styles.css?v=v18-visual-premium-system-20260626" />
 </head>
-<body>
+<body class="v18-shell" data-v18-theme="light">
   <div id="app" class="app-shell">
     <aside class="sidebar">
       <div class="brand">
@@ -38,8 +38,9 @@
         </div>
         <div class="top-actions">
           <input id="globalSearch" class="search" placeholder="Поиск по жизни..." />
+          <button class="soft-btn top-icon-btn" data-action="theme" title="Сменить тему">☾ Тема</button>
           <button class="soft-btn" data-action="backup">⬇️ Бэкап</button>
-          <button class="primary-btn" data-action="quick">⚡ Быстрый ввод</button>
+          <button class="primary-btn" data-action="quick">＋ Добавить</button>
         </div>
       </header>
 
@@ -50,13 +51,13 @@
   <button id="fabAdd" class="fab-add" aria-label="Быстро добавить">＋</button>
   <div id="modalRoot"></div>
   <div id="toast" class="toast"></div>
-  <div id="releaseBadge" style="position:fixed;left:10px;bottom:10px;z-index:999999;padding:6px 9px;border-radius:999px;background:#111827;color:#fff;font:12px/1.2 system-ui;opacity:.72;pointer-events:none">LIFE CONTROL V17</div>
+  <div id="releaseBadge" style="position:fixed;left:10px;bottom:10px;z-index:999999;padding:6px 9px;border-radius:999px;background:#111827;color:#fff;font:12px/1.2 system-ui;opacity:.72;pointer-events:none">VISUAL PREMIUM V18</div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
-    window.SECOND_BRAIN_RELEASE = 'v17-life-control-system-20260625';
+    window.SECOND_BRAIN_RELEASE = 'v18-visual-premium-system-20260626';
     window.SECOND_BRAIN_FIREBASE_CONFIG = {
       apiKey: "AIzaSyAuxWvGfr_0cReaEQdIkvPIUoEjurDcabY",
       authDomain: "second-brain-os-7e27d.firebaseapp.com",
@@ -294,9 +295,9 @@
 
   </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app.js?v=v17-life-control-system-20260625"></script>
+  <script src="app.js?v=v18-visual-premium-system-20260626"></script>
   <script>
-    console.log('LIFE CONTROL V17 BOOT CHECK', {
+    console.log('VISUAL PREMIUM V18 BOOT CHECK', {
       firebaseConfig: !!window.SECOND_BRAIN_FIREBASE_CONFIG?.apiKey,
       cloud: !!window.SecondBrainCloud,
       app: !!window.SecondBrainApp
@@ -306,7 +307,7 @@
         if (window.SecondBrainCloud && window.SecondBrainApp) {
           window.SecondBrainCloud.init().then(function(){ window.SecondBrainApp.render(); });
         }
-      } catch(e) { console.warn('LIFE CONTROL V17 boot retry error', e); }
+      } catch(e) { console.warn('VISUAL PREMIUM V18 boot retry error', e); }
     }, 500);
   </script>
 </body>
