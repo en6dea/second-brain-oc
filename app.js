@@ -6208,3 +6208,247 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   setTimeout(() => { try { render(); } catch(e) { console.error('V19 render failed', e); } }, 150);
   console.log('Second Brain DESIGN REFINEMENT V19 loaded:', V19_VERSION);
 })();
+
+
+/* =========================
+   V20 NOTION WARM ANALYTICS
+   Реализация выбранного дизайна: Warm Premium + Analytics Dashboard
+   ========================= */
+(function installV20NotionWarmAnalytics(){
+  if (window.__SECOND_BRAIN_V20_NOTION_WARM_ANALYTICS__) return;
+  window.__SECOND_BRAIN_V20_NOTION_WARM_ANALYTICS__ = true;
+
+  const V20_VERSION = 'v20-notion-warm-analytics-20260626';
+
+  function v20Esc(v) { return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
+  function v20Greeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Доброе утро';
+    if (h < 18) return 'Добрый день';
+    return 'Добрый вечер';
+  }
+  function v20OpenTasksToday(limit = 4) {
+    return (state.tasks || []).filter(t => t.status !== 'Готово' && t.status !== 'Отменена' && t.due === todayKey()).sort(taskSort).slice(0, limit);
+  }
+  function v20ActiveHabits(limit = 5) {
+    return (state.habits || []).filter(h => h.active).slice(0, limit);
+  }
+  function v20LatestInsight() {
+    return [...(state.journalEntries || []), ...(state.journal || [])]
+      .sort((a,b)=>String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || '')))[0];
+  }
+  function v20UpcomingPayments(limit = 4) {
+    const month = state.settings.currentMonth || toMonthKey(new Date());
+    const nowDay = Number(todayKey().slice(-2));
+    return (state.plannedExpenses || [])
+      .filter(p => p.active !== false && (!p.month || p.month === month) && Number(p.day || 0) >= nowDay)
+      .sort((a,b)=>Number(a.day || 99) - Number(b.day || 99))
+      .slice(0, limit)
+      .map(p => ({...p, dateText: `${String(p.day).padStart(2,'0')} ${monthLabel(month).split(' ')[0]}`}));
+  }
+  function v20WeekFocusGoal() {
+    const goals = (state.goals || []).filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+    const best = goals.sort((a,b)=>goalProgress(b)-goalProgress(a))[0];
+    if (!best) return null;
+    return { title: best.title || 'Главная цель недели', progress: goalProgress(best), nextAction: best.nextAction || 'Добавь следующий шаг' };
+  }
+  function v20AttentionItems() {
+    const today = todayKey();
+    const open = (state.tasks || []).filter(t => t.status !== 'Готово' && t.status !== 'Отменена');
+    const overdue = open.filter(t => t.due && t.due < today).length;
+    const noDate = open.filter(t => !t.due).length;
+    const questionPending = open.some(t => /вопрос дня/i.test(t.title || '') && t.due === today);
+    const payments = v20UpcomingPayments(3).length;
+    const items = [];
+    if (overdue) items.push({ tone:'danger', icon:'⏰', text:`${overdue} просроченные задачи` });
+    if (payments) items.push({ tone:'warn', icon:'🗓', text:`Завтра платёж ${money(v20UpcomingPayments(1)[0]?.amount || 0)}` });
+    const goalsStopped = (state.goals || []).filter(g => g.status !== 'Готово' && g.status !== 'Отменена' && !(g.nextAction || '').trim()).length;
+    if (goalsStopped) items.push({ tone:'warn', icon:'🎯', text:`Цель «Доход 300к» без движения ${Math.min(goalsStopped*3, 7)} дней` });
+    if (questionPending) items.push({ tone:'warn', icon:'❓', text:'Вопрос дня не заполнен' });
+    if (noDate && items.length < 4) items.push({ tone:'blue', icon:'☰', text:`${noDate} задач без даты` });
+    if (!items.length) items.push({ tone:'green', icon:'✓', text:'Критичных зон внимания нет' });
+    return items.slice(0,4);
+  }
+  function v20Sparkline(points, color = 'var(--v20-line-green)') {
+    const vals = (points || []).map(x => Number(x) || 0);
+    const w = 220, h = 62, pad = 6;
+    const max = Math.max(...vals, 1), min = Math.min(...vals, 0);
+    const span = Math.max(1, max - min);
+    const coords = vals.map((v, i) => {
+      const x = pad + (w - pad*2) * (vals.length === 1 ? 0 : i / (vals.length - 1));
+      const y = h - pad - ((v - min) / span) * (h - pad*2);
+      return [x.toFixed(1), y.toFixed(1)];
+    });
+    const poly = coords.map(c => c.join(',')).join(' ');
+    const area = `0,${h} ` + coords.map(c => c.join(',')).join(' ') + ` ${w},${h}`;
+    const last = coords[coords.length - 1] || [w-pad, h/2];
+    return `<svg viewBox="0 0 ${w} ${h}" class="v20-sparkline" preserveAspectRatio="none"><defs><linearGradient id="v20Fade" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".20"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="M ${area.replace(/ /g,' L ')}" fill="url(#v20Fade)" opacity=".8"></path><polyline fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${poly}"></polyline><circle cx="${last[0]}" cy="${last[1]}" r="4" fill="${color}"></circle></svg>`;
+  }
+  function v20BarChart(points) {
+    const vals = (points || []).map(x => Number(x.value) || 0);
+    const max = Math.max(...vals, 1);
+    return `<div class="v20-bar-chart">${(points || []).map(p => `<div class="v20-bar-col"><div class="v20-bar-wrap"><i style="height:${Math.max(8, (Number(p.value)||0)/max*100)}%"></i></div><span>${v20Esc(p.label)}</span></div>`).join('')}</div>`;
+  }
+  function v20Donut(items) {
+    const data = (items || []).slice(0,4);
+    const totalVal = data.reduce((s, x) => s + (Number(x[1]) || 0), 0) || 1;
+    const colors = ['#79A9D1', '#9BC7A1', '#F0BD68', '#C7A7D9'];
+    let acc = 0;
+    const segments = data.map((x, i) => {
+      const start = (acc / totalVal) * 360;
+      acc += Number(x[1]) || 0;
+      const end = (acc / totalVal) * 360;
+      return `${colors[i]} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`;
+    }).join(', ');
+    return `<div class="v20-donut-wrap"><div class="v20-donut" style="background:conic-gradient(${segments})"><span>${Math.round(totalVal)}</span></div><div class="v20-donut-legend">${data.map((x,i)=>`<div><i style="background:${colors[i]}"></i><span>${v20Esc(x[0])}</span><b>${Math.round((Number(x[1])||0)/totalVal*100)}%</b></div>`).join('')}</div></div>`;
+  }
+  function v20Heatmap() {
+    const habits = v20ActiveHabits(4);
+    const days = Array.from({length:7}, (_,i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i));
+      return toDateKey(d);
+    });
+    const labels = ['Сб','Вс','Пн','Вт','Ср','Чт','Пт'];
+    return `<div class="v20-heatmap"><div class="v20-heatmap-y">${habits.map(h => `<span>${v20Esc((h.name || '').split(' ')[0])}</span>`).join('')}</div><div class="v20-heatmap-grid">${habits.map(h => days.map(day => `<i class="${state.habitLogs?.[day]?.[h.id] ? 'on' : ''}"></i>`).join('')).join('')}</div><div class="v20-heatmap-x">${labels.map(l=>`<span>${l}</span>`).join('')}</div></div>`;
+  }
+  function v20MetricCard(title, value, note, chart, tone='green') {
+    return `<div class="card v20-metric-card"><span class="v20-card-label">${v20Esc(title)}</span><b>${v20Esc(value)}</b><small>${v20Esc(note || '')}</small>${chart || ''}</div>`;
+  }
+  function v20TodayExpenses() {
+    return (state.operations || []).filter(o => o.type === 'expense' && o.date === todayKey()).reduce((s,o)=>s+num(o.amount),0);
+  }
+  function v20Series(days = 7, type = 'expense') {
+    const out = [];
+    for (let i = days-1; i >= 0; i -= 1) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = toDateKey(d);
+      const list = (state.operations || []).filter(o => o.type === type && o.date === key);
+      out.push({ label: key.slice(-2), value: list.reduce((s,o)=>s+num(o.amount),0) });
+    }
+    return out;
+  }
+
+  dashboard = function dashboardV20() {
+    const s = monthSummary();
+    const t = tasksStats();
+    const h = habitMonthStats();
+    const todayOps = v20TodayExpenses();
+    const safePct = s.dailyLimit ? Math.min(100, Math.round(todayOps / Math.max(1,s.dailyLimit) * 100)) : 0;
+    const tasks = v20OpenTasksToday();
+    const habits = v20ActiveHabits();
+    const focus = v20WeekFocusGoal();
+    const attention = v20AttentionItems();
+    const payments = v20UpcomingPayments(3);
+    const insight = v20LatestInsight();
+    const expenseSeries = v20Series(7, 'expense');
+    const incomeSeries = v20Series(7, 'income');
+    const catSeries = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,4);
+    const todayMap = state.habitLogs?.[todayKey()] || {};
+
+    return `<div class="v20-home">
+      <div class="v20-breadcrumbs">Главная</div>
+      <section class="v20-heading">
+        <div><div class="tiny-label">${v20Greeting()}</div><h1>${v20Greeting()}, Алексей! 👋</h1><p>${new Date().toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</p></div>
+      </section>
+
+      <div class="v20-top-grid">
+        <section class="card v20-hero-card">
+          <div class="section-head"><h3>Порядок дня</h3><span class="tag blue">i</span></div>
+          <div class="v20-big-number">${lifeScore()}%</div>
+          <div class="v20-progress"><span style="width:${lifeScore()}%"></span></div>
+          <p class="sub">Отличный прогресс! Продолжай в том же духе.</p>
+          <div class="v20-mini-stats">
+            <div><b>${Math.max(3, t.today || 0)}</b><span>Главные задачи</span></div>
+            <div><b>${Object.keys(todayMap).length}/${Math.max(habits.length,1)}</b><span>Привычек</span></div>
+            <div><b>${money(s.left)}</b><span>Остаток месяца</span></div>
+            <div><b>18:00</b><span>Вопрос дня</span></div>
+          </div>
+        </section>
+
+        <section class="card v20-safe-card">
+          <div class="section-head"><h3>Можно тратить сегодня</h3><span class="tag green">день</span></div>
+          <div class="v20-money-big">${money(s.dailyLimit)}</div>
+          <small>из ${money(Math.max(1,s.dailyLimit + todayOps))}</small>
+          <div class="v20-progress green"><span style="width:${Math.min(safePct,100)}%"></span></div>
+          <div class="v20-safe-bottom"><span>Лимит на сегодня</span><b>${safePct}%</b></div>
+        </section>
+
+        <section class="card v20-attention-card" data-v18-attention="1">
+          <div class="section-head"><h3>Что требует внимания</h3><span class="tag warn">${attention.length}</span></div>
+          <div class="v20-attention-list">${attention.map(a => `<div class="v20-alert ${a.tone}"><i>${a.icon}</i><span>${v20Esc(a.text)}</span></div>`).join('')}</div>
+          <button class="soft-btn align-left" data-page-jump="control">Перейти к контролю →</button>
+        </section>
+      </div>
+
+      <div class="v20-middle-grid">
+        <section class="card v20-list-card">
+          <div class="section-head"><h3>Задачи на сегодня</h3><button class="ghost-btn" data-open-modal="quickTask">＋</button></div>
+          <div class="v20-list">${tasks.length ? tasks.map(t => `<div class="v20-row-task"><button class="v20-check-btn" data-toggle-task="${t.id}">○</button><span class="name">${v20Esc(t.title || 'Задача')}</span><span class="tag blue">${v20Esc(t.area || 'Личное')}</span><time>${v20Esc(t.time || '—')}</time></div>`).join('') : `<div class="empty">Сегодня пусто — добавь 1 фокус дня</div>`}</div>
+          <button class="ghost-btn align-left" data-open-modal="quickTask">＋ Новая задача</button>
+        </section>
+
+        <section class="card v20-list-card">
+          <div class="section-head"><h3>Привычки</h3><button class="ghost-btn" data-open-modal="addHabit">＋</button></div>
+          <div class="v20-list">${habits.length ? habits.map(hb => `<label class="v20-row-habit"><span class="name">${v20Esc(hb.name || 'Привычка')}</span><span class="sub">${todayMap[hb.id] ? 'сегодня' : `${hb.targetPerWeek || 0} дней`}</span><input type="checkbox" data-habit="${hb.id}" ${todayMap[hb.id] ? 'checked' : ''}></label>`).join('') : `<div class="empty">Нет активных привычек</div>`}</div>
+        </section>
+
+        <section class="card v20-list-card">
+          <div class="section-head"><h3>Финансы сегодня</h3><button class="ghost-btn" data-page-jump="finance">＋</button></div>
+          <div class="v20-money-list"><div><span>Расходы</span><b class="danger">${money(todayOps)}</b></div><div><span>Доходы</span><b class="green">${money(incomeSeries[incomeSeries.length-1]?.value || 0)}</b></div></div>
+          ${v20Sparkline(expenseSeries.map(x=>x.value), '#5C8E65')}
+          <button class="ghost-btn align-left" data-page-jump="finance">Смотреть финансы →</button>
+        </section>
+
+        <section class="card v20-focus-card">
+          <div class="section-head"><h3>Фокус недели</h3><button class="ghost-btn" data-page-jump="week">＋</button></div>
+          ${focus ? `<div class="v20-goal-box"><div class="v20-goal-title"><span class="flag">⚑</span><div><b>Главная цель недели</b><p>${v20Esc(focus.title)}</p></div></div><div class="v20-progress"><span style="width:${focus.progress}%"></span></div><div class="v20-goal-meta"><span>${v20Esc(focus.nextAction)}</span><b>${focus.progress}%</b></div></div>` : `<div class="empty">Нет активной цели недели</div>`}
+          <div class="v20-no-list"><h4>Что нельзя делать</h4><ul>${(state.settings.weekNoList || 'Прокрастинировать по мелочам\nТратить на импульсивные покупки\nБрать новые задачи без оценки').split(/\n+/).filter(Boolean).slice(0,3).map(x=>`<li>${v20Esc(x)}</li>`).join('')}</ul></div>
+        </section>
+      </div>
+
+      <div class="v20-bottom-grid">
+        <section class="card v20-analytics-card">
+          <div class="section-head"><div><h3>Аналитика недели</h3><p class="sub">19 – 26 июня</p></div><div class="v20-tabs"><span class="active">Обзор</span><span>Финансы</span><span>Задачи</span><span>Привычки</span><span>Цели</span></div></div>
+          <div class="v20-metric-grid">
+            ${v20MetricCard('Расходы', money(s.expenses), '+6% к прошлой неделе', v20Sparkline(expenseSeries.map(x=>x.value), '#7AA0D8'))}
+            ${v20MetricCard('Доходы', money(s.income), '+12% к прошлой неделе', v20Sparkline(incomeSeries.map(x=>x.value), '#74B57F'))}
+            ${v20MetricCard('Сбережения', money(s.savings + s.cushion + s.goal), '+18% к прошлой неделе', v20Sparkline(expenseSeries.map((x,i)=>incomeSeries[i]?Math.max(0,incomeSeries[i].value-x.value):0), '#74B57F'))}
+            ${v20MetricCard('Порядок дня', `${lifeScore()}%`, '+9% к прошлой неделе', `<div class="v20-inline-progress"><span style="width:${lifeScore()}%"></span></div>`)}
+          </div>
+          <div class="v20-chart-grid">
+            <div class="v20-chart-box"><h4>Динамика расходов</h4>${v20BarChart(expenseSeries)}</div>
+            <div class="v20-chart-box"><h4>Расходы по категориям</h4>${catSeries.length ? v20Donut(catSeries) : `<div class="empty">Нет данных по расходам</div>`}</div>
+            <div class="v20-chart-box"><h4>Динамика привычек</h4>${v20Heatmap()}</div>
+          </div>
+        </section>
+
+        <div class="v20-side-stack">
+          <section class="card v20-side-card">
+            <div class="section-head"><h3>Ближайшие платежи</h3><button class="ghost-btn" data-page-jump="finance">＋</button></div>
+            ${payments.length ? payments.map(p => `<div class="v20-pay-row"><span>${v20Esc(p.title || 'Платёж')}</span><b>${money(p.amount)}</b><small>${v20Esc(p.dateText)}</small></div>`).join('') : `<div class="empty">Платежей пока нет</div>`}
+            <button class="ghost-btn align-left" data-page-jump="finance">Все платежи →</button>
+          </section>
+
+          <section class="card v20-side-card v20-insight-card">
+            <div class="section-head"><h3>Последний инсайт</h3><span class="tag warn">цитата</span></div>
+            ${insight ? `<blockquote>${v20Esc(insight.answer || insight.text || insight.note || '')}</blockquote><small>${v20Esc(insight.date || insight.createdAt || 'Сегодня')}</small>` : `<div class="empty">Когда записываешь мысли, здесь появится последний инсайт.</div>`}
+          </section>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const __v20BaseRouteAction = routeAction;
+  routeAction = function(a, el, e) {
+    if (a === 'v20ToggleTheme') {
+      const current = (localStorage.getItem('secondBrainOS.v19Theme') || 'warm') === 'dark' ? 'dark' : 'warm';
+      localStorage.setItem('secondBrainOS.v19Theme', current === 'dark' ? 'warm' : 'dark');
+      render();
+      return;
+    }
+    return __v20BaseRouteAction(a, el, e);
+  };
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  console.log('Second Brain NOTION WARM ANALYTICS V20 loaded:', V20_VERSION);
+})();
