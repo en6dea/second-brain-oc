@@ -6452,3 +6452,192 @@ console.log('Second Brain LIFE ADD-ONS V14 app.js loaded');
   if (window.SecondBrainApp) window.SecondBrainApp.render = render;
   console.log('Second Brain NOTION WARM ANALYTICS V20 loaded:', V20_VERSION);
 })();
+
+
+/* =========================
+   V21 NOTION LIFE OS
+   Добивка дизайна: notion-style sidebar, tasks database, finance dashboard, goal object page
+   ========================= */
+(function installV21NotionLifeOS(){
+  if (window.__SECOND_BRAIN_V21_NOTION_LIFE_OS__) return;
+  window.__SECOND_BRAIN_V21_NOTION_LIFE_OS__ = true;
+
+  const V21_VERSION = 'v21-notion-life-os-20260626';
+  const V21_TASK_VIEW_KEY = 'secondBrainOS.v21.taskView';
+  const V21_FIN_VIEW_KEY = 'secondBrainOS.v21.financeView';
+
+  function v21Esc(v) { return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
+  function v21SetTaskView(view) { localStorage.setItem(V21_TASK_VIEW_KEY, view); render(); }
+  function v21GetTaskView() { return localStorage.getItem(V21_TASK_VIEW_KEY) || 'kanban'; }
+  function v21SetFinanceView(view) { localStorage.setItem(V21_FIN_VIEW_KEY, view); render(); }
+  function v21GetFinanceView() { return localStorage.getItem(V21_FIN_VIEW_KEY) || 'overview'; }
+
+  function v21TasksOpen() { return (state.tasks || []).filter(t => t.status !== 'Готово' && t.status !== 'Отменена'); }
+  function v21TasksDone() { return (state.tasks || []).filter(t => t.status === 'Готово'); }
+  function v21TaskArea(t) { return t.area || (t.goalId ? 'Цель' : 'Личное'); }
+  function v21TaskBadge(t) {
+    const p = String(t.priority || 'Средний').toLowerCase();
+    return p.includes('выс') ? 'danger' : p.includes('низ') ? 'green' : 'warn';
+  }
+  function v21TaskStatus(t) {
+    const today = todayKey();
+    if (t.status === 'Готово') return 'Готово';
+    if (t.due && t.due < today) return 'Просрочено';
+    if (t.due === today) return 'Сегодня';
+    if (t.status === 'В работе') return 'В работе';
+    return t.status || 'Бэклог';
+  }
+  function v21TaskCols() {
+    const open = v21TasksOpen().sort(taskSort);
+    const today = todayKey();
+    return {
+      backlog: open.filter(t => !t.due || (t.status !== 'В работе' && t.due > today)),
+      today: open.filter(t => t.due === today),
+      progress: open.filter(t => t.status === 'В работе' && t.due !== today),
+      done: v21TasksDone().sort((a,b)=>String(b.due||'').localeCompare(String(a.due||''))).slice(0, 12)
+    };
+  }
+  function v21TaskMiniCard(t) {
+    const goal = t.goalId ? state.goals.find(g => g.id === t.goalId) : null;
+    return `<article class="v21-task-mini ${t.status === 'Готово' ? 'done' : ''}"><div class="v21-task-mini-head"><b>${v21Esc(t.title || 'Задача')}</b><button class="v21-mini-more" data-edit-task="${t.id}">⋯</button></div><div class="v21-task-mini-meta"><span class="tag ${v21TaskBadge(t)}">${v21Esc(t.priority || 'Средний')}</span>${t.due ? `<span class="tag blue">${v21Esc(formatTaskDate(t))}</span>` : `<span class="tag">Без даты</span>`}${goal ? `<span class="tag green">${v21Esc(goal.title)}</span>` : ''}</div><div class="v21-task-mini-actions"><button data-toggle-task="${t.id}">${t.status === 'Готово' ? 'Вернуть' : 'Готово'}</button><button data-edit-task="${t.id}">Редакт.</button></div></article>`;
+  }
+  function v21TaskKanban() {
+    const c = v21TaskCols();
+    const defs = [
+      ['backlog', 'Бэклог', c.backlog.length],
+      ['today', 'Сегодня', c.today.length],
+      ['progress', 'В работе', c.progress.length],
+      ['done', 'Готово', c.done.length]
+    ];
+    return `<div class="v21-kanban">${defs.map(([id, label, count]) => `<section class="v21-kanban-col"><div class="v21-col-head"><b>${label}</b><span>${count} задач</span></div><div class="v21-kanban-list">${(c[id] || []).length ? c[id].map(v21TaskMiniCard).join('') : `<div class="v21-empty-mini">Пусто</div>`}</div><button class="v21-col-add" data-open-modal="quickTask">＋ Добавить задачу</button></section>`).join('')}</div>`;
+  }
+  function v21TaskTable() {
+    const list = [...v21TasksOpen(), ...v21TasksDone().slice(0, 6)].sort(taskSort);
+    return `<div class="v21-db-wrap"><table class="v21-db-table"><thead><tr><th>Задача</th><th>Статус</th><th>Приоритет</th><th>Сфера</th><th>Дата</th><th>Связано</th></tr></thead><tbody>${list.length ? list.map(t => {
+      const goal = t.goalId ? state.goals.find(g => g.id === t.goalId) : null;
+      return `<tr data-edit-task="${t.id}"><td><div class="v21-db-title"><b>${v21Esc(t.title || 'Задача')}</b>${t.nextAction ? `<small>${v21Esc(t.nextAction)}</small>` : ''}</div></td><td><span class="tag ${t.status === 'Готово' ? 'green' : t.due && t.due < todayKey() ? 'danger' : 'blue'}">${v21Esc(v21TaskStatus(t))}</span></td><td><span class="tag ${v21TaskBadge(t)}">${v21Esc(t.priority || 'Средний')}</span></td><td>${v21Esc(v21TaskArea(t))}</td><td>${t.due ? v21Esc(formatTaskDate(t)) : '—'}</td><td>${goal ? `<span class="tag green">${v21Esc(goal.title)}</span>` : '—'}</td></tr>`;
+    }).join('') : `<tr><td colspan="6"><div class="empty">Задач пока нет</div></td></tr>`}</tbody></table></div>`;
+  }
+  function v21TaskCalendar() {
+    const byDate = {};
+    v21TasksOpen().filter(t => t.due).forEach(t => { (byDate[t.due] = byDate[t.due] || []).push(t); });
+    const dates = Object.keys(byDate).sort().slice(0, 8);
+    return `<div class="v21-schedule-list">${dates.length ? dates.map(date => `<section class="v21-date-block"><div class="v21-date-head"><b>${new Date(date).toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long' })}</b><span>${byDate[date].length} задач</span></div><div class="v21-date-items">${byDate[date].sort(taskSort).map(t => `<div class="v21-date-item" data-edit-task="${t.id}"><span>${v21Esc(t.time || '—')}</span><b>${v21Esc(t.title || 'Задача')}</b><small>${v21Esc(t.area || 'Личное')}</small></div>`).join('')}</div></section>`).join('') : `<div class="empty">Нет запланированных задач</div>`}</div>`;
+  }
+  function v21TaskArchive() {
+    const done = v21TasksDone().sort((a,b)=>String(b.due||'').localeCompare(String(a.due||''))).slice(0, 20);
+    return done.length ? `<div class="v21-archive-list">${done.map(t => `<article class="v21-archive-row"><button data-toggle-task="${t.id}" class="v21-archive-check">✓</button><div><b>${v21Esc(t.title || 'Задача')}</b><small>${t.due ? v21Esc(formatTaskDate(t)) : 'Без даты'} · ${v21Esc(t.area || 'Личное')}</small></div></article>`).join('')}</div>` : `<div class="empty">Архив пока пуст</div>`;
+  }
+  function v21TasksPage() {
+    const view = v21GetTaskView();
+    const t = tasksStats();
+    const map = { kanban: v21TaskKanban, table: v21TaskTable, calendar: v21TaskCalendar, archive: v21TaskArchive };
+    const current = (map[view] || map.kanban)();
+    return `<div class="v21-page"><div class="v21-breadcrumbs">Second Brain / День / Задачи</div><section class="v21-page-head"><div><div class="tiny-label">Database</div><h2>Задачи</h2><p>Notion-подход: один раздел, несколько представлений — канбан, таблица, календарь и архив.</p></div><div class="v21-head-actions"><button class="soft-btn" data-action="v21SetTaskView" data-view="kanban">Канбан</button><button class="soft-btn" data-action="v21SetTaskView" data-view="table">Таблица</button><button class="soft-btn" data-action="v21SetTaskView" data-view="calendar">Календарь</button><button class="soft-btn" data-action="v21SetTaskView" data-view="archive">Архив</button><button class="primary-btn" data-open-modal="quickTask">＋ Новая задача</button></div></section><div class="v21-stat-row">${kpi('☰','Открыто', `${t.open}`, 'в работе и бэклог')}${kpi('🌤','Сегодня', `${t.today}`, 'на сегодня')}${kpi('⏰','Просрочено', `${t.overdue}`, 'нужна реакция')}${kpi('✓','Готово', `${t.done}`, 'выполнено')}</div><div class="v21-view-tabs"><button class="${view==='kanban'?'active':''}" data-action="v21SetTaskView" data-view="kanban">Канбан</button><button class="${view==='table'?'active':''}" data-action="v21SetTaskView" data-view="table">Таблица</button><button class="${view==='calendar'?'active':''}" data-action="v21SetTaskView" data-view="calendar">Календарь</button><button class="${view==='archive'?'active':''}" data-action="v21SetTaskView" data-view="archive">Архив</button></div><section class="card v21-surface-card">${current}</section></div>`;
+  }
+
+  function v21FinanceSeries(days = 7, type = 'expense') {
+    const out = [];
+    for (let i = days-1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = toDateKey(d);
+      const total = (state.operations || []).filter(o => o.type === type && o.date === key).reduce((s,o)=>s+num(o.amount),0);
+      out.push({ label:key.slice(8,10), value:total });
+    }
+    return out;
+  }
+  function v21MiniBar(points) {
+    const max = Math.max(...points.map(p=>Number(p.value)||0), 1);
+    return `<div class="v21-mini-bars">${points.map(p=>`<div><i style="height:${Math.max(10, (Number(p.value)||0)/max*100)}%"></i><span>${v21Esc(p.label)}</span></div>`).join('')}</div>`;
+  }
+  function v21FinanceOverview() {
+    const s = monthSummary();
+    const debt = debtSummary();
+    const cats = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`).slice(0,5);
+    const latest = [...(state.operations || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,6);
+    return `<div class="v21-fin-grid">
+      <div class="v21-fin-hero">
+        <div class="v21-fin-kpis">${kpi('💳','Можно тратить', money(s.dailyLimit), `на сегодня`)}${kpi('📅','Остаток месяца', money(s.left), state.settings.currentMonth)}${kpi('💰','Доходы', money(s.income), 'план ' + money(s.planIncome))}${kpi('💸','Расходы', money(s.expenses), 'план ' + money(s.planExpenses))}</div>
+        <div class="v21-fin-chart card"><div class="section-head"><h3>Динамика расходов</h3><span class="tag blue">7 дней</span></div>${v21MiniBar(v21FinanceSeries(7,'expense'))}</div>
+      </div>
+      <div class="card v21-side-note"><div class="section-head"><h3>Финансовый пилот</h3><span class="tag green">контроль</span></div><div class="v21-pilot-list"><div><span>Свободные деньги</span><b>${money(s.free)}</b></div><div><span>Обязательные платежи</span><b>${money(s.mustSpend)}</b></div><div><span>Долги к возврату</span><b>${money(debt.openOwe)}</b></div><div><span>Подушка + цель</span><b>${money(s.savings + s.cushion + s.goal)}</b></div></div><button class="soft-btn align-left" data-open-modal="quickExpense">＋ Добавить расход</button></div>
+      <div class="card v21-cat-card"><div class="section-head"><h3>Категории</h3><button class="ghost-btn" data-page-jump="finance">Журнал</button></div>${cats.length ? cats.map(([n,a]) => categoryBar(n,a,s.expenses)).join('') : `<div class="empty">Нет категорий</div>`}</div>
+      <div class="card v21-table-card"><div class="section-head"><h3>Последние операции</h3><button class="ghost-btn" data-action="v21SetFinanceView" data-view="transactions">Открыть таблицу</button></div><div class="v21-op-list">${latest.length ? latest.map(o => `<div class="v21-op-row"><span>${o.type==='income'?'💰':'💸'}</span><b>${v21Esc(o.category || 'Без категории')}</b><small>${v21Esc(o.note || '')}</small><em class="${o.type==='income'?'green':'danger'}">${money(o.amount)}</em></div>`).join('') : `<div class="empty">Операций пока нет</div>`}</div></div>
+    </div>`;
+  }
+  function v21FinanceTransactions() {
+    const rows = [...(state.operations || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0, 40);
+    return `<div class="v21-db-wrap"><table class="v21-db-table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Комментарий</th></tr></thead><tbody>${rows.length ? rows.map(o => `<tr><td>${v21Esc(o.date || '')}</td><td><span class="tag ${o.type==='income'?'green':'warn'}">${o.type==='income'?'Доход':'Расход'}</span></td><td>${v21Esc(o.category || '—')}</td><td><b class="${o.type==='income'?'green':'danger'}">${money(o.amount)}</b></td><td>${v21Esc(o.note || '')}</td></tr>`).join('') : `<tr><td colspan="5"><div class="empty">Операций пока нет</div></td></tr>`}</tbody></table></div>`;
+  }
+  function v21FinancePlanned() {
+    const plans = (state.plannedExpenses || []).slice().sort((a,b)=>Number(a.day||99)-Number(b.day||99));
+    const debt = (state.operations || []).filter(o => o.debtDue || o.debtDirection).slice(0, 10);
+    return `<div class="v21-planned-grid"><div class="card"><div class="section-head"><h3>Плановые платежи</h3><button class="primary-btn" data-open-modal="plannedExpense">＋ Платёж</button></div>${plans.length ? plans.map(p => `<div class="v21-op-row"><span>📅</span><b>${v21Esc(p.title || p.category || 'Платёж')}</b><small>${String(p.day).padStart(2,'0')} ${v21Esc(monthLabel(state.settings.currentMonth))}</small><em>${money(p.amount)}</em></div>`).join('') : `<div class="empty">Пока нет плановых платежей</div>`}</div><div class="card"><div class="section-head"><h3>Долги</h3><button class="ghost-btn" data-action="openDebtModal">＋ Долг</button></div>${debt.length ? debt.map(o => `<div class="v21-op-row"><span>${o.debtDirection==='owe'?'↘':'↗'}</span><b>${v21Esc(o.note || 'Долг')}</b><small>${v21Esc(o.debtDue || o.date || '')}</small><em>${money(o.amount)}</em></div>`).join('') : `<div class="empty">Долгов пока нет</div>`}</div></div>`;
+  }
+  function v21FinanceCategories() {
+    const exp = categoryTotals(`${state.settings.currentMonth}-01`, `${state.settings.currentMonth}-31`);
+    const inc = state.operations.filter(o => o.type==='income' && o.date && o.date.startsWith(state.settings.currentMonth)).reduce((acc,o)=>{acc[o.category||'Другое']=(acc[o.category||'Другое']||0)+num(o.amount); return acc;},{});
+    const incRows = Object.entries(inc).sort((a,b)=>b[1]-a[1]);
+    return `<div class="v21-planned-grid"><div class="card"><div class="section-head"><h3>Расходы по категориям</h3><span class="tag warn">месяц</span></div>${exp.length ? exp.map(([n,a]) => categoryBar(n,a,total(exp.map(x=>({amount:x[1]}))))).join('') : `<div class="empty">Нет расходов</div>`}</div><div class="card"><div class="section-head"><h3>Доходы по категориям</h3><span class="tag green">месяц</span></div>${incRows.length ? incRows.map(([n,a]) => categoryBar(n,a,total(incRows.map(x=>({amount:x[1]}))))).join('') : `<div class="empty">Нет доходов</div>`}</div></div>`;
+  }
+  function v21FinancePage() {
+    const view = v21GetFinanceView();
+    const views = { overview:v21FinanceOverview, transactions:v21FinanceTransactions, planned:v21FinancePlanned, categories:v21FinanceCategories };
+    return `<div class="v21-page"><div class="v21-breadcrumbs">Second Brain / Деньги / Финансы</div><section class="v21-page-head"><div><div class="tiny-label">Finance OS</div><h2>Финансы</h2><p>Банковский дашборд + база данных операций. Контроль лимитов, категорий, долгов и плановых платежей.</p></div><div class="v21-head-actions"><button class="soft-btn" data-action="v21SetFinanceView" data-view="overview">Обзор</button><button class="soft-btn" data-action="v21SetFinanceView" data-view="transactions">Транзакции</button><button class="soft-btn" data-action="v21SetFinanceView" data-view="planned">Планируемое</button><button class="soft-btn" data-action="v21SetFinanceView" data-view="categories">Категории</button><button class="primary-btn" data-open-modal="quickExpense">＋ Операция</button></div></section><div class="v21-view-tabs"><button class="${view==='overview'?'active':''}" data-action="v21SetFinanceView" data-view="overview">Обзор</button><button class="${view==='transactions'?'active':''}" data-action="v21SetFinanceView" data-view="transactions">Транзакции</button><button class="${view==='planned'?'active':''}" data-action="v21SetFinanceView" data-view="planned">Планируемое</button><button class="${view==='categories'?'active':''}" data-action="v21SetFinanceView" data-view="categories">Категории</button></div><section class="card v21-surface-card">${(views[view] || views.overview)()}</section></div>`;
+  }
+
+  function v21GoalObjectPage() {
+    const active = (state.goals || []).filter(g => g.status !== 'Готово' && g.status !== 'Отменена');
+    const g = active.sort((a,b)=>goalProgress(b)-goalProgress(a))[0] || (state.goals || [])[0];
+    if (!g) return `<div class="v21-page"><div class="v21-breadcrumbs">Second Brain / Рост / SMART-цели</div><section class="v21-page-head"><div><div class="tiny-label">Goals database</div><h2>SMART-цели</h2><p>Страница объекта и база целей.</p></div><button class="primary-btn" data-open-modal="quickGoal">＋ Новая цель</button></section><div class="empty">Пока нет целей</div></div>`;
+    const p = goalProgress(g);
+    const linked = (state.tasks || []).filter(t => t.goalId === g.id).sort(taskSort).slice(0,6);
+    const other = active.filter(x => x.id !== g.id).slice(0,4);
+    return `<div class="v21-page"><div class="v21-breadcrumbs">Second Brain / Рост / SMART-цели</div><section class="v21-page-head"><div><div class="tiny-label">Goal page</div><h2>${v21Esc(g.title || 'SMART-цель')}</h2><p>${v21Esc(g.why || 'Страница объекта: свойства, прогресс и связанные задачи.')}</p></div><div class="v21-head-actions"><button class="soft-btn" data-action="updateGoalProgress" data-goal-id="${g.id}">Обновить прогресс</button><button class="primary-btn" data-open-modal="quickGoal">＋ Новая цель</button></div></section><div class="v21-goal-layout"><section class="card v21-goal-props"><div class="section-head"><h3>Свойства</h3><span class="tag green">${p}%</span></div><div class="v21-prop-grid"><div><span>Статус</span><b>${v21Esc(g.status || 'Активна')}</b></div><div><span>Прогресс</span><b>${p}%</b></div><div><span>Цель</span><b>${num(g.targetValue) || '—'}</b></div><div><span>К дедлайну</span><b>${v21Esc(g.deadline || '—')}</b></div><div><span>Приоритет</span><b>${v21Esc(g.area || 'Личное')}</b></div><div><span>Следующий шаг</span><b>${v21Esc(g.nextAction || 'Не указан')}</b></div></div><div class="v20-progress" style="margin-top:14px"><span style="width:${p}%"></span></div></section><section class="card v21-goal-chart"><div class="section-head"><h3>Прогресс цели</h3><span class="tag blue">${v21Esc(g.metric || 'метрика')}</span></div><div class="v21-goal-line"><div class="v21-line-box"><i style="left:0%;height:18%"></i><i style="left:18%;height:30%"></i><i style="left:36%;height:46%"></i><i style="left:54%;height:61%"></i><i style="left:72%;height:76%"></i><i style="left:90%;height:${Math.max(20,p)}%"></i></div><div class="v21-line-labels"><span>Старт</span><span>Сейчас</span><span>Цель</span></div></div></section><section class="card v21-goal-linked"><div class="section-head"><h3>Связанные задачи</h3><button class="ghost-btn" data-open-modal="quickTask">＋ Задача</button></div>${linked.length ? linked.map(t => `<div class="v21-linked-row"><b>${v21Esc(t.title || 'Задача')}</b><small>${t.due ? v21Esc(formatTaskDate(t)) : 'Без даты'}</small><span class="tag ${v21TaskBadge(t)}">${v21Esc(t.priority || 'Средний')}</span></div>`).join('') : `<div class="empty">Пока нет связанных задач</div>`}</section><section class="card v21-goal-db"><div class="section-head"><h3>База целей</h3><span class="tag">${active.length} активных</span></div><div class="v21-goal-list">${active.map(x => `<button class="v21-goal-item ${x.id===g.id?'active':''}" data-page-jump="goals"><b>${v21Esc(x.title || 'Цель')}</b><small>${v21Esc(x.deadline || 'без срока')}</small><em>${goalProgress(x)}%</em></button>`).join('')}${other.length? '' : ''}</div></section></div></div>`;
+  }
+
+  const __v21BaseActionHandler = actionHandler;
+  actionHandler = function(e) {
+    const a = e.currentTarget.dataset.action;
+    if (a === 'v21SetTaskView') { v21SetTaskView(e.currentTarget.dataset.view || 'kanban'); return; }
+    if (a === 'v21SetFinanceView') { v21SetFinanceView(e.currentTarget.dataset.view || 'overview'); return; }
+    return __v21BaseActionHandler(e);
+  };
+
+  const __v21BaseRenderNav = renderNav;
+  renderNav = function() {
+    __v21BaseRenderNav();
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    nav.classList.add('v21-notion-nav');
+  };
+
+  const __v21BaseRender = render;
+  render = function(opts = {}) {
+    const own = {
+      tasks: v21TasksPage,
+      finance: v21FinancePage,
+      goals: v21GoalObjectPage
+    };
+    if (own[activePage]) {
+      const shell = renderShell();
+      document.getElementById('app').innerHTML = shell;
+      pageTitle.textContent = pages.find(p=>p[0]===activePage)?.[2] || 'Second Brain';
+      renderNav();
+      document.getElementById('view').innerHTML = own[activePage](opts);
+      bindView();
+      bindGlobal();
+      const badge = document.getElementById('releaseBadge');
+      if (badge) badge.textContent = 'NOTION LIFE OS V21';
+      document.body.classList.add('v21-shell');
+      return;
+    }
+    __v21BaseRender(opts);
+    document.body.classList.add('v21-shell');
+    const badge = document.getElementById('releaseBadge');
+    if (badge) badge.textContent = 'NOTION LIFE OS V21';
+  };
+
+  if (window.SecondBrainApp) window.SecondBrainApp.render = render;
+  console.log('Second Brain NOTION LIFE OS V21 loaded:', V21_VERSION);
+})();
