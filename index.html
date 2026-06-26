@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <title>Second Brain OS</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v37-mobile-ux-private-20260626" />
+  <link rel="manifest" href="manifest.webmanifest?v=v38-finance-dashboard-rpg-20260626" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -135,19 +135,25 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 }
 @keyframes sheetIn{from{transform:translateY(24px);opacity:.92}to{transform:translateY(0);opacity:1}}
 
+
+/* V38 Finance Dashboard RPG */
+.finance-head{align-items:flex-start}.finance-dashboard-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.85fr) minmax(260px,.72fr);gap:18px;align-items:stretch}.finance-command-card{position:relative;overflow:hidden;min-height:260px;background:linear-gradient(135deg,#fffdf8,#f2f8ef)}.finance-hero-bg{position:absolute;right:-50px;bottom:-70px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(77,135,88,.14),rgba(77,135,88,0) 64%);pointer-events:none}.finance-balance{font-size:64px;font-weight:900;letter-spacing:-.06em;line-height:1;margin:18px 0 8px;position:relative}.finance-balance.green{color:var(--green)}.finance-balance.red{color:var(--red)}.finance-hero-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:20px;position:relative}.finance-hero-grid>div{padding:13px;border:1px solid var(--line2);border-radius:16px;background:rgba(255,255,255,.7)}.finance-hero-grid span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.finance-hero-grid b{font-size:16px}.finance-flow-card,.finance-rpg-card{min-height:260px}.flow-row{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:12px 0 8px}.flow-row span{color:var(--muted)}.flow-row.strong span,.flow-row.strong b{font-size:17px;color:var(--text)}.flow-bar{height:10px;border-radius:999px;background:#edf3eb;overflow:hidden}.flow-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--green),#8abc91)}.flow-bar.red i{background:linear-gradient(90deg,var(--red),#e5a09a)}.flow-divider{height:1px;background:var(--line2);margin:18px 0}.resource-orb{width:116px;height:116px;border-radius:50%;display:grid;place-items:center;margin:12px auto 16px;background:radial-gradient(circle at 35% 25%,#fff8df,#d9ecd9);border:8px solid #e9f3e8;color:var(--green);text-align:center}.resource-orb b{font-size:44px;line-height:.8}.resource-orb span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6c8f70}.finance-debt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}.debt-card{min-height:230px}.debt-mini-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line2)}.debt-mini-row:last-child{border-bottom:none}.debt-mini-row p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.35}.debt-mini-row strong{font-size:17px;white-space:nowrap}.debt-mini-row small{grid-column:1/-1;color:var(--muted);font-size:12px;margin-top:-4px}.finance-lower-grid{margin-top:18px}.finance-metrics{margin-bottom:18px}
+@media (max-width:1440px){.finance-dashboard-grid{grid-template-columns:1fr 1fr}.finance-command-card{grid-column:1/-1}.finance-debt-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.finance-dashboard-grid,.finance-debt-grid,.finance-lower-grid{grid-template-columns:1fr!important}.finance-balance{font-size:42px}.finance-hero-grid{grid-template-columns:1fr 1fr}.finance-command-card{min-height:auto}.finance-flow-card,.finance-rpg-card{min-height:auto}.resource-orb{width:94px;height:94px}.resource-orb b{font-size:34px}}
+
   </style>
 </head>
 <body>
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">MOBILE UX PRIVATE V37</div>
+  <div id="releaseBadge">FINANCE DASHBOARD RPG V38</div>
   <script>
 try {
-/* Second Brain OS — Mobile UX Private V37 */
+/* Second Brain OS — Finance Dashboard RPG V38 */
 'use strict';
 
-const RELEASE = 'v37-mobile-ux-private-20260626';
+const RELEASE = 'v38-finance-dashboard-rpg-20260626';
 const STORE_KEY = 'secondBrainOS.v1';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -182,6 +188,10 @@ function defaultState(){
       {id:uid(), date:todayKey(), type:'income', amount:0, category:'Проект', note:''}
     ],
     plannedExpenses:[{id:uid(), title:'Аренда квартиры', amount:25000, day:28, month:monthKey(), active:true},{id:uid(), title:'Сервис Notion', amount:850, day:29, month:monthKey(), active:true}],
+    debts:[
+      {id:'d_bank', direction:'owe', person:'Банк / кредитка', amount:45000, due:todayKey(), status:'Активен', note:'Обязательство, влияет на чистую позицию'},
+      {id:'d_friend', direction:'owed_to_me', person:'Друг / клиент', amount:12000, due:todayKey(), status:'Ожидаю', note:'Должны вернуть'}
+    ],
     tasks:[
       {id:uid(), title:'Посчитать конверсию всех ордеров, что реализовались', area:'Обучение', due:todayKey(), time:'13:00', priority:'Высокий', status:'В работе', goalId:'g_income', nextAction:'Собрать данные по всем ордерам'},
       {id:uid(), title:'Ответить на вопрос дня', area:'Личное', due:todayKey(), time:'18:00', priority:'Средний', status:'В работе', goalId:'', nextAction:'Записать честный ответ'}
@@ -212,7 +222,7 @@ function loadState(){
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if(!raw) return base;
     const merged = {...base, ...raw, settings:{...base.settings,...(raw.settings||{})}};
-    for(const k of ['operations','plannedExpenses','tasks','habits','goals','notes','goalNotes','people','states','journal','books','weeklyReviews']) merged[k] = Array.isArray(merged[k]) ? merged[k] : [];
+    for(const k of ['operations','plannedExpenses','debts','tasks','habits','goals','notes','goalNotes','people','states','journal','books','weeklyReviews']) merged[k] = Array.isArray(merged[k]) ? merged[k] : [];
     merged.habitLogs = merged.habitLogs || {};
     merged.rpg = {...base.rpg,...(merged.rpg||{})};
     if(!merged.settings.currentMonth) merged.settings.currentMonth = monthKey();
@@ -336,11 +346,36 @@ function today(){
   const tasks=todayTasks(), habits=todayHabits(), hm=state.habitLogs?.[todayKey()]||{}, s=monthSummary(), goal=currentGoal();
   return `<div class="goals-head premium-page-head"><div><div class="page-label">Сегодня</div><h1>Сегодня</h1><p class="sub">Фокус дня: задачи, привычки, лимит и вопрос дня.</p></div><div class="top-actions"><button class="primary" data-action="addTask">＋ Задача</button><button class="ghost" data-action="addExpense">＋ Расход</button></div></div><div class="today-grid"><section class="card panel"><div class="section-head"><h3>Задачи дня</h3><span class="tag blue">${tasks.length}</span></div>${tasks.length?tasks.map(taskLine).join(''):'<div class="empty">На сегодня задач нет</div>'}</section><section class="card panel"><div class="section-head"><h3>Привычки дня</h3><span class="tag green">${Object.keys(hm).length}/${habits.length}</span></div>${habits.map(habitLine).join('')}</section><section class="card panel"><h3>Лимит дня</h3><div class="big small-big">${money(s.dailyLimit)}</div><div class="progress"><span style="width:${s.dailyLimit?60:0}%"></span></div><button class="link-btn" data-action="todayLimit">Почему такой лимит →</button></section><section class="card panel"><h3>Главный фокус</h3>${goal?`<div class="focus-box"><b>${esc(goal.title)}</b><p>${esc(goal.nextAction||'Следующий шаг не указан')}</p><div class="progress"><span style="width:${goalProgress(goal)}%"></span></div></div>`:'<div class="empty">Нет цели</div>'}</section></div>`;
 }
+function debtItems(){
+  const explicit = Array.isArray(state.debts) ? state.debts : [];
+  if(explicit.length) return explicit.map(d=>({id:d.id||uid(), direction:d.direction||'owe', person:d.person||d.name||'Без имени', amount:num(d.amount), due:d.due||'', status:d.status||'Активен', note:d.note||''}));
+  const ops=(state.operations||[]).filter(o=>/долг|за[её]м|займ|вернуть|одолж|кредит|ипотек/i.test(`${o.category||''} ${o.note||''}`));
+  return ops.map(o=>({id:o.id,direction:o.type==='income'?'owed_to_me':'owe',person:o.note||o.category||'Долг',amount:num(o.amount),due:o.date||'',status:o.type==='income'?'Вернули/доход':'Активен',note:o.category||''}));
+}
+function financeModel(){
+  const s=monthSummary();
+  const balance = s.income - s.expenses;
+  const debts = debtItems().filter(d=>d.status!=='Закрыт');
+  const owe = debts.filter(d=>d.direction==='owe').reduce((sum,d)=>sum+num(d.amount),0);
+  const owed = debts.filter(d=>d.direction==='owed_to_me').reduce((sum,d)=>sum+num(d.amount),0);
+  const planned = (state.plannedExpenses||[]).filter(p=>p.active!==false).reduce((sum,p)=>sum+num(p.amount),0);
+  const net = balance + owed - owe;
+  const reserveDays = s.dailyLimit ? Math.max(0, Math.floor(Math.max(0,s.left)/Math.max(1,s.dailyLimit))) : 0;
+  return {...s,balance,debts,owe,owed,planned,net,reserveDays};
+}
+function debtMiniRow(d){
+  const isOwe=d.direction==='owe';
+  return `<article class="debt-mini-row ${isOwe?'owe':'owed'}"><div><b>${esc(d.person)}</b><p>${esc(d.note||d.status||'')}</p></div><strong class="${isOwe?'red-text':'green-text'}">${isOwe?'-':'+'}${money(d.amount)}</strong><small>${esc(d.due||'без даты')}</small></article>`;
+}
+function financeHero(f){
+  const tone=f.net>=0?'green':'red';
+  return `<section class="card finance-command-card"><div class="finance-hero-bg"></div><div class="section-head"><div><div class="page-label">Финансовый центр</div><h3>Текущий баланс</h3></div><span class="tag ${tone==='green'?'green':'warn'}">${f.net>=0?'ресурс в плюсе':'есть нагрузка'}</span></div><div class="finance-balance ${tone}">${money(f.balance)}</div><p class="sub">Чистая позиция с учётом долгов: <b>${money(f.net)}</b></p><div class="finance-hero-grid"><div><span>Должен</span><b class="red-text">${money(f.owe)}</b></div><div><span>Тебе должны</span><b class="green-text">${money(f.owed)}</b></div><div><span>Платежи</span><b>${money(f.planned)}</b></div><div><span>Запас</span><b>${f.reserveDays} дн.</b></div></div></section>`;
+}
 function debts(){
-  const debtOps=(state.operations||[]).filter(o=>/долг|заем|займ|вернуть|одолж/i.test(`${o.category||''} ${o.note||''}`));
-  const owe=debtOps.filter(o=>o.type==='expense').reduce((s,o)=>s+num(o.amount),0);
-  const returns=debtOps.filter(o=>o.type==='income').reduce((s,o)=>s+num(o.amount),0);
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Долги</div><h1>Долги</h1><p class="sub">Отдельный журнал долгов: кому должен, кто должен тебе, даты возврата.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Отдал / дал</button><button class="ghost" data-action="addIncome">＋ Вернули</button></div></div><div class="metrics"><article class="metric"><b>${money(owe)}</b><span>Долги / выдано</span></article><article class="metric"><b>${money(returns)}</b><span>Возвраты</span></article><article class="metric"><b>${money(owe-returns)}</b><span>Баланс долгов</span></article></div><section class="card panel"><div class="section-head"><h3>Операции по долгам</h3></div>${debtOps.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Комментарий</th></tr></thead><tbody>${debtOps.map(o=>`<tr><td>${esc(o.date)}</td><td>${o.type==='income'?'Возврат':'Долг'}</td><td><b>${money(o.amount)}</b></td><td>${esc(o.note||o.category||'')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Операций по долгам пока нет</div>'}</section>`;
+  const f=financeModel();
+  const owe=f.debts.filter(d=>d.direction==='owe');
+  const owed=f.debts.filter(d=>d.direction==='owed_to_me');
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Долговая карта</div><h1>Долги</h1><p class="sub">Отдельно видно, кому должен ты, кто должен тебе и как это влияет на чистую позицию.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Я должен / отдал</button><button class="ghost" data-action="addIncome">＋ Мне вернули</button></div></div><div class="metrics finance-metrics"><article class="metric"><b class="red-text">${money(f.owe)}</b><span>Кому я должен</span></article><article class="metric"><b class="green-text">${money(f.owed)}</b><span>Кто должен мне</span></article><article class="metric"><b>${money(f.net)}</b><span>Чистая позиция</span></article><article class="metric"><b>${f.debts.length}</b><span>Активных записей</span></article></div><div class="finance-debt-grid"><section class="card panel debt-card"><div class="section-head"><h3>Кому я должен</h3><span class="tag warn">${owe.length}</span></div>${owe.length?owe.map(debtMiniRow).join(''):'<div class="empty">Активных долгов нет</div>'}</section><section class="card panel debt-card"><div class="section-head"><h3>Кто должен мне</h3><span class="tag green">${owed.length}</span></div>${owed.length?owed.map(debtMiniRow).join(''):'<div class="empty">Тебе пока никто не должен</div>'}</section></div>`;
 }
 function payments(){
   const rows=(state.plannedExpenses||[]).filter(p=>p.active!==false).sort((a,b)=>num(a.day)-num(b.day));
@@ -357,7 +392,12 @@ function gifts(){
   const rows=(state.people||[]).filter(p=>p.gifts || p.likes);
   return `<div class="goals-head premium-page-head"><div><div class="page-label">Подарки</div><h1>Подарки</h1><p class="sub">Идеи подарков и предпочтения людей.</p></div><button class="primary" data-action="addPerson">＋ Человек</button></div><div class="people-grid">${rows.length?rows.map(p=>`<article class="card"><div class="section-head"><h3>${esc(p.name)}</h3><span class="tag green">${esc(p.relation||'контакт')}</span></div><p><b>Любит:</b> ${esc(p.likes||'—')}</p><p><b>Идеи подарков:</b> ${esc(p.gifts||'—')}</p></article>`).join(''):'<div class="empty">Идей подарков пока нет</div>'}</div>`;
 }
-function finance(){ const s=monthSummary(), cats=categoryTotals(), rows=[...(state.operations||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,40); return `<div class="goals-head"><div><div class="page-label">Resource economy</div><h1>Финансы</h1><p class="sub">Деньги — ресурс RPG-системы: лимит дня, категории, платежи и журнал операций.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addIncome">＋ Доход</button><button class="ghost" data-action="addPayment">Платёж</button></div></div><div class="metrics"><article class="metric"><b>${money(s.dailyLimit)}</b><span>Можно сегодня</span><div class="progress"><span style="width:60%"></span></div></article><article class="metric"><b>${money(s.left)}</b><span>Остаток месяца</span></article><article class="metric"><b>${money(s.income)}</b><span>Доходы месяца</span></article><article class="metric"><b>${money(s.expenses)}</b><span>Расходы месяца</span></article></div><div class="analytics-grid"><section class="card"><div class="section-head"><h3>Последние операции</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Комментарий</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${esc(o.date)}</td><td><span class="tag ${o.type==='income'?'green':'warn'}">${o.type==='income'?'Доход':'Расход'}</span></td><td>${esc(o.category||'—')}</td><td><b class="${o.type==='income'?'green-text':'red-text'}">${money(o.amount)}</b></td><td>${esc(o.note||'')}</td></tr>`).join('')}</tbody></table></div></section><aside class="rail"><section class="card"><h3>Расходы по категориям</h3>${cats.length?donut(cats):'<div class="empty">Нет данных</div>'}</section><section class="card"><h3>Плановые платежи</h3>${(state.plannedExpenses||[]).slice(0,8).map(p=>`<div class="pay-row"><span>${esc(p.title||'Платёж')}</span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')}</small></div>`).join('')||'<div class="empty">Нет платежей</div>'}</section></aside></div>`; }
+function finance(){
+  const f=financeModel(), cats=categoryTotals(), rows=[...(state.operations||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,40), expSeries=weekSeries('expense'), incSeries=weekSeries('income');
+  const owe=f.debts.filter(d=>d.direction==='owe').slice(0,4), owed=f.debts.filter(d=>d.direction==='owed_to_me').slice(0,4), payments=(state.plannedExpenses||[]).filter(p=>p.active!==false).sort((a,b)=>num(a.day)-num(b.day)).slice(0,5);
+  const flowMax=Math.max(f.income,f.expenses,1);
+  return `<div class="goals-head finance-head"><div><div class="page-label">Финансовый центр</div><h1>Финансы</h1><p class="sub">Баланс, долги, регулярные платежи и денежный поток в одном месте. Финансы = ресурс персонажа.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addIncome">＋ Доход</button><button class="ghost" data-action="addPayment">Платёж</button></div></div><div class="finance-dashboard-grid">${financeHero(f)}<section class="card finance-flow-card"><div class="section-head"><h3>Денежный поток</h3><span class="tag blue">месяц</span></div><div class="flow-row"><span>Доходы</span><b class="green-text">${money(f.income)}</b></div><div class="flow-bar"><i style="width:${Math.max(4,f.income/flowMax*100)}%"></i></div><div class="flow-row"><span>Расходы</span><b class="red-text">${money(f.expenses)}</b></div><div class="flow-bar red"><i style="width:${Math.max(4,f.expenses/flowMax*100)}%"></i></div><div class="flow-divider"></div><div class="flow-row strong"><span>Остаток месяца</span><b>${money(f.left)}</b></div><div class="flow-row"><span>Можно сегодня</span><b>${money(f.dailyLimit)}</b></div></section><section class="card finance-rpg-card"><div class="section-head"><h3>RPG-экономика</h3><span class="tag ${f.net>=0?'green':'warn'}">${f.net>=0?'бафф':'дебафф'}</span></div><div class="resource-orb"><b>${f.net>=0?'+':'−'}</b><span>ресурс</span></div><p class="sub">Закрытие долга = снятие дебаффа. Рост чистой позиции = прокачка финансового уровня.</p><div class="progress"><span style="width:${Math.min(100,Math.max(8,(f.net+f.owe)/(Math.max(1,f.income+f.owed))*100))}%"></span></div></section></div><div class="finance-debt-grid"><section class="card panel debt-card"><div class="section-head"><div><h3>Кому я должен</h3><p class="sub">Активная долговая нагрузка</p></div><button class="ghost small" data-page="debts">Открыть</button></div>${owe.length?owe.map(debtMiniRow).join(''):'<div class="empty">Активных долгов нет</div>'}</section><section class="card panel debt-card"><div class="section-head"><div><h3>Кто должен мне</h3><p class="sub">Ожидаемые возвраты</p></div><button class="ghost small" data-page="debts">Открыть</button></div>${owed.length?owed.map(debtMiniRow).join(''):'<div class="empty">Тебе пока никто не должен</div>'}</section></div><div class="analytics-grid finance-lower-grid"><section class="card"><div class="section-head"><h3>Последние операции</h3><button class="ghost small" data-action="addExpense">＋</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Комментарий</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${esc(o.date)}</td><td><span class="tag ${o.type==='income'?'green':'warn'}">${o.type==='income'?'Доход':'Расход'}</span></td><td>${esc(o.category||'—')}</td><td><b class="${o.type==='income'?'green-text':'red-text'}">${money(o.amount)}</b></td><td>${esc(o.note||'')}</td></tr>`).join('')}</tbody></table></div></section><aside class="rail"><section class="card"><div class="section-head"><h3>Плановые платежи</h3><button class="ghost small" data-page="payments">Все</button></div>${payments.length?payments.map(p=>`<div class="pay-row"><span>${esc(p.title||'Платёж')}</span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')} число</small></div>`).join(''):'<div class="empty">Нет платежей</div>'}</section><section class="card"><h3>Расходы по категориям</h3>${cats.length?donut(cats):'<div class="empty">Нет данных</div>'}</section></aside></div>`;
+}
 function habits(){ const habits=todayHabits(); return `<div class="goals-head"><div><div class="page-label">Привычки и состояние</div><h1>Привычки + состояние</h1><p class="sub">Привычки — навыки персонажа. Каждая отметка добавляет устойчивость.</p></div><button class="primary" data-action="addHabit">＋ Привычка</button></div><div class="metrics"><article class="metric"><b>${Object.keys(state.habitLogs?.[todayKey()]||{}).length}/${habits.length}</b><span>Сегодня</span></article><article class="metric"><b>${lifeScore()}%</b><span>Порядок дня</span></article><article class="metric"><b>${state.states?.[0]?.energy||'—'}</b><span>Энергия</span></article><article class="metric"><b>18:00</b><span>Вопрос дня</span></article></div><section class="card"><div class="section-head"><h3>Навыки дня</h3></div>${habits.map(habitLine).join('')}</section><section class="card"><div class="section-head"><h3>Динамика привычек</h3></div>${heatmap()}</section>`; }
 function notes(){ const all=[...(state.notes||[]),...(state.goalNotes||[])].sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||''))); const g=currentGoal(); return `<div class="goals-head premium-page-head"><div><div class="page-label">База знаний</div><h1>Инсайты</h1><p class="sub">Заметки работают как база знаний и Obsidian-связи.</p></div><button class="primary" data-action="addNote">＋ Новая заметка</button></div><div class="home-grid premium-home-grid notes-layout"><div class="home-main"><section class="card panel"><div class="section-head"><h3>Все заметки</h3></div>${all.length?all.map(noteRow).join(''):'<div class="empty">Заметок пока нет</div>'}</section></div><aside class="rail"><section class="card"><h3>Граф главной цели</h3>${g?graph(g):'<div class="empty">Нет цели</div>'}</section><section class="card"><h3>Как работает</h3><ul class="no-list"><li>Цель связывается с задачами</li><li>Заметки хранят знания</li><li>Люди становятся союзниками</li><li>Финансы — ресурс</li></ul></section></aside></div>`; }
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Твоя библиотека роста и конспекты.</p></div><button class="primary">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3></div><div class="empty">Книг пока нет</div></section>`; }
@@ -449,7 +489,7 @@ function render(){
   const navScroll=document.querySelector('.nav')?.scrollTop || 0;
   document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
   $('#app').innerHTML=shell();
-  $('#releaseBadge').textContent='MOBILE UX PRIVATE V37';
+  $('#releaseBadge').textContent='FINANCE DASHBOARD RPG V38';
   const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
   bind();
 }
@@ -464,7 +504,7 @@ installSW(); render(); setTimeout(renderInstallHint, 700);
 } catch(e) {
   console.error(e);
   const app = document.getElementById('app');
-  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v37-mobile-ux-private-20260626</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
+  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v38-finance-dashboard-rpg-20260626</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
 }
   </script>
 </body>

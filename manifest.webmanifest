@@ -2,7 +2,7 @@
   "name": "Second Brain OS — Private Life RPG",
   "short_name": "Second Brain",
   "description": "Личная Life RPG система: задачи, финансы, цели, привычки, люди и заметки.",
-  "start_url": "/second-brain-oc/?v=v37-mobile-ux-private-20260626",
+  "start_url": "/second-brain-oc/?v=v38-finance-dashboard-rpg-20260626",
   "scope": "./",
   "display": "standalone",
   "display_override": [
