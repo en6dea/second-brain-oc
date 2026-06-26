@@ -1,7 +1,7 @@
-/* Second Brain OS — Stable Self Contained Fix V35 */
+/* Second Brain OS — PWA Foundation Private V36 */
 'use strict';
 
-const RELEASE = 'v35-stable-self-contained-fix-20260626';
+const RELEASE = 'v36-pwa-foundation-private-20260626';
 const STORE_KEY = 'secondBrainOS.v1';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -81,9 +81,9 @@ function total(list){ return (list||[]).reduce((s,x)=>s+num(x.amount),0); }
 function goalProgress(g){ const t=num(g?.targetValue), c=num(g?.currentValue); return t ? clamp(Math.round(c/t*100),0,100) : 0; }
 function activeGoals(){ return (state.goals||[]).filter(g=>!['Готово','Отменена','Закрыта'].includes(g.status)); }
 function currentGoal(){ const key='secondBrainOS.v35.currentGoal'; const saved=localStorage.getItem(key); return activeGoals().find(g=>g.id===saved) || activeGoals().sort((a,b)=>goalProgress(b)-goalProgress(a))[0] || state.goals[0] || null; }
-function setCurrentGoal(id){ localStorage.setItem('secondBrainOS.v35.currentGoal',id); render(); }
-function goalTab(){ return localStorage.getItem('secondBrainOS.v35.goalTab') || 'overview'; }
-function setGoalTab(v){ localStorage.setItem('secondBrainOS.v35.goalTab',v); render(); }
+function setCurrentGoal(id){ localStorage.setItem('secondBrainOS.v36.currentGoal',id); render(); }
+function goalTab(){ return localStorage.getItem('secondBrainOS.v36.goalTab') || 'overview'; }
+function setGoalTab(v){ localStorage.setItem('secondBrainOS.v36.goalTab',v); render(); }
 function taskSort(a,b){ const ak=(a.due||'9999')+(a.time||'99'), bk=(b.due||'9999')+(b.time||'99'); return ak.localeCompare(bk); }
 function linkedTasks(g){ return (state.tasks||[]).filter(t=>g&&t.goalId===g.id).sort(taskSort); }
 function linkedNotes(g){ const a=(state.notes||[]).filter(n=>g&&n.goalId===g.id).map(n=>({...n,date:n.createdAt||n.date||todayKey()})); const b=(state.goalNotes||[]).filter(n=>g&&n.goalId===g.id).map(n=>({...n,title:n.title||'Заметка по цели',tags:n.tags||['цель']})); return [...a,...b].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))); }
@@ -130,7 +130,7 @@ function graph(g){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="view premium-view">${route()}</section></main></div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="view premium-view">${route()}</section></main></div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -211,7 +211,7 @@ function saveOperation(type){ if(!num(val('mAmount'))) return toast('Укажи 
 function addPayment(){ openModal('Плановый платёж', `<div class="form-grid"><label>Название<input id="mTitle"></label><label>Сумма<input id="mAmount" type="number"></label><label>День месяца<input id="mDay" type="number" min="1" max="31" value="28"></label><label>Месяц<input id="mMonth" type="month" value="${state.settings.currentMonth}"></label></div><div class="top-actions"><button class="primary" data-action="savePayment">Сохранить</button></div>`); }
 function savePayment(){ state.plannedExpenses.unshift({id:uid(),title:val('mTitle')||'Платёж',amount:num(val('mAmount')),day:num(val('mDay'))||1,month:val('mMonth')||state.settings.currentMonth,active:true}); save(); closeModal(); render(); toast('Платёж добавлен'); }
 function addGoal(){ openModal('Новая SMART-цель', `<div class="form-grid"><label class="full">Название<input id="mTitle" placeholder="Я ..."></label><label>Сфера<input id="mArea" value="Финансы"></label><label>Метрика<input id="mMetric" value="₽/мес"></label><label>Цель<input id="mTarget" type="number"></label><label>Текущее<input id="mCurrent" type="number"></label><label>Дедлайн<input id="mDeadline" type="date"></label><label class="full">Почему важно<textarea id="mWhy"></textarea></label><label class="full">Следующий шаг<textarea id="mNext"></textarea></label></div><div class="top-actions"><button class="primary" data-action="saveGoal">Создать цель</button></div>`); }
-function saveGoal(){ const title=val('mTitle').trim(); if(!title) return toast('Название обязательно'); const id=uid(); state.goals.unshift({id,title,area:val('mArea')||'Личное',metric:val('mMetric'),targetValue:num(val('mTarget')),currentValue:num(val('mCurrent')),deadline:val('mDeadline'),why:val('mWhy'),nextAction:val('mNext'),status:'Активна'}); save(); localStorage.setItem('secondBrainOS.v35.currentGoal',id); closeModal(); activePage='goals'; render(); toast('Цель создана'); }
+function saveGoal(){ const title=val('mTitle').trim(); if(!title) return toast('Название обязательно'); const id=uid(); state.goals.unshift({id,title,area:val('mArea')||'Личное',metric:val('mMetric'),targetValue:num(val('mTarget')),currentValue:num(val('mCurrent')),deadline:val('mDeadline'),why:val('mWhy'),nextAction:val('mNext'),status:'Активна'}); save(); localStorage.setItem('secondBrainOS.v36.currentGoal',id); closeModal(); activePage='goals'; render(); toast('Цель создана'); }
 function progressGoal(id){ const g=state.goals.find(x=>x.id===id); if(!g) return; openModal('Обновить прогресс', `<div class="form-grid"><label>Текущее<input id="mCurrent" type="number" value="${num(g.currentValue)}"></label><label>Цель<input id="mTarget" type="number" value="${num(g.targetValue)}"></label><label class="full">Следующий шаг<textarea id="mNext">${esc(g.nextAction||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="saveProgress" data-id="${id}">Сохранить</button></div>`); }
 function saveProgress(id){ const g=state.goals.find(x=>x.id===id); if(!g) return; g.currentValue=num(val('mCurrent')); g.targetValue=num(val('mTarget')); g.nextAction=val('mNext'); save(); closeModal(); render(); toast('Прогресс обновлён'); }
 function addNote(goalId=''){ openModal('Новая заметка', `<div class="form-grid"><label class="full">Название<input id="mTitle" placeholder="Идея / вывод"></label><label>Цель<select id="mGoal">${goalOptions(goalId)}</select></label><label>Человек<select id="mPerson">${personOptions()}</select></label><label class="full">Теги<input id="mTags" placeholder="идея, доход, фокус"></label><label class="full">Текст<textarea id="mText"></textarea></label></div><div class="top-actions"><button class="primary" data-action="saveNote">Сохранить</button></div>`); }
@@ -226,12 +226,41 @@ function todayLimit(){ const s=monthSummary(); openModal('Почему тако�
 function exportBackup(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`second-brain-backup-${todayKey()}.json`; a.click(); URL.revokeObjectURL(a.href); toast('Бэкап скачан'); }
 function repair(){ state=loadState(); save(); toast('Система проверена'); render(); }
 function saveSettings(){ state.rpg.class=val('rpgClass')||state.rpg.class; state.rpg.rank=val('rpgRank')||state.rpg.rank; state.settings.weekNoList=val('weekNoList'); save(); toast('Настройки сохранены'); render(); }
-function inspect(){ return {version:RELEASE,page:activePage,tasks:(state.tasks||[]).length,goals:(state.goals||[]).length,notes:(state.notes||[]).length,people:(state.people||[]).length,serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller),location:location.href}; }
+function inspect(){ return {version:RELEASE,page:activePage,tasks:(state.tasks||[]).length,goals:(state.goals||[]).length,notes:(state.notes||[]).length,people:(state.people||[]).length,serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller),location:location.href,pwaStandalone:isStandalone(),online:navigator.onLine}; }
 async function resetCaches(){ try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); } }catch(e){ console.warn(e); } try{ if('caches' in window){ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); } }catch(e){ console.warn(e); } location.href=`${location.origin}${location.pathname}?v=${RELEASE}`; }
+
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; setTimeout(renderInstallHint, 300); });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; localStorage.setItem('secondBrainOS.pwaInstalled','1'); const h=document.getElementById('installHint'); if(h) h.remove(); toast('Приложение установлено'); });
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function renderInstallHint(){
+  if(isStandalone() || localStorage.getItem('secondBrainOS.hideInstallHint')==='1') return;
+  if(document.getElementById('installHint')) return;
+  const div=document.createElement('div');
+  div.id='installHint'; div.className='install-hint pwa-only-hide';
+  div.innerHTML='<div><b>Установить Second Brain OS</b><br><span>Будет открываться как приложение на ПК/телефоне</span></div><button class="primary" data-action="installApp">Установить</button><button class="ghost" data-action="hideInstallHint">×</button>';
+  document.body.appendChild(div);
+}
+async function installApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(()=>null);
+    deferredInstallPrompt=null;
+    const h=document.getElementById('installHint'); if(h) h.remove();
+    return;
+  }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const text = ios
+    ? 'На iPhone: нажми «Поделиться» → «На экран Домой». Так Second Brain OS появится как приложение.'
+    : 'Если кнопка установки не появилась: открой меню браузера → «Установить приложение» или «Добавить на главный экран».';
+  openModal('Установка приложения', `<div class="card"><p>${esc(text)}</p><p><span class="pwa-status">PWA-режим готов</span></p></div>`);
+}
+function hideInstallHint(){ localStorage.setItem('secondBrainOS.hideInstallHint','1'); const h=document.getElementById('installHint'); if(h) h.remove(); }
 
 function handleAction(a, el){
   const id=el?.dataset?.id;
-  if(a==='theme'){ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'':'dark'; localStorage.setItem('secondBrainTheme', document.documentElement.dataset.theme||'warm'); return; }
+  if(a==='installApp') return installApp(); if(a==='hideInstallHint') return hideInstallHint(); if(a==='theme'){ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'':'dark'; localStorage.setItem('secondBrainTheme', document.documentElement.dataset.theme||'warm'); return; }
   if(a==='quickMenu') return quickMenu(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
   if(a==='addTask') return addTask(); if(a==='addGoalTask') return addTask(id); if(a==='saveTask') return saveTask(); if(a==='editTask') return editTask(id); if(a==='saveTaskEdit') return saveTaskEdit(id); if(a==='deleteTask'){ state.tasks=state.tasks.filter(t=>t.id!==id); save(); closeModal(); render(); return toast('Удалено'); }
   if(a==='addExpense') return addOperation('expense'); if(a==='addIncome') return addOperation('income'); if(a==='saveOperation') return saveOperation(el.dataset.type); if(a==='addPayment') return addPayment(); if(a==='savePayment') return savePayment();
@@ -249,7 +278,7 @@ function render(){
   const navScroll=document.querySelector('.nav')?.scrollTop || 0;
   document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
   $('#app').innerHTML=shell();
-  $('#releaseBadge').textContent='STABLE SELF CONTAINED FIX V35';
+  $('#releaseBadge').textContent='PWA FOUNDATION PRIVATE V36';
   const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
   bind();
 }
@@ -259,4 +288,4 @@ async function installSW(){
   try{ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(async r=>{ const u=r.active?.scriptURL||''; if(!u.includes(RELEASE)) await r.unregister(); })); await navigator.serviceWorker.register(`./sw.js?v=${RELEASE}`); }catch(e){ console.warn(e); }
 }
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches};
-installSW(); render();
+installSW(); render(); setTimeout(renderInstallHint, 700);
