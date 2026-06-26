@@ -1,8 +1,12 @@
-/* Second Brain OS — Finance Dashboard RPG V38 */
+/* Second Brain OS — Data Core Private V39 */
 'use strict';
 
-const RELEASE = 'v38-finance-dashboard-rpg-20260626';
+const RELEASE = 'v39-data-core-private-20260626';
+const DATA_VERSION = 39;
 const STORE_KEY = 'secondBrainOS.v1';
+const META_KEY = 'secondBrainOS.meta.v1';
+const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
+const MAX_SNAPSHOTS = 8;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const uid = () => 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -17,6 +21,7 @@ let activePage = new URLSearchParams(location.search).get('page') || 'dashboard'
 let modalSave = null;
 let state = loadState();
 let searchQuery = '';
+let lastAutoSnapshotAt = 0;
 
 const navGroups = [
   ['Главная', [['dashboard','⌂','Главная']]],
@@ -24,7 +29,7 @@ const navGroups = [
   ['Деньги', [['finance','◔','Финансы'],['debts','⌁','Долги'],['payments','◫','Платежи'],['import','⇣','Импорт']]],
   ['Рост', [['goals','◎','SMART-цели'],['books','◧','Книги'],['notes','✦','Инсайты']]],
   ['Люди', [['people','◌','Контакты'],['birthdays','◍','Дни рождения'],['gifts','◦','Подарки']]],
-  ['Система', [['control','◇','Контроль'],['sync','⟳','Синхронизация'],['settings','⚙','Настройки']]]
+  ['Система', [['control','◇','Контроль'],['sync','⟳','Данные'],['settings','⚙','Настройки']]]
 ];
 const pageTitles = Object.fromEntries(navGroups.flatMap(g=>g[1]).map(x=>[x[0],x[2]]));
 
@@ -61,31 +66,86 @@ function defaultState(){
     people:[{id:'p_polina', name:'Полина', relation:'близкий человек', birthday:'1999-08-23', likes:'кофе, море, украшения', talkIdeas:'обсудить планы на июль', gifts:'сертификат / украшение', notes:'важный человек'}],
     states:[{date:todayKey(), sleep:7, energy:7, mood:8, stress:4}],
     journal:[{id:uid(), date:todayKey(), prompt:'Вопрос дня', answer:'Какой один маленький шаг даст мне ощущение контроля?', insight:'Фокус на 1–2 ключевых действия в день даёт лучший результат, чем 10 дел без приоритета.'}],
-    books:[], weeklyReviews:[], rpg:{class:'Архитектор жизни', rank:'Стратег'}
+    books:[], weeklyReviews:[], rpg:{class:'Архитектор жизни', rank:'Стратег'}, dataCore:{schema:DATA_VERSION, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), migratedFrom:'fresh', lastBackupAt:'', lastSnapshotAt:''}
   };
 }
-function loadState(){
+function essentialArrays(){ return ['operations','plannedExpenses','debts','tasks','habits','goals','notes','goalNotes','people','states','journal','books','weeklyReviews']; }
+function normalizeState(input, source='runtime'){
   const base = defaultState();
-  try{
-    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if(!raw) return base;
-    const merged = {...base, ...raw, settings:{...base.settings,...(raw.settings||{})}};
-    for(const k of ['operations','plannedExpenses','debts','tasks','habits','goals','notes','goalNotes','people','states','journal','books','weeklyReviews']) merged[k] = Array.isArray(merged[k]) ? merged[k] : [];
-    merged.habitLogs = merged.habitLogs || {};
-    merged.rpg = {...base.rpg,...(merged.rpg||{})};
-    if(!merged.settings.currentMonth) merged.settings.currentMonth = monthKey();
-    return merged;
-  }catch(e){ console.warn(e); return base; }
+  const raw = (input && typeof input === 'object') ? input : {};
+  const merged = {...base, ...raw, settings:{...base.settings,...(raw.settings||{})}, rpg:{...base.rpg,...(raw.rpg||{})}};
+  for(const k of essentialArrays()) merged[k] = Array.isArray(merged[k]) ? merged[k] : [];
+  merged.habitLogs = (merged.habitLogs && typeof merged.habitLogs === 'object') ? merged.habitLogs : {};
+  merged.settings.currentMonth = merged.settings.currentMonth || monthKey();
+  merged.dataCore = {...base.dataCore, ...(raw.dataCore||{}), schema:DATA_VERSION, updatedAt:(raw.dataCore&&raw.dataCore.updatedAt)||new Date().toISOString(), migratedFrom:(raw.dataCore&&raw.dataCore.schema) ? `v${raw.dataCore.schema}` : source};
+  return merged;
 }
-function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function unpackBackupPayload(raw){
+  if(raw && raw.state && typeof raw.state === 'object') return raw.state;
+  return raw;
+}
+function loadState(){
+  const base = normalizeState(defaultState(), 'fresh');
+  let rawText = '';
+  try{
+    rawText = localStorage.getItem(STORE_KEY) || '';
+    if(!rawText){
+      localStorage.setItem(META_KEY, JSON.stringify({release:RELEASE, dataVersion:DATA_VERSION, createdAt:new Date().toISOString()}));
+      return base;
+    }
+    const raw = unpackBackupPayload(JSON.parse(rawText));
+    const migrated = normalizeState(raw, 'migration');
+    migrated.dataCore.schema = DATA_VERSION;
+    migrated.dataCore.updatedAt = new Date().toISOString();
+    return migrated;
+  }catch(e){
+    console.warn('Data Core load failed', e);
+    try{ if(rawText) localStorage.setItem(`${STORE_KEY}.corrupt.${Date.now()}`, rawText); }catch(_e){}
+    return base;
+  }
+}
+function checksumString(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
+  return ('00000000'+(h>>>0).toString(16)).slice(-8);
+}
+function stateSizeBytes(){ try{ return new Blob([JSON.stringify(state)]).size; }catch(e){ return JSON.stringify(state).length; } }
+function backupPayload(reason='manual'){
+  const clean = normalizeState(state, 'backup');
+  clean.dataCore.updatedAt = new Date().toISOString();
+  const stateText = JSON.stringify(clean);
+  return {app:'Second Brain OS', kind:'full-backup', release:RELEASE, dataVersion:DATA_VERSION, createdAt:new Date().toISOString(), reason, checksum:checksumString(stateText), state:clean};
+}
+function localSnapshots(){
+  try{ const list=JSON.parse(localStorage.getItem(SNAPSHOT_KEY)||'[]'); return Array.isArray(list)?list:[]; }catch(e){ return []; }
+}
+function saveLocalSnapshot(reason='auto'){
+  try{
+    const payload = backupPayload(reason);
+    const list = localSnapshots();
+    list.unshift(payload);
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(list.slice(0, MAX_SNAPSHOTS)));
+    state.dataCore.lastSnapshotAt = payload.createdAt;
+    lastAutoSnapshotAt = Date.now();
+    return payload;
+  }catch(e){ console.warn('Snapshot failed', e); return null; }
+}
+function save(options={}){
+  state = normalizeState(state, 'save');
+  state.dataCore.updatedAt = new Date().toISOString();
+  const text = JSON.stringify(state);
+  localStorage.setItem(STORE_KEY, text);
+  localStorage.setItem(META_KEY, JSON.stringify({release:RELEASE, dataVersion:DATA_VERSION, updatedAt:state.dataCore.updatedAt, checksum:checksumString(text), bytes:stateSizeBytes()}));
+  if(options.snapshot || Date.now()-lastAutoSnapshotAt > 180000) saveLocalSnapshot(options.snapshot ? 'manual-snapshot' : 'auto');
+}
 function toast(msg){ const t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 function go(page){ activePage=page; history.replaceState(null,'',`${location.pathname}?v=${RELEASE}&page=${page}`); render(); }
 function monthLabel(m=state.settings.currentMonth){ const [y,mo]=String(m).split('-'); return new Date(Number(y), Number(mo||1)-1, 1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}); }
 function total(list){ return (list||[]).reduce((s,x)=>s+num(x.amount),0); }
 function goalProgress(g){ const t=num(g?.targetValue), c=num(g?.currentValue); return t ? clamp(Math.round(c/t*100),0,100) : 0; }
 function activeGoals(){ return (state.goals||[]).filter(g=>!['Готово','Отменена','Закрыта'].includes(g.status)); }
-function currentGoal(){ const key='secondBrainOS.v35.currentGoal'; const saved=localStorage.getItem(key); return activeGoals().find(g=>g.id===saved) || activeGoals().sort((a,b)=>goalProgress(b)-goalProgress(a))[0] || state.goals[0] || null; }
-function setCurrentGoal(id){ localStorage.setItem('secondBrainOS.v36.currentGoal',id); render(); }
+function currentGoal(){ const saved=localStorage.getItem('secondBrainOS.currentGoal') || localStorage.getItem('secondBrainOS.v36.currentGoal') || localStorage.getItem('secondBrainOS.v35.currentGoal'); return activeGoals().find(g=>g.id===saved) || activeGoals().sort((a,b)=>goalProgress(b)-goalProgress(a))[0] || state.goals[0] || null; }
+function setCurrentGoal(id){ localStorage.setItem('secondBrainOS.currentGoal',id); localStorage.setItem('secondBrainOS.v36.currentGoal',id); render(); }
 function goalTab(){ return localStorage.getItem('secondBrainOS.v36.goalTab') || 'overview'; }
 function setGoalTab(v){ localStorage.setItem('secondBrainOS.v36.goalTab',v); render(); }
 function taskSort(a,b){ const ak=(a.due||'9999')+(a.time||'99'), bk=(b.due||'9999')+(b.time||'99'); return ak.localeCompare(bk); }
@@ -251,9 +311,120 @@ function notes(){ const all=[...(state.notes||[]),...(state.goalNotes||[])].sort
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Твоя библиотека роста и конспекты.</p></div><button class="primary">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3></div><div class="empty">Книг пока нет</div></section>`; }
 function people(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Люди</div><h1>Контакты</h1><p class="sub">Контакты, идеи разговоров, дни рождения и подарки.</p></div><button class="primary" data-action="addPerson">＋ Человек</button></div><div class="kanban people-grid">${(state.people||[]).map(p=>`<article class="card"><div class="section-head"><h3>${esc(p.name)}</h3><span class="tag green">${esc(p.relation||'контакт')}</span></div><p><b>ДР:</b> ${esc(p.birthday||'—')}</p><p><b>Любит:</b> ${esc(p.likes||'—')}</p><p><b>О чём поговорить:</b> ${esc(p.talkIdeas||'—')}</p><p><b>Подарки:</b> ${esc(p.gifts||'—')}</p></article>`).join('')||'<div class="empty">Людей пока нет</div>'}</div>`; }
 function control(){ const items=[]; const q=searchQuery.toLowerCase(); if(q){ for(const t of state.tasks||[]) if(JSON.stringify(t).toLowerCase().includes(q)) items.push(['Задача',t.title,'tasks']); for(const g of state.goals||[]) if(JSON.stringify(g).toLowerCase().includes(q)) items.push(['Цель',g.title,'goals']); for(const n of state.notes||[]) if(JSON.stringify(n).toLowerCase().includes(q)) items.push(['Заметка',n.title,'notes']); } return `<div class="goals-head"><div><div class="page-label">Системный контроль</div><h1>Контроль</h1><p class="sub">Поиск, диагностика системы и быстрые действия по управлению приложением.</p></div><button class="primary" data-action="repair">Проверить систему</button></div><div class="metrics"><article class="metric"><b>${RELEASE.split('-')[0].toUpperCase()}</b><span>Версия</span></article><article class="metric"><b>${state.tasks.length}</b><span>Задач</span></article><article class="metric"><b>${state.goals.length}</b><span>Целей</span></article><article class="metric"><b>${state.notes.length}</b><span>Заметок</span></article></div><section class="card"><h3>Результаты поиска</h3>${q?(items.length?items.map(x=>`<div class="line-row"><span class="tag blue">${x[0]}</span><b>${esc(x[1])}</b><button class="ghost" data-page="${x[2]}">Открыть</button></div>`).join(''):'<div class="empty">Ничего не найдено</div>'):'<div class="empty">Начни писать в поиске сверху</div>'}</section>`; }
-function sync(){ return `<div class="goals-head"><div><div class="page-label">Синхронизация и данные</div><h1>Синхронизация</h1><p class="sub">Здесь ты управляешь сохранностью данных: скачать резервную копию, проверить версию и очистить кэш, если интерфейс не обновился.</p></div><button class="primary" data-action="backup">Скачать резервную копию</button></div><section class="card"><h3>Диагностика</h3><pre>${esc(JSON.stringify(inspect(),null,2))}</pre><button class="danger-btn" data-action="resetCaches">Очистить кэш и service worker</button></section>`; }
+function sync(){
+  const r = integrityReport();
+  const ok = r.status === 'ok';
+  const mb = (r.bytes/1024).toFixed(1) + ' КБ';
+  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V39</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v39</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
+}
 function settings(){ return `<div class="goals-head"><div><div class="page-label">Настройки системы</div><h1>Настройки</h1><p class="sub">Настрой роль, стиль прохождения и антисписок недели.</p></div></div><section class="card"><div class="form-grid"><label>Класс персонажа<input id="rpgClass" value="${esc(state.rpg.class||'')}"></label><label>Ранг<input id="rpgRank" value="${esc(state.rpg.rank||'')}"></label><label class="full">Что нельзя делать на неделе<textarea id="weekNoList">${esc(state.settings.weekNoList||'')}</textarea></label></div><button class="primary" data-action="saveSettings">Сохранить изменения</button></section>`; }
 function week(){ return `<div class="goals-head"><div><div class="page-label">План недели</div><h1>Неделя</h1><p class="sub">Фокус недели, ближайшие платежи и квесты.</p></div><button class="primary" data-action="weeklyReview">Сформировать обзор</button></div>${dashboard().split('<div class="home-grid">')[1] ? '<section class="card"><h3>Сводка недели</h3><p class="sub">Используй обзор недели на главной и цели как основной фокус.</p></section>' : ''}`; }
+
+
+function integrityReport(){
+  const problems=[];
+  for(const k of essentialArrays()) if(!Array.isArray(state[k])) problems.push(`${k}: не массив`);
+  if(!state.settings || typeof state.settings!=='object') problems.push('settings: нет объекта настроек');
+  if(!state.rpg || typeof state.rpg!=='object') problems.push('rpg: нет профиля');
+  const text = JSON.stringify(normalizeState(state, 'inspect'));
+  const snaps = localSnapshots();
+  return {
+    status: problems.length ? 'needs_repair' : 'ok',
+    problems,
+    release: RELEASE,
+    dataVersion: DATA_VERSION,
+    updatedAt: state.dataCore?.updatedAt || '—',
+    lastSnapshotAt: state.dataCore?.lastSnapshotAt || '—',
+    localSnapshots: snaps.length,
+    bytes: stateSizeBytes(),
+    checksum: checksumString(text),
+    counts: Object.fromEntries(essentialArrays().map(k=>[k,(state[k]||[]).length]))
+  };
+}
+function dataMetric(label, value, hint='', cls=''){
+  return `<article class="metric data-metric ${cls}"><b>${esc(value)}</b><span>${esc(label)}</span>${hint?`<small>${esc(hint)}</small>`:''}</article>`;
+}
+function snapshotRows(){
+  const snaps = localSnapshots();
+  if(!snaps.length) return '<div class="empty">Локальных снимков пока нет. Нажми «Создать снимок».</div>';
+  return snaps.map((s,i)=>`<div class="snapshot-row"><div><b>${esc(new Date(s.createdAt).toLocaleString('ru-RU'))}</b><p>${esc(s.reason||'snapshot')} · ${esc(s.release||'unknown')} · ${esc(s.checksum||'')}</p></div><div class="snapshot-actions"><button class="ghost small" data-action="downloadSnapshot" data-id="${i}">Скачать</button><button class="ghost small" data-action="restoreSnapshot" data-id="${i}">Восстановить</button></div></div>`).join('');
+}
+function downloadJSON(payload, filename){
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+}
+function exportBackup(){
+  const payload = backupPayload('manual-download');
+  state.dataCore.lastBackupAt = payload.createdAt;
+  save({snapshot:true});
+  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v39.json`);
+  toast('Полный бэкап скачан');
+}
+function createManualSnapshot(){
+  const snap = saveLocalSnapshot('manual');
+  save();
+  render();
+  toast(snap ? 'Локальный снимок создан' : 'Не удалось создать снимок');
+}
+function downloadSnapshot(index){
+  const snap = localSnapshots()[Number(index)];
+  if(!snap) return toast('Снимок не найден');
+  downloadJSON(snap, `second-brain-snapshot-${todayKey()}-${index}.json`);
+}
+function restoreSnapshot(index){
+  const snap = localSnapshots()[Number(index)];
+  if(!snap || !snap.state) return toast('Снимок не найден');
+  saveLocalSnapshot('before-restore');
+  state = normalizeState(snap.state, 'restore-local-snapshot');
+  save({snapshot:true});
+  activePage='sync';
+  render();
+  toast('Данные восстановлены из локального снимка');
+}
+function clearSnapshots(){
+  localStorage.setItem(SNAPSHOT_KEY, '[]');
+  state.dataCore.lastSnapshotAt = '';
+  lastAutoSnapshotAt = Date.now();
+  save();
+  render();
+  toast('Локальные снимки очищены');
+}
+function pickBackupFile(){ const input=$('#restoreFile'); if(input) input.click(); }
+function importBackupFile(event){
+  const file = event?.target?.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(String(reader.result||''));
+      const incoming = unpackBackupPayload(parsed);
+      if(!incoming || typeof incoming !== 'object') throw new Error('Файл не похож на бэкап Second Brain OS');
+      saveLocalSnapshot('before-file-import');
+      state = normalizeState(incoming, 'file-import');
+      save({snapshot:true});
+      activePage='sync';
+      render();
+      toast('Бэкап восстановлен из файла');
+    }catch(e){
+      console.warn(e);
+      toast('Не удалось восстановить: проверь JSON-файл');
+    }
+  };
+  reader.readAsText(file);
+}
+function runIntegrityRepair(){
+  state = normalizeState(state, 'repair');
+  save({snapshot:true});
+  activePage='sync';
+  render();
+  toast('Целостность проверена, снимок создан');
+}
 
 function openModal(title, body, onSave){ modalSave=onSave||null; $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${title}</h3><button type="button" class="close" aria-label="Закрыть">×</button></div>${body}</div></div>`; const root=$('#modalRoot'); const backdrop=$('.modal-backdrop',root); const box=$('.modal',root); const close=$('.close',root); if(backdrop) backdrop.addEventListener('click', closeModal); if(box) box.addEventListener('click', e=>e.stopPropagation()); if(close) close.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); closeModal(); }); }
 function closeModal(){ $('#modalRoot').innerHTML=''; modalSave=null; }
@@ -282,10 +453,9 @@ function savePerson(){ state.people.unshift({id:uid(),name:val('mName')||'Чел
 function smartPlan(id){ const g=state.goals.find(x=>x.id===id); if(!g) return; openModal('SMART-план', `<div class="card"><h3>${esc(g.title)}</h3><ul class="no-list"><li><b>S:</b> ${esc(g.title)}</li><li><b>M:</b> ${esc(valFmt(g,g.currentValue))} / ${esc(valFmt(g,g.targetValue))}</li><li><b>A:</b> следующий шаг — ${esc(g.nextAction||'не указан')}</li><li><b>R:</b> ${esc(g.why||'важность не описана')}</li><li><b>T:</b> дедлайн — ${esc(g.deadline||'не указан')}</li></ul></div>`); }
 function weeklyReview(){ const s=monthSummary(); const text=`Итог недели: Life Score ${lifeScore()}%, расходов ${money(s.expenses)}, доходов ${money(s.income)}, активных целей ${activeGoals().length}.`; state.weeklyReviews.unshift({id:uid(),date:todayKey(),text}); save(); openModal('Обзор недели', `<p>${esc(text)}</p>`); }
 function todayLimit(){ const s=monthSummary(); openModal('Почему такой лимит', `<p>Доходы месяца: <b>${money(s.income)}</b></p><p>Расходы месяца: <b>${money(s.expenses)}</b></p><p>Плановые платежи: <b>${money(s.planned)}</b></p><p>Остаток: <b>${money(s.left)}</b></p><p>Безопасный дневной лимит: <b>${money(s.dailyLimit)}</b></p>`); }
-function exportBackup(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`second-brain-backup-${todayKey()}.json`; a.click(); URL.revokeObjectURL(a.href); toast('Бэкап скачан'); }
-function repair(){ state=loadState(); save(); toast('Система проверена'); render(); }
+function repair(){ runIntegrityRepair(); }
 function saveSettings(){ state.rpg.class=val('rpgClass')||state.rpg.class; state.rpg.rank=val('rpgRank')||state.rpg.rank; state.settings.weekNoList=val('weekNoList'); save(); toast('Настройки сохранены'); render(); }
-function inspect(){ return {version:RELEASE,page:activePage,tasks:(state.tasks||[]).length,goals:(state.goals||[]).length,notes:(state.notes||[]).length,people:(state.people||[]).length,serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller),location:location.href,pwaStandalone:isStandalone(),online:navigator.onLine}; }
+function inspect(){ return {...integrityReport(), page:activePage, location:location.href, pwaStandalone:isStandalone(), online:navigator.onLine}; }
 async function resetCaches(){ try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); } }catch(e){ console.warn(e); } try{ if('caches' in window){ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); } }catch(e){ console.warn(e); } location.href=`${location.origin}${location.pathname}?v=${RELEASE}`; }
 
 
@@ -320,7 +490,7 @@ function hideInstallHint(){ localStorage.setItem('secondBrainOS.hideInstallHint'
 function handleAction(a, el){
   const id=el?.dataset?.id;
   if(a==='installApp') return installApp(); if(a==='hideInstallHint') return hideInstallHint(); if(a==='theme'){ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'':'dark'; localStorage.setItem('secondBrainTheme', document.documentElement.dataset.theme||'warm'); return; }
-  if(a==='quickMenu') return quickMenu(); if(a==='mobileMore') return mobileMore(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
+  if(a==='quickMenu') return quickMenu(); if(a==='mobileMore') return mobileMore(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='createSnapshot') return createManualSnapshot(); if(a==='downloadSnapshot') return downloadSnapshot(id); if(a==='restoreSnapshot') return restoreSnapshot(id); if(a==='clearSnapshots') return clearSnapshots(); if(a==='pickBackupFile') return pickBackupFile(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
   if(a==='addTask') return addTask(); if(a==='addGoalTask') return addTask(id); if(a==='saveTask') return saveTask(); if(a==='editTask') return editTask(id); if(a==='saveTaskEdit') return saveTaskEdit(id); if(a==='deleteTask'){ state.tasks=state.tasks.filter(t=>t.id!==id); save(); closeModal(); render(); return toast('Удалено'); }
   if(a==='addExpense') return addOperation('expense'); if(a==='addIncome') return addOperation('income'); if(a==='saveOperation') return saveOperation(el.dataset.type); if(a==='addPayment') return addPayment(); if(a==='savePayment') return savePayment();
   if(a==='addGoal') return addGoal(); if(a==='saveGoal') return saveGoal(); if(a==='progressGoal') return progressGoal(id); if(a==='saveProgress') return saveProgress(id); if(a==='smartPlan') return smartPlan(id); if(a==='completeGoal'){ const g=state.goals.find(x=>x.id===id); if(g){g.status=g.status==='Готово'?'Активна':'Готово'; save(); render(); toast('Статус цели изменён');} return; }
@@ -331,20 +501,28 @@ function handleAction(a, el){
 function bind(){
   document.body.onclick=e=>{ const el=e.target.closest('[data-page],[data-action]'); if(!el) return; const p=el.dataset.page; const a=el.dataset.action; if(p) return go(p); if(a) return handleAction(a,el); };
   const search=$('#search'); if(search){ search.oninput=e=>{ searchQuery=e.target.value; if(searchQuery.trim() && activePage!=='control'){ activePage='control'; render(); } }; }
+  const restoreFile=$('#restoreFile'); if(restoreFile) restoreFile.onchange=importBackupFile;
   $$('[data-habit]').forEach(input=>input.onchange=()=>{ state.habitLogs[todayKey()] ||= {}; state.habitLogs[todayKey()][input.dataset.habit]=input.checked; save(); render(); });
 }
 function render(){
-  const navScroll=document.querySelector('.nav')?.scrollTop || 0;
-  document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
-  $('#app').innerHTML=shell();
-  $('#releaseBadge').textContent='FINANCE DASHBOARD RPG V38';
-  const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
-  bind();
+  try{
+    const navScroll=document.querySelector('.nav')?.scrollTop || 0;
+    document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
+    $('#app').innerHTML=shell();
+    $('#releaseBadge').textContent='DATA CORE PRIVATE V39';
+    const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
+    bind();
+  }catch(e){
+    console.error('Render failed', e);
+    const app=$('#app');
+    if(app) app.innerHTML=`<main class="main"><section class="card"><h1>Ошибка интерфейса</h1><p class="sub">Data Core сохранил данные. Скачай бэкап или перезагрузи приложение.</p><pre>${esc(e.stack||e.message||e)}</pre><button class="primary" data-action="backup">Скачать бэкап</button><button class="ghost" onclick="location.reload()">Перезагрузить</button></section></main>`;
+    bind();
+  }
 }
 
 async function installSW(){
   if(!navigator.serviceWorker || location.protocol==='file:') return;
   try{ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(async r=>{ const u=r.active?.scriptURL||''; if(!u.includes(RELEASE)) await r.unregister(); })); await navigator.serviceWorker.register(`./sw.js?v=${RELEASE}`); }catch(e){ console.warn(e); }
 }
-window.SecondBrainBuild={version:RELEASE,inspect,resetCaches};
-installSW(); render(); setTimeout(renderInstallHint, 700);
+window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot};
+save(); installSW(); render(); setTimeout(renderInstallHint, 700);
