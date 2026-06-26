@@ -1,7 +1,7 @@
-/* Second Brain OS — PWA Foundation Private V36 */
+/* Second Brain OS — Mobile UX Private V37 */
 'use strict';
 
-const RELEASE = 'v36-pwa-foundation-private-20260626';
+const RELEASE = 'v37-mobile-ux-private-20260626';
 const STORE_KEY = 'secondBrainOS.v1';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -128,9 +128,34 @@ function graph(g){
   return `<div class="graph premium-graph"><div class="graph-core"><small>Цель</small><b>${esc(g?.title||'SMART-цель')}</b><span>${goalProgress(g)}%</span></div><button class="graph-node n-top" data-page="tasks"><strong>Задача</strong><span>${esc(task?.title||'Шаг')}</span></button><button class="graph-node n-left" data-page="notes"><strong>Заметка</strong><span>${esc(note?.title||'Идея')}</span></button><button class="graph-node n-right" data-page="finance"><strong>Финансы</strong><span>${money(g?.targetValue||0)}</span></button><button class="graph-node n-bottom-left" data-page="habits"><strong>Привычка</strong><span>${esc(habit?.name||'Ритуал')}</span></button><button class="graph-node n-bottom-right" data-page="people"><strong>Союзник</strong><span>${esc(person?.name||'Полина')}</span></button></div>`;
 }
 
+
+function mobileNav(){
+  const items = [
+    ['dashboard','⌂','Главная'],
+    ['today','◫','Сегодня'],
+    ['quick','＋',''],
+    ['finance','₽','Финансы'],
+    ['more','☷','Ещё']
+  ];
+  return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label]) => id==='quick'
+    ? `<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`
+    : id==='more'
+      ? `<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`
+      : `<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`
+  ).join('')}</nav>`;
+}
+function mobileMore(){
+  const groups = navGroups.map(([title,items]) => `<section class="mobile-menu-section"><h4>${title}</h4><div>${items.map(([id,ic,label])=>`<button data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</div></section>`).join('');
+  openModal('Меню Second Brain', `<div class="mobile-menu-grid">${groups}</div>`);
+}
+function mobileHeaderTitle(){
+  const found = navGroups.flatMap(g=>g[1]).find(x=>x[0]===activePage);
+  return found ? found[2] : 'Second Brain';
+}
+
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="view premium-view">${route()}</section></main></div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>CLEAN PREMIUM REBUILD</small><b>V30</b><span class="sync-dot">SYNC OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -261,7 +286,7 @@ function hideInstallHint(){ localStorage.setItem('secondBrainOS.hideInstallHint'
 function handleAction(a, el){
   const id=el?.dataset?.id;
   if(a==='installApp') return installApp(); if(a==='hideInstallHint') return hideInstallHint(); if(a==='theme'){ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'':'dark'; localStorage.setItem('secondBrainTheme', document.documentElement.dataset.theme||'warm'); return; }
-  if(a==='quickMenu') return quickMenu(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
+  if(a==='quickMenu') return quickMenu(); if(a==='mobileMore') return mobileMore(); if(a==='closeModal') return closeModal(); if(a==='backup') return exportBackup(); if(a==='resetCaches') return resetCaches(); if(a==='repair') return repair(); if(a==='weeklyReview') return weeklyReview(); if(a==='todayLimit') return todayLimit(); if(a==='saveSettings') return saveSettings();
   if(a==='addTask') return addTask(); if(a==='addGoalTask') return addTask(id); if(a==='saveTask') return saveTask(); if(a==='editTask') return editTask(id); if(a==='saveTaskEdit') return saveTaskEdit(id); if(a==='deleteTask'){ state.tasks=state.tasks.filter(t=>t.id!==id); save(); closeModal(); render(); return toast('Удалено'); }
   if(a==='addExpense') return addOperation('expense'); if(a==='addIncome') return addOperation('income'); if(a==='saveOperation') return saveOperation(el.dataset.type); if(a==='addPayment') return addPayment(); if(a==='savePayment') return savePayment();
   if(a==='addGoal') return addGoal(); if(a==='saveGoal') return saveGoal(); if(a==='progressGoal') return progressGoal(id); if(a==='saveProgress') return saveProgress(id); if(a==='smartPlan') return smartPlan(id); if(a==='completeGoal'){ const g=state.goals.find(x=>x.id===id); if(g){g.status=g.status==='Готово'?'Активна':'Готово'; save(); render(); toast('Статус цели изменён');} return; }
@@ -278,7 +303,7 @@ function render(){
   const navScroll=document.querySelector('.nav')?.scrollTop || 0;
   document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
   $('#app').innerHTML=shell();
-  $('#releaseBadge').textContent='PWA FOUNDATION PRIVATE V36';
+  $('#releaseBadge').textContent='MOBILE UX PRIVATE V37';
   const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
   bind();
 }
