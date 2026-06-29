@@ -130,21 +130,21 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 @media (max-width:760px){.data-head .top-actions,.data-action-grid,.data-core-grid{grid-template-columns:1fr!important}.data-head .top-actions{width:100%}.data-head .top-actions button,.data-action-grid button{width:100%}.snapshot-row{grid-template-columns:1fr}.snapshot-actions{justify-content:stretch}.snapshot-actions button{flex:1}.diagnostic-pre{max-height:260px}.data-metrics{grid-template-columns:1fr 1fr!important}}
 
 /* ===============================
-   V40.2 BANK IMPORT — app feel
+   V40.3 OPS CLEANUP — app feel
 ================================ */
-.sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
-.sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
-.sidebar-status.v402-status .sync-dot{color:#a8d9a6}
+.sidebar-status.v403-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
+.sidebar-status.v403-status small{color:rgba(255,255,255,.68)}
+.sidebar-status.v403-status .sync-dot{color:#a8d9a6}
 .calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}.calendar-rail{display:grid;gap:18px}.calendar-card{padding:16px}.calendar-grid{display:grid;gap:12px}.calendar-weekdays,.calendar-cells{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.calendar-weekdays b{text-align:center;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.calendar-cell{min-height:104px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fffefb,#fbf6ef);padding:10px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 24px rgba(72,54,34,.04);transition:.16s}.calendar-cell:hover{transform:translateY(-1px);border-color:#d6c7b4;box-shadow:0 14px 32px rgba(72,54,34,.08)}.calendar-cell.today{background:linear-gradient(180deg,#f0f8ef,#fffefb);box-shadow:inset 0 0 0 2px rgba(77,135,88,.25)}.calendar-cell.muted{opacity:.38;background:#f4eee6}.calendar-cell strong{font-size:15px}.calendar-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.cal-dot{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800;background:#f1eadf;color:#5f5449}.cal-dot.task{background:#e9f0fc;color:#416ba7}.cal-dot.pay{background:#fff1dd;color:#b47724}.cal-dot.bday{background:#f1e9fb;color:#7d5aa4}.cal-dot.money{background:#e9f5e9;color:#3d7b47}.day-sheet-grid{display:grid;grid-template-columns:1fr;gap:12px}.soft-card{box-shadow:none;background:#fffefb}.finance-dashboard-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}.finance-dashboard-grid>section:nth-child(3),.finance-dashboard-grid>section:nth-child(4){min-height:240px}.finance-hero-grid.compact{grid-template-columns:repeat(2,minmax(0,1fr))}.debt-mini-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line2)}.debt-mini-row:last-child{border-bottom:0}.debt-mini-row p{margin:3px 0 0;color:var(--muted);font-size:13px}.pay-row.big-pay{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center}.muted-line{opacity:.48}.active-drop{width:100%;cursor:pointer}.hidden-file{display:none}.mini-head{margin-bottom:0}.note-row .mini-head b{display:block}.habit-manage-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border-bottom:1px solid var(--line2)}.habit-manage-row:last-child{border-bottom:0}.habit-manage-row .habit-line{border-bottom:0}.person-card{transition:.16s}.person-card:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(72,54,34,.08)}.finance-balance{font-size:56px;font-weight:850;line-height:1;letter-spacing:-.05em;margin:12px 0}.finance-balance.green{color:var(--green)}.finance-balance.red{color:var(--red)}
 @media (max-width: 900px){body{min-width:0}.calendar-layout,.finance-dashboard-grid{grid-template-columns:1fr}.calendar-cell{min-height:72px;border-radius:14px;padding:8px}.calendar-weekdays,.calendar-cells{gap:5px}.calendar-cell strong{font-size:13px}.calendar-rail{grid-template-columns:1fr}.debt-mini-row,.pay-row.big-pay{grid-template-columns:1fr auto}.debt-mini-row small,.debt-mini-row button,.pay-row.big-pay small,.pay-row.big-pay button{grid-column:auto}.finance-balance{font-size:42px}.calendar-card{padding:10px}.main{padding-bottom:110px}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.habit-manage-row{grid-template-columns:1fr}.habit-manage-row>button{justify-self:start;margin-bottom:10px}}
 
 
 /* ===============================
-   V40.2 BANK IMPORT — real bank CSV
+   V40.3 OPS CLEANUP — real bank CSV
 ================================ */
-.sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
-.sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
-.sidebar-status.v402-status .sync-dot{color:#a8d9a6}
+.sidebar-status.v403-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
+.sidebar-status.v403-status small{color:rgba(255,255,255,.68)}
+.sidebar-status.v403-status .sync-dot{color:#a8d9a6}
 .bank-import-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#fffdf8,#f1f8ef)}
 .bank-import-hero:after{content:"";position:absolute;right:-64px;bottom:-88px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(77,135,88,.16),rgba(77,135,88,0) 62%);pointer-events:none}
 .bank-drop{position:relative;z-index:1;min-height:180px;border-style:dashed;background:rgba(255,255,255,.62)}

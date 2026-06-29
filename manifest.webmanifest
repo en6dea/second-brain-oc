@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS — Bank Import Private",
+  "name": "Second Brain OS — Operations Cleanup Private",
   "short_name": "Second Brain",
-  "description": "Личная Life RPG система с импортом банковских CSV-операций, календарём, финансами, целями, привычками, людьми, бэкапами и восстановлением.",
-  "start_url": "/second-brain-oc/?v=v40-2-bank-import-private-20260629",
+  "description": "Личная Life RPG система с безопасной очисткой периодов, импортом банковских CSV-операций, календарём, финансами, бэкапами и восстановлением.",
+  "start_url": "/second-brain-oc/?v=v40-3-operations-cleanup-private-20260629",
   "scope": "./",
   "display": "standalone",
   "display_override": [
