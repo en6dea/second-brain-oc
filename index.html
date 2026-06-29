@@ -2971,3 +2971,158 @@ try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {produ
   </script>
 </body>
 </html>
+/* V43 PERSONAL OS — no CRM, premium import + personal dashboard */
+const SBOS_V43 = 'v43-personal-os-private-20260629';
+const SBOS_V43_DISPLAY = 'V43 PERSONAL OS';
+function v43MonthKey(){ return (state?.settings?.currentMonth || todayKey().slice(0,7)); }
+function v43Control(){
+  state.settings = state.settings || {};
+  state.settings.monthControls = state.settings.monthControls || {};
+  const key = v43MonthKey();
+  state.settings.monthControls[key] = state.settings.monthControls[key] || {plan:0,startBalance:0,factBalance:0,note:''};
+  return state.settings.monthControls[key];
+}
+function v43PersonalCleanup(){
+  try{
+    state.settings = state.settings || {};
+    state.settings.crmDisabled = true;
+    state.settings.v43 = state.settings.v43 || {enabled:true, installedAt:new Date().toISOString()};
+    state.settings.v43.lastSeen = new Date().toISOString();
+    if(!Array.isArray(state.categories)) state.categories=[];
+    if(!Array.isArray(state.actionLog)) state.actionLog=[];
+    if(!Array.isArray(state.quickCaptures)) state.quickCaptures=[];
+    const hideTypes = new Set(['client','deal']);
+    (state.categories||[]).forEach(c=>{
+      if(hideTypes.has(String(c.type||'')) || ['Клиенты','Сделки'].includes(String(c.name||''))) c.archived = true;
+    });
+    const addCat=(name,type='finance',color='')=>{
+      name=String(name||'').trim(); if(!name) return;
+      const exists=(state.categories||[]).some(c=>String(c.name||'').toLowerCase()===name.toLowerCase() && String(c.type||'finance')===type && !c.archived);
+      if(!exists) state.categories.push({id:uid(), name, type, color:color||v42ColorForType(type), archived:false, createdAt:new Date().toISOString(), source:'auto-v43'});
+    };
+    ['Бензин','Продукты','Кафе','Здоровье','Дом','Транспорт','Подписки','Одежда','Путешествия','Импорт банка'].forEach(x=>addCat(x,'finance'));
+    ['Личное','Дом','Учёба','Здоровье','Документы','Идеи'].forEach(x=>addCat(x,'task'));
+    ['Финансовая цель','Личная цель','Покупка','Путешествие'].forEach(x=>addCat(x,'goal'));
+    if(!state.dataCore) state.dataCore={};
+    state.dataCore.schema = Math.max(num(state.dataCore.schema), 430);
+    state.dataCore.personalEngine = SBOS_V43;
+  }catch(e){ console.warn('V43 personal cleanup failed', e); }
+}
+try{
+  const __v43_oldV42EnsureData = typeof v42EnsureData === 'function' ? v42EnsureData : null;
+  if(__v43_oldV42EnsureData){
+    v42EnsureData = function(){ const r=__v43_oldV42EnsureData.apply(this, arguments); v43PersonalCleanup(); return r; };
+  }
+}catch(_e){}
+try{
+  v42ColorForType = function(type){ return ({finance:'#6f8f72',task:'#6c95d8',goal:'#74b57f',import:'#5f7f88',life:'#d98b33'}[type]||'#7a6b5f'); };
+  v42TypeLabel = function(t){ return ({finance:'Финансы',task:'Задачи',goal:'Цели',import:'Импорт',life:'Личное'}[t]||'Личное'); };
+}catch(_e){}
+function v43RemoveCRMNav(){
+  try{
+    if(Array.isArray(navGroups)) navGroups.forEach(g=>{ if(Array.isArray(g[1])) g[1]=g[1].filter(x=>x && x[0] !== 'clients'); });
+    if(pageTitles) delete pageTitles.clients;
+  }catch(e){ console.warn('V43 nav cleanup failed', e); }
+}
+try{
+  const __v43_oldV42AddNavigation = typeof v42AddNavigation === 'function' ? v42AddNavigation : null;
+  if(__v43_oldV42AddNavigation){
+    v42AddNavigation = function(){ const r=__v43_oldV42AddNavigation.apply(this, arguments); v43RemoveCRMNav(); return r; };
+  }
+}catch(_e){}
+function v43Kpi(label,value,sub,tone='') { return `<article class="metric ${tone}"><b>${value}</b><span>${esc(label)}</span>${sub?`<small>${esc(sub)}</small>`:''}</article>`; }
+function v43MoneyFocus(){
+  const s=monthSummary(); const c=v43Control();
+  const net = num(s.income)-num(s.expenses);
+  const plan = num(c.plan);
+  const planLeft = plan ? Math.max(0, plan - net) : 0;
+  return {s,c,net,plan,planLeft,calcBalance:num(c.startBalance)+net, diff:num(c.factBalance)?num(c.factBalance)-(num(c.startBalance)+net):0};
+}
+function v43PersonalDashboard(){
+  v43PersonalCleanup();
+  const f=v43MoneyFocus();
+  const today=(state.tasks||[]).filter(t=>t.status!=='Готово' && (!t.due || t.due<=todayKey())).slice(0,6);
+  const overdue=(state.tasks||[]).filter(t=>t.status!=='Готово' && t.due && t.due<todayKey());
+  const dirty=(state.operations||[]).filter(o=>!String(o.category||'').trim() || /другое|импорт|без категории/i.test(String(o.category||''))).length;
+  const goals=(state.goals||[]).slice(0,4);
+  const imports=(state.importLogs||[]).slice(0,3);
+  const focus = dirty ? 'Разобрать импорт и категории' : (today[0]?.title || 'Обновить факт, план и баланс дня');
+  return `<div class="goals-head premium-page-head v43-head"><div><div class="page-label">Personal OS V43</div><h1>Главный экран</h1><p class="sub">Личный центр управления: деньги, импорт, задачи, цели и порядок в данных. Без CRM и привязки к работе.</p></div><div class="top-actions"><button class="primary" data-action="quickMenu">⚡ Быстрый ввод</button><button class="ghost" data-page="import">Импорт</button><button class="ghost" data-action="editMonthControl">План / баланс</button></div></div>
+  <div class="metrics v43-metrics">${v43Kpi('Фокус дня',esc(focus),'главное действие','focus')} ${v43Kpi('Факт месяца',money(f.net),`доход ${money(f.s.income)} / расход ${money(f.s.expenses)}`)} ${v43Kpi('План',f.plan?money(f.plan):'не задан',f.plan?`осталось ${money(f.planLeft)}`:'заполни план месяца')} ${v43Kpi('Баланс',f.c.factBalance?money(f.c.factBalance):money(f.calcBalance),f.c.factBalance?`расхождение ${money(f.diff)}`:'расчётный')} ${v43Kpi('На разбор',dirty,'операций без нормальной категории',dirty?'warn':'')}</div>
+  <div class="v43-dashboard-grid"><section class="card panel v43-focus-card"><div class="section-head"><div><h3>Сегодня</h3><p class="sub">Личные задачи и действия без рабочего CRM-слоя.</p></div><button class="ghost small" data-action="addTask">＋ Задача</button></div>${today.length?today.map(t=>`<div class="line-row"><div><b>${esc(t.title)}</b><p class="sub">${esc(t.area||'Личное')} · ${esc(t.due||'без срока')} · ${esc(t.priority||'')}</p></div><button class="ghost small" data-action="editTask" data-id="${t.id}">Открыть</button></div>`).join(''):'<div class="empty">На сегодня нет срочных задач</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Деньги месяца</h3><p class="sub">Факт, план, стартовый и фактический баланс.</p></div><button class="primary small" data-action="editMonthControl">Настроить</button></div><div class="money-list"><p><span>Доходы</span><b class="green-text">${money(f.s.income)}</b></p><p><span>Расходы</span><b class="red-text">${money(f.s.expenses)}</b></p><p><span>Расчётный баланс</span><b>${money(f.calcBalance)}</b></p><p><span>Фактический баланс</span><b>${f.c.factBalance?money(f.c.factBalance):'—'}</b></p></div></section>
+  <section class="card panel"><div class="section-head"><div><h3>Импорт и категории</h3><p class="sub">Качество данных после CSV / Excel.</p></div><button class="ghost small" data-page="categories">Категории</button></div>${imports.length?imports.map(l=>`<div class="line-row"><div><b>${esc(l.fileName||l.mode||'Импорт')}</b><p class="sub">${esc((l.createdAt||'').slice(0,16).replace('T',' '))} · ${num(l.count)} строк</p></div><span class="tag green">OK</span></div>`).join(''):'<div class="empty">Импортов пока нет</div>'}${dirty?`<div class="notice warn">${dirty} операций нужно разнести по категориям</div>`:''}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Цели</h3><p class="sub">Личные и финансовые ориентиры.</p></div><button class="ghost small" data-page="goals">Открыть</button></div>${goals.length?goals.map(g=>`<div class="line-row"><div><b>${esc(g.title||g.name||'Цель')}</b><p class="sub">${esc(g.area||'')} · ${esc(g.deadline||g.due||'')}</p></div><span class="tag blue">${esc(g.status||'в работе')}</span></div>`).join(''):'<div class="empty">Целей пока нет</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Быстрые действия</h3><p class="sub">Фиксация жизни в один клик.</p></div><span class="tag green">V43</span></div><div class="v43-action-grid"><button class="primary" data-action="quickMenu">Быстрый ввод</button><button class="ghost" data-action="addExpense">Расход</button><button class="ghost" data-action="addIncome">Доход</button><button class="ghost" data-page="import">Импорт</button><button class="ghost" data-page="categories">Категории</button><button class="ghost" data-page="diagnostics">Диагностика</button></div></section></div>`;
+}
+function v43CategoryRows(){ return (state.categories||[]).filter(c=>!c.archived && !['client','deal'].includes(String(c.type||''))).sort((a,b)=>String(a.type).localeCompare(String(b.type))||String(a.name).localeCompare(String(b.name))); }
+function v43CategoryOptions(selected='', typeFilter=''){
+  v43PersonalCleanup(); const cats=v43CategoryRows().filter(c=>!typeFilter || c.type===typeFilter);
+  return cats.map(c=>`<option value="${esc(c.name)}" ${c.name===selected?'selected':''}>${esc(c.name)} · ${esc(v42TypeLabel(c.type))}</option>`).join('');
+}
+function categories(){
+  v43PersonalCleanup();
+  const rows=v43CategoryRows();
+  const stats={all:rows.length, finance:rows.filter(c=>c.type==='finance').length, task:rows.filter(c=>c.type==='task').length, goal:rows.filter(c=>c.type==='goal').length, used:rows.filter(c=>v42CategoryUsage(c)>0).length};
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Personal Category Center V43</div><h1>Категории</h1><p class="sub">Единый центр личных категорий: финансы, задачи, цели и импорт. CRM-категории скрыты.</p></div><div class="top-actions"><button class="primary" data-action="addCategory">＋ Категория</button><button class="ghost" data-action="mergeCategories">Объединить</button><button class="ghost" data-action="buildCategoryRules">Автоправила</button></div></div>
+  <div class="metrics">${v43Kpi('Всего',stats.all,'активных категорий')} ${v43Kpi('Финансы',stats.finance,'для операций')} ${v43Kpi('Задачи',stats.task,'личные области')} ${v43Kpi('Цели',stats.goal,'ориентиры')} ${v43Kpi('Используются',stats.used,'есть связи')}</div>
+  <section class="card panel"><div class="section-head"><div><h3>Все категории</h3><p class="sub">Можно переименовать, объединить или архивировать лишнее после импорта.</p></div><span class="tag green">личный центр</span></div><div class="table-wrap"><table class="table v42-table"><thead><tr><th>Категория</th><th>Тип</th><th>Использований</th><th>Сумма</th><th>Действия</th></tr></thead><tbody>${rows.map(c=>`<tr><td><span class="v42-color-dot" style="background:${esc(c.color||v42ColorForType(c.type))}"></span><b>${esc(c.name)}</b></td><td><span class="tag blue">${esc(v42TypeLabel(c.type))}</span></td><td>${v42CategoryUsage(c)}</td><td>${c.type==='finance'?money(v42CategoryAmount(c.name)):'—'}</td><td><button class="ghost small" data-action="editCategory" data-id="${c.id}">Открыть</button><button class="danger-btn small" data-action="archiveCategory" data-id="${c.id}">Архив</button></td></tr>`).join('') || '<tr><td colspan="5"><div class="empty">Категорий пока нет</div></td></tr>'}</tbody></table></div></section>
+  <section class="card panel"><div class="section-head"><div><h3>Автоправила импорта</h3><p class="sub">Если в описании операции есть ключевое слово — категория ставится автоматически.</p></div><button class="primary small" data-action="addCategoryRule">＋ Правило</button></div>${(state.settings.categoryRules||[]).length?state.settings.categoryRules.map(r=>`<div class="line-row"><div><b>${esc(r.keyword)}</b><p class="sub">→ ${esc(r.category)} · ${esc(r.type||'finance')}</p></div><button class="danger-btn small" data-action="deleteCategoryRule" data-id="${r.id}">Удалить</button></div>`).join(''):'<div class="empty">Правил пока нет. Добавь “газпром → Бензин”, “кофе → Кафе”.</div>'}</section>`;
+}
+function addCategory(){ openModal('Новая категория', `<div class="form-grid"><label>Название<input id="mCategoryName" placeholder="Например: Бензин"></label><label>Тип<select id="mCategoryType"><option value="finance">Финансы</option><option value="task">Задачи</option><option value="goal">Цели</option><option value="import">Импорт</option><option value="life">Личное</option></select></label><label>Цвет<input id="mCategoryColor" value="#6f8f72"></label></div><div class="top-actions"><button class="primary" data-action="saveCategory">Сохранить</button></div>`); }
+function editCategory(id){ v43PersonalCleanup(); const c=state.categories.find(x=>x.id===id); if(!c) return; openModal('Категория', `<div class="form-grid"><label>Название<input id="mCategoryName" value="${esc(c.name)}"></label><label>Тип<select id="mCategoryType"><option value="finance" ${c.type==='finance'?'selected':''}>Финансы</option><option value="task" ${c.type==='task'?'selected':''}>Задачи</option><option value="goal" ${c.type==='goal'?'selected':''}>Цели</option><option value="import" ${c.type==='import'?'selected':''}>Импорт</option><option value="life" ${c.type==='life'?'selected':''}>Личное</option></select></label><label>Цвет<input id="mCategoryColor" value="${esc(c.color||v42ColorForType(c.type))}"></label><label class="full">Использований<input readonly value="${v42CategoryUsage(c)}"></label></div><div class="top-actions"><button class="primary" data-action="saveCategoryEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="archiveCategory" data-id="${id}">В архив</button></div>`); }
+function mergeCategories(){ v43PersonalCleanup(); openModal('Объединить категории', `<div class="form-grid"><label>Что заменить<select id="mCatFrom">${v43CategoryOptions()}</select></label><label>На какую категорию<select id="mCatTo">${v43CategoryOptions()}</select></label></div><p class="sub">Все операции и задачи со старой категорией будут перенесены в новую. Старая категория уйдёт в архив.</p><div class="top-actions"><button class="primary" data-action="saveCategoryMerge">Объединить</button></div>`); }
+function addCategoryRule(){ openModal('Новое автоправило', `<div class="form-grid"><label>Ключевое слово<input id="mRuleKeyword" placeholder="газпром, кофе, аптека"></label><label>Категория<select id="mRuleCategory">${v43CategoryOptions('', 'finance')}</select></label><label class="full">Новая категория, если нет в списке<input id="mRuleCustom" placeholder="например: Бензин"></label></div><div class="top-actions"><button class="primary" data-action="saveCategoryRule">Сохранить правило</button></div>`); }
+function quickMenu(){ openModal('Быстрый ввод V43', `<div class="quick-v42"><p class="sub">Пиши обычным языком: “завтра оплатить интернет 900”, “расход бензин 3000”, “доход проект 50000”, “сегодня разобрать документы”. Приложение создаст задачу или операцию — без клиентов и CRM.</p><textarea id="mQuickText" class="quick-textarea" placeholder="Что нужно зафиксировать?"></textarea><div class="v43-action-grid"><button class="primary" data-action="createQuickCapture">Разобрать и создать</button><button class="ghost" data-action="addTask">Обычная задача</button><button class="ghost" data-action="addExpense">Расход</button><button class="ghost" data-action="addIncome">Доход</button></div></div>`); }
+function createQuickCapture(){
+  v43PersonalCleanup(); const parsed=v42QuickParse(val('mQuickText')); if(!parsed.text) return toast('Напиши текст');
+  state.quickCaptures.unshift({id:uid(),text:parsed.text,createdAt:new Date().toISOString(),parsed,engine:'v43'});
+  if(parsed.isExpense || parsed.isIncome){
+    state.operations.unshift({id:uid(),date:todayKey(),type:parsed.isIncome?'income':'expense',amount:parsed.amount,category:parsed.isIncome?'Доход':'Быстрый ввод',note:parsed.text,source:'quick-v43'});
+  } else {
+    state.tasks.unshift({id:uid(),title:parsed.text,area:'Личное',due:parsed.due||todayKey(),time:'',priority:'Средний',status:'В работе',goalId:'',nextAction:''});
+  }
+  v42LogAction('quick','Быстрый ввод V43: '+parsed.text,parsed); save(); closeModal(); render(); toast('Быстрый ввод обработан');
+}
+function editMonthControl(){
+  v43PersonalCleanup(); const c=v43Control(); const f=v43MoneyFocus();
+  openModal('План и баланс месяца', `<div class="form-grid"><label>План месяца<input id="mMonthPlan" type="number" value="${num(c.plan)}" placeholder="например: 120000"></label><label>Начальный баланс<input id="mStartBalance" type="number" value="${num(c.startBalance)}" placeholder="остаток на начало месяца"></label><label>Фактический баланс сейчас<input id="mFactBalance" type="number" value="${num(c.factBalance)}" placeholder="сколько реально сейчас"></label><label class="full">Комментарий<textarea id="mMonthNote" placeholder="заметки по месяцу">${esc(c.note||'')}</textarea></label></div><div class="notice">Расчётный баланс сейчас: <b>${money(f.calcBalance)}</b>. ${c.factBalance?`Расхождение: <b>${money(f.diff)}</b>`:'Заполни фактический баланс для сверки.'}</div><div class="top-actions"><button class="primary" data-action="saveMonthControl">Сохранить</button></div>`);
+}
+function saveMonthControl(){ const c=v43Control(); c.plan=num(val('mMonthPlan')); c.startBalance=num(val('mStartBalance')); c.factBalance=num(val('mFactBalance')); c.note=val('mMonthNote'); c.updatedAt=new Date().toISOString(); v42LogAction('finance','Обновлены план и баланс месяца',{month:v43MonthKey(),control:c}); save(); closeModal(); render(); toast('План и баланс сохранены'); }
+function v43HealthReport(){
+  v43PersonalCleanup(); const base = typeof v42HealthReport==='function' ? v42HealthReport() : {};
+  const visiblePages=Array.from(document.querySelectorAll('[data-page]')).map(x=>x.dataset.page).filter(Boolean);
+  const dirty=(state.operations||[]).filter(o=>!String(o.category||'').trim() || /другое|импорт|без категории/i.test(String(o.category||''))).length;
+  return Object.assign({}, base, {version:SBOS_V43_DISPLAY, mode:'personal', crmVisible:visiblePages.includes('clients'), dirtyOperations:dirty, monthControl:v43Control(), personalCategories:v43CategoryRows().length});
+}
+function diagnostics(){ const r=v43HealthReport(); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V43</div><h1>Диагностика</h1><p class="sub">Проверка кнопок, данных, категорий, импортов, кэша и личного режима без CRM.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить</button><button class="ghost" data-action="repairHealth">Починить автоматически</button><button class="ghost" data-action="prepareSafeUpdate">Страховка</button></div></div><div class="metrics">${v43Kpi('Статус',r.crmVisible?'Проверить':'OK',r.crmVisible?'CRM ещё видна в меню':'личный режим включён',r.crmVisible?'warn':'')} ${v43Kpi('Категорий',r.personalCategories,'личный центр')} ${v43Kpi('На разбор',r.dirtyOperations,'операций')} ${v43Kpi('Размер',((r.bytes||0)/1024).toFixed(1)+' КБ','localStorage')}</div><section class="card panel"><div class="section-head"><div><h3>Отчёт системы</h3><p class="sub">Технический снимок текущего экрана и базы.</p></div><span class="tag blue">${esc(SBOS_V43_DISPLAY)}</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><h3>Журнал действий</h3><span class="tag">${(state.actionLog||[]).length}</span></div>${(state.actionLog||[]).slice(0,12).map(x=>`<div class="line-row"><div><b>${esc(x.message||x.type)}</b><p class="sub">${esc((x.at||'').slice(0,19).replace('T',' '))} · ${esc(x.page||'')}</p></div><span class="tag blue">${esc(x.type||'log')}</span></div>`).join('') || '<div class="empty">Журнал пока пуст</div>'}</section>`; }
+function runHealthCheck(){ openModal('Проверка системы V43', `<pre class="diagnostic-pre">${esc(JSON.stringify(v43HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }
+function repairHealth(){ v43PersonalCleanup(); v43RemoveCRMNav(); try{ if(typeof saveLocalSnapshot==='function') saveLocalSnapshot('v43-personal-auto-repair'); }catch(_e){} v42LogAction('repair','Автопроверка и ремонт V43 Personal OS',{report:v43HealthReport()}); save(); closeModal(); render(); toast('Личный режим проверен и нормализован'); }
+function v43PatchVisibleVersion(){ try{ const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=SBOS_V43_DISPLAY; document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V43'; }); document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='PERSONAL OS'; }); document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V43_DISPLAY; }); }catch(_e){} }
+function injectV43Styles(){
+  if(document.getElementById('v43PersonalStyles')) return; const st=document.createElement('style'); st.id='v43PersonalStyles'; st.textContent=`
+  .v43-head h1{letter-spacing:-.045em}.v43-dashboard-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}.v43-metrics .metric.focus{grid-column:span 2;background:linear-gradient(135deg,rgba(111,143,114,.14),rgba(255,255,255,.8))}.v43-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v43-focus-card{box-shadow:0 22px 70px rgba(31,23,18,.08)}.v43-import-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:14px 0}.v43-step{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.72);padding:12px}.v43-step b{display:block}.v43-step span{font-size:12px;color:var(--muted)}.notice.warn{border-color:rgba(214,113,82,.35);background:rgba(214,113,82,.08)}
+  @media(max-width:980px){.v43-dashboard-grid{grid-template-columns:1fr}.v43-metrics .metric.focus{grid-column:auto}.v43-import-steps{grid-template-columns:1fr 1fr}.v43-action-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.v43-import-steps,.v43-action-grid{grid-template-columns:1fr}.v43-dashboard-grid{gap:12px}.v43-head .top-actions{display:grid;grid-template-columns:1fr;gap:8px;width:100%}}
+  `; document.head.appendChild(st);
+}
+try{
+  v43PersonalCleanup(); v43RemoveCRMNav(); injectV43Styles();
+  dashboard = function(){ return v43PersonalDashboard(); };
+  const __v43_oldImportPage = typeof importPage === 'function' ? importPage : null;
+  if(__v43_oldImportPage){ importPage = function(){ v43PersonalCleanup(); return `<div class="goals-head premium-page-head"><div><div class="page-label">Import Master V43</div><h1>Импорт и сверка</h1><p class="sub">Пошаговая проверка файла: загрузка, колонки, категории, факт / план / баланс и финальное подтверждение.</p></div><div class="top-actions"><button class="primary" data-action="editMonthControl">План / баланс</button><button class="ghost" data-page="categories">Категории</button></div></div><section class="card panel"><div class="section-head"><div><h3>Мастер импорта</h3><p class="sub">Перед сохранением проверь категории и расхождение баланса.</p></div><span class="tag green">V43</span></div><div class="v43-import-steps"><div class="v43-step"><b>1. Файл</b><span>CSV / Excel</span></div><div class="v43-step"><b>2. Колонки</b><span>дата, сумма, описание</span></div><div class="v43-step"><b>3. Категории</b><span>выбор и автоправила</span></div><div class="v43-step"><b>4. Баланс</b><span>план, факт, остаток</span></div><div class="v43-step"><b>5. Сохранение</b><span>безопасный импорт</span></div></div></section><div class="v43-import-body">${__v43_oldImportPage.apply(this, arguments)}</div>`; } }
+  route = function(){ const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts,categories,diagnostics,operations:typeof operations==='function'?operations:undefined,reconcile:typeof reconcile==='function'?reconcile:undefined}; if(activePage==='clients') activePage='dashboard'; return (map[activePage]||dashboard)(); };
+  mobileNav = function(){ const items=[['dashboard','⌂','Главная'],['import','⇪','Импорт'],['quick','＋',''],['finance','₽','Финансы'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; };
+  const __v43_oldHandleAction = typeof handleAction === 'function' ? handleAction : null;
+  if(__v43_oldHandleAction){ handleAction = function(a, el){ if(a==='editMonthControl') return editMonthControl(); if(a==='saveMonthControl') return saveMonthControl(); return __v43_oldHandleAction.apply(this, arguments); }; }
+  const __v43_oldV412Dispatch = typeof v412Dispatch === 'function' ? v412Dispatch : null;
+  if(__v43_oldV412Dispatch){ v412Dispatch = function(a, el){ if(['editMonthControl','saveMonthControl'].includes(a)) return handleAction(a, el); return __v43_oldV412Dispatch.apply(this, arguments); }; }
+  const __v43_oldRender = typeof render === 'function' ? render : null;
+  if(__v43_oldRender){ render = function(){ v43PersonalCleanup(); v43RemoveCRMNav(); const r=__v43_oldRender.apply(this, arguments); injectV43Styles(); v43PatchVisibleVersion(); return r; }; }
+  const __v43_oldOpenModal = typeof openModal === 'function' ? openModal : null;
+  if(__v43_oldOpenModal){ openModal = function(){ const r=__v43_oldOpenModal.apply(this, arguments); injectV43Styles(); v43PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV43={v43PersonalCleanup,v43HealthReport,v43Control,categories,diagnostics};
+  v42LogAction('system','Установлен личный режим V43 Personal OS',{version:SBOS_V43});
+  save({reason:'v43-personal-os'}); render(); v43PatchVisibleVersion(); setTimeout(v43PatchVisibleVersion,250); setTimeout(v43PatchVisibleVersion,1500); setTimeout(v43PatchVisibleVersion,2600);
+}catch(e){ console.warn('V43 Personal OS failed', e); }
+try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {personalEngine:SBOS_V43, v43HealthReport, v43PersonalCleanup}); }catch(_e){}
