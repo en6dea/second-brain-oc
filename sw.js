@@ -1,9 +1,8 @@
-const CACHE_NAME = 'second-brain-os-v40-10-button-runtime-balance-private-20260629';
-const APP_SHELL = [
-  './',
-  './index.html?v=v40-10-button-runtime-balance-private-20260629',
+const CACHE_NAME = 'second-brain-os-v40-11-update-safe-private-20260629';
+const RELEASE = 'v40-11-update-safe-private-20260629';
+const STATIC_ASSETS = [
   './offline.html',
-  './manifest.webmanifest?v=v40-10-button-runtime-balance-private-20260629',
+  './manifest.webmanifest?v=' + RELEASE,
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png'
@@ -11,41 +10,53 @@ const APP_SHELL = [
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL).catch(() => null)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS).catch(() => null))
+  );
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+    await caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS).catch(() => null));
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) client.postMessage({ type: 'SBOS_SW_READY', release: RELEASE });
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SBOS_SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'SBOS_CLEAR_CACHES') {
+    event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
+  }
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (event.request.mode === 'navigate') {
+
+  // HTML/navigation is always network-first and is never written back as stale index.
+  if (event.request.mode === 'navigate' || (event.request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html?v=v40-10-button-runtime-balance-private-20260629', copy)).catch(()=>{});
-          return response;
-        })
-        .catch(() => caches.match('./index.html?v=v40-10-button-runtime-balance-private-20260629').then(r => r || caches.match('./offline.html')))
+        .catch(() => caches.match('./offline.html'))
     );
     return;
   }
+
   if (url.origin === location.origin) {
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        const fetched = fetch(event.request, { cache: 'no-store' }).then(response => {
-          if (response && response.ok) caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone())).catch(()=>{});
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => {
+          if (response && response.ok && !url.pathname.endsWith('/index.html')) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => null);
+          }
           return response;
-        }).catch(() => cached);
-        return cached || fetched;
-      })
+        })
+        .catch(() => caches.match(event.request))
     );
   }
 });
