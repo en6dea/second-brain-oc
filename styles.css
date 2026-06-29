@@ -152,3 +152,25 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 .bank-rules-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.bank-rules-grid>div{padding:14px;border:1px solid var(--line2);border-radius:16px;background:rgba(255,255,255,.68)}.bank-rules-grid b{display:block;margin-bottom:5px}.bank-rules-grid span{color:var(--muted);font-size:13px;line-height:1.35}
 .bank-import-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.bank-import-summary .metric{min-height:110px}.import-note{border:1px solid var(--line2);border-radius:18px;background:#fffdf8;padding:14px;margin-bottom:14px}.import-note p{margin:5px 0 0}.import-preview-table{max-height:420px;overflow:auto}.import-preview-table .table{min-width:760px}.tag.amber{background:#fff4de;color:#9a661e;border-color:#f0d5a7}
 @media (max-width:760px){.bank-rules-grid,.bank-import-summary{grid-template-columns:1fr 1fr}.bank-drop{min-height:150px}.bank-drop b{font-size:18px}.import-preview-table{max-height:360px}}
+
+/* V40.5 Operation Review */
+.operation-filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px;align-items:end}
+.operation-filter-grid label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.operation-filter-grid input,.operation-filter-grid select,.mini-select{width:100%;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:10px 12px;color:var(--text);font:inherit}
+.operations-table-wrap{max-height:68vh;overflow:auto}
+.operations-review-table th{position:sticky;top:0;background:var(--card);z-index:2}
+.operations-review-table td{vertical-align:top;min-width:96px}
+.operation-note-cell{min-width:260px;max-width:420px}
+.operation-note-cell small{display:block;color:var(--muted);margin-top:3px;line-height:1.25}
+.category-inline{min-width:180px}
+.mini-check{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--muted)}
+.mini-check.wide{padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.45)}
+tr.needs-review td{background:rgba(239,174,83,.08)}
+.pay-row.big-pay span small{display:block;color:var(--muted);font-weight:500;margin-top:4px}
+@media (max-width: 760px){
+  .operation-filter-grid{grid-template-columns:1fr 1fr}
+  .operation-filter-grid .ghost{grid-column:1/-1}
+  .operations-table-wrap{max-height:none;overflow-x:auto}
+  .operation-note-cell{min-width:220px}
+  .category-inline{min-width:170px}
+}

@@ -1,8 +1,8 @@
-/* Second Brain OS — Modal Actions Fix Private V40.4 */
+/* Second Brain OS — Operation Review Private V40.5 */
 'use strict';
 
-const RELEASE = 'v40-4-modal-actions-fix-private-20260629';
-const DATA_VERSION = 403;
+const RELEASE = 'v40-5-operation-review-private-20260629';
+const DATA_VERSION = 405;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -222,7 +222,7 @@ function mobileHeaderTitle(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.4</b><span class="sync-dot">MODAL ACTIONS OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.5</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -318,7 +318,7 @@ function sync(){
   const r = integrityReport();
   const ok = r.status === 'ok';
   const mb = (r.bytes/1024).toFixed(1) + ' КБ';
-  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.4</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.4</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
+  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.5</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
 }
 function settings(){ return `<div class="goals-head"><div><div class="page-label">Настройки системы</div><h1>Настройки</h1><p class="sub">Настрой роль, стиль прохождения и антисписок недели.</p></div></div><section class="card"><div class="form-grid"><label>Класс персонажа<input id="rpgClass" value="${esc(state.rpg.class||'')}"></label><label>Ранг<input id="rpgRank" value="${esc(state.rpg.rank||'')}"></label><label class="full">Что нельзя делать на неделе<textarea id="weekNoList">${esc(state.settings.weekNoList||'')}</textarea></label></div><button class="primary" data-action="saveSettings">Сохранить изменения</button></section>`; }
 function week(){ return `<div class="goals-head"><div><div class="page-label">План недели</div><h1>Неделя</h1><p class="sub">Фокус недели, ближайшие платежи и квесты.</p></div><button class="primary" data-action="weeklyReview">Сформировать обзор</button></div>${dashboard().split('<div class="home-grid">')[1] ? '<section class="card"><h3>Сводка недели</h3><p class="sub">Используй обзор недели на главной и цели как основной фокус.</p></section>' : ''}`; }
@@ -366,7 +366,7 @@ function exportBackup(){
   const payload = backupPayload('manual-download');
   state.dataCore.lastBackupAt = payload.createdAt;
   save({snapshot:true});
-  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-4.json`);
+  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-5.json`);
   toast('Полный бэкап скачан');
 }
 function createManualSnapshot(){
@@ -533,7 +533,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.4 MODAL FIX';
+    $('#releaseBadge').textContent='V40.5 OP REVIEW';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -551,7 +551,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.4 MODAL FIX — final app pass
+   V40.5 OP REVIEW — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -643,7 +643,7 @@ dashboard = function(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.4</b><span class="sync-dot">MODAL ACTIONS OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.5</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 
 function editOperation(id){ const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена'); openModal('Изменить операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<input id="mCategory" value="${esc(o.category||'')}"></label><label class="full">Комментарий<input id="mNote" value="${esc(o.note||'')}"></label></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`); }
@@ -778,7 +778,7 @@ function importCsvFile(event){
   reader.onload=()=>{ const rows=parseBankStatementText(reader.result); if(!rows.length) return toast('Не нашёл операции в файле'); previewBankImport(rows, file.name); };
   reader.readAsText(file);
 }
-function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.4</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
+function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.5</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
 
 function editPerson(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; openModal('Изменить человека', `<div class="form-grid"><label>Имя<input id="mName" value="${esc(p.name||'')}"></label><label>Тип связи<input id="mRelation" value="${esc(p.relation||'')}"></label><label>День рождения<input id="mBirthday" type="date" value="${esc(p.birthday||'')}"></label><label class="full">Что любит<input id="mLikes" value="${esc(p.likes||'')}"></label><label class="full">О чём поговорить<input id="mTalk" value="${esc(p.talkIdeas||'')}"></label><label class="full">Идеи подарков<input id="mGifts" value="${esc(p.gifts||'')}"></label><label class="full">Заметка<textarea id="mNotes">${esc(p.notes||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="savePersonEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deletePerson" data-id="${id}">Удалить</button></div>`); }
 function savePersonEdit(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; Object.assign(p,{name:val('mName')||'Человек',relation:val('mRelation'),birthday:val('mBirthday'),likes:val('mLikes'),talkIdeas:val('mTalk'),gifts:val('mGifts'),notes:val('mNotes')}); save(); closeModal(); render(); toast('Контакт обновлён'); }
@@ -811,7 +811,7 @@ function saveBookEdit(id){ const b=(state.books||[]).find(x=>x.id===id); if(!b) 
 function deleteBook(id){ state.books=(state.books||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Книга удалена'); }
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Библиотека роста: книги, статус и главный инсайт.</p></div><button class="primary" data-action="addBook">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3><span class="tag">${state.books.length}</span></div>${state.books.length?state.books.map(b=>`<div class="line-row"><div><b>${esc(b.title)}</b><p class="sub">${esc(b.author||'')} · ${esc(b.status||'')}</p></div><button class="ghost small" data-action="editBook" data-id="${b.id}">Открыть</button></div>`).join(''):'<div class="empty">Книг пока нет</div>'}</section>`; }
 
-function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.4</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.4</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
+function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.5</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
 
 function handleAction(a, el){
   const id=el?.dataset?.id;
@@ -844,7 +844,7 @@ addTask = function(goalId='', presetDate=''){ openModal('Новая задача
 
 
 
-/* V40.4 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
+/* V40.5 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
 function isBankOperation(o){ return o && (o.source==='bank-csv' || String(o.sourceId||'').startsWith('bank_')); }
 function operationDateKey(o){ return String((o&&o.date)||'').slice(0,10); }
 function operationInPeriod(o, from, to){
@@ -963,7 +963,7 @@ function confirmBankReplaceImport(){
 importPage = function(){
   const r=currentMonthRange();
   const s=operationCleanupSummary(r.from,r.to,'all');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.4</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.5</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
 }
 const __v403_oldHandleAction = handleAction;
 handleAction = function(a, el){
@@ -973,6 +973,269 @@ handleAction = function(a, el){
   if(a==='confirmBankReplaceImport') return confirmBankReplaceImport();
   return __v403_oldHandleAction(a, el);
 }
+
+
+/* V40.5 OPERATION REVIEW — category + debt assignment center */
+const SBOS_CATEGORIES_V405 = [
+  'Продукты','Кафе и рестораны','Кофе','Транспорт','Такси','Авто / бензин','Маркетплейсы','Одежда','Дом','Здоровье','Аптеки','Связь / интернет','Подписки','Обучение','Развлечения','Подарки','Путешествия','Переводы','Копилка / сбережения','Долги / обязательства','Кредиты','Налоги','Доход','Зарплата','Проект','Возврат','Другое'
+];
+function ensureFinanceMeta(){
+  state.settings ||= {};
+  state.settings.categoryRules = Array.isArray(state.settings.categoryRules) ? state.settings.categoryRules : [];
+  state.debts = Array.isArray(state.debts) ? state.debts : [];
+  state.operations = Array.isArray(state.operations) ? state.operations : [];
+  state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+}
+function categoryList(){
+  ensureFinanceMeta();
+  const fromOps = (state.operations||[]).map(o=>o.category).filter(Boolean);
+  const fromPayments = (state.plannedExpenses||[]).map(p=>p.category).filter(Boolean);
+  return Array.from(new Set([...SBOS_CATEGORIES_V405, ...fromOps, ...fromPayments])).sort((a,b)=>String(a).localeCompare(String(b),'ru'));
+}
+function categoryOptions(selected=''){
+  const sel=String(selected||'');
+  return categoryList().map(c=>`<option value="${esc(c)}" ${c===sel?'selected':''}>${esc(c)}</option>`).join('');
+}
+function activeDebtOptions(selected=''){
+  ensureFinanceMeta();
+  const rows=(state.debts||[]).filter(d=>d.status!=='Закрыт');
+  return `<option value="">Не привязано</option>` + rows.map(d=>`<option value="${esc(d.id)}" ${d.id===selected?'selected':''}>${d.direction==='owe'?'Я должен':'Мне должны'} · ${esc(d.person)} · ${money(d.amount)}</option>`).join('');
+}
+function debtById(id){ return (state.debts||[]).find(d=>d.id===id); }
+function operationDebtLabel(o){
+  if(!o || !o.debtId) return '<span class="tag">нет</span>';
+  const d=debtById(o.debtId);
+  if(!d) return '<span class="tag amber">долг удалён</span>';
+  const tone=d.direction==='owe'?'warn':'green';
+  return `<span class="tag ${tone}">${d.direction==='owe'?'мой долг':'мне должны'} · ${esc(d.person)}</span>`;
+}
+function operationSourceLabel(o){
+  if(isBankOperation(o)) return '<span class="tag blue">банк</span>';
+  return '<span class="tag">ручная</span>';
+}
+function operationNeedReview(o){
+  const c=String(o.category||'').toLowerCase();
+  return !c || c==='другое' || c==='прочие расходы' || c==='переводы' || c==='неизвестно';
+}
+function operationReviewRows(){
+  ensureFinanceMeta();
+  const month=localStorage.getItem('secondBrainOS.opMonth') || state.settings.currentMonth || monthKey();
+  const type=localStorage.getItem('secondBrainOS.opType') || 'all';
+  const debt=localStorage.getItem('secondBrainOS.opDebt') || 'all';
+  const review=localStorage.getItem('secondBrainOS.opReview') || 'all';
+  let rows=[...(state.operations||[])].filter(o=>String(o.date||'').startsWith(month));
+  if(type!=='all') rows=rows.filter(o=>o.type===type);
+  if(debt==='linked') rows=rows.filter(o=>!!o.debtId);
+  if(debt==='unlinked') rows=rows.filter(o=>!o.debtId);
+  if(review==='need') rows=rows.filter(operationNeedReview);
+  if(review==='limit') rows=rows.filter(o=>!!o.excludeFromLimit);
+  return rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,260);
+}
+function operationsStats(rows){
+  return {
+    count: rows.length,
+    expenses: rows.filter(o=>o.type==='expense'&&!o.excludeFromLimit).reduce((s,o)=>s+num(o.amount),0),
+    income: rows.filter(o=>o.type==='income'&&!o.excludeFromLimit).reduce((s,o)=>s+num(o.amount),0),
+    linked: rows.filter(o=>!!o.debtId).length,
+    need: rows.filter(operationNeedReview).length,
+    excluded: rows.filter(o=>!!o.excludeFromLimit).length
+  };
+}
+function operationsReview(){
+  ensureFinanceMeta();
+  const month=localStorage.getItem('secondBrainOS.opMonth') || state.settings.currentMonth || monthKey();
+  const type=localStorage.getItem('secondBrainOS.opType') || 'all';
+  const debt=localStorage.getItem('secondBrainOS.opDebt') || 'all';
+  const review=localStorage.getItem('secondBrainOS.opReview') || 'all';
+  const rows=operationReviewRows();
+  const st=operationsStats(rows);
+  const tableRows=rows.map(o=>`<tr class="${operationNeedReview(o)?'needs-review':''}"><td><b>${esc(o.date||'')}</b><br>${operationSourceLabel(o)}</td><td><select class="mini-select" data-op-type="${esc(o.id)}"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></td><td class="operation-note-cell"><b>${esc(o.note||'Без описания')}</b><small>${esc(o.merchant||o.comment||'')}</small></td><td><select class="mini-select category-inline" data-op-category="${esc(o.id)}">${categoryOptions(o.category||'Другое')}</select></td><td><b class="${o.type==='income'?'green-text':'red-text'}">${money(o.amount)}</b><label class="mini-check"><input type="checkbox" data-op-exclude="${esc(o.id)}" ${o.excludeFromLimit?'checked':''}> не в лимит</label></td><td>${operationDebtLabel(o)}</td><td><button class="ghost small" data-action="editOperation" data-id="${esc(o.id)}">Открыть</button></td></tr>`).join('');
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Разбор операций</div><h1>Операции и категории</h1><p class="sub">Здесь можно массово привести банковскую выгрузку в порядок: категории, лимит, долги и ручная правка каждой операции.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="import">Импорт CSV</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${st.count}</b><span>операций</span></article><article class="metric"><b class="red-text">${money(st.expenses)}</b><span>расходы в лимит</span></article><article class="metric"><b class="green-text">${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.linked}</b><span>связано с долгами</span></article><article class="metric"><b>${st.need}</b><span>на разбор</span></article></div><section class="card panel operation-review-panel"><div class="section-head"><div><h3>Фильтр операций</h3><p class="sub">Выбери месяц и правь прямо в таблице. Изменения сохраняются сразу.</p></div><span class="tag green">V40.5</span></div><div class="operation-filter-grid"><label>Месяц<input id="opFilterMonth" type="month" value="${esc(month)}"></label><label>Тип<select id="opFilterType"><option value="all" ${type==='all'?'selected':''}>Все</option><option value="expense" ${type==='expense'?'selected':''}>Расходы</option><option value="income" ${type==='income'?'selected':''}>Доходы</option></select></label><label>Долги<select id="opFilterDebt"><option value="all" ${debt==='all'?'selected':''}>Все</option><option value="linked" ${debt==='linked'?'selected':''}>Только с долгом</option><option value="unlinked" ${debt==='unlinked'?'selected':''}>Без долга</option></select></label><label>Разбор<select id="opFilterReview"><option value="all" ${review==='all'?'selected':''}>Все</option><option value="need" ${review==='need'?'selected':''}>Нужно разобрать</option><option value="limit" ${review==='limit'?'selected':''}>Не в лимит</option></select></label><button class="ghost" data-action="applyOperationFilters">Показать</button></div></section><section class="card panel"><div class="section-head"><div><h3>Операции месяца</h3><p class="sub">Категория, тип и “не в лимит” меняются прямо в строке. Для долга нажми “Открыть”.</p></div><button class="ghost small" data-action="applyCategoryRules">Применить правила</button></div><div class="table-wrap operations-table-wrap"><table class="table operations-review-table"><thead><tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Категория</th><th>Сумма</th><th>Долг</th><th></th></tr></thead><tbody>${tableRows || '<tr><td colspan="7"><div class="empty">Операций по фильтру нет</div></td></tr>'}</tbody></table></div></section>`;
+}
+function quickSetOperationCategory(id, category){
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
+  o.category=category||'Другое';
+  save(); render(); toast('Категория сохранена');
+}
+function quickSetOperationType(id, type){
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
+  o.type=type==='income'?'income':'expense';
+  save(); render(); toast('Тип операции сохранён');
+}
+function quickSetOperationExclude(id, checked){
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
+  o.excludeFromLimit=!!checked;
+  save(); render(); toast(checked?'Операция не в лимит':'Операция снова в лимите');
+}
+function applyOperationFilters(){
+  const m=val('opFilterMonth') || state.settings.currentMonth || monthKey();
+  const t=val('opFilterType') || 'all';
+  const d=val('opFilterDebt') || 'all';
+  const r=val('opFilterReview') || 'all';
+  localStorage.setItem('secondBrainOS.opMonth', m);
+  localStorage.setItem('secondBrainOS.opType', t);
+  localStorage.setItem('secondBrainOS.opDebt', d);
+  localStorage.setItem('secondBrainOS.opReview', r);
+  state.settings.currentMonth=m;
+  save(); render();
+}
+function merchantKeyword(note){
+  const s=String(note||'').toLowerCase().replace(/[^a-zа-яё0-9\s]/gi,' ').replace(/\s+/g,' ').trim();
+  const parts=s.split(' ').filter(w=>w.length>=4 && !/^\d+$/.test(w));
+  return parts.slice(0,3).join(' ');
+}
+function rememberCategoryRuleFromOperation(o, category, excludeFromLimit=false){
+  ensureFinanceMeta();
+  const keyword=merchantKeyword(o.note||o.merchant||'');
+  if(!keyword || !category) return null;
+  const existing=state.settings.categoryRules.find(r=>String(r.keyword||'').toLowerCase()===keyword);
+  if(existing){ existing.category=category; existing.excludeFromLimit=!!excludeFromLimit; existing.updatedAt=new Date().toISOString(); return existing; }
+  const rule={id:uid(), keyword, category, excludeFromLimit:!!excludeFromLimit, createdAt:new Date().toISOString()};
+  state.settings.categoryRules.unshift(rule);
+  return rule;
+}
+function operationMatchesRule(o, rule){
+  const hay=String(`${o.note||''} ${o.merchant||''} ${o.category||''}`).toLowerCase();
+  const key=String(rule.keyword||'').toLowerCase().trim();
+  return key && hay.includes(key);
+}
+function applyCategoryRules(){
+  ensureFinanceMeta();
+  let count=0;
+  for(const o of (state.operations||[])){
+    for(const rule of state.settings.categoryRules){
+      if(operationMatchesRule(o,rule)){
+        o.category=rule.category||o.category;
+        if(rule.excludeFromLimit!==undefined) o.excludeFromLimit=!!rule.excludeFromLimit;
+        count++; break;
+      }
+    }
+  }
+  save(); render(); toast(`Правила применены: ${count}`);
+}
+function enhancedEditOperation(id){
+  ensureFinanceMeta();
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена');
+  const currentDebt=o.debtId || '';
+  openModal('Разобрать операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<select id="mCategory">${categoryOptions(o.category||'Другое')}</select></label><label class="full">Своя категория<input id="mCategoryCustom" placeholder="Заполни, если нужна новая категория"></label><label class="full">Описание<input id="mNote" value="${esc(o.note||'')}"></label><label>Учитывать в лимите<select id="mLimit"><option value="yes" ${!o.excludeFromLimit?'selected':''}>Да, это реальный расход/доход</option><option value="no" ${o.excludeFromLimit?'selected':''}>Нет, не считать в лимит</option></select></label><label>Связь с долгом<select id="mDebtMode"><option value="none" ${!currentDebt?'selected':''}>Нет</option><option value="link" ${currentDebt?'selected':''}>Привязать к существующему долгу</option><option value="create_owe">Создать долг: я должен</option><option value="create_owed">Создать долг: мне должны</option><option value="payment">Это платёж / погашение долга</option></select></label><label class="full">Существующий долг<select id="mDebtId">${activeDebtOptions(currentDebt)}</select></label><label>Кто / кому для нового долга<input id="mDebtPerson" value="${esc((o.note||'').slice(0,60))}"></label><label>Дата возврата<input id="mDebtDue" type="date" value="${todayKey()}"></label><label class="full mini-check wide"><input id="mRememberRule" type="checkbox"> Запомнить правило для похожих операций</label><label class="full mini-check wide"><input id="mApplySimilar" type="checkbox"> Сразу применить категорию к похожим операциям</label></div><div class="import-note"><b>${isBankOperation(o)?'Импорт банка':'Ручная операция'}</b><p class="sub">Источник: ${esc(o.source||'manual')} · ${esc(o.status||'')} · ID не показывается в интерфейсе.</p></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить разбор</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`);
+}
+function enhancedSaveOperationEdit(id){
+  ensureFinanceMeta();
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
+  const category=(val('mCategoryCustom')||val('mCategory')||'Другое').trim();
+  const oldDebt=o.debtId || '';
+  Object.assign(o,{date:val('mDate')||todayKey(), type:val('mType')==='income'?'income':'expense', amount:num(val('mAmount')), category, note:val('mNote'), excludeFromLimit:val('mLimit')==='no'});
+  const mode=val('mDebtMode')||'none';
+  if(mode==='none'){
+    delete o.debtId; delete o.debtRole;
+  }else if(mode==='link' || mode==='payment'){
+    const debtId=val('mDebtId');
+    if(debtId){ o.debtId=debtId; o.debtRole=mode==='payment'?'payment':'linked'; }
+  }else if(mode==='create_owe' || mode==='create_owed'){
+    const direction=mode==='create_owe'?'owe':'owed_to_me';
+    const debt={id:uid(), direction, person:val('mDebtPerson')||o.note||'Без имени', amount:num(o.amount), due:val('mDebtDue')||'', status:direction==='owe'?'Активен':'Ожидаю', note:`Создано из операции: ${o.category}`, operationId:o.id};
+    state.debts.unshift(debt);
+    o.debtId=debt.id; o.debtRole='created';
+  }
+  if($('#mRememberRule')?.checked){ rememberCategoryRuleFromOperation(o, category, o.excludeFromLimit); }
+  if($('#mApplySimilar')?.checked){
+    const rule=rememberCategoryRuleFromOperation(o, category, o.excludeFromLimit);
+    if(rule){
+      for(const other of state.operations){ if(other.id!==o.id && operationMatchesRule(other, rule)){ other.category=category; other.excludeFromLimit=!!o.excludeFromLimit; } }
+    }
+  }
+  save(); closeModal(); render(); toast(oldDebt && oldDebt!==o.debtId ? 'Операция обновлена и перепривязана' : 'Операция разобрана');
+}
+function enhancedAddOperation(type){
+  openModal(type==='income'?'Новый доход':'Новый расход', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${todayKey()}"></label><label>Сумма<input id="mAmount" type="number" placeholder="0"></label><label>Категория<select id="mCategory">${categoryOptions(type==='income'?'Доход':'Другое')}</select></label><label class="full">Своя категория<input id="mCategoryCustom" placeholder="если нет в списке"></label><label class="full">Комментарий<input id="mNote"></label><label>Учитывать в лимите<select id="mLimit"><option value="yes">Да</option><option value="no">Нет</option></select></label><label>Связь с долгом<select id="mDebtMode"><option value="none">Нет</option><option value="link">Привязать к существующему</option><option value="create_owe">Создать долг: я должен</option><option value="create_owed">Создать долг: мне должны</option></select></label><label class="full">Существующий долг<select id="mDebtId">${activeDebtOptions('')}</select></label><label>Кто / кому для нового долга<input id="mDebtPerson"></label><label>Дата возврата<input id="mDebtDue" type="date" value="${todayKey()}"></label></div><div class="top-actions"><button class="primary" data-action="saveOperation" data-type="${type}">Сохранить</button></div>`);
+}
+function enhancedSaveOperation(type){
+  ensureFinanceMeta();
+  if(!num(val('mAmount'))) return toast('Укажи сумму');
+  const o={id:uid(), date:val('mDate')||todayKey(), type:type==='income'?'income':'expense', amount:num(val('mAmount')), category:(val('mCategoryCustom')||val('mCategory')||'Другое').trim(), note:val('mNote'), excludeFromLimit:val('mLimit')==='no', source:'manual'};
+  const mode=val('mDebtMode')||'none';
+  if(mode==='link'){
+    const debtId=val('mDebtId'); if(debtId){ o.debtId=debtId; o.debtRole='linked'; }
+  }else if(mode==='create_owe' || mode==='create_owed'){
+    const direction=mode==='create_owe'?'owe':'owed_to_me';
+    const d={id:uid(), direction, person:val('mDebtPerson')||o.note||'Без имени', amount:num(o.amount), due:val('mDebtDue')||'', status:direction==='owe'?'Активен':'Ожидаю', note:`Создано из операции: ${o.category}`, operationId:o.id};
+    state.debts.unshift(d); o.debtId=d.id; o.debtRole='created';
+  }
+  state.operations.unshift(o); save(); closeModal(); render(); toast('Операция добавлена');
+}
+function enhancedAddPayment(){
+  openModal('Плановый платёж', `<div class="form-grid"><label>Название<input id="mTitle"></label><label>Сумма<input id="mAmount" type="number"></label><label>Категория<select id="mCategory">${categoryOptions('Подписки')}</select></label><label>День месяца<input id="mDay" type="number" min="1" max="31" value="28"></label><label>Месяц<input id="mMonth" type="month" value="${state.settings.currentMonth}"></label><label class="full">Связать с долгом<select id="mDebtId">${activeDebtOptions('')}</select></label></div><div class="top-actions"><button class="primary" data-action="savePayment">Сохранить</button></div>`);
+}
+function enhancedSavePayment(){
+  ensureFinanceMeta();
+  state.plannedExpenses.unshift({id:uid(), title:val('mTitle')||'Платёж', amount:num(val('mAmount')), category:val('mCategory')||'Другое', day:num(val('mDay'))||1, month:val('mMonth')||state.settings.currentMonth, active:true, debtId:val('mDebtId')||''});
+  save(); closeModal(); render(); toast('Платёж добавлен');
+}
+function enhancedEditPayment(id){
+  ensureFinanceMeta();
+  const p=(state.plannedExpenses||[]).find(x=>x.id===id); if(!p) return;
+  openModal('Изменить платёж', `<div class="form-grid"><label>Название<input id="mTitle" value="${esc(p.title||'')}"></label><label>Сумма<input id="mAmount" type="number" value="${num(p.amount)}"></label><label>Категория<select id="mCategory">${categoryOptions(p.category||'Другое')}</select></label><label>День месяца<input id="mDay" type="number" min="1" max="31" value="${num(p.day)||1}"></label><label>Месяц<input id="mMonth" type="month" value="${esc(p.month||state.settings.currentMonth)}"></label><label>Статус<select id="mActive"><option value="true" ${p.active!==false?'selected':''}>Активен</option><option value="false" ${p.active===false?'selected':''}>Отключён</option></select></label><label class="full">Связать с долгом<select id="mDebtId">${activeDebtOptions(p.debtId||'')}</select></label></div><div class="top-actions"><button class="primary" data-action="savePaymentEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deletePayment" data-id="${id}">Удалить</button></div>`);
+}
+function enhancedSavePaymentEdit(id){
+  const p=(state.plannedExpenses||[]).find(x=>x.id===id); if(!p) return;
+  Object.assign(p,{title:val('mTitle')||'Платёж', amount:num(val('mAmount')), category:val('mCategory')||'Другое', day:num(val('mDay'))||1, month:val('mMonth')||state.settings.currentMonth, active:val('mActive')!=='false', debtId:val('mDebtId')||''});
+  save(); closeModal(); render(); toast('Платёж обновлён');
+}
+function enhancedPayments(){
+  const rows=(state.plannedExpenses||[]).sort((a,b)=>num(a.day)-num(b.day));
+  const total=rows.filter(p=>p.active!==false).reduce((s,p)=>s+num(p.amount),0);
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Платежи</div><h1>Платежи</h1><p class="sub">Теперь каждый платёж можно отнести к категории и привязать к долгу.</p></div><button class="primary" data-action="addPayment">＋ Платёж</button></div><div class="metrics finance-metrics"><article class="metric"><b>${rows.length}</b><span>всего платежей</span></article><article class="metric"><b>${money(total)}</b><span>активно в месяц</span></article><article class="metric"><b>${rows.filter(p=>p.debtId).length}</b><span>связано с долгами</span></article></div><section class="card panel"><div class="section-head"><h3>Ближайшие платежи</h3><span class="tag">${rows.length}</span></div>${rows.length?rows.map(p=>{ const d=debtById(p.debtId); return `<div class="pay-row big-pay ${p.active===false?'muted-line':''}"><span><b>${esc(p.title||'Платёж')}</b><small>${esc(p.category||'Другое')}${d?' · долг: '+esc(d.person):''}</small></span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')} число</small><button class="ghost small" data-action="editPayment" data-id="${p.id}">Изм.</button></div>`; }).join(''):'<div class="empty">Платежей пока нет</div>'}</section>`;
+}
+const __v405_oldRoute = route;
+route = function(){ if(activePage==='operations') return operationsReview(); return __v405_oldRoute(); };
+try{
+  if(!pageTitles.operations){ navGroups[2][1].splice(3,0,['operations','≡','Операции']); pageTitles.operations='Операции'; }
+}catch(e){}
+const __v405_oldImportPage = importPage;
+importPage = function(){
+  const base=__v405_oldImportPage();
+  return base + `<section class="card panel"><div class="section-head"><div><h3>Разбор после импорта</h3><p class="sub">После загрузки CSV открой операции и разнеси платежи по категориям, лимиту и долгам.</p></div><button class="primary" data-page="operations">Разобрать операции</button></div></section>`;
+};
+const __v405_oldFinance = finance;
+finance = function(){
+  let html=__v405_oldFinance();
+  html=html.replace('<button class="ghost" data-action="addDebtOwe">＋ Долг</button>', '<button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="operations">Разбор операций</button>');
+  return html;
+};
+addOperation = enhancedAddOperation;
+saveOperation = enhancedSaveOperation;
+editOperation = enhancedEditOperation;
+saveOperationEdit = enhancedSaveOperationEdit;
+addPayment = enhancedAddPayment;
+savePayment = enhancedSavePayment;
+editPayment = enhancedEditPayment;
+savePaymentEdit = enhancedSavePaymentEdit;
+payments = enhancedPayments;
+const __v405_oldHandleAction = handleAction;
+handleAction = function(a, el){
+  const id=el?.dataset?.id;
+  if(a==='applyOperationFilters') return applyOperationFilters();
+  if(a==='applyCategoryRules') return applyCategoryRules();
+  if(a==='editOperation') return enhancedEditOperation(id);
+  if(a==='saveOperationEdit') return enhancedSaveOperationEdit(id);
+  if(a==='addExpense') return enhancedAddOperation('expense');
+  if(a==='addIncome') return enhancedAddOperation('income');
+  if(a==='saveOperation') return enhancedSaveOperation(el.dataset.type);
+  if(a==='addPayment') return enhancedAddPayment();
+  if(a==='savePayment') return enhancedSavePayment();
+  if(a==='editPayment') return enhancedEditPayment(id);
+  if(a==='savePaymentEdit') return enhancedSavePaymentEdit(id);
+  return __v405_oldHandleAction(a, el);
+};
+const __v405_oldBind = bind;
+bind = function(){
+  __v405_oldBind();
+  $$('[data-op-category]').forEach(sel=>sel.onchange=()=>quickSetOperationCategory(sel.dataset.opCategory, sel.value));
+  $$('[data-op-type]').forEach(sel=>sel.onchange=()=>quickSetOperationType(sel.dataset.opType, sel.value));
+  $$('[data-op-exclude]').forEach(input=>input.onchange=()=>quickSetOperationExclude(input.dataset.opExclude, input.checked));
+};
+ensureFinanceMeta();
+
 
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot,openOperationsCleanup,deleteOperationsForPeriod,confirmBankReplaceImport};
 save(); installSW(); render(); setTimeout(renderInstallHint, 700);

@@ -2,7 +2,7 @@
   "name": "Second Brain OS — Operations Cleanup Private",
   "short_name": "Second Brain",
   "description": "Личная Life RPG система с безопасной очисткой периодов, импортом банковских CSV-операций, календарём, финансами, бэкапами и восстановлением.",
-  "start_url": "/second-brain-oc/?v=v40-4-modal-actions-fix-private-20260629",
+  "start_url": "/second-brain-oc/?v=v40-5-operation-review-private-20260629",
   "scope": "./",
   "display": "standalone",
   "display_override": [
