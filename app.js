@@ -1,8 +1,8 @@
-/* Second Brain OS — Update Safe + Data Guard Private V40.12 */
+/* Second Brain OS — Product Engine Private V42 */
 'use strict';
 
-const RELEASE = 'v40-12-buttons-hardwired-private-20260629';
-const DATA_VERSION = 412;
+const RELEASE = 'v42-product-engine-private-20260629';
+const DATA_VERSION = 420;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -533,7 +533,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.12 BUTTON HARDWIRE';
+    $('#releaseBadge').textContent='V41 IMPORT REVIEW CORE';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -551,7 +551,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.12 BUTTON HARDWIRE — final app pass
+   V41 IMPORT REVIEW CORE — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -1578,7 +1578,7 @@ enhancedSaveOperationEdit = function(id){
 editOperation = enhancedEditOperation;
 saveOperationEdit = enhancedSaveOperationEdit;
 const __v406_oldRender = render;
-render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
+render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V41 IMPORT REVIEW CORE'; };
 function injectV406Styles(){
   if(document.getElementById('v406Styles')) return;
   const st=document.createElement('style'); st.id='v406Styles'; st.textContent=`.reconcile-preview{grid-template-columns:repeat(6,minmax(0,1fr))}.reconcile-strip{border-color:#dbe8d8;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.cal-dot.plan{background:#eadfff;color:#6d4bc2}.mini-check.wide{align-items:center}.import-preview-table{max-height:360px}.planning-plan-card{border-color:#eadfce}.form-grid input[readonly]{background:#f7f2ea;color:#70675f}.bank-rules-grid div b{display:block;margin-bottom:4px}.import-balance-grid{margin:12px 0 16px;padding:12px;border:1px solid var(--line2);border-radius:18px;background:#fffdf8}.planning-type-pill{display:inline-flex;gap:6px;align-items:center}@media(max-width:760px){.reconcile-preview{grid-template-columns:repeat(2,minmax(0,1fr))}.data-core-grid{grid-template-columns:1fr}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}`; document.head.appendChild(st);
@@ -1745,7 +1745,7 @@ handleAction = function(a, el){
   return __v408_oldHandleAction(a, el);
 };
 const __v408_oldRender = render;
-render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
+render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V41 IMPORT REVIEW CORE'; };
 function injectV408Styles(){
   if(document.getElementById('v408Styles')) return;
   const st=document.createElement('style'); st.id='v408Styles'; st.textContent=`.account-facts-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.account-balance-table .compact-input{min-width:112px;max-width:150px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff}.account-balance-table th,.account-balance-table td{vertical-align:middle}.account-balance-table small{color:var(--muted)}.top-actions .danger-btn,.top-actions .primary,.top-actions .ghost{pointer-events:auto}.modal button{pointer-events:auto}@media(max-width:760px){.account-balance-table{min-width:980px}.account-facts-card .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions button{width:100%}}`;
@@ -1755,7 +1755,7 @@ injectV408Styles();
 ensureV408Data();
 
 
-/* V40.12 BUTTON HARDWIRE + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
+/* V41 IMPORT REVIEW CORE + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
 const SBOS_V409 = 'v40-12-buttons-hardwired-private-20260629';
 const DATA_GUARD_KEY = 'secondBrainOS.dataGuard.v1';
 const LAST_GOOD_KEY = 'secondBrainOS.lastGoodState.v1';
@@ -1915,7 +1915,7 @@ handleAction = function(a, el){
   return __v409_oldHandleAction(a, el);
 };
 const __v409_oldRender = render;
-render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
+render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V41 IMPORT REVIEW CORE'; };
 function injectV409Styles(){
   if(document.getElementById('v409Styles')) return;
   const st=document.createElement('style'); st.id='v409Styles'; st.textContent=`.data-guard-card,.balance-anchor-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.data-guard-card .top-actions,.balance-anchor-card .top-actions{margin-top:12px}.green-text{color:#3f7f4b}.red-text{color:#9b3b35}@media(max-width:760px){.data-guard-card .top-actions,.balance-anchor-card .top-actions{display:grid;grid-template-columns:1fr}.data-guard-card .top-actions button,.balance-anchor-card .top-actions button{width:100%}}`;
@@ -1926,7 +1926,7 @@ recoverStateIfNeeded();
 writeDataGuard('boot-v40-10');
 
 
-/* V40.12 BUTTON HARDWIRE + BALANCE INPUT GUARD — final click/save stabilization */
+/* V41 IMPORT REVIEW CORE + BALANCE INPUT GUARD — final click/save stabilization */
 const SBOS_V410 = 'v40-12-buttons-hardwired-private-20260629';
 function ensureV410Data(){
   try { if(typeof ensureV408Data === 'function') ensureV408Data(); } catch(_e) {}
@@ -2068,7 +2068,7 @@ sync = function(){
   return html;
 };
 const __v410_oldRender = render;
-render = function(){ __v410_oldRender(); normalizeV410Buttons(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
+render = function(){ __v410_oldRender(); normalizeV410Buttons(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V41 IMPORT REVIEW CORE'; };
 function injectV410Styles(){
   if(document.getElementById('v410Styles')) return;
   const st=document.createElement('style'); st.id='v410Styles'; st.textContent=`.modal [data-action],.modal [data-page],button[data-action],button[data-page]{pointer-events:auto!important}.modal .primary,.modal .ghost,.modal .danger-btn{position:relative;z-index:2}.diagnostic-pre{white-space:pre-wrap;overflow:auto;max-height:360px;background:#fffdf8;border:1px solid var(--line2);border-radius:16px;padding:14px}.runtime-ok{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}`;
@@ -2078,7 +2078,7 @@ injectV410Styles(); ensureV410Data(); normalizeV410Buttons();
 
 
 
-/* V40.12 BUTTON HARDWIRE — final stable click/save layer */
+/* V41 IMPORT REVIEW CORE — final stable click/save layer */
 const SBOS_V412 = 'v40-12-buttons-hardwired-private-20260629';
 function v412NormalizeButtons(){
   document.querySelectorAll('button:not([type])').forEach(b=>b.type='button');
@@ -2088,10 +2088,10 @@ function v412NormalizeButtons(){
     el.removeAttribute('aria-disabled');
   });
   const badge=document.getElementById('releaseBadge');
-  if(badge) badge.textContent='V40.12 BUTTON HARDWIRE';
+  if(badge) badge.textContent='V41 IMPORT REVIEW CORE';
   document.querySelectorAll('.sidebar-status').forEach(box=>{
     const b=box.querySelector('b'); if(b) b.textContent='V40.12';
-    const s=box.querySelector('.sync-dot'); if(s) s.textContent='BUTTON HARDWIRE + DATA GUARD';
+    const s=box.querySelector('.sync-dot'); if(s) s.textContent='IMPORT REVIEW + DATA GUARD';
   });
 }
 function v412EnsureState(){
@@ -2266,13 +2266,310 @@ openModal = function(title, body, onSave){ __v412_oldOpenModal(title, body, onSa
 v412NormalizeButtons();
 setInterval(v412NormalizeButtons, 1500);
 
+
+
+/* V41 IMPORT REVIEW CORE — category review + fact balance + stable action bridge */
+const SBOS_V41 = 'v41-import-review-core-private-20260629';
+function v41EnsureImportData(){
+  try{ if(typeof v412EnsureState === 'function') v412EnsureState(); }catch(_e){}
+  state ||= {};
+  state.settings ||= {};
+  state.operations = Array.isArray(state.operations) ? state.operations : [];
+  state.importLogs = Array.isArray(state.importLogs) ? state.importLogs : [];
+  state.settings.importReview = state.settings.importReview && typeof state.settings.importReview === 'object' ? state.settings.importReview : {};
+  state.settings.bankOpeningBalances = state.settings.bankOpeningBalances && typeof state.settings.bankOpeningBalances === 'object' ? state.settings.bankOpeningBalances : {};
+  state.settings.bankActualBalances = state.settings.bankActualBalances && typeof state.settings.bankActualBalances === 'object' ? state.settings.bankActualBalances : {};
+  state.settings.bankAccountOpeningBalances = state.settings.bankAccountOpeningBalances && typeof state.settings.bankAccountOpeningBalances === 'object' ? state.settings.bankAccountOpeningBalances : {};
+  state.settings.bankAccountActualBalances = state.settings.bankAccountActualBalances && typeof state.settings.bankAccountActualBalances === 'object' ? state.settings.bankAccountActualBalances : {};
+}
+function v41KnownCategories(){
+  v41EnsureImportData();
+  const defaults=['Продукты','Кафе и рестораны','Такси','Маркетплейсы','Аптеки','Коммунальные услуги','Связь и интернет','Авто','Бензин','Обучение','Здоровье','Одежда','Дом','Семья','Подарки','Поездки','Подписки','Кредиты','Долги','Переводы','Копилка / сбережения','Доход','Зарплата','Проект','Импорт банка','Другое'];
+  const set=new Set(defaults);
+  (state.operations||[]).forEach(o=>{ const c=String(o.category||'').trim(); if(c) set.add(c); });
+  (state.plannedExpenses||[]).forEach(o=>{ const c=String(o.category||'').trim(); if(c) set.add(c); });
+  (state.lifePlans||[]).forEach(o=>{ const c=String(o.category||'').trim(); if(c) set.add(c); });
+  (pendingBankImportAll||[]).forEach(o=>{ const c=String(o.category||'').trim(); if(c) set.add(c); });
+  return Array.from(set).filter(Boolean).sort((a,b)=>a.localeCompare(b,'ru'));
+}
+function v41CategoryOptions(selected=''){
+  const cats=v41KnownCategories();
+  if(selected && !cats.includes(selected)) cats.unshift(selected);
+  return cats.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('');
+}
+function v41ImportRange(rows){
+  try{ if(typeof bankImportDateRange === 'function') return bankImportDateRange(rows||[]); }catch(_e){}
+  const dates=(rows||[]).map(r=>String(r.date||'').slice(0,10)).filter(Boolean).sort();
+  return {from:dates[0]||'', to:dates[dates.length-1]||''};
+}
+function v41ImportStats(rows){
+  const all=Array.from(rows||[]);
+  const newRows=all.filter(r=>!r.duplicate && !r.__v41Deleted);
+  const kept=newRows.filter(r=>r.__v41Keep !== false);
+  const exp=kept.filter(r=>r.type==='expense'&&!r.excludeFromLimit).reduce((s,r)=>s+num(r.amount),0);
+  const inc=kept.filter(r=>r.type==='income'&&!r.excludeFromLimit).reduce((s,r)=>s+num(r.amount),0);
+  const movement=kept.reduce((s,r)=>s+(r.type==='income'?num(r.amount):-num(r.amount)),0);
+  return {all:all.length,newRows:newRows.length,kept:kept.length,duplicates:all.filter(r=>r.duplicate).length,pending:newRows.filter(r=>r.pending).length,excluded:newRows.filter(r=>r.excludeFromLimit).length,expenses:exp,income:inc,movement};
+}
+function v41RowTone(r){
+  if(r.duplicate) return 'muted-line';
+  if(r.pending) return 'v41-row-pending';
+  if(r.excludeFromLimit) return 'v41-row-excluded';
+  return '';
+}
+function v41ReviewedRowsSource(){
+  return (pendingBankImport||[]).filter(r=>!r.duplicate && !r.__v41Deleted);
+}
+function v41ImportReviewRow(r, i){
+  const checked = r.__v41Keep === false ? '' : 'checked';
+  const limitChecked = r.excludeFromLimit ? '' : 'checked';
+  const balanceChecked = r.includeInBalance === false ? '' : 'checked';
+  return `<tr class="import-review-row ${v41RowTone(r)}" data-import-index="${i}">
+    <td class="v41-check"><input type="checkbox" data-import-keep="${i}" ${checked}><button class="danger-btn mini-danger" data-action="dropImportRow" data-import-index="${i}" title="Не импортировать строку">×</button></td>
+    <td><input class="compact-input" type="date" data-import-date="${i}" value="${esc(String(r.date||todayKey()).slice(0,10))}"></td>
+    <td><select class="compact-input" data-import-type="${i}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select></td>
+    <td><input class="compact-input amount-input" type="number" data-import-amount="${i}" value="${num(r.amount)}"></td>
+    <td class="v41-category-cell"><select class="compact-input" data-import-category="${i}">${v41CategoryOptions(r.category||'Импорт банка')}</select><input class="compact-input" data-import-category-custom="${i}" placeholder="новая категория"></td>
+    <td><input class="compact-input note-input" data-import-note="${i}" value="${esc(r.note||'')}"><small>${esc(r.accountName||r.accountNumber||r.cardName||r.cardNumber||'')}</small></td>
+    <td class="v41-flags"><label><input type="checkbox" data-import-limit="${i}" ${limitChecked}> в лимит</label><label><input type="checkbox" data-import-balance="${i}" ${balanceChecked}> в баланс</label><small>${r.pending?'в обработке':(r.excludeFromLimit?'не в лимит':'новая')}</small></td>
+  </tr>`;
+}
+function v41ImportReviewTable(){
+  const rows=v41ReviewedRowsSource();
+  if(!rows.length) return '<div class="empty">Новых операций для проверки нет. Возможно, файл уже импортирован как дубли.</div>';
+  return `<div class="table-wrap import-preview-table v41-review-wrap"><table class="table v41-import-table"><thead><tr><th>Импорт</th><th>Дата</th><th>Тип</th><th>Сумма</th><th>Категория</th><th>Описание / счёт</th><th>Проверка</th></tr></thead><tbody>${rows.map(v41ImportReviewRow).join('')}</tbody></table></div>`;
+}
+function v41BulkCategoryOptions(){
+  const cats=Array.from(new Set(v41ReviewedRowsSource().map(r=>String(r.category||'Импорт банка').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ru'));
+  return `<option value="">Все категории</option>` + cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+function v41ImportPreviewHtml(rows, fileName='bank.csv'){
+  const st=v41ImportStats(rows);
+  const range=v41ImportRange(rows);
+  const month=String((range.to||range.from||state.settings.currentMonth||monthKey())).slice(0,7);
+  const opening = (typeof getOpeningBalance === 'function') ? getOpeningBalance(month) : num(state.settings.bankOpeningBalances?.[month]||0);
+  const actual = (typeof getActualBalance === 'function') ? getActualBalance(month) : (state.settings.bankActualBalances?.[month] ?? '');
+  return `<div class="bank-import-summary reconcile-preview v41-import-summary">
+    <article class="metric"><b>${st.kept}</b><span>к импорту</span></article>
+    <article class="metric"><b>${money(st.expenses)}</b><span>факт расходов</span></article>
+    <article class="metric"><b>${money(st.income)}</b><span>факт доходов</span></article>
+    <article class="metric"><b>${moneySigned(st.movement)}</b><span>движение баланса</span></article>
+    <article class="metric"><b>${st.duplicates}</b><span>дублей</span></article>
+  </div>
+  <div class="import-note v41-import-note"><b>${esc(fileName)}</b><p class="sub">Период файла: ${esc(range.from||'—')} — ${esc(range.to||'—')}. Каждая операция ниже проверяется вручную: категорию можно выбрать из списка, вписать новую, удалить строку из импорта, включить/исключить из лимита и банковского баланса.</p></div>
+  <div class="form-grid import-balance-grid v41-balance-grid">
+    <label>Начальный баланс периода<input id="importOpeningBalance" type="number" placeholder="например 150000" value="${opening || ''}"></label>
+    <label>Фактический баланс сейчас<input id="importActualBalance" type="number" placeholder="остаток в банке / на картах" value="${actual===null || actual===undefined ? '' : actual}"></label>
+    <label>Месяц сверки<input id="importReviewMonth" type="month" value="${esc(month)}"></label>
+    <label>Быстро назначить категорию<select id="bulkImportCategoryFrom">${v41BulkCategoryOptions()}</select></label>
+    <label>Заменить на<select id="bulkImportCategoryTo">${v41CategoryOptions('Другое')}</select></label>
+    <label>Или новая категория<input id="bulkImportCategoryCustom" placeholder="например: Бензин / Командировки"></label>
+  </div>
+  <div class="top-actions v41-import-actions">
+    <button class="ghost" data-action="applyImportBulkCategory">Применить замену категории</button>
+    <button class="ghost" data-action="dropUncheckedImportRows">Удалить снятые строки</button>
+    <button class="primary" data-action="confirmReviewedBankImport">Импортировать проверенные операции</button>
+    <button class="ghost" data-action="pickCsv">Выбрать другой файл</button>
+  </div>
+  ${v41ImportReviewTable()}
+  <p class="sub"><b>Как работать:</b> проверь категорию в каждой строке, при необходимости впиши новую в поле под списком. Если операция не нужна — сними галочку или нажми ×. Баланс можно указать прямо здесь до финального импорта.</p>`;
+}
+previewBankImport = function(rows, fileName='bank.csv'){
+  v41EnsureImportData();
+  rows = Array.from(rows||[]);
+  pendingBankImportAll = rows;
+  pendingBankImport = rows.filter(x=>!x.duplicate).map((x,i)=>{ x.__v41Index=i; x.__v41Keep = x.__v41Keep !== false; if(x.includeInBalance===undefined) x.includeInBalance=true; return x; });
+  pendingBankImportMeta = rows.meta || {kind:'unknown', totalRows:rows.length, skipped:0};
+  pendingBankImportMeta.fileName=fileName;
+  openModal('Проверка импорта банка V41', v41ImportPreviewHtml(rows, fileName));
+  setTimeout(v41NormalizeImportModal, 30);
+};
+function v41NormalizeImportModal(){
+  document.querySelectorAll('.v41-import-table button:not([type]), .v41-import-actions button:not([type])').forEach(b=>b.type='button');
+}
+function v41ReadReviewedImportRows(){
+  v41EnsureImportData();
+  const result=[];
+  document.querySelectorAll('.import-review-row').forEach(tr=>{
+    const i=Number(tr.dataset.importIndex);
+    const original=pendingBankImport[i];
+    if(!original || original.__v41Deleted) return;
+    const keep=tr.querySelector(`[data-import-keep="${i}"]`);
+    if(keep && !keep.checked) return;
+    const categoryCustom=String(tr.querySelector(`[data-import-category-custom="${i}"]`)?.value||'').trim();
+    const category=categoryCustom || String(tr.querySelector(`[data-import-category="${i}"]`)?.value||original.category||'Импорт банка').trim();
+    const clean={...original};
+    clean.date=String(tr.querySelector(`[data-import-date="${i}"]`)?.value||original.date||todayKey()).slice(0,10);
+    clean.type=tr.querySelector(`[data-import-type="${i}"]`)?.value === 'income' ? 'income' : 'expense';
+    clean.amount=num(tr.querySelector(`[data-import-amount="${i}"]`)?.value || original.amount);
+    clean.category=category || 'Импорт банка';
+    clean.note=String(tr.querySelector(`[data-import-note="${i}"]`)?.value||original.note||'').trim();
+    clean.excludeFromLimit = !(tr.querySelector(`[data-import-limit="${i}"]`)?.checked);
+    clean.includeInBalance = !!(tr.querySelector(`[data-import-balance="${i}"]`)?.checked);
+    clean.reviewed=true; clean.reviewedAt=new Date().toISOString(); clean.source=clean.source||'bank-csv';
+    delete clean.duplicate; delete clean.__v41Index; delete clean.__v41Keep; delete clean.__v41Deleted;
+    if(clean.amount) result.push(clean);
+  });
+  return result;
+}
+function v41CaptureImportBalancesFromDom(rows){
+  const range=v41ImportRange(rows);
+  const month=String(val('importReviewMonth') || (range.to||range.from||state.settings.currentMonth||monthKey())).slice(0,7);
+  const openingRaw=String(val('importOpeningBalance')||'').trim();
+  const actualRaw=String(val('importActualBalance')||'').trim();
+  const result={month};
+  state.settings.currentMonth=month;
+  if(openingRaw!==''){
+    state.settings.bankOpeningBalances[month]=num(openingRaw);
+    result.openingBalance=num(openingRaw);
+  }
+  if(actualRaw!==''){
+    state.settings.bankActualBalances[month]=num(actualRaw);
+    result.actualBalance=num(actualRaw);
+  }
+  return result;
+}
+function confirmReviewedBankImport(){ return confirmBankImport(); }
+confirmBankImport = function(){
+  v41EnsureImportData();
+  const reviewed = document.querySelector('.import-review-row') ? v41ReadReviewedImportRows() : Array.from(pendingBankImport||[]).filter(x=>!x.duplicate && !x.__v41Deleted);
+  if(!reviewed.length) return toast('Нет проверенных операций для импорта');
+  try{ if(typeof saveLocalSnapshot==='function') saveLocalSnapshot('before-bank-import-v41'); }catch(_e){}
+  const range=v41ImportRange(reviewed);
+  const balanceMeta=v41CaptureImportBalancesFromDom(reviewed);
+  let batchId='';
+  try{ if(typeof logBankImport==='function') batchId=logBankImport('reviewed-new-only', reviewed, range, {fileName: pendingBankImportMeta?.fileName || 'bank.csv', ...balanceMeta}); }catch(_e){}
+  const imported=reviewed.map(x=>{ const clean={...x}; clean.importBatchId=batchId||clean.importBatchId||''; clean.includeInBalance=clean.includeInBalance!==false; clean.source=clean.source||'bank-csv'; clean.reviewed=true; delete clean.pending; return clean; });
+  state.operations.unshift(...imported);
+  const count=imported.length;
+  pendingBankImport=[]; pendingBankImportAll=[]; pendingBankImportMeta=null;
+  try{ if(typeof writeDataGuard==='function') writeDataGuard('v41-reviewed-import'); }catch(_e){}
+  save({snapshot:true, reason:'v41-reviewed-bank-import'}); closeModal(); render(); toast(`Импортировано проверенных операций: ${count}`);
+};
+function dropImportRow(index){
+  const i=Number(index);
+  const row=pendingBankImport?.[i];
+  if(row) row.__v41Deleted=true;
+  const tr=document.querySelector(`.import-review-row[data-import-index="${i}"]`);
+  if(tr) tr.remove();
+  toast('Строка удалена из импорта');
+}
+function dropUncheckedImportRows(){
+  let count=0;
+  document.querySelectorAll('.import-review-row').forEach(tr=>{
+    const i=Number(tr.dataset.importIndex);
+    const keep=tr.querySelector(`[data-import-keep="${i}"]`);
+    if(keep && !keep.checked){ if(pendingBankImport[i]) pendingBankImport[i].__v41Deleted=true; tr.remove(); count++; }
+  });
+  toast(count ? `Удалено из импорта: ${count}` : 'Сначала сними галочки у лишних строк');
+}
+function applyImportBulkCategory(){
+  const from=String(val('bulkImportCategoryFrom')||'').trim();
+  const to=(String(val('bulkImportCategoryCustom')||'').trim() || String(val('bulkImportCategoryTo')||'').trim() || 'Другое');
+  let count=0;
+  document.querySelectorAll('.import-review-row').forEach(tr=>{
+    const i=Number(tr.dataset.importIndex);
+    const keep=tr.querySelector(`[data-import-keep="${i}"]`);
+    if(keep && !keep.checked) return;
+    const sel=tr.querySelector(`[data-import-category="${i}"]`);
+    const custom=tr.querySelector(`[data-import-category-custom="${i}"]`);
+    const current=String(sel?.value||'').trim();
+    if(!from || current===from){
+      if(sel && Array.from(sel.options).some(o=>o.value===to)) sel.value=to;
+      else if(custom) custom.value=to;
+      if(pendingBankImport[i]) pendingBankImport[i].category=to;
+      count++;
+    }
+  });
+  toast(count ? `Категория применена: ${count}` : 'Подходящих строк не найдено');
+}
+function v41ImportLogRows(){
+  const logs=(state.importLogs||[]).slice(0,6);
+  if(!logs.length) return '<div class="empty">Импортов пока нет</div>';
+  return `<div class="table-wrap"><table class="table"><thead><tr><th>Когда</th><th>Режим</th><th>Период</th><th>Операций</th></tr></thead><tbody>${logs.map(l=>`<tr><td>${esc(new Date(l.createdAt||Date.now()).toLocaleString('ru-RU'))}</td><td>${esc(l.mode||'import')}</td><td>${esc(l.from||'')} — ${esc(l.to||'')}</td><td>${num(l.count)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+importPage = function(){
+  v41EnsureImportData();
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и проверка данных</div><h1>Bank Import V41</h1><p class="sub">Новый безопасный импорт: сначала проверка категорий, удаление лишних строк, ввод фактического баланса, только потом сохранение в базу.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-page="reconcile">Факт по картам</button><button class="ghost" data-page="sync">Бэкап</button></div></div>
+  <section class="card panel bank-import-hero v41-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,.txt,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Выбери банковскую выгрузку</b><p class="sub">Файл остаётся внутри браузера. После загрузки появится таблица проверки: категория раскрывается в каждой строке, лишнее можно удалить, факт баланса можно указать сразу.</p></button></section>
+  <div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Что появилось в V41</h3><p class="sub">Слой не ломает старую архитектуру, а усиливает импорт и кнопки поверх текущего ядра.</p></div><span class="tag green">готово к GitHub</span></div><div class="bank-rules-grid"><div><b>Категории</b><span>выпадающий список в каждой строке</span></div><div><b>Удаление</b><span>строку можно исключить до импорта</span></div><div><b>Факт</b><span>расходы/доходы считаются до сохранения</span></div><div><b>Баланс</b><span>начальный и фактический остаток сохраняются в сверку</span></div></div></section><section class="card panel"><div class="section-head"><h3>История импортов</h3><span class="tag blue">контроль</span></div>${v41ImportLogRows()}</section></div>`;
+};
+function v41Action(a, el){
+  if(a==='confirmReviewedBankImport' || a==='confirmBankImport'){ confirmBankImport(); return true; }
+  if(a==='dropImportRow'){ dropImportRow(el?.dataset?.importIndex); return true; }
+  if(a==='dropUncheckedImportRows'){ dropUncheckedImportRows(); return true; }
+  if(a==='applyImportBulkCategory'){ applyImportBulkCategory(); return true; }
+  return false;
+}
+try{
+  const __v41_oldDispatch = typeof v412Dispatch === 'function' ? v412Dispatch : null;
+  if(__v41_oldDispatch){
+    v412Dispatch = function(a, el){
+      const handled=v41Action(a, el);
+      if(handled) return handled;
+      return __v41_oldDispatch(a, el);
+    };
+  }
+  const __v41_oldHandleAction = typeof handleAction === 'function' ? handleAction : null;
+  if(__v41_oldHandleAction){
+    handleAction = function(a, el){
+      const handled=v41Action(a, el);
+      if(handled) return handled;
+      return __v41_oldHandleAction(a, el);
+    };
+  }
+}catch(e){ console.warn('V41 action bridge failed', e); }
+function v41PatchVisibleVersion(){
+  try{
+    const label='V41 IMPORT REVIEW CORE';
+    const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=label;
+    document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V41'; });
+    document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='IMPORT REVIEW + BUTTON CORE'; });
+    document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=label; });
+  }catch(_e){}
+}
+function injectV41Styles(){
+  if(document.getElementById('v41ImportStyles')) return;
+  const st=document.createElement('style'); st.id='v41ImportStyles'; st.textContent=`
+  .v41-import-summary{grid-template-columns:repeat(5,minmax(130px,1fr));}
+  .v41-review-wrap{max-height:64vh;border-color:#d9e7d7;}
+  .v41-import-table{min-width:1120px;}
+  .v41-import-table th{z-index:3;}
+  .v41-import-table td{vertical-align:middle;}
+  .v41-import-table .compact-input{width:100%;min-width:112px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);}
+  .v41-import-table .amount-input{min-width:100px;}
+  .v41-import-table .note-input{min-width:220px;}
+  .v41-category-cell{display:grid;grid-template-columns:minmax(160px,1fr) minmax(160px,1fr);gap:8px;}
+  .v41-check{display:flex;align-items:center;gap:8px;}
+  .mini-danger{padding:4px 8px;border-radius:10px;line-height:1;}
+  .v41-flags{display:grid;gap:4px;min-width:132px;}
+  .v41-flags label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);}
+  .v41-row-pending{background:#fffaf0;}
+  .v41-row-excluded{background:#f7fbff;}
+  .v41-balance-grid{margin:12px 0 10px;}
+  .v41-import-actions{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,var(--paper),rgba(255,253,250,.92));padding:10px 0;}
+  .v41-import-hero .drop-zone{min-height:220px;}
+  @media(max-width:760px){.v41-import-summary{grid-template-columns:1fr 1fr}.v41-category-cell{grid-template-columns:1fr}.v41-import-actions{display:grid;grid-template-columns:1fr}.v41-import-actions button{width:100%}.v41-review-wrap{max-height:68vh}.v41-balance-grid{grid-template-columns:1fr}.v41-import-table{min-width:980px}}
+  `; document.head.appendChild(st);
+}
+try{
+  injectV41Styles();
+  const __v41_oldRender = typeof render === 'function' ? render : null;
+  if(__v41_oldRender){ render = function(){ const r=__v41_oldRender.apply(this, arguments); injectV41Styles(); v41PatchVisibleVersion(); return r; }; }
+  const __v41_oldOpenModal = typeof openModal === 'function' ? openModal : null;
+  if(__v41_oldOpenModal){ openModal = function(title, body, onSave){ const r=__v41_oldOpenModal.apply(this, arguments); injectV41Styles(); v41PatchVisibleVersion(); setTimeout(v41NormalizeImportModal,30); return r; }; }
+  window.addEventListener('load', v41PatchVisibleVersion);
+  setTimeout(v41PatchVisibleVersion, 100);
+  setTimeout(v41PatchVisibleVersion, 800);
+}catch(e){ console.warn('V41 visible patch failed', e); }
+
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot,openOperationsCleanup,deleteOperationsForPeriod,confirmBankReplaceImport,writeDataGuard,recoverStateIfNeeded,restoreOperationsFromGuard};
 save(); installSW(); render(); setTimeout(renderInstallHint, 700);
 
 
-/* V40.12 BUTTON HARDWIRE — final visible version patch and safe updater */
+/* V41 IMPORT REVIEW CORE — final visible version patch and safe updater */
 try {
-  const SBOS_V411_DISPLAY = 'V40.12 BUTTON HARDWIRE';
+  const SBOS_V411_DISPLAY = 'V41 IMPORT REVIEW CORE';
   function patchV411VisibleVersion(){
     try{
       const rb=document.getElementById('releaseBadge');
@@ -2313,3 +2610,171 @@ try {
   setTimeout(patchV411VisibleVersion, 300);
   setTimeout(patchV411VisibleVersion, 1200);
 } catch(e){ console.warn('V40.12 visible/update patch failed', e); }
+
+/* V42 PRODUCT ENGINE — CRM + Category Center + Diagnostics + Manager Dashboard */
+const SBOS_V42 = 'v42-product-engine-private-20260629';
+const SBOS_V42_DISPLAY = 'V42 PRODUCT ENGINE';
+function v42TodayPlus(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+function v42SafeArray(name){ if(!Array.isArray(state[name])) state[name]=[]; return state[name]; }
+function v42EnsureData(){
+  try{
+    v42SafeArray('categories'); v42SafeArray('clients'); v42SafeArray('deals'); v42SafeArray('actionLog'); v42SafeArray('quickCaptures');
+    state.settings = state.settings || {};
+    state.settings.categoryRules = Array.isArray(state.settings.categoryRules) ? state.settings.categoryRules : [];
+    state.settings.v42 = state.settings.v42 || {enabled:true, installedAt:new Date().toISOString()};
+    state.settings.v42.lastSeen = new Date().toISOString();
+    const addCat=(name,type='finance',color='')=>{
+      name=String(name||'').trim(); if(!name) return;
+      const exists=(state.categories||[]).some(c=>String(c.name||'').toLowerCase()===name.toLowerCase() && String(c.type||'finance')===type);
+      if(!exists) state.categories.push({id:uid(), name, type, color:color||v42ColorForType(type), archived:false, createdAt:new Date().toISOString(), source:'auto-v42'});
+    };
+    (state.operations||[]).forEach(o=>addCat(o.category||'Другое','finance'));
+    (state.tasks||[]).forEach(t=>addCat(t.area||t.category||'Работа','task'));
+    (state.goals||[]).forEach(g=>addCat(g.area||'Цель','goal'));
+    addCat('Импорт банка','finance'); addCat('Бензин','finance'); addCat('Клиенты','client'); addCat('Сделки','deal');
+    if(!(state.clients||[]).length && Array.isArray(state.people) && state.people.length){
+      state.clients = state.people.slice(0,3).map(p=>({id:uid(), name:p.name||'Клиент', company:'', phone:'', email:'', source:'Контакты', status:'Новый', dealAmount:0, nextContact:'', comment:p.notes||p.talkIdeas||'', createdAt:new Date().toISOString()}));
+    }
+    if(!state.dataCore) state.dataCore={};
+    state.dataCore.schema = Math.max(num(state.dataCore.schema), 420);
+    state.dataCore.productEngine = SBOS_V42;
+  }catch(e){ console.warn('V42 ensure failed', e); }
+}
+function v42ColorForType(type){ return ({finance:'#6f8f72',task:'#6c95d8',client:'#8a6fd1',deal:'#d98b33',goal:'#74b57f',import:'#5f7f88'}[type]||'#7a6b5f'); }
+function v42LogAction(type, message, payload={}){
+  v42EnsureData();
+  state.actionLog.unshift({id:uid(), at:new Date().toISOString(), type, message, page:activePage, payload});
+  state.actionLog = state.actionLog.slice(0,120);
+}
+function v42CategoryUsage(cat){
+  const name=String(cat?.name||cat||''); const type=String(cat?.type||'finance');
+  if(type==='finance') return (state.operations||[]).filter(o=>String(o.category||'')===name).length;
+  if(type==='task') return (state.tasks||[]).filter(t=>String(t.area||t.category||'')===name).length;
+  if(type==='goal') return (state.goals||[]).filter(g=>String(g.area||'')===name).length;
+  if(type==='client') return (state.clients||[]).filter(c=>String(c.status||'')===name || String(c.source||'')===name).length;
+  return 0;
+}
+function v42CategoryAmount(name){ return total((state.operations||[]).filter(o=>String(o.category||'')===String(name||''))); }
+function v42TypeLabel(t){ return ({finance:'Финансы',task:'Задачи',client:'Клиенты',deal:'Сделки',goal:'Цели',import:'Импорт'}[t]||t||'Общее'); }
+function v42AddNavigation(){
+  try{
+    const has=id=>navGroups.some(g=>g[1].some(x=>x[0]===id));
+    const money=navGroups.find(g=>g[0]==='Деньги'); if(money && !has('categories')) money[1].push(['categories','◩','Категории']);
+    const people=navGroups.find(g=>g[0]==='Люди'); if(people && !has('clients')) people[1].unshift(['clients','▥','Клиенты']);
+    const sys=navGroups.find(g=>g[0]==='Система'); if(sys && !has('diagnostics')) sys[1].splice(1,0,['diagnostics','✚','Диагностика']);
+    pageTitles.categories='Категории'; pageTitles.clients='Клиенты'; pageTitles.diagnostics='Диагностика';
+  }catch(e){ console.warn('V42 nav failed', e); }
+}
+function v42Kpi(label,value,sub,tone='') { return `<article class="metric ${tone}"><b>${value}</b><span>${esc(label)}</span>${sub?`<small>${esc(sub)}</small>`:''}</article>`; }
+function v42ManagerDashboard(){
+  v42EnsureData();
+  const s=monthSummary();
+  const overdue=(state.tasks||[]).filter(t=>t.status!=='Готово' && t.due && t.due<todayKey());
+  const today=(state.tasks||[]).filter(t=>t.status!=='Готово' && (!t.due || t.due<=todayKey())).slice(0,5);
+  const pings=(state.clients||[]).filter(c=>c.nextContact && c.nextContact<=todayKey()).slice(0,5);
+  const imports=(state.importLogs||[]).slice(0,3);
+  const dirty=(state.operations||[]).filter(o=>!String(o.category||'').trim() || /другое|импорт|без категории/i.test(String(o.category||''))).length;
+  const focus=today[0]?.title || pings[0]?.name && `Связаться: ${pings[0].name}` || 'Проверить импорт и факт дня';
+  return `<div class="goals-head premium-page-head v42-head"><div><div class="page-label">Manager OS V42</div><h1>Главный экран</h1><p class="sub">Открыл приложение — сразу видно фокус дня, деньги, клиентов и ошибки данных.</p></div><div class="top-actions"><button class="primary" data-action="quickMenu">⚡ Быстрый ввод</button><button class="ghost" data-page="import">Импорт</button><button class="ghost" data-page="diagnostics">Диагностика</button></div></div>
+  <div class="metrics v42-metrics">${v42Kpi('Фокус дня',esc(focus),'главное действие','focus')} ${v42Kpi('Факт месяца',money(s.income-s.expenses),`доход ${money(s.income)} / расход ${money(s.expenses)}`)} ${v42Kpi('Просрочено',overdue.length,'задач требуют решения',overdue.length?'warn':'')} ${v42Kpi('Клиенты',pings.length,'нужно связаться',pings.length?'warn':'')} ${v42Kpi('На разбор',dirty,'операций без нормальной категории',dirty?'warn':'')}</div>
+  <div class="v42-dashboard-grid"><section class="card panel v42-attention"><div class="section-head"><div><h3>Сегодня требует внимания</h3><p class="sub">Задачи, клиенты и быстрые действия.</p></div><button class="ghost small" data-action="addTask">＋ Задача</button></div>${today.length?today.map(t=>`<div class="line-row"><div><b>${esc(t.title)}</b><p class="sub">${esc(t.area||'')} · ${esc(t.due||'без срока')} · ${esc(t.priority||'')}</p></div><button class="ghost small" data-action="editTask" data-id="${t.id}">Открыть</button></div>`).join(''):'<div class="empty">На сегодня нет срочных задач</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Клиенты / следующие контакты</h3><p class="sub">Кому нужно написать или позвонить.</p></div><button class="primary small" data-action="addClient">＋ Клиент</button></div>${pings.length?pings.map(c=>`<div class="line-row"><div><b>${esc(c.name)}</b><p class="sub">${esc(c.status||'')} · ${esc(c.nextContact||'')} · ${money(c.dealAmount||0)}</p></div><button class="ghost small" data-action="editClient" data-id="${c.id}">Открыть</button></div>`).join(''):'<div class="empty">Нет просроченных контактов</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Импорт и качество данных</h3><p class="sub">Последние загрузки, категории и расхождения.</p></div><button class="ghost small" data-page="import">Открыть</button></div>${imports.length?imports.map(l=>`<div class="line-row"><div><b>${esc(l.fileName||l.mode||'Импорт')}</b><p class="sub">${esc((l.createdAt||'').slice(0,16).replace('T',' '))} · ${num(l.count)} строк · ${moneySigned((l.income||0)-(l.expense||0))}</p></div><span class="tag green">OK</span></div>`).join(''):'<div class="empty">Импортов пока нет</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Быстрые действия</h3><p class="sub">Самые частые сценарии в один клик.</p></div><span class="tag green">V42</span></div><div class="v42-action-grid"><button class="primary" data-action="quickMenu">Быстрый ввод</button><button class="ghost" data-action="addExpense">Расход</button><button class="ghost" data-action="addIncome">Доход</button><button class="ghost" data-page="categories">Категории</button><button class="ghost" data-page="clients">Клиенты</button><button class="ghost" data-action="undoLastImport">Отменить импорт</button></div></section></div>`;
+}
+function v42CategoryOptionsFull(selected='', typeFilter=''){
+  v42EnsureData();
+  const cats=(state.categories||[]).filter(c=>!c.archived && (!typeFilter || c.type===typeFilter));
+  return cats.map(c=>`<option value="${esc(c.name)}" ${c.name===selected?'selected':''}>${esc(c.name)} · ${esc(v42TypeLabel(c.type))}</option>`).join('');
+}
+function categories(){
+  v42EnsureData();
+  const rows=(state.categories||[]).filter(c=>!c.archived).sort((a,b)=>String(a.type).localeCompare(String(b.type))||String(a.name).localeCompare(String(b.name)));
+  const stats={all:rows.length, finance:rows.filter(c=>c.type==='finance').length, task:rows.filter(c=>c.type==='task').length, used:rows.filter(c=>v42CategoryUsage(c)>0).length};
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Category Center V42</div><h1>Категории</h1><p class="sub">Единый центр категорий: финансы, задачи, клиенты, цели и импорт. Здесь можно чистить хаос после CSV.</p></div><div class="top-actions"><button class="primary" data-action="addCategory">＋ Категория</button><button class="ghost" data-action="mergeCategories">Объединить</button><button class="ghost" data-action="buildCategoryRules">Автоправила</button></div></div>
+  <div class="metrics">${v42Kpi('Всего',stats.all,'активных категорий')} ${v42Kpi('Финансы',stats.finance,'для операций')} ${v42Kpi('Задачи',stats.task,'для работы')} ${v42Kpi('Используются',stats.used,'есть связи')}</div>
+  <section class="card panel"><div class="section-head"><div><h3>Все категории</h3><p class="sub">Удаление защищено: если категория используется, сначала предложу объединить или архивировать.</p></div><span class="tag green">центр данных</span></div><div class="table-wrap"><table class="table v42-table"><thead><tr><th>Категория</th><th>Тип</th><th>Использований</th><th>Сумма</th><th>Действия</th></tr></thead><tbody>${rows.map(c=>`<tr><td><span class="v42-color-dot" style="background:${esc(c.color||v42ColorForType(c.type))}"></span><b>${esc(c.name)}</b></td><td><span class="tag blue">${esc(v42TypeLabel(c.type))}</span></td><td>${v42CategoryUsage(c)}</td><td>${c.type==='finance'?money(v42CategoryAmount(c.name)):'—'}</td><td><button class="ghost small" data-action="editCategory" data-id="${c.id}">Открыть</button><button class="danger-btn small" data-action="archiveCategory" data-id="${c.id}">Архив</button></td></tr>`).join('') || '<tr><td colspan="5"><div class="empty">Категорий пока нет</div></td></tr>'}</tbody></table></div></section>
+  <section class="card panel"><div class="section-head"><div><h3>Автоправила импорта</h3><p class="sub">Если в описании операции есть ключевое слово — категория ставится автоматически.</p></div><button class="primary small" data-action="addCategoryRule">＋ Правило</button></div>${(state.settings.categoryRules||[]).length?state.settings.categoryRules.map(r=>`<div class="line-row"><div><b>${esc(r.keyword)}</b><p class="sub">→ ${esc(r.category)} · ${esc(r.type||'finance')}</p></div><button class="danger-btn small" data-action="deleteCategoryRule" data-id="${r.id}">Удалить</button></div>`).join(''):'<div class="empty">Правил пока нет. Добавь “газпром → Бензин”, “кофе → Кафе”.</div>'}</section>`;
+}
+function addCategory(){ openModal('Новая категория', `<div class="form-grid"><label>Название<input id="mCategoryName" placeholder="Например: Бензин"></label><label>Тип<select id="mCategoryType"><option value="finance">Финансы</option><option value="task">Задачи</option><option value="client">Клиенты</option><option value="deal">Сделки</option><option value="goal">Цели</option><option value="import">Импорт</option></select></label><label>Цвет<input id="mCategoryColor" value="#6f8f72"></label></div><div class="top-actions"><button class="primary" data-action="saveCategory">Сохранить</button></div>`); }
+function saveCategory(){ v42EnsureData(); const name=String(val('mCategoryName')||'').trim(); if(!name) return toast('Введите название категории'); const type=val('mCategoryType')||'finance'; state.categories.unshift({id:uid(), name, type, color:val('mCategoryColor')||v42ColorForType(type), archived:false, createdAt:new Date().toISOString()}); v42LogAction('category','Создана категория '+name,{name,type}); save(); closeModal(); render(); toast('Категория создана'); }
+function editCategory(id){ v42EnsureData(); const c=state.categories.find(x=>x.id===id); if(!c) return; openModal('Категория', `<div class="form-grid"><label>Название<input id="mCategoryName" value="${esc(c.name)}"></label><label>Тип<select id="mCategoryType"><option value="finance" ${c.type==='finance'?'selected':''}>Финансы</option><option value="task" ${c.type==='task'?'selected':''}>Задачи</option><option value="client" ${c.type==='client'?'selected':''}>Клиенты</option><option value="deal" ${c.type==='deal'?'selected':''}>Сделки</option><option value="goal" ${c.type==='goal'?'selected':''}>Цели</option><option value="import" ${c.type==='import'?'selected':''}>Импорт</option></select></label><label>Цвет<input id="mCategoryColor" value="${esc(c.color||v42ColorForType(c.type))}"></label><label class="full">Использований<input readonly value="${v42CategoryUsage(c)}"></label></div><div class="top-actions"><button class="primary" data-action="saveCategoryEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="archiveCategory" data-id="${id}">В архив</button></div>`); }
+function saveCategoryEdit(id){ const c=(state.categories||[]).find(x=>x.id===id); if(!c) return; const old=c.name; Object.assign(c,{name:val('mCategoryName')||c.name,type:val('mCategoryType')||c.type,color:val('mCategoryColor')||c.color}); if(old!==c.name){ (state.operations||[]).forEach(o=>{ if(o.category===old) o.category=c.name; }); (state.tasks||[]).forEach(t=>{ if(t.area===old) t.area=c.name; }); } v42LogAction('category','Обновлена категория '+c.name,{old,new:c.name}); save(); closeModal(); render(); toast('Категория обновлена'); }
+function archiveCategory(id){ const c=(state.categories||[]).find(x=>x.id===id); if(!c) return; c.archived=true; v42LogAction('category','Категория архивирована '+c.name,{name:c.name}); save(); closeModal(); render(); toast('Категория отправлена в архив'); }
+function mergeCategories(){ v42EnsureData(); openModal('Объединить категории', `<div class="form-grid"><label>Что заменить<select id="mCatFrom">${v42CategoryOptionsFull()}</select></label><label>На какую категорию<select id="mCatTo">${v42CategoryOptionsFull()}</select></label></div><p class="sub">Все операции и задачи со старой категорией будут перенесены в новую. Старая категория уйдёт в архив.</p><div class="top-actions"><button class="primary" data-action="saveCategoryMerge">Объединить</button></div>`); }
+function saveCategoryMerge(){ const from=val('mCatFrom'), to=val('mCatTo'); if(!from || !to || from===to) return toast('Выбери разные категории'); let count=0; (state.operations||[]).forEach(o=>{ if(o.category===from){o.category=to; count++;} }); (state.tasks||[]).forEach(t=>{ if(t.area===from){t.area=to; count++;} }); (state.categories||[]).forEach(c=>{ if(c.name===from) c.archived=true; }); v42LogAction('category','Объединены категории',{from,to,count}); save(); closeModal(); render(); toast(`Объединено связей: ${count}`); }
+function addCategoryRule(){ openModal('Новое автоправило', `<div class="form-grid"><label>Ключевое слово<input id="mRuleKeyword" placeholder="газпром, кофе, аптека"></label><label>Категория<select id="mRuleCategory">${v42CategoryOptionsFull('', 'finance')}</select></label><label class="full">Новая категория, если нет в списке<input id="mRuleCustom" placeholder="например: Бензин"></label></div><div class="top-actions"><button class="primary" data-action="saveCategoryRule">Сохранить правило</button></div>`); }
+function saveCategoryRule(){ v42EnsureData(); const keyword=String(val('mRuleKeyword')||'').trim(); const category=String(val('mRuleCustom')||val('mRuleCategory')||'').trim(); if(!keyword||!category) return toast('Нужно ключевое слово и категория'); state.settings.categoryRules.unshift({id:uid(), keyword, category, type:'finance', createdAt:new Date().toISOString()}); if(!(state.categories||[]).some(c=>c.name===category&&c.type==='finance')) state.categories.unshift({id:uid(),name:category,type:'finance',color:v42ColorForType('finance'),archived:false,createdAt:new Date().toISOString()}); v42LogAction('category-rule','Добавлено правило '+keyword+' → '+category,{keyword,category}); save(); closeModal(); render(); toast('Автоправило добавлено'); }
+function deleteCategoryRule(id){ state.settings.categoryRules=(state.settings.categoryRules||[]).filter(r=>r.id!==id); save(); render(); toast('Правило удалено'); }
+function buildCategoryRules(){ openModal('Быстрые автоправила', `<p class="sub">Добавлю базовые правила для частых операций: газ/АЗС → Бензин, кофе → Кафе, аптека → Здоровье, маркет → Продукты.</p><div class="top-actions"><button class="primary" data-action="installDefaultCategoryRules">Добавить правила</button></div>`); }
+function installDefaultCategoryRules(){ v42EnsureData(); const rules=[['газ','Бензин'],['азс','Бензин'],['gpn','Бензин'],['кофе','Кафе'],['аптека','Здоровье'],['маркет','Продукты'],['такси','Такси']]; for(const [keyword,category] of rules){ if(!state.settings.categoryRules.some(r=>r.keyword===keyword)) state.settings.categoryRules.push({id:uid(),keyword,category,type:'finance',createdAt:new Date().toISOString()}); if(!state.categories.some(c=>c.name===category&&c.type==='finance')) state.categories.push({id:uid(),name:category,type:'finance',color:v42ColorForType('finance'),archived:false,createdAt:new Date().toISOString()}); } v42LogAction('category-rule','Установлены базовые автоправила',{count:rules.length}); save(); closeModal(); render(); toast('Базовые правила добавлены'); }
+function clients(){
+  v42EnsureData(); const rows=(state.clients||[]); const active=rows.filter(c=>!['Закрыт','Потерян'].includes(c.status)); const overdue=rows.filter(c=>c.nextContact && c.nextContact<=todayKey()); const sum=rows.reduce((s,c)=>s+num(c.dealAmount),0);
+  const statuses=['Новый','В работе','Ждёт ответа','Оплата','Закрыт','Потерян'];
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">CRM Light V42</div><h1>Клиенты и сделки</h1><p class="sub">Мини-CRM внутри Second Brain: следующий контакт, сумма, статус, задачи и история.</p></div><div class="top-actions"><button class="primary" data-action="addClient">＋ Клиент</button><button class="ghost" data-action="quickMenu">Быстрый ввод</button></div></div><div class="metrics">${v42Kpi('Клиентов',rows.length,'в базе')} ${v42Kpi('Активных',active.length,'в работе')} ${v42Kpi('Нужно связаться',overdue.length,'сегодня или раньше',overdue.length?'warn':'')} ${v42Kpi('Потенциал',money(sum),'сумма сделок')}</div><div class="v42-kanban">${statuses.map(st=>`<section class="card panel"><div class="section-head"><h3>${esc(st)}</h3><span class="tag">${rows.filter(c=>c.status===st).length}</span></div>${rows.filter(c=>c.status===st).map(c=>v42ClientCard(c)).join('') || '<div class="empty">Пусто</div>'}</section>`).join('')}</div>`;
+}
+function v42ClientCard(c){ return `<article class="v42-client-card"><div><b>${esc(c.name)}</b><p class="sub">${esc(c.company||c.source||'')} · ${money(c.dealAmount||0)}</p><p class="sub">Следующий контакт: ${esc(c.nextContact||'—')}</p></div><div class="top-actions"><button class="ghost small" data-action="editClient" data-id="${c.id}">Открыть</button></div></article>`; }
+function addClient(){ openModal('Новый клиент', `<div class="form-grid"><label>Имя / компания<input id="mClientName" placeholder="Иван / ООО Ромашка"></label><label>Статус<select id="mClientStatus"><option>Новый</option><option>В работе</option><option>Ждёт ответа</option><option>Оплата</option><option>Закрыт</option><option>Потерян</option></select></label><label>Телефон<input id="mClientPhone"></label><label>Email<input id="mClientEmail"></label><label>Источник<input id="mClientSource" placeholder="заявка, рекомендация"></label><label>Сумма сделки<input id="mClientAmount" type="number"></label><label>Следующий контакт<input id="mClientNext" type="date" value="${v42TodayPlus(1)}"></label><label class="full">Комментарий<textarea id="mClientComment"></textarea></label></div><div class="top-actions"><button class="primary" data-action="saveClient">Сохранить</button></div>`); }
+function saveClient(){ v42EnsureData(); const name=String(val('mClientName')||'').trim(); if(!name) return toast('Введите имя клиента'); state.clients.unshift({id:uid(),name,status:val('mClientStatus')||'Новый',phone:val('mClientPhone'),email:val('mClientEmail'),source:val('mClientSource'),dealAmount:num(val('mClientAmount')),nextContact:val('mClientNext'),comment:val('mClientComment'),createdAt:new Date().toISOString(),history:[{at:new Date().toISOString(),text:'Клиент создан'}]}); v42LogAction('client','Создан клиент '+name,{name}); save(); closeModal(); render(); toast('Клиент добавлен'); }
+function editClient(id){ const c=(state.clients||[]).find(x=>x.id===id); if(!c) return; const linkedTasks=(state.tasks||[]).filter(t=>String(t.clientId||'')===id || String(t.title||'').toLowerCase().includes(String(c.name||'').toLowerCase())).slice(0,4); openModal('Карточка клиента', `<div class="form-grid"><label>Имя / компания<input id="mClientName" value="${esc(c.name)}"></label><label>Статус<select id="mClientStatus">${['Новый','В работе','Ждёт ответа','Оплата','Закрыт','Потерян'].map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label>Телефон<input id="mClientPhone" value="${esc(c.phone||'')}"></label><label>Email<input id="mClientEmail" value="${esc(c.email||'')}"></label><label>Источник<input id="mClientSource" value="${esc(c.source||'')}"></label><label>Сумма сделки<input id="mClientAmount" type="number" value="${num(c.dealAmount)}"></label><label>Следующий контакт<input id="mClientNext" type="date" value="${esc(c.nextContact||'')}"></label><label class="full">Комментарий<textarea id="mClientComment">${esc(c.comment||'')}</textarea></label></div><section class="card panel inner-card"><div class="section-head"><h3>Связанные задачи</h3><button class="ghost small" data-action="addClientTask" data-id="${id}">＋ Задача</button></div>${linkedTasks.length?linkedTasks.map(t=>`<div class="line-row"><b>${esc(t.title)}</b><span class="tag">${esc(t.status||'')}</span></div>`).join(''):'<div class="empty">Пока нет задач по клиенту</div>'}</section><div class="top-actions"><button class="primary" data-action="saveClientEdit" data-id="${id}">Сохранить</button><button class="ghost" data-action="addClientTask" data-id="${id}">Создать задачу</button><button class="danger-btn" data-action="deleteClient" data-id="${id}">Удалить</button></div>`); }
+function saveClientEdit(id){ const c=(state.clients||[]).find(x=>x.id===id); if(!c) return; Object.assign(c,{name:val('mClientName')||c.name,status:val('mClientStatus')||c.status,phone:val('mClientPhone'),email:val('mClientEmail'),source:val('mClientSource'),dealAmount:num(val('mClientAmount')),nextContact:val('mClientNext'),comment:val('mClientComment'),updatedAt:new Date().toISOString()}); c.history=c.history||[]; c.history.unshift({at:new Date().toISOString(),text:'Карточка обновлена'}); v42LogAction('client','Обновлён клиент '+c.name,{id}); save(); closeModal(); render(); toast('Клиент обновлён'); }
+function deleteClient(id){ const c=(state.clients||[]).find(x=>x.id===id); state.clients=(state.clients||[]).filter(x=>x.id!==id); v42LogAction('client','Удалён клиент '+(c?.name||''),{id}); save(); closeModal(); render(); toast('Клиент удалён'); }
+function addClientTask(id){ const c=(state.clients||[]).find(x=>x.id===id); closeModal(); addTask('', c?.nextContact || todayKey()); setTimeout(()=>{ const title=document.getElementById('mTaskTitle'); if(title && c) title.value='Связаться с клиентом: '+c.name; const area=document.getElementById('mTaskArea'); if(area) area.value='Клиенты'; },50); }
+function v42QuickParse(text){
+  const s=String(text||'').trim(); const low=s.toLowerCase(); const amount=(s.match(/(\d[\d\s.,]*)\s*(₽|руб|р)?/i)||[])[1];
+  let due=''; if(/послезавтра/.test(low)) due=v42TodayPlus(2); else if(/завтра/.test(low)) due=v42TodayPlus(1); else if(/сегодня/.test(low)) due=todayKey();
+  const isExpense=/расход|потрат|купил|списан|оплат/i.test(low); const isIncome=/доход|получил|зачисл|пополн/i.test(low); const isClient=/клиент|заявк|сделк|позвон|напис|связ/i.test(low);
+  return {text:s, amount:num(amount), due, isExpense, isIncome, isClient};
+}
+function quickMenu(){ openModal('Быстрый ввод V42', `<div class="quick-v42"><p class="sub">Пиши обычным языком: “завтра позвонить Ивану по оплате 15000”, “расход бензин 3000”, “доход проект 50000”.</p><textarea id="mQuickText" class="quick-textarea" placeholder="Что нужно зафиксировать?"></textarea><div class="v42-action-grid"><button class="primary" data-action="createQuickCapture">Разобрать и создать</button><button class="ghost" data-action="addTask">Обычная задача</button><button class="ghost" data-action="addExpense">Расход</button><button class="ghost" data-action="addClient">Клиент</button></div></div>`); }
+function createQuickCapture(){ v42EnsureData(); const parsed=v42QuickParse(val('mQuickText')); if(!parsed.text) return toast('Напиши текст'); state.quickCaptures.unshift({id:uid(),text:parsed.text,createdAt:new Date().toISOString(),parsed}); if(parsed.isExpense || parsed.isIncome){ state.operations.unshift({id:uid(),date:todayKey(),type:parsed.isIncome?'income':'expense',amount:parsed.amount,category:parsed.isIncome?'Проект':(/бенз|газ|азс/i.test(parsed.text)?'Бензин':'Быстрый ввод'),note:parsed.text,source:'quick-v42'}); }
+  if(parsed.isClient){ const name=(parsed.text.match(/(?:клиент|позвонить|написать)\s+([А-ЯA-ZЁ][а-яa-zё]+)/)||[])[1] || 'Новый клиент'; state.clients.unshift({id:uid(),name,status:'Новый',dealAmount:parsed.amount,nextContact:parsed.due||v42TodayPlus(1),comment:parsed.text,source:'Быстрый ввод',createdAt:new Date().toISOString()}); }
+  if(!parsed.isExpense && !parsed.isIncome){ state.tasks.unshift({id:uid(),title:parsed.text,area:parsed.isClient?'Клиенты':'Быстрый ввод',due:parsed.due||todayKey(),time:'',priority:'Средний',status:'В работе',goalId:'',nextAction:''}); }
+  v42LogAction('quick','Быстрый ввод: '+parsed.text,parsed); save(); closeModal(); render(); toast('Быстрый ввод обработан'); }
+function v42HealthReport(){
+  v42EnsureData();
+  const actions=Array.from(document.querySelectorAll('[data-action]')).map(x=>x.dataset.action).filter(Boolean);
+  const pages=Array.from(document.querySelectorAll('[data-page]')).map(x=>x.dataset.page).filter(Boolean);
+  const dupOps=new Set(); let duplicates=0; (state.operations||[]).forEach(o=>{ const k=[o.date,o.type,o.amount,o.category,o.note].join('|'); if(dupOps.has(k)) duplicates++; dupOps.add(k); });
+  const bytes=(typeof stateSizeBytes==='function') ? stateSizeBytes() : JSON.stringify(state).length;
+  const problems=[]; if(!state.categories?.length) problems.push('нет центра категорий'); if(duplicates) problems.push(`дубли операций: ${duplicates}`); if(bytes>4500000) problems.push('localStorage близок к лимиту');
+  return {version:SBOS_V42_DISPLAY, status:problems.length?'warning':'ok', problems, actions:actions.length, uniqueActions:Array.from(new Set(actions)).sort(), pages:pages.length, uniquePages:Array.from(new Set(pages)).sort(), clients:(state.clients||[]).length, categories:(state.categories||[]).length, operations:(state.operations||[]).length, imports:(state.importLogs||[]).length, snapshots:(typeof readSnapshots==='function'?readSnapshots():[]).length, bytes, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), online:navigator.onLine, updatedAt:new Date().toISOString()};
+}
+function diagnostics(){ const r=v42HealthReport(); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V42</div><h1>Диагностика</h1><p class="sub">Проверка кнопок, данных, категорий, импортов, кэша и защитных копий.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить</button><button class="ghost" data-action="repairHealth">Починить автоматически</button><button class="ghost" data-action="prepareSafeUpdate">Страховка</button></div></div><div class="metrics">${v42Kpi('Статус',r.status==='ok'?'OK':'Проверить',r.problems.join(', ')||'система целая',r.status==='ok'?'':'warn')} ${v42Kpi('Кнопок',r.actions,'активных действий')} ${v42Kpi('Категорий',r.categories,'центр данных')} ${v42Kpi('Размер',(r.bytes/1024).toFixed(1)+' КБ','localStorage')}</div><section class="card panel"><div class="section-head"><div><h3>Отчёт системы</h3><p class="sub">Технический снимок текущего экрана и базы.</p></div><span class="tag blue">${esc(SBOS_V42_DISPLAY)}</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><h3>Журнал действий</h3><span class="tag">${(state.actionLog||[]).length}</span></div>${(state.actionLog||[]).slice(0,12).map(x=>`<div class="line-row"><div><b>${esc(x.message||x.type)}</b><p class="sub">${esc((x.at||'').slice(0,19).replace('T',' '))} · ${esc(x.page||'')}</p></div><span class="tag blue">${esc(x.type||'log')}</span></div>`).join('') || '<div class="empty">Журнал пока пуст</div>'}</section>`; }
+function runHealthCheck(){ openModal('Проверка системы V42', `<pre class="diagnostic-pre">${esc(JSON.stringify(v42HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }
+function repairHealth(){ v42EnsureData(); try{ if(typeof saveLocalSnapshot==='function') saveLocalSnapshot('v42-auto-repair'); }catch(_e){} v42LogAction('repair','Автопроверка и ремонт V42',{report:v42HealthReport()}); save(); closeModal(); render(); toast('Система проверена и нормализована'); }
+function undoLastImport(){ v42EnsureData(); const last=(state.importLogs||[])[0]; if(!last) return toast('Импортов для отмены нет'); openModal('Отменить последний импорт', `<p class="sub">Будут удалены операции из последней загрузки: ${esc(last.fileName||last.mode||last.id)} · ${num(last.count)} строк.</p><div class="top-actions"><button class="danger-btn" data-action="confirmUndoLastImport" data-id="${last.id}">Удалить операции импорта</button><button class="ghost" data-action="closeModal">Отмена</button></div>`); }
+function confirmUndoLastImport(id){ const before=(state.operations||[]).length; state.operations=(state.operations||[]).filter(o=>o.importBatchId!==id); const removed=before-state.operations.length; state.importLogs=(state.importLogs||[]).filter(l=>l.id!==id); v42LogAction('import','Отменён импорт '+id,{removed}); save(); closeModal(); render(); toast(`Удалено операций: ${removed}`); }
+function v42PatchVisibleVersion(){ try{ const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=SBOS_V42_DISPLAY; document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V42'; }); document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='PRODUCT ENGINE + CRM'; }); document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V42_DISPLAY; }); }catch(_e){} }
+function injectV42Styles(){
+  if(document.getElementById('v42ProductStyles')) return; const st=document.createElement('style'); st.id='v42ProductStyles'; st.textContent=`
+  .v42-head h1{letter-spacing:-.04em}.v42-metrics .metric.focus{grid-column:span 2}.v42-dashboard-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.v42-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v42-kanban{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:16px;align-items:start}.v42-client-card{border:1px solid var(--line);background:var(--paper);border-radius:18px;padding:14px;margin:10px 0;display:grid;gap:10px}.v42-color-dot{display:inline-block;width:12px;height:12px;border-radius:999px;margin-right:8px;vertical-align:middle;box-shadow:0 0 0 4px rgba(0,0,0,.04)}.v42-table td{vertical-align:middle}.quick-textarea{width:100%;min-height:130px;border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff;color:var(--text);font:inherit}.inner-card{background:rgba(255,255,255,.56);margin-top:10px}.diagnostic-pre{max-height:460px;overflow:auto}.mobile-tabbar{backdrop-filter:blur(18px)}
+  @media(max-width:980px){.v42-dashboard-grid,.v42-kanban{grid-template-columns:1fr}.v42-metrics .metric.focus{grid-column:auto}.v42-action-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.v42-action-grid{grid-template-columns:1fr}.v42-kanban{gap:12px}.v42-client-card{border-radius:16px}.v42-table{min-width:760px}}
+  `; document.head.appendChild(st);
+}
+try{
+  v42EnsureData(); v42AddNavigation(); injectV42Styles();
+  const __v42_oldDashboard = typeof dashboard === 'function' ? dashboard : null;
+  dashboard = function(){ return v42ManagerDashboard(); };
+  const __v42_oldRoute = typeof route === 'function' ? route : null;
+  route = function(){ const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts,categories,clients,diagnostics,operations:typeof operations==='function'?operations:undefined,reconcile:typeof reconcile==='function'?reconcile:undefined}; return (map[activePage]||dashboard)(); };
+  const __v42_oldMobileNav = typeof mobileNav === 'function' ? mobileNav : null;
+  mobileNav = function(){ const items=[['dashboard','⌂','Главная'],['clients','▥','Клиенты'],['quick','＋',''],['finance','₽','Финансы'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; };
+  const __v42_oldHandleAction = typeof handleAction === 'function' ? handleAction : null;
+  handleAction = function(a, el){ const id=el?.dataset?.id; if(a==='addCategory') return addCategory(); if(a==='saveCategory') return saveCategory(); if(a==='editCategory') return editCategory(id); if(a==='saveCategoryEdit') return saveCategoryEdit(id); if(a==='archiveCategory') return archiveCategory(id); if(a==='mergeCategories') return mergeCategories(); if(a==='saveCategoryMerge') return saveCategoryMerge(); if(a==='addCategoryRule') return addCategoryRule(); if(a==='saveCategoryRule') return saveCategoryRule(); if(a==='deleteCategoryRule') return deleteCategoryRule(id); if(a==='buildCategoryRules') return buildCategoryRules(); if(a==='installDefaultCategoryRules') return installDefaultCategoryRules(); if(a==='addClient') return addClient(); if(a==='saveClient') return saveClient(); if(a==='editClient') return editClient(id); if(a==='saveClientEdit') return saveClientEdit(id); if(a==='deleteClient') return deleteClient(id); if(a==='addClientTask') return addClientTask(id); if(a==='createQuickCapture') return createQuickCapture(); if(a==='runHealthCheck') return runHealthCheck(); if(a==='repairHealth') return repairHealth(); if(a==='undoLastImport') return undoLastImport(); if(a==='confirmUndoLastImport') return confirmUndoLastImport(id); return __v42_oldHandleAction ? __v42_oldHandleAction.apply(this, arguments) : toast('Действие не найдено: '+a); };
+  const __v42_oldV412Dispatch = typeof v412Dispatch === 'function' ? v412Dispatch : null;
+  if(__v42_oldV412Dispatch){ v412Dispatch = function(a, el){ const handled=['addCategory','saveCategory','editCategory','saveCategoryEdit','archiveCategory','mergeCategories','saveCategoryMerge','addCategoryRule','saveCategoryRule','deleteCategoryRule','buildCategoryRules','installDefaultCategoryRules','addClient','saveClient','editClient','saveClientEdit','deleteClient','addClientTask','createQuickCapture','runHealthCheck','repairHealth','undoLastImport','confirmUndoLastImport'].includes(a); if(handled) return handleAction(a, el); return __v42_oldV412Dispatch.apply(this, arguments); }; }
+  const __v42_oldConfirmBankImport = typeof confirmBankImport === 'function' ? confirmBankImport : null;
+  if(__v42_oldConfirmBankImport){ confirmBankImport = function(){ const before=(state.operations||[]).length; const r=__v42_oldConfirmBankImport.apply(this, arguments); const after=(state.operations||[]).length; if(after>before){ v42LogAction('import',`Импортировано операций: ${after-before}`,{count:after-before}); save(); } return r; }; confirmReviewedBankImport = function(){ return confirmBankImport(); }; }
+  const __v42_oldCleanImportedBankRows = typeof cleanImportedBankRows === 'function' ? cleanImportedBankRows : null;
+  if(__v42_oldCleanImportedBankRows){ cleanImportedBankRows = function(rows){ const out=__v42_oldCleanImportedBankRows.apply(this, arguments); try{ const rules=state.settings.categoryRules||[]; out.forEach(o=>{ const note=String(o.note||o.description||o.merchant||'').toLowerCase(); const rule=rules.find(r=>note.includes(String(r.keyword||'').toLowerCase())); if(rule) o.category=rule.category; }); }catch(_e){} return out; }; }
+  const __v42_oldRender = typeof render === 'function' ? render : null;
+  if(__v42_oldRender){ render = function(){ v42EnsureData(); v42AddNavigation(); const r=__v42_oldRender.apply(this, arguments); injectV42Styles(); v42PatchVisibleVersion(); return r; }; }
+  const __v42_oldOpenModal = typeof openModal === 'function' ? openModal : null;
+  if(__v42_oldOpenModal){ openModal = function(){ const r=__v42_oldOpenModal.apply(this, arguments); injectV42Styles(); v42PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV42={v42EnsureData,v42HealthReport,categories,clients,diagnostics};
+  v42PatchVisibleVersion(); save({reason:'v42-product-engine'}); render(); setTimeout(v42PatchVisibleVersion,250); setTimeout(v42PatchVisibleVersion,1500); setTimeout(v42PatchVisibleVersion,2600);
+}catch(e){ console.warn('V42 Product Engine failed', e); }
+
+try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {productEngine:SBOS_V42, v42HealthReport, v42EnsureData, categories, clients, diagnostics}); }catch(_e){}
