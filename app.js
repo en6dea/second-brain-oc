@@ -1,8 +1,8 @@
-/* Second Brain OS — Data Guard + Balance Anchor Private V40.9 */
+/* Second Brain OS — Button Runtime + Balance Core Private V40.10 */
 'use strict';
 
-const RELEASE = 'v40-9-data-guard-balance-anchor-private-20260629';
-const DATA_VERSION = 409;
+const RELEASE = 'v40-10-button-runtime-balance-private-20260629';
+const DATA_VERSION = 410;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -533,7 +533,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.9 BALANCE QA';
+    $('#releaseBadge').textContent='V40.10 BUTTON CORE';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -551,7 +551,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.9 BALANCE QA — final app pass
+   V40.10 BUTTON CORE — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -1240,7 +1240,7 @@ ensureFinanceMeta();
 
 
 /* V40.9 RECONCILIATION + LIFE PLANNING — bank balance control + daily budget planning */
-const SBOS_V406 = 'v40-9-data-guard-balance-anchor-private-20260629';
+const SBOS_V406 = 'v40-10-button-runtime-balance-private-20260629';
 function ensureV406Data(){
   ensureFinanceMeta();
   state.importLogs = Array.isArray(state.importLogs) ? state.importLogs : [];
@@ -1578,7 +1578,7 @@ enhancedSaveOperationEdit = function(id){
 editOperation = enhancedEditOperation;
 saveOperationEdit = enhancedSaveOperationEdit;
 const __v406_oldRender = render;
-render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.9 BALANCE QA'; };
+render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.10 BUTTON CORE'; };
 function injectV406Styles(){
   if(document.getElementById('v406Styles')) return;
   const st=document.createElement('style'); st.id='v406Styles'; st.textContent=`.reconcile-preview{grid-template-columns:repeat(6,minmax(0,1fr))}.reconcile-strip{border-color:#dbe8d8;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.cal-dot.plan{background:#eadfff;color:#6d4bc2}.mini-check.wide{align-items:center}.import-preview-table{max-height:360px}.planning-plan-card{border-color:#eadfce}.form-grid input[readonly]{background:#f7f2ea;color:#70675f}.bank-rules-grid div b{display:block;margin-bottom:4px}.import-balance-grid{margin:12px 0 16px;padding:12px;border:1px solid var(--line2);border-radius:18px;background:#fffdf8}.planning-type-pill{display:inline-flex;gap:6px;align-items:center}@media(max-width:760px){.reconcile-preview{grid-template-columns:repeat(2,minmax(0,1fr))}.data-core-grid{grid-template-columns:1fr}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}`; document.head.appendChild(st);
@@ -1589,7 +1589,7 @@ ensureV406Data();
 
 
 /* V40.9 BUTTON QA + CARD BALANCE — modal click fix and manual card/account facts */
-const SBOS_V408 = 'v40-9-data-guard-balance-anchor-private-20260629';
+const SBOS_V408 = 'v40-10-button-runtime-balance-private-20260629';
 function ensureV408Data(){
   ensureV406Data();
   state.settings ||= {};
@@ -1745,7 +1745,7 @@ handleAction = function(a, el){
   return __v408_oldHandleAction(a, el);
 };
 const __v408_oldRender = render;
-render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.9 BALANCE QA'; };
+render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.10 BUTTON CORE'; };
 function injectV408Styles(){
   if(document.getElementById('v408Styles')) return;
   const st=document.createElement('style'); st.id='v408Styles'; st.textContent=`.account-facts-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.account-balance-table .compact-input{min-width:112px;max-width:150px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff}.account-balance-table th,.account-balance-table td{vertical-align:middle}.account-balance-table small{color:var(--muted)}.top-actions .danger-btn,.top-actions .primary,.top-actions .ghost{pointer-events:auto}.modal button{pointer-events:auto}@media(max-width:760px){.account-balance-table{min-width:980px}.account-facts-card .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions button{width:100%}}`;
@@ -1755,8 +1755,8 @@ injectV408Styles();
 ensureV408Data();
 
 
-/* V40.9 DATA GUARD + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
-const SBOS_V409 = 'v40-9-data-guard-balance-anchor-private-20260629';
+/* V40.10 BUTTON CORE + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
+const SBOS_V409 = 'v40-10-button-runtime-balance-private-20260629';
 const DATA_GUARD_KEY = 'secondBrainOS.dataGuard.v1';
 const LAST_GOOD_KEY = 'secondBrainOS.lastGoodState.v1';
 const UPDATE_GUARD_KEY = 'secondBrainOS.updateGuard.v1';
@@ -1915,7 +1915,7 @@ handleAction = function(a, el){
   return __v409_oldHandleAction(a, el);
 };
 const __v409_oldRender = render;
-render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.9 DATA GUARD'; };
+render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.10 BUTTON CORE'; };
 function injectV409Styles(){
   if(document.getElementById('v409Styles')) return;
   const st=document.createElement('style'); st.id='v409Styles'; st.textContent=`.data-guard-card,.balance-anchor-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.data-guard-card .top-actions,.balance-anchor-card .top-actions{margin-top:12px}.green-text{color:#3f7f4b}.red-text{color:#9b3b35}@media(max-width:760px){.data-guard-card .top-actions,.balance-anchor-card .top-actions{display:grid;grid-template-columns:1fr}.data-guard-card .top-actions button,.balance-anchor-card .top-actions button{width:100%}}`;
@@ -1923,7 +1923,158 @@ function injectV409Styles(){
 }
 injectV409Styles();
 recoverStateIfNeeded();
-writeDataGuard('boot-v40-9');
+writeDataGuard('boot-v40-10');
+
+
+/* V40.10 BUTTON RUNTIME + BALANCE INPUT GUARD — final click/save stabilization */
+const SBOS_V410 = 'v40-10-button-runtime-balance-private-20260629';
+function ensureV410Data(){
+  try { if(typeof ensureV408Data === 'function') ensureV408Data(); } catch(_e) {}
+  state ||= {};
+  state.settings ||= {};
+  state.operations = Array.isArray(state.operations) ? state.operations : [];
+  state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+  state.debts = Array.isArray(state.debts) ? state.debts : [];
+  state.people = Array.isArray(state.people) ? state.people : [];
+  state.lifePlans = Array.isArray(state.lifePlans) ? state.lifePlans : [];
+  state.settings.bankAccountActualBalances = state.settings.bankAccountActualBalances && typeof state.settings.bankAccountActualBalances==='object' ? state.settings.bankAccountActualBalances : {};
+  state.settings.bankAccountOpeningBalances = state.settings.bankAccountOpeningBalances && typeof state.settings.bankAccountOpeningBalances==='object' ? state.settings.bankAccountOpeningBalances : {};
+  state.settings.buttonRuntimeLog = Array.isArray(state.settings.buttonRuntimeLog) ? state.settings.buttonRuntimeLog : [];
+}
+function v410ActionLabel(a){
+  const map={saveOperation:'сохранение операции',saveOperationEdit:'сохранение операции',savePayment:'сохранение платежа',savePaymentEdit:'сохранение платежа',saveLifePlan:'сохранение плана',saveLifePlanPaid:'сохранение плана и расхода',saveAccountBalances:'сохранение факта по картам',saveBalanceAnchor:'фиксация остатка',saveReconcileBalances:'сохранение сверки'};
+  return map[a] || a || 'действие';
+}
+function normalizeV410Buttons(){
+  document.querySelectorAll('button:not([type])').forEach(btn=>btn.type='button');
+  document.querySelectorAll('[data-action],[data-page]').forEach(el=>{
+    el.style.pointerEvents='auto';
+    if(el.tagName === 'BUTTON') el.removeAttribute('disabled');
+    if(el.getAttribute('aria-disabled')==='true') el.setAttribute('aria-disabled','false');
+  });
+}
+function v410CategoryValue(fallback){ return (val('mCategoryCustom') || val('mCategory') || fallback || 'Другое').trim(); }
+function v410ManualSaveOperation(type){
+  ensureV410Data();
+  const amount=num(val('mAmount'));
+  if(!amount) return toast('Укажи сумму');
+  const op={id:uid(),date:val('mDate')||todayKey(),type:type==='income'?'income':'expense',amount,category:v410CategoryValue(type==='income'?'Доход':'Другое'),note:val('mNote')||val('mComment')||'',excludeFromLimit:val('mLimit')==='no',includeInBalance:val('mBalance')!=='no',source:'manual',createdAt:new Date().toISOString(),runtimeFixed:true};
+  const mode=val('mDebtMode')||'none';
+  if(mode==='link'){
+    const debtId=val('mDebtId'); if(debtId){ op.debtId=debtId; op.debtRole='linked'; }
+  }else if(mode==='create_owe' || mode==='create_owed'){
+    const direction=mode==='create_owe'?'owe':'owed_to_me';
+    const d={id:uid(),direction,person:val('mDebtPerson')||op.note||'Без имени',amount:op.amount,due:val('mDebtDue')||'',status:direction==='owe'?'Активен':'Ожидаю',note:`Создано из операции: ${op.category}`,operationId:op.id};
+    state.debts.unshift(d); op.debtId=d.id; op.debtRole='created';
+  }
+  state.operations.unshift(op);
+  save({snapshot:true, reason:'v40-10-manual-operation'}); closeModal(); render(); toast('Операция сохранена');
+}
+function v410ManualSavePayment(id=''){
+  ensureV410Data();
+  const payload={title:val('mTitle')||'Платёж',amount:num(val('mAmount')),category:val('mCategory')||'Другое',day:num(val('mDay'))||1,month:val('mMonth')||state.settings.currentMonth||monthKey(),active:val('mActive')!=='false',debtId:val('mDebtId')||''};
+  if(id){
+    const p=state.plannedExpenses.find(x=>x.id===id); if(!p) return toast('Платёж не найден');
+    Object.assign(p,payload);
+  }else state.plannedExpenses.unshift({id:uid(),...payload});
+  save({snapshot:true, reason:'v40-10-manual-payment'}); closeModal(); render(); toast(id?'Платёж обновлён':'Платёж сохранён');
+}
+function v410ManualSaveLifePlan(paid=false, id=''){
+  ensureV410Data();
+  const title=(val('mPlanTitle')||'План личной жизни').trim();
+  const plan={date:val('mPlanDate')||todayKey(),kind:val('mPlanKind')||'Другое',title,amount:num(val('mPlanAmount')),category:val('mPlanCategory')||'Личная жизнь',personId:val('mPlanPerson')||'',status:paid?'Оплачено':(val('mPlanStatus')||'План'),includeInBudget:val('mPlanBudget')!=='no',note:val('mPlanNote')||'',updatedAt:new Date().toISOString()};
+  let planId=id;
+  if(id){ const p=state.lifePlans.find(x=>x.id===id); if(p) Object.assign(p,plan); else {planId=uid(); state.lifePlans.unshift({id:planId,...plan});} }
+  else { planId=uid(); state.lifePlans.unshift({id:planId,...plan,createdAt:new Date().toISOString()}); }
+  if(paid && plan.amount>0){
+    state.operations.unshift({id:uid(),date:plan.date,type:'expense',amount:plan.amount,category:plan.category,note:`План: ${plan.title}`,excludeFromLimit:!plan.includeInBudget,includeInBalance:true,source:'life-plan',lifePlanId:planId,createdAt:new Date().toISOString()});
+  }
+  save({snapshot:true, reason:'v40-10-life-plan'}); closeModal(); render(); toast(paid?'План сохранён и расход создан':'План сохранён');
+}
+function v410FallbackAction(a, el, before){
+  try{
+    if(a==='saveOperation') { if((state.operations||[]).length>before.operations) return true; v410ManualSaveOperation(el?.dataset?.type||val('mType')||'expense'); return true; }
+    if(a==='savePayment') { if((state.plannedExpenses||[]).length>before.plannedExpenses) return true; v410ManualSavePayment(''); return true; }
+    if(a==='savePaymentEdit') { v410ManualSavePayment(el?.dataset?.id||''); return true; }
+    if(a==='saveLifePlan') { if((state.lifePlans||[]).length>before.lifePlans) return true; v410ManualSaveLifePlan(false, el?.dataset?.id||''); return true; }
+    if(a==='saveLifePlanPaid') { v410ManualSaveLifePlan(true, el?.dataset?.id||''); return true; }
+  }catch(fallbackError){ console.error('V40.10 fallback failed', fallbackError); }
+  return false;
+}
+const __v410_oldHandleAction = handleAction;
+let __v410_lastActionKey = '';
+let __v410_lastActionAt = 0;
+handleAction = function(a, el){
+  ensureV410Data();
+  const key=[a,el?.dataset?.id||'',el?.dataset?.type||'',el?.dataset?.date||'',activePage].join('|');
+  const now=Date.now();
+  if(key===__v410_lastActionKey && now-__v410_lastActionAt<260) return;
+  __v410_lastActionKey=key; __v410_lastActionAt=now;
+  const before={operations:(state.operations||[]).length,plannedExpenses:(state.plannedExpenses||[]).length,lifePlans:(state.lifePlans||[]).length,debts:(state.debts||[]).length};
+  try{
+    const result=__v410_oldHandleAction(a, el);
+    normalizeV410Buttons();
+    return result;
+  }catch(err){
+    console.error('Second Brain OS action error:', a, err);
+    state.settings.buttonRuntimeLog.unshift({at:new Date().toISOString(),page:activePage,action:a,error:String(err && (err.stack||err.message)||err)});
+    state.settings.buttonRuntimeLog=state.settings.buttonRuntimeLog.slice(0,30);
+    if(v410FallbackAction(a, el, before)) return;
+    try{ save({snapshot:true, reason:'v40-10-action-error'}); }catch(_e){}
+    toast('Ошибка кнопки: '+v410ActionLabel(a));
+  }
+};
+const __v410_oldOpenModal = openModal;
+openModal = function(title, body, onSave){
+  __v410_oldOpenModal(title, body, onSave);
+  normalizeV410Buttons();
+  const root=document.getElementById('modalRoot');
+  const modal=root?.querySelector('.modal');
+  if(modal && !modal.dataset.v410Guard){
+    modal.dataset.v410Guard='1';
+    modal.addEventListener('click', function(e){
+      const el=e.target.closest('[data-page],[data-action]');
+      if(!el) return;
+      e.preventDefault(); e.stopPropagation();
+      const p=el.dataset.page, a=el.dataset.action;
+      if(p){ closeModal(); return go(p); }
+      if(a) return handleAction(a, el);
+    }, true);
+  }
+};
+const __v410_oldRunButtonAudit = typeof runButtonAudit === 'function' ? runButtonAudit : null;
+runButtonAudit = function(){
+  normalizeV410Buttons();
+  const actions=Array.from(document.querySelectorAll('[data-action]')).map(el=>el.dataset.action).filter(Boolean);
+  const pages=Array.from(document.querySelectorAll('[data-page]')).map(el=>el.dataset.page).filter(Boolean);
+  const report={at:new Date().toISOString(),version:SBOS_V410,page:activePage,activeActionButtons:actions.length,activePageButtons:pages.length,uniqueActions:Array.from(new Set(actions)).sort(),uniquePages:Array.from(new Set(pages)).sort(),recentErrors:(state.settings.buttonRuntimeLog||[]).slice(0,8)};
+  state.settings.buttonAuditLog ||= []; state.settings.buttonAuditLog.unshift(report); state.settings.buttonAuditLog=state.settings.buttonAuditLog.slice(0,20); save();
+  openModal('Инспекция кнопок V40.10', `<pre class="diagnostic-pre">${esc(JSON.stringify(report,null,2))}</pre><p class="sub">V40.10 ловит ошибки кнопок, защищает от двойных кликов и включает fallback-сохранение для расходов, платежей и планов.</p><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button></div>`);
+};
+const __v410_oldFinance = finance;
+finance = function(){
+  let html=__v410_oldFinance();
+  if(!html.includes('Факт по картам')){
+    html=html.replace('</div></div><div class="finance-dashboard-grid">', '<button class="ghost" data-page="reconcile">Факт по картам</button></div></div><div class="finance-dashboard-grid">');
+  }
+  return html;
+};
+const __v410_oldSync = sync;
+sync = function(){
+  let html=__v410_oldSync();
+  if(!html.includes('Runtime кнопок V40.10')){
+    html += `<section class="card panel"><div class="section-head"><div><h3>Runtime кнопок V40.10</h3><p class="sub">Проверка кликов, ошибок и активных действий текущего экрана.</p></div><button class="primary" data-action="runButtonAudit">Проверить кнопки</button></div>${(state.settings.buttonRuntimeLog||[]).length?`<pre class="diagnostic-pre">${esc(JSON.stringify((state.settings.buttonRuntimeLog||[]).slice(0,5),null,2))}</pre>`:'<div class="empty">Ошибок кнопок пока нет</div>'}</section>`;
+  }
+  return html;
+};
+const __v410_oldRender = render;
+render = function(){ __v410_oldRender(); normalizeV410Buttons(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.10 BUTTON CORE'; };
+function injectV410Styles(){
+  if(document.getElementById('v410Styles')) return;
+  const st=document.createElement('style'); st.id='v410Styles'; st.textContent=`.modal [data-action],.modal [data-page],button[data-action],button[data-page]{pointer-events:auto!important}.modal .primary,.modal .ghost,.modal .danger-btn{position:relative;z-index:2}.diagnostic-pre{white-space:pre-wrap;overflow:auto;max-height:360px;background:#fffdf8;border:1px solid var(--line2);border-radius:16px;padding:14px}.runtime-ok{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}`;
+  document.head.appendChild(st);
+}
+injectV410Styles(); ensureV410Data(); normalizeV410Buttons();
 
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot,openOperationsCleanup,deleteOperationsForPeriod,confirmBankReplaceImport,writeDataGuard,recoverStateIfNeeded,restoreOperationsFromGuard};
 save(); installSW(); render(); setTimeout(renderInstallHint, 700);

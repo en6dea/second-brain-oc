@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS — Data Guard Balance Private",
+  "name": "Second Brain OS — Button Runtime Balance Private",
   "short_name": "Second Brain",
-  "description": "Личная Life RPG система с защитой данных при обновлениях, CSV-импортом банка и фиксацией фактического остатка по картам.",
-  "start_url": "/second-brain-oc/?v=v40-9-data-guard-balance-anchor-private-20260629",
+  "description": "Личная Life RPG система с устойчивыми кнопками, защитой данных, импортом банка и фиксацией фактического остатка по картам.",
+  "start_url": "/second-brain-oc/?v=v40-10-button-runtime-balance-private-20260629",
   "scope": "./",
   "display": "standalone",
   "display_override": [
