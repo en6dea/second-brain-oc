@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS — QA Polish Private",
+  "name": "Second Brain OS — Bank Import Private",
   "short_name": "Second Brain",
-  "description": "Личная Life RPG система с QA Polish: календарь, финансы, цели, привычки, люди, заметки, бэкапы и восстановление.",
-  "start_url": "/second-brain-oc/?v=v40-1-qa-polish-private-20260626",
+  "description": "Личная Life RPG система с импортом банковских CSV-операций, календарём, финансами, целями, привычками, людьми, бэкапами и восстановлением.",
+  "start_url": "/second-brain-oc/?v=v40-2-bank-import-private-20260629",
   "scope": "./",
   "display": "standalone",
   "display_override": [

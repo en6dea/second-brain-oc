@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <title>Second Brain OS</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v40-1-qa-polish-private-20260626" />
+  <link rel="manifest" href="manifest.webmanifest?v=v40-2-bank-import-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -147,13 +147,29 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 @media (max-width:760px){.data-head .top-actions,.data-action-grid,.data-core-grid{grid-template-columns:1fr!important}.data-head .top-actions{width:100%}.data-head .top-actions button,.data-action-grid button{width:100%}.snapshot-row{grid-template-columns:1fr}.snapshot-actions{justify-content:stretch}.snapshot-actions button{flex:1}.diagnostic-pre{max-height:260px}.data-metrics{grid-template-columns:1fr 1fr!important}}
 
 /* ===============================
-   V40.1 QA POLISH — app feel
+   V40.2 BANK IMPORT — app feel
 ================================ */
-.sidebar-status.v401-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
-.sidebar-status.v401-status small{color:rgba(255,255,255,.68)}
-.sidebar-status.v401-status .sync-dot{color:#a8d9a6}
+.sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
+.sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
+.sidebar-status.v402-status .sync-dot{color:#a8d9a6}
 .calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}.calendar-rail{display:grid;gap:18px}.calendar-card{padding:16px}.calendar-grid{display:grid;gap:12px}.calendar-weekdays,.calendar-cells{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.calendar-weekdays b{text-align:center;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.calendar-cell{min-height:104px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fffefb,#fbf6ef);padding:10px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 24px rgba(72,54,34,.04);transition:.16s}.calendar-cell:hover{transform:translateY(-1px);border-color:#d6c7b4;box-shadow:0 14px 32px rgba(72,54,34,.08)}.calendar-cell.today{background:linear-gradient(180deg,#f0f8ef,#fffefb);box-shadow:inset 0 0 0 2px rgba(77,135,88,.25)}.calendar-cell.muted{opacity:.38;background:#f4eee6}.calendar-cell strong{font-size:15px}.calendar-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.cal-dot{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800;background:#f1eadf;color:#5f5449}.cal-dot.task{background:#e9f0fc;color:#416ba7}.cal-dot.pay{background:#fff1dd;color:#b47724}.cal-dot.bday{background:#f1e9fb;color:#7d5aa4}.cal-dot.money{background:#e9f5e9;color:#3d7b47}.day-sheet-grid{display:grid;grid-template-columns:1fr;gap:12px}.soft-card{box-shadow:none;background:#fffefb}.finance-dashboard-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}.finance-dashboard-grid>section:nth-child(3),.finance-dashboard-grid>section:nth-child(4){min-height:240px}.finance-hero-grid.compact{grid-template-columns:repeat(2,minmax(0,1fr))}.debt-mini-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line2)}.debt-mini-row:last-child{border-bottom:0}.debt-mini-row p{margin:3px 0 0;color:var(--muted);font-size:13px}.pay-row.big-pay{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center}.muted-line{opacity:.48}.active-drop{width:100%;cursor:pointer}.hidden-file{display:none}.mini-head{margin-bottom:0}.note-row .mini-head b{display:block}.habit-manage-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border-bottom:1px solid var(--line2)}.habit-manage-row:last-child{border-bottom:0}.habit-manage-row .habit-line{border-bottom:0}.person-card{transition:.16s}.person-card:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(72,54,34,.08)}.finance-balance{font-size:56px;font-weight:850;line-height:1;letter-spacing:-.05em;margin:12px 0}.finance-balance.green{color:var(--green)}.finance-balance.red{color:var(--red)}
 @media (max-width: 900px){body{min-width:0}.calendar-layout,.finance-dashboard-grid{grid-template-columns:1fr}.calendar-cell{min-height:72px;border-radius:14px;padding:8px}.calendar-weekdays,.calendar-cells{gap:5px}.calendar-cell strong{font-size:13px}.calendar-rail{grid-template-columns:1fr}.debt-mini-row,.pay-row.big-pay{grid-template-columns:1fr auto}.debt-mini-row small,.debt-mini-row button,.pay-row.big-pay small,.pay-row.big-pay button{grid-column:auto}.finance-balance{font-size:42px}.calendar-card{padding:10px}.main{padding-bottom:110px}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.habit-manage-row{grid-template-columns:1fr}.habit-manage-row>button{justify-self:start;margin-bottom:10px}}
+
+  
+
+/* ===============================
+   V40.2 BANK IMPORT — real bank CSV
+================================ */
+.sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
+.sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
+.sidebar-status.v402-status .sync-dot{color:#a8d9a6}
+.bank-import-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#fffdf8,#f1f8ef)}
+.bank-import-hero:after{content:"";position:absolute;right:-64px;bottom:-88px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(77,135,88,.16),rgba(77,135,88,0) 62%);pointer-events:none}
+.bank-drop{position:relative;z-index:1;min-height:180px;border-style:dashed;background:rgba(255,255,255,.62)}
+.bank-drop b{font-size:22px;letter-spacing:-.02em}.bank-drop p{max-width:760px;margin:8px auto 0}
+.bank-rules-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.bank-rules-grid>div{padding:14px;border:1px solid var(--line2);border-radius:16px;background:rgba(255,255,255,.68)}.bank-rules-grid b{display:block;margin-bottom:5px}.bank-rules-grid span{color:var(--muted);font-size:13px;line-height:1.35}
+.bank-import-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.bank-import-summary .metric{min-height:110px}.import-note{border:1px solid var(--line2);border-radius:18px;background:#fffdf8;padding:14px;margin-bottom:14px}.import-note p{margin:5px 0 0}.import-preview-table{max-height:420px;overflow:auto}.import-preview-table .table{min-width:760px}.tag.amber{background:#fff4de;color:#9a661e;border-color:#f0d5a7}
+@media (max-width:760px){.bank-rules-grid,.bank-import-summary{grid-template-columns:1fr 1fr}.bank-drop{min-height:150px}.bank-drop b{font-size:18px}.import-preview-table{max-height:360px}}
 
   </style>
 </head>
@@ -161,14 +177,14 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V40.1 QA POLISH</div>
+  <div id="releaseBadge">V40.2 BANK IMPORT</div>
   <script>
 try {
-/* Second Brain OS — QA Polish Private V40.1 */
+/* Second Brain OS — Bank Import Private V40.2 */
 'use strict';
 
-const RELEASE = 'v40-1-qa-polish-private-20260626';
-const DATA_VERSION = 401;
+const RELEASE = 'v40-2-bank-import-private-20260629';
+const DATA_VERSION = 402;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -188,6 +204,8 @@ let modalSave = null;
 let state = loadState();
 let searchQuery = '';
 let lastAutoSnapshotAt = 0;
+let pendingBankImport = [];
+let pendingBankImportMeta = null;
 
 const navGroups = [
   ['Главная', [['dashboard','⌂','Главная']]],
@@ -320,7 +338,7 @@ function linkedNotes(g){ const a=(state.notes||[]).filter(n=>g&&n.goalId===g.id)
 function linkedPeople(g){ const ids=new Set(linkedTasks(g).map(t=>t.personId).filter(Boolean)); return (state.people||[]).filter(p=>ids.has(p.id)); }
 function todayTasks(){ return (state.tasks||[]).filter(t=>t.status!=='Готово' && t.due===todayKey()).sort(taskSort); }
 function todayHabits(){ return (state.habits||[]).filter(h=>h.active!==false); }
-function monthOps(type){ return (state.operations||[]).filter(o=>o.type===type && String(o.date||'').startsWith(state.settings.currentMonth)); }
+function monthOps(type){ return (state.operations||[]).filter(o=>o.type===type && !o.excludeFromLimit && String(o.date||'').startsWith(state.settings.currentMonth)); }
 function monthSummary(){
   const income=total(monthOps('income')), expenses=total(monthOps('expense'));
   const planned=total((state.plannedExpenses||[]).filter(p=>p.active!==false && (!p.month || p.month===state.settings.currentMonth)));
@@ -337,7 +355,7 @@ function lifeScore(){
   return Math.round((hp*.30+tp*.20+gp*.30+fp*.20)*100);
 }
 function weekSeries(type){
-  const out=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); out.push({label:key.slice(8),value:total((state.operations||[]).filter(o=>o.type===type&&o.date===key))}); } return out;
+  const out=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); out.push({label:key.slice(8),value:total((state.operations||[]).filter(o=>o.type===type&&!o.excludeFromLimit&&o.date===key))}); } return out;
 }
 function categoryTotals(){ const map={}; monthOps('expense').forEach(o=>map[o.category||'Другое']=(map[o.category||'Другое']||0)+num(o.amount)); return Object.entries(map).sort((a,b)=>b[1]-a[1]); }
 function rpgStats(g){ const tasks=linkedTasks(g), done=tasks.filter(t=>t.status==='Готово').length, notes=linkedNotes(g).length, progress=goalProgress(g); const xp=Math.round(progress*4+done*35+notes*12); return {xp,level:Math.max(1,Math.floor(xp/120)+1),current:xp%120,next:120,done,notes,streak:Math.max(1,done+notes),progress}; }
@@ -385,7 +403,7 @@ function mobileHeaderTitle(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.1</b><span class="sync-dot">QA POLISH OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.2</b><span class="sync-dot">BANK IMPORT OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -393,7 +411,7 @@ function route(){
 }
 
 function dashboard(){
-  const s=monthSummary(), life=lifeScore(), goal=currentGoal(), tasks=todayTasks().slice(0,4), habits=todayHabits().slice(0,5), hm=state.habitLogs?.[todayKey()]||{}, expToday=total((state.operations||[]).filter(o=>o.type==='expense'&&o.date===todayKey())), incToday=total((state.operations||[]).filter(o=>o.type==='income'&&o.date===todayKey())), safePct=s.dailyLimit?Math.min(100,Math.round(expToday/Math.max(1,s.dailyLimit)*100)):0, expSeries=weekSeries('expense'), incSeries=weekSeries('income'), cats=categoryTotals().slice(0,5), note=linkedNotes(goal)[0], payments=(state.plannedExpenses||[]).filter(p=>p.active!==false).slice(0,3);
+  const s=monthSummary(), life=lifeScore(), goal=currentGoal(), tasks=todayTasks().slice(0,4), habits=todayHabits().slice(0,5), hm=state.habitLogs?.[todayKey()]||{}, expToday=total((state.operations||[]).filter(o=>o.type==='expense'&&!o.excludeFromLimit&&o.date===todayKey())), incToday=total((state.operations||[]).filter(o=>o.type==='income'&&!o.excludeFromLimit&&o.date===todayKey())), safePct=s.dailyLimit?Math.min(100,Math.round(expToday/Math.max(1,s.dailyLimit)*100)):0, expSeries=weekSeries('expense'), incSeries=weekSeries('income'), cats=categoryTotals().slice(0,5), note=linkedNotes(goal)[0], payments=(state.plannedExpenses||[]).filter(p=>p.active!==false).slice(0,3);
   return `<div class="home-head clean-home-head"><div><div class="page-label">Главная</div><h1>Добрый вечер, Алексей! 👋</h1><p class="sub">${new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})}</p></div></div><div class="home-grid premium-home-grid"><div class="home-main"><div class="top-grid"><section class="card hero-card day-card"><div class="section-head"><h3>Порядок дня</h3><button class="ghost small" data-page="control">i</button></div><div class="big">${life}%</div><div class="progress"><span style="width:${life}%"></span></div><p class="sub">Отличный прогресс! Продолжай в том же духе.</p><div class="mini-grid"><div><b>${Math.max(tasks.length,1)}</b><span>Главные задачи</span></div><div><b>${Object.keys(hm).length}/${Math.max(habits.length,1)}</b><span>Привычек</span></div><div><b>${money(s.left)}</b><span>Остаток месяца</span></div><div><b>18:00</b><span>Вопрос дня</span></div></div><div class="mountain-decor"></div></section><section class="card hero-card finance-hero"><div class="section-head"><h3>Можно тратить сегодня</h3><button class="ghost small" data-action="todayLimit">i</button></div><div class="big">${money(s.dailyLimit)}</div><span class="sub">из ${money(Math.max(4000,s.dailyLimit+expToday))}</span><div class="progress"><span style="width:${Math.min(100,Math.max(8,46))}%"></span></div><div class="money-list"><p><span>Лимит на сегодня</span><b>${Math.min(100,Math.max(0,Math.round((s.dailyLimit? s.dailyLimit/(Math.max(s.dailyLimit,expToday||1))*100:46))))}%</b></p></div></section><section class="card attention-card"><div class="section-head"><h3>Что требует внимания</h3><span class="tag amber">${attentionItems().length}</span></div><div class="attention-list premium-attention">${attentionItems().map(x=>`<div class="attention-row ${x[0]}"><i>${x[1]}</i><span>${esc(x[2])}</span></div>`).join('')}</div><button class="link-btn" data-page="control">Перейти к контролю →</button></section></div><div class="mid-grid premium-mid-grid"><section class="card"><div class="section-head"><h3>Задачи на сегодня</h3><button class="ghost small" data-action="addTask">＋</button></div>${tasks.length?tasks.map(taskLine).join(''):'<div class="empty">Сегодня пусто — добавь фокус дня</div>'}<button class="link-btn subtle" data-action="addTask">＋ Новая задача</button></section><section class="card"><div class="section-head"><h3>Привычки</h3><button class="ghost small" data-action="addHabit">＋</button></div>${habits.length?habits.map(habitLine).join(''):'<div class="empty">Нет привычек</div>'}</section><section class="card"><div class="section-head"><h3>Финансы сегодня</h3><button class="ghost small" data-action="addExpense">＋</button></div><div class="money-list"><p><span>Расходы</span><b class="red-text">${money(expToday)}</b></p><p><span>Доходы</span><b class="green-text">${money(incToday)}</b></p></div>${spark(expSeries.map(x=>x.value),'var(--green)')}<button class="link-btn subtle" data-page="finance">Смотреть финансы →</button></section><section class="card"><div class="section-head"><h3>Фокус недели</h3><button class="ghost small" data-page="goals">＋</button></div>${goal?`<div class="focus-box"><b>⚑ Главная цель недели</b><p>${esc(goal.title)}</p><div class="progress"><span style="width:${goalProgress(goal)}%"></span></div><div class="money-list"><p><span>${esc(goal.nextAction||'Следующий шаг не указан')}</span><b>${goalProgress(goal)}%</b></p></div></div>`:'<div class="empty">Нет активной цели</div>'}<div class="sub-list"><h4>Что нельзя делать</h4><ul class="no-list">${(state.settings.weekNoList||'').split(/\n+/).slice(0,3).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></section></div><section class="card analytics-card"><div class="section-head"><div><h3>Аналитика недели <small>19 — 26 июня</small></h3><div class="tab-row"><button class="tab active">Обзор</button><button class="tab">Финансы</button><button class="tab">Задачи</button><button class="tab">Привычки</button><button class="tab">Цели</button></div></div><button class="ghost small">Неделя ▾</button></div><div class="metrics premium-metrics"><article class="metric"><b>${money(s.expenses)}</b><span>Расходы</span>${spark(expSeries.map(x=>x.value),'var(--blue)')}</article><article class="metric"><b>${money(s.income)}</b><span>Доходы</span>${spark(incSeries.map(x=>x.value),'var(--green)')}</article><article class="metric"><b>${money(Math.max(0,s.left))}</b><span>Сбережения</span>${spark(incSeries.map((x,i)=>Math.max(0,x.value-(expSeries[i]?.value||0))),'var(--green)')}</article><article class="metric"><b>${life}%</b><span>Порядок дня</span><div class="progress"><span style="width:${life}%"></span></div></article></div><div class="charts premium-charts"><article class="chart-box"><h4>Динамика расходов</h4>${barChart(expSeries)}</article><article class="chart-box"><h4>Расходы по категориям</h4>${cats.length?donut(cats):'<div class="empty">Нет данных</div>'}</article><article class="chart-box"><h4>Динамика привычек</h4>${heatmap()}</article></div></section></div><aside class="rail right-rail"><section class="card"><div class="section-head"><div><h3>Связи как в Obsidian</h3><p class="sub">Двусторонние связи между всеми сущностями: задачи, цели, заметки, финансы, привычки, люди.</p></div><button class="ghost small" data-page="notes">Связи</button></div>${goal?graph(goal):'<div class="empty">Нет цели</div>'}</section><section class="card"><div class="section-head"><h3>Пример страницы заметки</h3><button class="ghost small" data-action="addNote">＋</button></div>${note?`<article class="note-card-preview"><small class="sub">↖ Заметки / ${esc(note.title)}</small><h4>${esc(note.title)}</h4><p class="sub">Связано с</p><p class="link-line">[[${esc(goal?.title||'SMART-цель')}]]</p><p>${esc(note.text||'')}</p><div class="note-tags">${(note.tags||[]).map(t=>`<span>#${esc(t)}</span>`).join('')}</div><div class="top-actions"><button class="ghost">Открыть заметку</button><button class="ghost" data-page="goals">Открыть связи</button></div></article>`:'<div class="empty">Заметок пока нет</div>'}</section><section class="card"><div class="section-head"><h3>Ближайшие платежи</h3><button class="ghost small" data-action="addPayment">＋</button></div>${payments.map(p=>`<div class="pay-row"><span>${esc(p.title||'Платёж')}</span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')} июня</small></div>`).join('') || '<div class="empty">Платежей нет</div>'}<button class="link-btn" data-page="finance">Все платежи →</button></section><section class="card insight-card"><h3>Последний инсайт</h3><p>${esc(state.journal?.[0]?.insight||'Когда я фокусируюсь на главном, я успеваю больше и чувствую себя лучше.')}</p><small class="sub">Сегодня, 09:15</small></section></aside></div>`;
 }
 function taskLine(t){ return `<div class="task-line"><button class="round-check" data-action="toggleTask" data-id="${t.id}">${t.status==='Готово'?'✓':'○'}</button><div class="task-main"><b>${esc(t.title)}</b><p>${esc(t.nextAction||t.area||'')}</p></div><span class="tag blue">${esc(t.area||'Личное')}</span><time>${esc(t.time||'—')}</time></div>`; }
@@ -481,7 +499,7 @@ function sync(){
   const r = integrityReport();
   const ok = r.status === 'ok';
   const mb = (r.bytes/1024).toFixed(1) + ' КБ';
-  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.1</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.1</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
+  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.2</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.2</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
 }
 function settings(){ return `<div class="goals-head"><div><div class="page-label">Настройки системы</div><h1>Настройки</h1><p class="sub">Настрой роль, стиль прохождения и антисписок недели.</p></div></div><section class="card"><div class="form-grid"><label>Класс персонажа<input id="rpgClass" value="${esc(state.rpg.class||'')}"></label><label>Ранг<input id="rpgRank" value="${esc(state.rpg.rank||'')}"></label><label class="full">Что нельзя делать на неделе<textarea id="weekNoList">${esc(state.settings.weekNoList||'')}</textarea></label></div><button class="primary" data-action="saveSettings">Сохранить изменения</button></section>`; }
 function week(){ return `<div class="goals-head"><div><div class="page-label">План недели</div><h1>Неделя</h1><p class="sub">Фокус недели, ближайшие платежи и квесты.</p></div><button class="primary" data-action="weeklyReview">Сформировать обзор</button></div>${dashboard().split('<div class="home-grid">')[1] ? '<section class="card"><h3>Сводка недели</h3><p class="sub">Используй обзор недели на главной и цели как основной фокус.</p></section>' : ''}`; }
@@ -529,7 +547,7 @@ function exportBackup(){
   const payload = backupPayload('manual-download');
   state.dataCore.lastBackupAt = payload.createdAt;
   save({snapshot:true});
-  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-1.json`);
+  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-2.json`);
   toast('Полный бэкап скачан');
 }
 function createManualSnapshot(){
@@ -675,7 +693,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.1 QA POLISH';
+    $('#releaseBadge').textContent='V40.2 BANK IMPORT';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -693,7 +711,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.1 QA POLISH — final app pass
+   V40.2 BANK IMPORT — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -785,7 +803,7 @@ dashboard = function(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v401-status"><small>PRIVATE APP</small><b>V40.1</b><span class="sync-dot">QA POLISH OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v402-status"><small>PRIVATE APP</small><b>V40.2</b><span class="sync-dot">BANK IMPORT OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 
 function editOperation(id){ const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена'); openModal('Изменить операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<input id="mCategory" value="${esc(o.category||'')}"></label><label class="full">Комментарий<input id="mNote" value="${esc(o.note||'')}"></label></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`); }
@@ -809,22 +827,118 @@ function savePaymentEdit(id){ const p=(state.plannedExpenses||[]).find(x=>x.id==
 function deletePayment(id){ state.plannedExpenses=(state.plannedExpenses||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Платёж удалён'); }
 function payments(){ const rows=(state.plannedExpenses||[]).sort((a,b)=>num(a.day)-num(b.day)); return `<div class="goals-head premium-page-head"><div><div class="page-label">Платежи</div><h1>Платежи</h1><p class="sub">Регулярные и ближайшие платежи теперь можно редактировать и отключать.</p></div><button class="primary" data-action="addPayment">＋ Платёж</button></div><section class="card panel"><div class="section-head"><h3>Ближайшие платежи</h3><span class="tag">${rows.length}</span></div>${rows.length?rows.map(p=>`<div class="pay-row big-pay ${p.active===false?'muted-line':''}"><span>${esc(p.title||'Платёж')}</span><b>${money(p.amount)}</b><small>${String(p.day||'').padStart(2,'0')} число</small><button class="ghost small" data-action="editPayment" data-id="${p.id}">Изм.</button></div>`).join(''):'<div class="empty">Платежей пока нет</div>'}</section>`; }
 
-function pickCsv(){ const input=$('#csvFile'); if(input) input.click(); }
-function parseCsvText(text){
-  const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+function pickCsv(){ const input=$('#csvFile'); if(input){ input.value=''; input.click(); } }
+function csvDelimiter(line){ const comma=(line.match(/,/g)||[]).length; const semi=(line.match(/;/g)||[]).length; return semi>comma?';':','; }
+function parseCsvRows(text){
+  const src=String(text||'').replace(/^\uFEFF/, '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const delimiter=csvDelimiter(src.split('\n')[0]||'');
+  const rows=[]; let row=[]; let cell=''; let quoted=false;
+  for(let i=0;i<src.length;i++){
+    const ch=src[i], next=src[i+1];
+    if(ch==='"'){
+      if(quoted && next==='"'){ cell+='"'; i++; }
+      else quoted=!quoted;
+    }else if(ch===delimiter && !quoted){ row.push(cell); cell=''; }
+    else if(ch==='\n' && !quoted){ row.push(cell); if(row.some(v=>String(v).trim())) rows.push(row.map(v=>String(v).trim())); row=[]; cell=''; }
+    else cell+=ch;
+  }
+  row.push(cell); if(row.some(v=>String(v).trim())) rows.push(row.map(v=>String(v).trim()));
+  return rows;
+}
+function normalizeCsvDate(raw){
+  const s=String(raw||'').trim();
+  if(!s) return todayKey();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+function bankCategory(row){
+  const merchant=String(row.merchant||row.note||'').toLowerCase();
+  const c=String(row.category||'').trim();
+  if(/копилка для сдачи|30601810100161247967/i.test(merchant)) return 'Копилка / сбережения';
+  if(c && c!=='Прочие расходы') return c;
+  if(/yandex.*go|такси|taxi/i.test(merchant)) return 'Такси';
+  if(/ozon|wildberries|market/i.test(merchant)) return 'Маркетплейсы';
+  if(/magnit|магнит|pyater|пят[её]р|perekrestok|глобус|globus|produkty|продукт/i.test(merchant)) return 'Продукты';
+  if(/apteka|аптек/i.test(merchant)) return 'Аптеки';
+  if(/кафе|kafe|coffee|restaurant|burger|вкусно|fast|фаст/i.test(merchant)) return 'Кафе и рестораны';
+  if(/жкх|коммун/i.test(merchant)) return 'Коммунальные услуги';
+  if(/перевод|transfer|клиента альфа/i.test(merchant)) return 'Переводы';
+  return c || 'Импорт банка';
+}
+function bankSourceId(row){
+  return checksumString([row.operationDate,row.transactionDate,row.accountNumber,row.cardNumber,row.merchant,row.amount,row.currency,row.type,row.category].map(x=>String(x||'').trim()).join('|'));
+}
+function rowsToObjects(rows){
+  if(!rows.length) return [];
+  const headers=rows[0].map(h=>String(h||'').replace(/^\uFEFF/,'').trim());
+  return rows.slice(1).map(cols=>Object.fromEntries(headers.map((h,i)=>[h, cols[i] ?? ''])));
+}
+function parseBankStatementText(text){
+  const table=parseCsvRows(text);
+  const objects=rowsToObjects(table);
+  const hasBankHeaders=objects.length && ('operationDate' in objects[0]) && ('amount' in objects[0]) && ('type' in objects[0]);
+  if(!hasBankHeaders) return parseSimpleCsvText(text);
+  const existing=new Set((state.operations||[]).map(o=>o.sourceId).filter(Boolean));
+  const parsed=[]; let skipped=0;
+  for(const row of objects){
+    const amount=num(row.amount); if(!amount){ skipped++; continue; }
+    const sourceId='bank_'+bankSourceId(row);
+    const typeRaw=String(row.type||'');
+    const type=/пополнение|зачис|income|приход/i.test(typeRaw)?'income':'expense';
+    const date=normalizeCsvDate(row.transactionDate || row.operationDate);
+    const merchant=String(row.merchant||'').trim() || 'Операция банка';
+    const status=String(row.status||'').trim() || (type==='income'?'Пополнение':'Без статуса');
+    const category=bankCategory(row);
+    parsed.push({
+      id:uid(), date, type, amount, category, note:merchant, source:'bank-csv', sourceId,
+      bankStatus:status, accountName:row.accountName||'', cardName:row.cardName||'', currency:row.currency||'RUR',
+      duplicate:existing.has(sourceId), pending:/обработке/i.test(status), excludeFromLimit:/между своими счетами|копилка/i.test(category)
+    });
+  }
+  parsed.meta={kind:'alpha-bank-csv', totalRows:objects.length, skipped};
+  return parsed;
+}
+function parseSimpleCsvText(text){
+  const table=parseCsvRows(text);
   const out=[];
-  for(const line of lines){
-    const sep=line.includes(';')?';':',';
-    const parts=line.split(sep).map(x=>x.trim().replace(/^"|"$/g,''));
+  for(const parts of table){
     if(parts.length<3 || /date|дата/i.test(parts[0])) continue;
     const [dateRaw,typeRaw,amountRaw,categoryRaw,noteRaw] = parts;
-    const type=/income|доход|зачис/i.test(typeRaw)?'income':'expense';
-    out.push({id:uid(),date:dateRaw||todayKey(),type,amount:num(amountRaw),category:categoryRaw||'Импорт',note:noteRaw||'CSV'});
+    const type=/income|доход|зачис|пополнение/i.test(typeRaw)?'income':'expense';
+    const sourceId='manual_'+checksumString(parts.join('|'));
+    out.push({id:uid(),date:normalizeCsvDate(dateRaw),type,amount:num(amountRaw),category:categoryRaw||'Импорт',note:noteRaw||'CSV',source:'simple-csv',sourceId});
   }
+  out.meta={kind:'simple-csv', totalRows:out.length, skipped:0};
   return out.filter(x=>x.amount);
 }
-function importCsvFile(event){ const file=event?.target?.files?.[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ const rows=parseCsvText(reader.result); if(!rows.length) return toast('Не нашёл операции в CSV'); state.operations.unshift(...rows); save(); closeModal(); render(); toast(`Импортировано операций: ${rows.length}`); }; reader.readAsText(file); }
-function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт</div><h1>Импорт банка</h1><p class="sub">Активирован простой CSV-импорт: date,type,amount,category,note. Раздел больше не заглушка.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-action="addExpense">＋ Вручную</button></div></div><section class="card panel"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop" data-action="pickCsv"><b>Нажми, чтобы выбрать CSV</b><p class="sub">Поддержка простого формата: дата, тип, сумма, категория, комментарий. Перед импортом скачай бэкап в разделе «Данные».</p></button></section><section class="card panel"><h3>Пример строки</h3><pre class="diagnostic-pre">2026-06-26;expense;450;Кофе;завтрак\n2026-06-26;income;30000;Проект;оплата</pre></section>`; }
+function importPreviewStats(rows){
+  const newRows=rows.filter(x=>!x.duplicate);
+  return {newRows, income:newRows.filter(x=>x.type==='income'&&!x.excludeFromLimit).reduce((s,x)=>s+num(x.amount),0), expenses:newRows.filter(x=>x.type==='expense'&&!x.excludeFromLimit).reduce((s,x)=>s+num(x.amount),0), excluded:newRows.filter(x=>x.excludeFromLimit).reduce((s,x)=>s+num(x.amount),0), excludedCount:newRows.filter(x=>x.excludeFromLimit).length, pending:newRows.filter(x=>x.pending).length, duplicates:rows.filter(x=>x.duplicate).length};
+}
+function previewBankImport(rows, fileName='bank.csv'){
+  pendingBankImport=rows.filter(x=>!x.duplicate);
+  pendingBankImportMeta=rows.meta || {kind:'unknown', totalRows:rows.length, skipped:0};
+  const st=importPreviewStats(rows);
+  const sample=rows.slice(0,40).map(r=>`<tr class="${r.duplicate?'muted-line':''}"><td>${esc(r.date)}</td><td><span class="tag ${r.type==='income'?'green':'warn'}">${r.type==='income'?'Доход':'Расход'}</span></td><td><b>${esc(r.category)}</b><br><small>${esc(r.note)}</small></td><td>${money(r.amount)}</td><td>${r.duplicate?'<span class="tag">дубль</span>':(r.excludeFromLimit?'<span class="tag blue">не в лимит</span>':(r.pending?'<span class="tag amber">в обработке</span>':'<span class="tag green">новая</span>'))}</td></tr>`).join('');
+  openModal('Предпросмотр импорта банка', `<div class="bank-import-summary"><article class="metric"><b>${pendingBankImport.length}</b><span>новых операций</span></article><article class="metric"><b>${money(st.expenses)}</b><span>расходы</span></article><article class="metric"><b>${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.excludedCount}</b><span>не в лимит</span></article></div><div class="import-note"><b>${esc(fileName)}</b><p class="sub">Формат распознан: ${esc(pendingBankImportMeta.kind)}. Загружено строк: ${pendingBankImportMeta.totalRows || rows.length}. В обработке: ${st.pending}. Дублей найдено: ${st.duplicates}. Не входит в лимит: ${money(st.excluded)}.</p></div><div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория / описание</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>${sample || '<tr><td colspan="5"><div class="empty">Новых операций нет</div></td></tr>'}</tbody></table></div><div class="top-actions"><button class="primary" data-action="confirmBankImport">Импортировать новые операции</button><button class="ghost" data-action="pickCsv">Выбрать другой файл</button></div>`);
+}
+function confirmBankImport(){
+  if(!pendingBankImport.length) return toast('Новых операций для импорта нет');
+  saveLocalSnapshot('before-bank-import');
+  state.operations.unshift(...pendingBankImport.map(x=>{ const {duplicate,pending,...clean}=x; return clean; }));
+  const count=pendingBankImport.length;
+  pendingBankImport=[]; pendingBankImportMeta=null;
+  save({snapshot:true}); closeModal(); render(); toast(`Импортировано операций: ${count}`);
+}
+function importCsvFile(event){
+  const file=event?.target?.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ const rows=parseBankStatementText(reader.result); if(!rows.length) return toast('Не нашёл операции в файле'); previewBankImport(rows, file.name); };
+  reader.readAsText(file);
+}
+function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.2</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
 
 function editPerson(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; openModal('Изменить человека', `<div class="form-grid"><label>Имя<input id="mName" value="${esc(p.name||'')}"></label><label>Тип связи<input id="mRelation" value="${esc(p.relation||'')}"></label><label>День рождения<input id="mBirthday" type="date" value="${esc(p.birthday||'')}"></label><label class="full">Что любит<input id="mLikes" value="${esc(p.likes||'')}"></label><label class="full">О чём поговорить<input id="mTalk" value="${esc(p.talkIdeas||'')}"></label><label class="full">Идеи подарков<input id="mGifts" value="${esc(p.gifts||'')}"></label><label class="full">Заметка<textarea id="mNotes">${esc(p.notes||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="savePersonEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deletePerson" data-id="${id}">Удалить</button></div>`); }
 function savePersonEdit(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; Object.assign(p,{name:val('mName')||'Человек',relation:val('mRelation'),birthday:val('mBirthday'),likes:val('mLikes'),talkIdeas:val('mTalk'),gifts:val('mGifts'),notes:val('mNotes')}); save(); closeModal(); render(); toast('Контакт обновлён'); }
@@ -857,7 +971,7 @@ function saveBookEdit(id){ const b=(state.books||[]).find(x=>x.id===id); if(!b) 
 function deleteBook(id){ state.books=(state.books||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Книга удалена'); }
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Библиотека роста: книги, статус и главный инсайт.</p></div><button class="primary" data-action="addBook">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3><span class="tag">${state.books.length}</span></div>${state.books.length?state.books.map(b=>`<div class="line-row"><div><b>${esc(b.title)}</b><p class="sub">${esc(b.author||'')} · ${esc(b.status||'')}</p></div><button class="ghost small" data-action="editBook" data-id="${b.id}">Открыть</button></div>`).join(''):'<div class="empty">Книг пока нет</div>'}</section>`; }
 
-function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.1</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.1</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
+function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.2</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.2</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
 
 function handleAction(a, el){
   const id=el?.dataset?.id;
@@ -873,7 +987,7 @@ function handleAction(a, el){
   if(a==='addHabit') return addHabit(); if(a==='saveHabit') return saveHabit(); if(a==='editHabit') return editHabit(id); if(a==='saveHabitEdit') return saveHabitEdit(id); if(a==='deleteHabit') return deleteHabit(id);
   if(a==='addPerson') return addPerson(); if(a==='savePerson') return savePerson(); if(a==='editPerson') return editPerson(id); if(a==='savePersonEdit') return savePersonEdit(id); if(a==='deletePerson') return deletePerson(id);
   if(a==='addBook') return addBook(); if(a==='saveBook') return saveBook(); if(a==='editBook') return editBook(id); if(a==='saveBookEdit') return saveBookEdit(id); if(a==='deleteBook') return deleteBook(id);
-  if(a==='pickCsv') return pickCsv();
+  if(a==='pickCsv') return pickCsv(); if(a==='confirmBankImport') return confirmBankImport();
   if(a==='pickGoal') return setCurrentGoal(id); if(a==='goalTab') return setGoalTab(el.dataset.tab); if(a==='toggleTask'){ const t=state.tasks.find(x=>x.id===id); if(t){t.status=t.status==='Готово'?'В работе':'Готово'; save(); render();} return; }
   toast('Действие не найдено: '+a);
 }
@@ -894,7 +1008,7 @@ save(); installSW(); render(); setTimeout(renderInstallHint, 700);
 } catch(e) {
   console.error(e);
   const app = document.getElementById('app');
-  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v40-1-qa-polish-private-20260626</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
+  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v40-2-bank-import-private-20260629</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
 }
   </script>
 </body>
