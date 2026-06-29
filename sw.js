@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-v43-personal-os-private-20260629';
+const CACHE_NAME = 'second-brain-os-v44-finance-mentor-private-20260629';
 const STATIC_ASSETS = ['./offline.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'];
 self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS).catch(()=>null))); });
 self.addEventListener('activate', event => { event.waitUntil((async()=>{ const keys=await caches.keys(); await Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))); await self.clients.claim(); })()); });

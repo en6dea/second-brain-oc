@@ -178,14 +178,13 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V41 IMPORT REVIEW CORE</div>
+  <div id="releaseBadge">V44 FINANCE MENTOR</div>
   <script>
-try {
-/* Second Brain OS — Product Engine Private V42 */
+/* Second Brain OS — Finance Mentor Private V44 */
 'use strict';
 
-const RELEASE = 'v42-product-engine-private-20260629';
-const DATA_VERSION = 420;
+const RELEASE = 'v44-finance-mentor-private-20260629';
+const DATA_VERSION = 440;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -2962,15 +2961,6 @@ try{
 
 try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {productEngine:SBOS_V42, v42HealthReport, v42EnsureData, categories, clients, diagnostics}); }catch(_e){}
 
-
-} catch(e) {
-  console.error(e);
-  const app = document.getElementById('app');
-  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v42-product-engine-private-20260629</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
-}
-  </script>
-</body>
-</html>
 /* V43 PERSONAL OS — no CRM, premium import + personal dashboard */
 const SBOS_V43 = 'v43-personal-os-private-20260629';
 const SBOS_V43_DISPLAY = 'V43 PERSONAL OS';
@@ -3126,3 +3116,145 @@ try{
   save({reason:'v43-personal-os'}); render(); v43PatchVisibleVersion(); setTimeout(v43PatchVisibleVersion,250); setTimeout(v43PatchVisibleVersion,1500); setTimeout(v43PatchVisibleVersion,2600);
 }catch(e){ console.warn('V43 Personal OS failed', e); }
 try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {personalEngine:SBOS_V43, v43HealthReport, v43PersonalCleanup}); }catch(_e){}
+
+
+/* V44 FINANCE MENTOR — analytics pro + financial literacy coach */
+const SBOS_V44 = 'v44-finance-mentor-private-20260629';
+const SBOS_V44_DISPLAY = 'V44 FINANCE MENTOR';
+function v44Month(){ return (typeof v43MonthKey === 'function' ? v43MonthKey() : monthKey()); }
+function v44MoneyPct(v){ return `${Math.round(num(v))}%`; }
+function v44MonthOps(){ const m=v44Month(); return (state.operations||[]).filter(o=>String(o.date||'').slice(0,7)===m && !o.excludeFromLimit); }
+function v44ExpenseOps(){ return v44MonthOps().filter(o=>o.type!=='income'); }
+function v44IncomeOps(){ return v44MonthOps().filter(o=>o.type==='income'); }
+function v44DebtLoad(){ return (state.debts||[]).filter(d=>String(d.direction||'owe')==='owe' && String(d.status||'Активен')!=='Закрыт').reduce((s,d)=>s+num(d.amount),0); }
+function v44TopCategories(){ const map={}; v44ExpenseOps().forEach(o=>{ const k=String(o.category||'Другое').trim()||'Другое'; map[k]=(map[k]||0)+num(o.amount); }); return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8); }
+function v44BookPrinciples(){ return [
+  {id:'pay-yourself-first', title:'Заплати себе сначала', source:'идея из «Самый богатый человек в Вавилоне»', rule:'Сначала откладывай хотя бы 10% дохода, а уже потом распределяй остаток.', action:'Создай автозадачу на день дохода: отложить 10%.'},
+  {id:'assets-liabilities', title:'Активы важнее статуса', source:'идея из «Богатый папа, бедный папа»', rule:'Покупка хороша, если она не разрушает денежный поток и помогает будущему тебе.', action:'Перед крупной тратой спроси: это актив, необходимость или эмоция?'},
+  {id:'margin-of-safety', title:'Запас прочности', source:'идея из «Психология денег»', rule:'Деньги должны давать спокойствие. Подушка важнее красивой идеальной таблицы.', action:'Собери сначала 1 месяц расходов, потом 3–6 месяцев.'},
+  {id:'debt-snowball', title:'Закрывай долги системой', source:'идея из «Total Money Makeover»', rule:'Долги лучше гасить планом: либо самый маленький первым, либо самый дорогой по процентам.', action:'Выбери стратегию и не добавляй новые долги без необходимости.'},
+  {id:'money-life-energy', title:'Цена покупки = часть жизни', source:'идея из «Your Money or Your Life»', rule:'Смотри не только на цену, а на то, сколько часов жизни стоит покупка.', action:'Для импульсивных покупок включи паузу 24 часа.'},
+  {id:'tiny-habits', title:'Финансы — это привычка', source:'идея из «Атомные привычки»', rule:'Маленькое действие каждый день лучше редкой мотивации.', action:'Каждый вечер 3 минуты: внести расходы и отметить одну категорию.'}
+]; }
+function v44FinanceAnalysis(){
+  if(typeof v43PersonalCleanup==='function') v43PersonalCleanup();
+  const ops=v44MonthOps(), expenses=v44ExpenseOps(), incomes=v44IncomeOps();
+  const income=incomes.reduce((s,o)=>s+num(o.amount),0), expense=expenses.reduce((s,o)=>s+num(o.amount),0), net=income-expense;
+  const control=typeof v43Control==='function'?v43Control():{plan:0,startBalance:0,factBalance:0};
+  const savingsRate=income>0?Math.round(net/income*100):0;
+  const top=v44TopCategories();
+  const dirty=(state.operations||[]).filter(o=>!String(o.category||'').trim() || /другое|импорт|без категории/i.test(String(o.category||''))).length;
+  const debt=v44DebtLoad();
+  const emergencyGoal=(state.goals||[]).find(g=>/подушк|резерв|безопасн/i.test(String(g.title||g.name||'')));
+  const emergencyProgress=emergencyGoal?goalProgress(emergencyGoal):0;
+  let score=100;
+  const warnings=[];
+  const wins=[];
+  const steps=[];
+  if(!num(control.plan)){ score-=12; warnings.push('Не задан план месяца — сложно понять, хорошо ли идёшь.'); steps.push(['editMonthControl','Задать план месяца']); } else wins.push('План месяца задан.');
+  if(!num(control.factBalance)){ score-=8; warnings.push('Не указан фактический баланс — нет сверки с реальностью.'); steps.push(['editMonthControl','Заполнить фактический баланс']); } else wins.push('Фактический баланс заполнен.');
+  if(income>0 && savingsRate<10){ score-=18; warnings.push('Норма накоплений ниже 10%: сначала отложи себе, потом трать.'); steps.push(['createTenPercentTask','Создать задачу на 10%']); } else if(income>0) wins.push(`Норма накоплений ${savingsRate}% — это уже система.`);
+  if(expense>income && income>0){ score-=22; warnings.push('Расходы выше доходов — месяц уходит в минус.'); steps.push(['openTopCategoryPlan','Сократить крупнейшую категорию']); }
+  if(dirty){ score-=8; warnings.push(`${dirty} операций без нормальной категории — аналитика может врать.`); steps.push(['categories','Разобрать категории']); }
+  if(debt>0){ score-=10; warnings.push(`Есть активные долги на ${money(debt)} — нужен план погашения.`); steps.push(['createDebtPlanTask','Создать план погашения']); } else wins.push('Активная долговая нагрузка не найдена.');
+  if(!emergencyGoal){ score-=10; warnings.push('Нет цели “подушка безопасности” — сначала нужна защита от неожиданных расходов.'); steps.push(['createEmergencyGoal','Создать цель-подушку']); } else if(emergencyProgress<25){ score-=6; warnings.push('Подушка безопасности начата, но пока слабая.'); steps.push(['createEmergencyGoal','Усилить подушку']); } else wins.push('Подушка безопасности уже есть в целях.');
+  if(top[0] && income>0 && top[0][1] > income*0.35){ score-=8; warnings.push(`Категория “${top[0][0]}” забирает больше 35% дохода месяца.`); steps.push(['openTopCategoryPlan','План по крупнейшей категории']); }
+  score=clamp(score,0,100);
+  if(!steps.length) steps.push(['addFinanceHabit','Закрепить финансовую привычку']);
+  return {ops,income,expense,net,control,savingsRate,top,dirty,debt,emergencyGoal,emergencyProgress,score,warnings,wins,steps,month:v44Month()};
+}
+function v44Tone(score){ return score>=75?'green':score>=50?'amber':'warn'; }
+function v44CoachLabel(score){ return score>=75?'Стабильно':score>=50?'Нужно подтянуть':'Требует внимания'; }
+function v44MiniBar(value,max){ const w=max?clamp(Math.round(num(value)/num(max)*100),4,100):0; return `<div class="v44-mini-bar"><span style="width:${w}%"></span></div>`; }
+function v44StepButton(step){ const [action,label]=step; if(action==='categories') return `<button class="ghost" data-page="categories">${esc(label)}</button>`; return `<button class="ghost" data-action="${esc(action)}">${esc(label)}</button>`; }
+function v44FinanceCoachCard(){
+  const a=v44FinanceAnalysis(); const first=a.warnings[0]||'Система выглядит спокойно. Продолжай вести факт и категории.';
+  return `<section class="card panel v44-coach-card"><div class="section-head"><div><h3>Финансовый наставник</h3><p class="sub">Подсказки по деньгам простым языком на основе популярных принципов финансовой грамотности.</p></div><span class="tag ${v44Tone(a.score)}">${a.score}/100</span></div><div class="v44-score"><div><b>${v44CoachLabel(a.score)}</b><p>${esc(first)}</p></div><div class="v44-ring" style="--p:${a.score}">${a.score}</div></div><div class="v44-next-actions">${a.steps.slice(0,3).map(v44StepButton).join('')}</div><button class="link-btn" data-page="mentor">Открыть наставника →</button></section>`;
+}
+function mentor(){
+  const a=v44FinanceAnalysis(); const max=Math.max(1,...a.top.map(x=>x[1])); const principles=v44BookPrinciples();
+  return `<div class="goals-head premium-page-head v44-head"><div><div class="page-label">Finance Mentor V44</div><h1>Финансовый наставник</h1><p class="sub">Личный тренажёр финансовой грамотности: факт, план, категории, подушка, долги и маленькие действия.</p></div><div class="top-actions"><button class="primary" data-action="runFinanceCheck">Проверить деньги</button><button class="ghost" data-action="createEmergencyGoal">Подушка</button><button class="ghost" data-action="createTenPercentTask">10% себе</button></div></div>
+  <div class="metrics v44-metrics"><article class="metric ${v44Tone(a.score)}"><b>${a.score}/100</b><span>Финансовое здоровье</span><small>${v44CoachLabel(a.score)}</small></article><article class="metric"><b>${money(a.net)}</b><span>Факт месяца</span><small>доход ${money(a.income)} / расход ${money(a.expense)}</small></article><article class="metric"><b>${v44MoneyPct(a.savingsRate)}</b><span>Норма накоплений</span><small>ориентир: 10%+</small></article><article class="metric"><b>${money(a.debt)}</b><span>Долги</span><small>активная нагрузка</small></article><article class="metric"><b>${a.dirty}</b><span>На разбор</span><small>операций без категории</small></article></div>
+  <div class="v44-mentor-grid"><section class="card panel"><div class="section-head"><div><h3>Что сделать дальше</h3><p class="sub">Не теория, а ближайшие действия.</p></div><span class="tag blue">план</span></div>${a.steps.slice(0,6).map((s,i)=>`<div class="line-row"><div><b>${i+1}. ${esc(s[1])}</b><p class="sub">Маленький шаг, который улучшит контроль денег.</p></div>${v44StepButton(s)}</div>`).join('')}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Предупреждения</h3><p class="sub">Что сейчас мешает управлять деньгами.</p></div><span class="tag ${a.warnings.length?'warn':'green'}">${a.warnings.length}</span></div>${a.warnings.length?a.warnings.map(w=>`<div class="notice warn">${esc(w)}</div>`).join(''):'<div class="notice good">Критичных предупреждений нет. Поддерживай учёт и не усложняй систему.</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Категории расходов</h3><p class="sub">Где уходят деньги в этом месяце.</p></div><button class="ghost small" data-page="categories">Категории</button></div>${a.top.length?a.top.map(([name,sum])=>`<div class="v44-cat-row"><div><b>${esc(name)}</b><small>${money(sum)}</small></div>${v44MiniBar(sum,max)}</div>`).join(''):'<div class="empty">Нет расходов за месяц</div>'}</section>
+  <section class="card panel"><div class="section-head"><div><h3>Книжные принципы</h3><p class="sub">Без цитат и сложной теории — только прикладные правила.</p></div><span class="tag green">6</span></div>${principles.map(p=>`<article class="v44-principle"><b>${esc(p.title)}</b><small>${esc(p.source)}</small><p>${esc(p.rule)}</p><button class="ghost small" data-action="openFinanceRule" data-id="${esc(p.id)}">Как применить</button></article>`).join('')}</section></div>
+  <section class="card panel v44-protocol"><div class="section-head"><div><h3>Простой недельный протокол</h3><p class="sub">Чтобы финансовая грамотность стала привычкой, а не разовой мотивацией.</p></div><button class="primary small" data-action="addFinanceHabit">Добавить привычку</button></div><div class="v44-protocol-grid"><div><b>Каждый день</b><p>3 минуты: внести расходы и проверить категорию.</p></div><div><b>Раз в неделю</b><p>Посмотреть топ-3 категории и выбрать одну, где можно сократить 10%.</p></div><div><b>Раз в месяц</b><p>Заполнить план, факт, баланс и отложить минимум 10% дохода.</p></div></div></section>`;
+}
+function v44EnhancedDashboard(){
+  const base = typeof v43PersonalDashboard === 'function' ? v43PersonalDashboard() : dashboard();
+  const insert = v44FinanceCoachCard();
+  return String(base).replace('<div class="v43-dashboard-grid">', `<div class="v44-dashboard-coach">${insert}</div><div class="v43-dashboard-grid">`).replace('Personal OS V43','Finance Mentor V44').replace('личный центр управления: деньги, импорт, задачи, цели и порядок в данных. без crm и привязки к работе.','личный центр управления деньгами, импортом, задачами, целями и финансовой грамотностью.');
+}
+let __v44FinanceBase = null;
+function v44EnhancedFinance(){
+  const base = typeof __v44FinanceBase === 'function' ? __v44FinanceBase() : '';
+  return `<div class="v44-finance-top">${v44FinanceCoachCard()}</div>${base}`;
+}
+function runFinanceCheck(){ const a=v44FinanceAnalysis(); openModal('Финансовая проверка V44', `<div class="v44-modal-score"><div class="v44-ring big" style="--p:${a.score}">${a.score}</div><div><h3>${esc(v44CoachLabel(a.score))}</h3><p class="sub">Финансовое здоровье за ${esc(a.month)}. Это не инвестиционная рекомендация, а подсказки для бытового управления деньгами.</p></div></div><h4>Что сделать дальше</h4><div class="line-stack">${a.steps.slice(0,5).map((s,i)=>`<div class="line-row"><b>${i+1}. ${esc(s[1])}</b>${v44StepButton(s)}</div>`).join('')}</div><h4>Предупреждения</h4>${a.warnings.length?a.warnings.map(w=>`<div class="notice warn">${esc(w)}</div>`).join(''):'<div class="notice good">Критичных предупреждений нет.</div>'}<div class="top-actions"><button class="primary" data-action="closeModal">Готово</button></div>`); }
+function openFinanceRule(id){ const p=v44BookPrinciples().find(x=>x.id===id) || v44BookPrinciples()[0]; openModal(p.title, `<div class="notice"><b>${esc(p.source)}</b><p>${esc(p.rule)}</p></div><div class="v44-rule-box"><h4>Как применить в твоём приложении</h4><p>${esc(p.action)}</p></div><div class="top-actions"><button class="primary" data-action="${p.id==='pay-yourself-first'?'createTenPercentTask':p.id==='margin-of-safety'?'createEmergencyGoal':'addFinanceHabit'}">Сделать шаг</button><button class="ghost" data-action="closeModal">Закрыть</button></div>`); }
+function createEmergencyGoal(){
+  state.goals = Array.isArray(state.goals)?state.goals:[];
+  const exists=state.goals.find(g=>/подушк|резерв|безопасн/i.test(String(g.title||'')));
+  const monthExpense=Math.max(1000, v44FinanceAnalysis().expense || (state.operations||[]).filter(o=>o.type!=='income').reduce((s,o)=>s+num(o.amount),0));
+  if(exists){ exists.targetValue = Math.max(num(exists.targetValue), monthExpense); exists.nextAction='Отложить первую сумму в резерв и не тратить её'; exists.status=exists.status||'В работе'; }
+  else state.goals.unshift({id:uid(), title:'Подушка безопасности — 1 месяц расходов', area:'Финансы', targetValue:monthExpense, currentValue:0, status:'В работе', deadline:'', why:'Запас спокойствия на случай непредвиденных расходов.', nextAction:'Отложить первую сумму в резерв', createdAt:new Date().toISOString()});
+  try{ v42LogAction('finance','Создана финансовая цель: подушка безопасности',{target:monthExpense}); }catch(_e){}
+  save(); closeModal(); render(); toast('Цель “подушка безопасности” создана');
+}
+function createTenPercentTask(){
+  const a=v44FinanceAnalysis(); const amount=Math.max(0, Math.round(a.income*0.1));
+  state.tasks = Array.isArray(state.tasks)?state.tasks:[];
+  const title=amount?`Отложить 10% дохода: ${money(amount)}`:'Отложить 10% ближайшего дохода';
+  const exists=state.tasks.find(t=>String(t.title||'')===title && t.status!=='Готово');
+  if(!exists) state.tasks.unshift({id:uid(), title, area:'Финансы', due:todayKey(), time:'', priority:'Высокий', status:'В работе', goalId:'', nextAction:'Перевести деньги в резерв до остальных трат', createdAt:new Date().toISOString()});
+  try{ v42LogAction('finance','Создана задача “заплати себе сначала”',{amount}); }catch(_e){}
+  save(); closeModal(); render(); toast('Задача на 10% создана');
+}
+function createDebtPlanTask(){
+  state.tasks = Array.isArray(state.tasks)?state.tasks:[]; const debt=v44DebtLoad();
+  state.tasks.unshift({id:uid(), title:`Составить план погашения долгов: ${money(debt)}`, area:'Финансы', due:todayKey(), priority:'Высокий', status:'В работе', nextAction:'Выбрать стратегию: маленький долг первым или дорогой процент первым', createdAt:new Date().toISOString()});
+  save(); closeModal(); render(); toast('Задача по долгам создана');
+}
+function addFinanceHabit(){
+  state.habits = Array.isArray(state.habits)?state.habits:[];
+  if(!state.habits.some(h=>/расход|финанс|деньг/i.test(String(h.name||'')))) state.habits.unshift({id:uid(), name:'3 минуты на деньги вечером', area:'Финансы', active:true, targetPerWeek:7, createdAt:new Date().toISOString()});
+  try{ v42LogAction('habit','Добавлена финансовая привычка V44',{}); }catch(_e){}
+  save(); closeModal(); render(); toast('Финансовая привычка добавлена');
+}
+function openTopCategoryPlan(){
+  const a=v44FinanceAnalysis(); const top=a.top[0];
+  if(!top) return toast('Нет категории для анализа');
+  const target=Math.round(top[1]*0.9);
+  openModal('План по крупнейшей категории', `<div class="notice"><b>${esc(top[0])}: ${money(top[1])}</b><p>Мягкая цель на следующий месяц: сократить на 10%, до ${money(target)}. Не запрещай себе всё — просто задай лимит и отслеживай факт.</p></div><div class="top-actions"><button class="primary" data-action="addFinanceHabit">Добавить привычку контроля</button><button class="ghost" data-page="categories">Открыть категории</button></div>`);
+}
+function v44AddNavigation(){ try{ if(typeof v43RemoveCRMNav==='function') v43RemoveCRMNav(); const has=id=>navGroups.some(g=>g[1].some(x=>x[0]===id)); const moneyGroup=navGroups.find(g=>g[0]==='Деньги'); if(moneyGroup && !has('mentor')) moneyGroup[1].splice(1,0,['mentor','◈','Наставник']); pageTitles.mentor='Наставник'; }catch(e){ console.warn('V44 nav failed', e); } }
+function v44HealthReport(){ const a=v44FinanceAnalysis(); const base=typeof v43HealthReport==='function'?v43HealthReport():{}; return Object.assign({}, base, {version:SBOS_V44_DISPLAY, financeScore:a.score, savingsRate:a.savingsRate, warnings:a.warnings, topCategories:a.top, v44:true}); }
+function v44PatchVisibleVersion(){ try{ const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=SBOS_V44_DISPLAY; document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V44'; }); document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='FINANCE MENTOR'; }); document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V44_DISPLAY; }); }catch(_e){} }
+function injectV44Styles(){ if(document.getElementById('v44FinanceStyles')) return; const st=document.createElement('style'); st.id='v44FinanceStyles'; st.textContent=`
+.v44-dashboard-coach{margin:0 0 18px}.v44-coach-card{background:linear-gradient(135deg,rgba(111,143,114,.13),rgba(255,255,255,.84));border-color:rgba(111,143,114,.18)}.v44-score{display:flex;align-items:center;justify-content:space-between;gap:18px}.v44-ring{--p:60;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:conic-gradient(var(--green) calc(var(--p)*1%),rgba(31,23,18,.08) 0);position:relative;flex:0 0 auto}.v44-ring:after{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--paper)}.v44-ring{color:var(--text)}.v44-ring{font-size:19px}.v44-ring>*{position:relative}.v44-ring.big{width:98px;height:98px;font-size:25px}.v44-ring{z-index:0}.v44-ring::before{content:attr(style);display:none}.v44-ring{isolation:isolate}.v44-ring{line-height:1}.v44-ring{font-variant-numeric:tabular-nums}.v44-ring{box-shadow:0 18px 50px rgba(31,23,18,.08)}.v44-ring{overflow:hidden}.v44-ring{background:conic-gradient(#6f8f72 calc(var(--p)*1%),rgba(31,23,18,.08) 0)}.v44-ring{color:#1f1712}.v44-ring{position:relative}.v44-ring{font-family:inherit}.v44-ring{font-weight:850}.v44-ring{display:grid}.v44-ring{place-items:center}.v44-ring{transform:translateZ(0)}.v44-ring{border:1px solid rgba(111,143,114,.18)}.v44-ring{--inner:7px}.v44-ring:after{z-index:-1}.v44-next-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.v44-head h1{letter-spacing:-.045em}.v44-mentor-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.v44-principle{border:1px solid var(--line);border-radius:18px;padding:14px;margin:10px 0;background:rgba(255,255,255,.58)}.v44-principle small{display:block;color:var(--muted);margin:4px 0 8px}.v44-cat-row{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:center;margin:12px 0}.v44-cat-row small{display:block;color:var(--muted);margin-top:3px}.v44-mini-bar{height:12px;border-radius:999px;background:rgba(31,23,18,.07);overflow:hidden}.v44-mini-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6f8f72,#b8c79a)}.v44-protocol{margin-top:18px}.v44-protocol-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.v44-protocol-grid>div,.v44-rule-box{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(255,255,255,.56)}.v44-modal-score{display:flex;gap:16px;align-items:center}.v44-finance-top{margin-bottom:18px}.notice.good{border-color:rgba(111,143,114,.26);background:rgba(111,143,114,.08)}.metric.green{background:rgba(111,143,114,.10)}.metric.amber{background:rgba(217,139,51,.10)}
+@media(max-width:980px){.v44-mentor-grid{grid-template-columns:1fr}.v44-protocol-grid{grid-template-columns:1fr}.v44-cat-row{grid-template-columns:1fr}.v44-score{align-items:flex-start}.v44-next-actions{display:grid;grid-template-columns:1fr}}
+`; document.head.appendChild(st); }
+try{
+  if(typeof v43PersonalCleanup==='function') v43PersonalCleanup(); v44AddNavigation(); injectV44Styles();
+  state.settings = state.settings || {}; state.settings.v44 = state.settings.v44 || {enabled:true, installedAt:new Date().toISOString()}; state.settings.v44.lastSeen=new Date().toISOString();
+  if(!state.dataCore) state.dataCore={}; state.dataCore.schema=Math.max(num(state.dataCore.schema),440); state.dataCore.financeMentor=SBOS_V44;
+  const __v44_oldDashboard = typeof dashboard === 'function' ? dashboard : null; dashboard = function(){ return v44EnhancedDashboard(); };
+  __v44FinanceBase = typeof finance === 'function' ? finance : null; if(__v44FinanceBase){ finance = function(){ return v44EnhancedFinance(); }; }
+  const __v44_oldRoute = typeof route === 'function' ? route : null; route = function(){ if(activePage==='mentor') return mentor(); const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts,categories,diagnostics,mentor,operations:typeof operations==='function'?operations:undefined,reconcile:typeof reconcile==='function'?reconcile:undefined}; if(activePage==='clients') activePage='dashboard'; return (map[activePage]||dashboard)(); };
+  const __v44_oldMobileNav = typeof mobileNav === 'function' ? mobileNav : null; mobileNav = function(){ const items=[['dashboard','⌂','Главная'],['mentor','◈','Наставник'],['quick','＋',''],['finance','₽','Финансы'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; };
+  const __v44_oldHandleAction = typeof handleAction === 'function' ? handleAction : null; if(__v44_oldHandleAction){ handleAction = function(a, el){ if(a==='runFinanceCheck') return runFinanceCheck(); if(a==='openFinanceRule') return openFinanceRule(el?.dataset?.id); if(a==='createEmergencyGoal') return createEmergencyGoal(); if(a==='createTenPercentTask') return createTenPercentTask(); if(a==='createDebtPlanTask') return createDebtPlanTask(); if(a==='addFinanceHabit') return addFinanceHabit(); if(a==='openTopCategoryPlan') return openTopCategoryPlan(); return __v44_oldHandleAction.apply(this, arguments); }; }
+  const __v44_oldV412Dispatch = typeof v412Dispatch === 'function' ? v412Dispatch : null; if(__v44_oldV412Dispatch){ v412Dispatch = function(a, el){ if(['runFinanceCheck','openFinanceRule','createEmergencyGoal','createTenPercentTask','createDebtPlanTask','addFinanceHabit','openTopCategoryPlan'].includes(a)) return handleAction(a, el); return __v44_oldV412Dispatch.apply(this, arguments); }; }
+  const __v44_oldDiagnostics = typeof diagnostics === 'function' ? diagnostics : null; diagnostics = function(){ const r=v44HealthReport(); const base=__v44_oldDiagnostics?__v44_oldDiagnostics():''; return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V44</div><h1>Диагностика</h1><p class="sub">Проверка приложения и финансового наставника.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runFinanceCheck">Проверить деньги</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V44_DISPLAY,'активна')} ${v43Kpi('Фин. здоровье',r.financeScore+'/100','личный индекс',v44Tone(r.financeScore))} ${v43Kpi('Накопления',v44MoneyPct(r.savingsRate),'норма месяца')} ${v43Kpi('Предупреждения',(r.warnings||[]).length,'что исправить')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V44</h3><span class="tag blue">mentor</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><div class="v44-hidden-base">${base}</div>`; };
+  const __v44_oldRunHealthCheck = typeof runHealthCheck === 'function' ? runHealthCheck : null; runHealthCheck = function(){ openModal('Проверка системы V44', `<pre class="diagnostic-pre">${esc(JSON.stringify(v44HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runFinanceCheck">Проверить деньги</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); };
+  const __v44_oldRender = typeof render === 'function' ? render : null; if(__v44_oldRender){ render = function(){ if(typeof v43PersonalCleanup==='function') v43PersonalCleanup(); v44AddNavigation(); const r=__v44_oldRender.apply(this, arguments); injectV44Styles(); v44PatchVisibleVersion(); return r; }; }
+  const __v44_oldOpenModal = typeof openModal === 'function' ? openModal : null; if(__v44_oldOpenModal){ openModal = function(){ const r=__v44_oldOpenModal.apply(this, arguments); injectV44Styles(); v44PatchVisibleVersion(); return r; }; }
+  try{ v42LogAction('system','Установлен финансовый наставник V44',{version:SBOS_V44}); }catch(_e){}
+  window.SecondBrainV44={mentor,v44FinanceAnalysis,v44HealthReport,v44BookPrinciples};
+  save({reason:'v44-finance-mentor'}); render(); v44PatchVisibleVersion(); setTimeout(v44PatchVisibleVersion,250); setTimeout(v44PatchVisibleVersion,1500); setTimeout(v44PatchVisibleVersion,2600);
+}catch(e){ console.warn('V44 Finance Mentor failed', e); }
+try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {financeMentor:SBOS_V44, v44FinanceAnalysis, v44HealthReport}); }catch(_e){}
+
+  </script>
+</body>
+</html>
