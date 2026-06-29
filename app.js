@@ -1,8 +1,8 @@
-/* Second Brain OS — Update Safe + Data Guard Private V40.11 */
+/* Second Brain OS — Update Safe + Data Guard Private V40.12 */
 'use strict';
 
-const RELEASE = 'v40-11-update-safe-private-20260629';
-const DATA_VERSION = 411;
+const RELEASE = 'v40-12-buttons-hardwired-private-20260629';
+const DATA_VERSION = 412;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -222,7 +222,7 @@ function mobileHeaderTitle(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.11</b><span class="sync-dot">UPDATE SAFE + DATA GUARD</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.12</b><span class="sync-dot">UPDATE SAFE + DATA GUARD</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -318,7 +318,7 @@ function sync(){
   const r = integrityReport();
   const ok = r.status === 'ok';
   const mb = (r.bytes/1024).toFixed(1) + ' КБ';
-  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.11</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.11</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
+  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.12</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.11</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
 }
 function settings(){ return `<div class="goals-head"><div><div class="page-label">Настройки системы</div><h1>Настройки</h1><p class="sub">Настрой роль, стиль прохождения и антисписок недели.</p></div></div><section class="card"><div class="form-grid"><label>Класс персонажа<input id="rpgClass" value="${esc(state.rpg.class||'')}"></label><label>Ранг<input id="rpgRank" value="${esc(state.rpg.rank||'')}"></label><label class="full">Что нельзя делать на неделе<textarea id="weekNoList">${esc(state.settings.weekNoList||'')}</textarea></label></div><button class="primary" data-action="saveSettings">Сохранить изменения</button></section>`; }
 function week(){ return `<div class="goals-head"><div><div class="page-label">План недели</div><h1>Неделя</h1><p class="sub">Фокус недели, ближайшие платежи и квесты.</p></div><button class="primary" data-action="weeklyReview">Сформировать обзор</button></div>${dashboard().split('<div class="home-grid">')[1] ? '<section class="card"><h3>Сводка недели</h3><p class="sub">Используй обзор недели на главной и цели как основной фокус.</p></section>' : ''}`; }
@@ -533,7 +533,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.11 UPDATE SAFE';
+    $('#releaseBadge').textContent='V40.12 BUTTON HARDWIRE';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -551,7 +551,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.11 UPDATE SAFE — final app pass
+   V40.12 BUTTON HARDWIRE — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -643,7 +643,7 @@ dashboard = function(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.11</b><span class="sync-dot">UPDATE SAFE + DATA GUARD</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.12</b><span class="sync-dot">UPDATE SAFE + DATA GUARD</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 
 function editOperation(id){ const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена'); openModal('Изменить операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<input id="mCategory" value="${esc(o.category||'')}"></label><label class="full">Комментарий<input id="mNote" value="${esc(o.note||'')}"></label></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`); }
@@ -778,7 +778,7 @@ function importCsvFile(event){
   reader.onload=()=>{ const rows=parseBankStatementText(reader.result); if(!rows.length) return toast('Не нашёл операции в файле'); previewBankImport(rows, file.name); };
   reader.readAsText(file);
 }
-function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.11</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
+function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.12</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
 
 function editPerson(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; openModal('Изменить человека', `<div class="form-grid"><label>Имя<input id="mName" value="${esc(p.name||'')}"></label><label>Тип связи<input id="mRelation" value="${esc(p.relation||'')}"></label><label>День рождения<input id="mBirthday" type="date" value="${esc(p.birthday||'')}"></label><label class="full">Что любит<input id="mLikes" value="${esc(p.likes||'')}"></label><label class="full">О чём поговорить<input id="mTalk" value="${esc(p.talkIdeas||'')}"></label><label class="full">Идеи подарков<input id="mGifts" value="${esc(p.gifts||'')}"></label><label class="full">Заметка<textarea id="mNotes">${esc(p.notes||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="savePersonEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deletePerson" data-id="${id}">Удалить</button></div>`); }
 function savePersonEdit(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; Object.assign(p,{name:val('mName')||'Человек',relation:val('mRelation'),birthday:val('mBirthday'),likes:val('mLikes'),talkIdeas:val('mTalk'),gifts:val('mGifts'),notes:val('mNotes')}); save(); closeModal(); render(); toast('Контакт обновлён'); }
@@ -811,7 +811,7 @@ function saveBookEdit(id){ const b=(state.books||[]).find(x=>x.id===id); if(!b) 
 function deleteBook(id){ state.books=(state.books||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Книга удалена'); }
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Библиотека роста: книги, статус и главный инсайт.</p></div><button class="primary" data-action="addBook">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3><span class="tag">${state.books.length}</span></div>${state.books.length?state.books.map(b=>`<div class="line-row"><div><b>${esc(b.title)}</b><p class="sub">${esc(b.author||'')} · ${esc(b.status||'')}</p></div><button class="ghost small" data-action="editBook" data-id="${b.id}">Открыть</button></div>`).join(''):'<div class="empty">Книг пока нет</div>'}</section>`; }
 
-function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.11</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.11</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
+function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.12</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.11</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
 
 function handleAction(a, el){
   const id=el?.dataset?.id;
@@ -844,7 +844,7 @@ addTask = function(goalId='', presetDate=''){ openModal('Новая задача
 
 
 
-/* V40.11 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
+/* V40.12 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
 function isBankOperation(o){ return o && (o.source==='bank-csv' || String(o.sourceId||'').startsWith('bank_')); }
 function operationDateKey(o){ return String((o&&o.date)||'').slice(0,10); }
 function operationInPeriod(o, from, to){
@@ -963,7 +963,7 @@ function confirmBankReplaceImport(){
 importPage = function(){
   const r=currentMonthRange();
   const s=operationCleanupSummary(r.from,r.to,'all');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.11</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.12</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
 }
 const __v403_oldHandleAction = handleAction;
 handleAction = function(a, el){
@@ -975,7 +975,7 @@ handleAction = function(a, el){
 }
 
 
-/* V40.11 OPERATION REVIEW — category + debt assignment center */
+/* V40.12 OPERATION REVIEW — category + debt assignment center */
 const SBOS_CATEGORIES_V405 = [
   'Продукты','Кафе и рестораны','Кофе','Транспорт','Такси','Авто / бензин','Маркетплейсы','Одежда','Дом','Здоровье','Аптеки','Связь / интернет','Подписки','Обучение','Личная жизнь','Поездки','Отдых','Развлечения','Встречи','Семья','Подарки','Путешествия','Переводы','Копилка / сбережения','Долги / обязательства','Кредиты','Налоги','Доход','Зарплата','Проект','Возврат','Другое'
 ];
@@ -1050,7 +1050,7 @@ function operationsReview(){
   const rows=operationReviewRows();
   const st=operationsStats(rows);
   const tableRows=rows.map(o=>`<tr class="${operationNeedReview(o)?'needs-review':''}"><td><b>${esc(o.date||'')}</b><br>${operationSourceLabel(o)}</td><td><select class="mini-select" data-op-type="${esc(o.id)}"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></td><td class="operation-note-cell"><b>${esc(o.note||'Без описания')}</b><small>${esc(o.merchant||o.comment||'')}</small></td><td><select class="mini-select category-inline" data-op-category="${esc(o.id)}">${categoryOptions(o.category||'Другое')}</select></td><td><b class="${o.type==='income'?'green-text':'red-text'}">${money(o.amount)}</b><label class="mini-check"><input type="checkbox" data-op-exclude="${esc(o.id)}" ${o.excludeFromLimit?'checked':''}> не в лимит</label></td><td>${operationDebtLabel(o)}</td><td><button class="ghost small" data-action="editOperation" data-id="${esc(o.id)}">Открыть</button></td></tr>`).join('');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Разбор операций</div><h1>Операции и категории</h1><p class="sub">Здесь можно массово привести банковскую выгрузку в порядок: категории, лимит, долги и ручная правка каждой операции.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="import">Импорт CSV</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${st.count}</b><span>операций</span></article><article class="metric"><b class="red-text">${money(st.expenses)}</b><span>расходы в лимит</span></article><article class="metric"><b class="green-text">${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.linked}</b><span>связано с долгами</span></article><article class="metric"><b>${st.need}</b><span>на разбор</span></article></div><section class="card panel operation-review-panel"><div class="section-head"><div><h3>Фильтр операций</h3><p class="sub">Выбери месяц и правь прямо в таблице. Изменения сохраняются сразу.</p></div><span class="tag green">V40.11</span></div><div class="operation-filter-grid"><label>Месяц<input id="opFilterMonth" type="month" value="${esc(month)}"></label><label>Тип<select id="opFilterType"><option value="all" ${type==='all'?'selected':''}>Все</option><option value="expense" ${type==='expense'?'selected':''}>Расходы</option><option value="income" ${type==='income'?'selected':''}>Доходы</option></select></label><label>Долги<select id="opFilterDebt"><option value="all" ${debt==='all'?'selected':''}>Все</option><option value="linked" ${debt==='linked'?'selected':''}>Только с долгом</option><option value="unlinked" ${debt==='unlinked'?'selected':''}>Без долга</option></select></label><label>Разбор<select id="opFilterReview"><option value="all" ${review==='all'?'selected':''}>Все</option><option value="need" ${review==='need'?'selected':''}>Нужно разобрать</option><option value="limit" ${review==='limit'?'selected':''}>Не в лимит</option></select></label><button class="ghost" data-action="applyOperationFilters">Показать</button></div></section><section class="card panel"><div class="section-head"><div><h3>Операции месяца</h3><p class="sub">Категория, тип и “не в лимит” меняются прямо в строке. Для долга нажми “Открыть”.</p></div><button class="ghost small" data-action="applyCategoryRules">Применить правила</button></div><div class="table-wrap operations-table-wrap"><table class="table operations-review-table"><thead><tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Категория</th><th>Сумма</th><th>Долг</th><th></th></tr></thead><tbody>${tableRows || '<tr><td colspan="8"><div class="empty">Операций по фильтру нет</div></td></tr>'}</tbody></table></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Разбор операций</div><h1>Операции и категории</h1><p class="sub">Здесь можно массово привести банковскую выгрузку в порядок: категории, лимит, долги и ручная правка каждой операции.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="import">Импорт CSV</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${st.count}</b><span>операций</span></article><article class="metric"><b class="red-text">${money(st.expenses)}</b><span>расходы в лимит</span></article><article class="metric"><b class="green-text">${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.linked}</b><span>связано с долгами</span></article><article class="metric"><b>${st.need}</b><span>на разбор</span></article></div><section class="card panel operation-review-panel"><div class="section-head"><div><h3>Фильтр операций</h3><p class="sub">Выбери месяц и правь прямо в таблице. Изменения сохраняются сразу.</p></div><span class="tag green">V40.12</span></div><div class="operation-filter-grid"><label>Месяц<input id="opFilterMonth" type="month" value="${esc(month)}"></label><label>Тип<select id="opFilterType"><option value="all" ${type==='all'?'selected':''}>Все</option><option value="expense" ${type==='expense'?'selected':''}>Расходы</option><option value="income" ${type==='income'?'selected':''}>Доходы</option></select></label><label>Долги<select id="opFilterDebt"><option value="all" ${debt==='all'?'selected':''}>Все</option><option value="linked" ${debt==='linked'?'selected':''}>Только с долгом</option><option value="unlinked" ${debt==='unlinked'?'selected':''}>Без долга</option></select></label><label>Разбор<select id="opFilterReview"><option value="all" ${review==='all'?'selected':''}>Все</option><option value="need" ${review==='need'?'selected':''}>Нужно разобрать</option><option value="limit" ${review==='limit'?'selected':''}>Не в лимит</option></select></label><button class="ghost" data-action="applyOperationFilters">Показать</button></div></section><section class="card panel"><div class="section-head"><div><h3>Операции месяца</h3><p class="sub">Категория, тип и “не в лимит” меняются прямо в строке. Для долга нажми “Открыть”.</p></div><button class="ghost small" data-action="applyCategoryRules">Применить правила</button></div><div class="table-wrap operations-table-wrap"><table class="table operations-review-table"><thead><tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Категория</th><th>Сумма</th><th>Долг</th><th></th></tr></thead><tbody>${tableRows || '<tr><td colspan="8"><div class="empty">Операций по фильтру нет</div></td></tr>'}</tbody></table></div></section>`;
 }
 function quickSetOperationCategory(id, category){
   const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
@@ -1239,8 +1239,8 @@ ensureFinanceMeta();
 
 
 
-/* V40.11 RECONCILIATION + LIFE PLANNING — bank balance control + daily budget planning */
-const SBOS_V406 = 'v40-11-update-safe-private-20260629';
+/* V40.12 RECONCILIATION + LIFE PLANNING — bank balance control + daily budget planning */
+const SBOS_V406 = 'v40-12-buttons-hardwired-private-20260629';
 function ensureV406Data(){
   ensureFinanceMeta();
   state.importLogs = Array.isArray(state.importLogs) ? state.importLogs : [];
@@ -1461,7 +1461,7 @@ function reconciliationPage(){
   const diffTone=reconciliationTone(r.diff);
   const accounts=Object.entries(r.accounts).map(([name,a])=>`<tr><td><b>${esc(name)}</b></td><td>${a.count}</td><td class="green-text">${money(a.income)}</td><td class="red-text">${money(a.expense)}</td><td>${money(a.income-a.expense)}</td></tr>`).join('');
   const logs=(state.importLogs||[]).slice(0,8).map(l=>`<tr><td>${new Date(l.createdAt).toLocaleString('ru-RU')}</td><td>${esc(l.mode==='replace-period'?'замена периода':'новые')}</td><td>${esc(l.from||'')} — ${esc(l.to||'')}</td><td>${l.count||0}</td><td>${moneySigned(num(l.income)-num(l.expense))}</td></tr>`).join('');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Сверка банка</div><h1>Сверка баланса</h1><p class="sub">Разделяем банковский баланс, расходы в лимит и личную чистую позицию. Так суммы не будут путаться.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-page="operations">Разобрать операции</button><button class="ghost" data-page="planning">План бюджета</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${r.count}</b><span>операций банка</span></article><article class="metric"><b>${moneySigned(r.bankMovement)}</b><span>движение по банку</span></article><article class="metric"><b>${money(r.limitExpense)}</b><span>расходы в лимит</span></article><article class="metric"><b>${money(r.internalIncome+r.internalExpense)}</b><span>внутренние / копилка</span></article><article class="metric"><b class="${r.diff!==null && Math.abs(r.diff)>1?'red-text':'green-text'}">${r.diff===null?'—':moneySigned(r.diff)}</b><span>расхождение</span></article></div><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Контроль остатка</h3><p class="sub">CSV не содержит “остаток после операции”, поэтому для точной сверки надо один раз ввести начальный и фактический баланс.</p></div><span class="tag ${diffTone}">${r.diff===null?'нужен факт':(Math.abs(r.diff)<=1?'сошлось':'есть расхождение')}</span></div><div class="form-grid"><label>Месяц<input id="reconMonth" type="month" value="${esc(month)}"></label><label>Начальный остаток месяца<input id="openingBalance" type="number" value="${r.opening}"></label><label>Фактический остаток сейчас<input id="actualBalance" type="number" value="${r.actual===null?'':r.actual}"></label><label>Расчётный остаток<input readonly value="${money(r.calculated)}"></label></div><div class="top-actions"><button class="primary" data-action="saveReconcileBalances">Сохранить сверку</button><button class="ghost" data-action="applyOperationFilters" data-page="operations">К операциям</button></div></section><section class="card panel"><div class="section-head"><h3>Что считается отдельно</h3><span class="tag green">V40.11</span></div><div class="bank-rules-grid"><div><b>Баланс банка</b><span>все выполненные операции, даже копилка и переводы</span></div><div><b>Лимит</b><span>только реальные расходы без “не в лимит”</span></div><div><b>В обработке</b><span>${r.pendingCount} операций, движение ${moneySigned(r.pendingMovement)}</span></div><div><b>На разбор</b><span>${r.uncat} операций без нормальной категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Счета / карты из CSV</h3><span class="tag">${Object.keys(r.accounts).length}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Счёт / карта</th><th>Операций</th><th>Пополнения</th><th>Списания</th><th>Движение</th></tr></thead><tbody>${accounts || '<tr><td colspan="5"><div class="empty">Нет операций за месяц</div></td></tr>'}</tbody></table></div></section><section class="card panel"><div class="section-head"><h3>Журнал импортов</h3><span class="tag blue">контроль</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Когда</th><th>Режим</th><th>Период</th><th>Операций</th><th>Движение</th></tr></thead><tbody>${logs || '<tr><td colspan="5"><div class="empty">Импортов пока нет</div></td></tr>'}</tbody></table></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Сверка банка</div><h1>Сверка баланса</h1><p class="sub">Разделяем банковский баланс, расходы в лимит и личную чистую позицию. Так суммы не будут путаться.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-page="operations">Разобрать операции</button><button class="ghost" data-page="planning">План бюджета</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${r.count}</b><span>операций банка</span></article><article class="metric"><b>${moneySigned(r.bankMovement)}</b><span>движение по банку</span></article><article class="metric"><b>${money(r.limitExpense)}</b><span>расходы в лимит</span></article><article class="metric"><b>${money(r.internalIncome+r.internalExpense)}</b><span>внутренние / копилка</span></article><article class="metric"><b class="${r.diff!==null && Math.abs(r.diff)>1?'red-text':'green-text'}">${r.diff===null?'—':moneySigned(r.diff)}</b><span>расхождение</span></article></div><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Контроль остатка</h3><p class="sub">CSV не содержит “остаток после операции”, поэтому для точной сверки надо один раз ввести начальный и фактический баланс.</p></div><span class="tag ${diffTone}">${r.diff===null?'нужен факт':(Math.abs(r.diff)<=1?'сошлось':'есть расхождение')}</span></div><div class="form-grid"><label>Месяц<input id="reconMonth" type="month" value="${esc(month)}"></label><label>Начальный остаток месяца<input id="openingBalance" type="number" value="${r.opening}"></label><label>Фактический остаток сейчас<input id="actualBalance" type="number" value="${r.actual===null?'':r.actual}"></label><label>Расчётный остаток<input readonly value="${money(r.calculated)}"></label></div><div class="top-actions"><button class="primary" data-action="saveReconcileBalances">Сохранить сверку</button><button class="ghost" data-action="applyOperationFilters" data-page="operations">К операциям</button></div></section><section class="card panel"><div class="section-head"><h3>Что считается отдельно</h3><span class="tag green">V40.12</span></div><div class="bank-rules-grid"><div><b>Баланс банка</b><span>все выполненные операции, даже копилка и переводы</span></div><div><b>Лимит</b><span>только реальные расходы без “не в лимит”</span></div><div><b>В обработке</b><span>${r.pendingCount} операций, движение ${moneySigned(r.pendingMovement)}</span></div><div><b>На разбор</b><span>${r.uncat} операций без нормальной категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Счета / карты из CSV</h3><span class="tag">${Object.keys(r.accounts).length}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Счёт / карта</th><th>Операций</th><th>Пополнения</th><th>Списания</th><th>Движение</th></tr></thead><tbody>${accounts || '<tr><td colspan="5"><div class="empty">Нет операций за месяц</div></td></tr>'}</tbody></table></div></section><section class="card panel"><div class="section-head"><h3>Журнал импортов</h3><span class="tag blue">контроль</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Когда</th><th>Режим</th><th>Период</th><th>Операций</th><th>Движение</th></tr></thead><tbody>${logs || '<tr><td colspan="5"><div class="empty">Импортов пока нет</div></td></tr>'}</tbody></table></div></section>`;
 }
 function planningPage(){
   ensureV406Data();
@@ -1536,7 +1536,7 @@ finance = function(){
 const __v406_oldImportPage = importPage;
 importPage = function(){
   const r=reconciliationSummary(state.settings.currentMonth);
-  return __v406_oldImportPage().replace('Bank Import V40.11','Bank Import V40.11') + `<section class="card panel"><div class="section-head"><div><h3>Ежедневная сверка</h3><p class="sub">После импорта проверяй: операции банка ${r.count}, движение ${moneySigned(r.bankMovement)}, расходы в лимит ${money(r.limitExpense)}, на разбор ${r.uncat}.</p></div><button class="primary" data-page="reconcile">Открыть сверку</button></div></section>`;
+  return __v406_oldImportPage().replace('Bank Import V40.12','Bank Import V40.12') + `<section class="card panel"><div class="section-head"><div><h3>Ежедневная сверка</h3><p class="sub">После импорта проверяй: операции банка ${r.count}, движение ${moneySigned(r.bankMovement)}, расходы в лимит ${money(r.limitExpense)}, на разбор ${r.uncat}.</p></div><button class="primary" data-page="reconcile">Открыть сверку</button></div></section>`;
 };
 const __v406_oldRoute = route;
 route = function(){ if(activePage==='reconcile') return reconciliationPage(); if(activePage==='planning') return planningPage(); return __v406_oldRoute(); };
@@ -1578,7 +1578,7 @@ enhancedSaveOperationEdit = function(id){
 editOperation = enhancedEditOperation;
 saveOperationEdit = enhancedSaveOperationEdit;
 const __v406_oldRender = render;
-render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.11 UPDATE SAFE'; };
+render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
 function injectV406Styles(){
   if(document.getElementById('v406Styles')) return;
   const st=document.createElement('style'); st.id='v406Styles'; st.textContent=`.reconcile-preview{grid-template-columns:repeat(6,minmax(0,1fr))}.reconcile-strip{border-color:#dbe8d8;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.cal-dot.plan{background:#eadfff;color:#6d4bc2}.mini-check.wide{align-items:center}.import-preview-table{max-height:360px}.planning-plan-card{border-color:#eadfce}.form-grid input[readonly]{background:#f7f2ea;color:#70675f}.bank-rules-grid div b{display:block;margin-bottom:4px}.import-balance-grid{margin:12px 0 16px;padding:12px;border:1px solid var(--line2);border-radius:18px;background:#fffdf8}.planning-type-pill{display:inline-flex;gap:6px;align-items:center}@media(max-width:760px){.reconcile-preview{grid-template-columns:repeat(2,minmax(0,1fr))}.data-core-grid{grid-template-columns:1fr}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}`; document.head.appendChild(st);
@@ -1588,8 +1588,8 @@ ensureV406Data();
 
 
 
-/* V40.11 BUTTON QA + CARD BALANCE — modal click fix and manual card/account facts */
-const SBOS_V408 = 'v40-11-update-safe-private-20260629';
+/* V40.12 BUTTON QA + CARD BALANCE — modal click fix and manual card/account facts */
+const SBOS_V408 = 'v40-12-buttons-hardwired-private-20260629';
 function ensureV408Data(){
   ensureV406Data();
   state.settings ||= {};
@@ -1728,7 +1728,7 @@ function runButtonAudit(){
   const pages=Array.from(document.querySelectorAll('[data-page]')).map(el=>el.dataset.page).filter(Boolean);
   const report={at:new Date().toISOString(), page:activePage, actionButtons:actions.length, pageButtons:pages.length, actions:Array.from(new Set(actions)).sort(), pages:Array.from(new Set(pages)).sort()};
   state.settings.buttonAuditLog.unshift(report); state.settings.buttonAuditLog=state.settings.buttonAuditLog.slice(0,20); save();
-  openModal('Инспекция активных кнопок', `<div class="diagnostic-pre">${esc(JSON.stringify(report,null,2))}</div><p class="sub">Проверка показывает активные data-action/data-page на текущем экране. В V40.11 добавлен усиленный обработчик кликов для модалок.</p><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button></div>`);
+  openModal('Инспекция активных кнопок', `<div class="diagnostic-pre">${esc(JSON.stringify(report,null,2))}</div><p class="sub">Проверка показывает активные data-action/data-page на текущем экране. В V40.12 добавлен усиленный обработчик кликов для модалок.</p><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button></div>`);
 }
 const __v408_oldSync = sync;
 sync = function(){
@@ -1745,7 +1745,7 @@ handleAction = function(a, el){
   return __v408_oldHandleAction(a, el);
 };
 const __v408_oldRender = render;
-render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.11 UPDATE SAFE'; };
+render = function(){ __v408_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
 function injectV408Styles(){
   if(document.getElementById('v408Styles')) return;
   const st=document.createElement('style'); st.id='v408Styles'; st.textContent=`.account-facts-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.account-balance-table .compact-input{min-width:112px;max-width:150px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff}.account-balance-table th,.account-balance-table td{vertical-align:middle}.account-balance-table small{color:var(--muted)}.top-actions .danger-btn,.top-actions .primary,.top-actions .ghost{pointer-events:auto}.modal button{pointer-events:auto}@media(max-width:760px){.account-balance-table{min-width:980px}.account-facts-card .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions{display:grid;grid-template-columns:1fr}.modal .top-actions button{width:100%}}`;
@@ -1755,8 +1755,8 @@ injectV408Styles();
 ensureV408Data();
 
 
-/* V40.11 UPDATE SAFE + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
-const SBOS_V409 = 'v40-11-update-safe-private-20260629';
+/* V40.12 BUTTON HARDWIRE + BALANCE ANCHOR — keeps operations through updates and makes residual balance stable */
+const SBOS_V409 = 'v40-12-buttons-hardwired-private-20260629';
 const DATA_GUARD_KEY = 'secondBrainOS.dataGuard.v1';
 const LAST_GOOD_KEY = 'secondBrainOS.lastGoodState.v1';
 const UPDATE_GUARD_KEY = 'secondBrainOS.updateGuard.v1';
@@ -1896,7 +1896,7 @@ function restoreOperationsFromGuard(){
 }
 function dataGuardPanel(){
   const best=bestGuardCandidate(); const currentScore=dataScoreOf(state); const bestOps=(best?.state?.operations||[]).length;
-  return `<section class="card panel data-guard-card"><div class="section-head"><div><h3>Защита данных при обновлениях</h3><p class="sub">Данные не должны зависеть от новой версии кода. V40.11 держит страховочную копию и может восстановить операции, если после обновления они пропали.</p></div><span class="tag ${bestOps>0?'green':'amber'}">${bestOps} операций в страховке</span></div><div class="bank-rules-grid"><div><b>Текущая база</b><span>${(state.operations||[]).length} операций · score ${currentScore}</span></div><div><b>Лучшая страховка</b><span>${best?`${best.label} · score ${best.score}`:'нет'}</span></div><div><b>Последний факт</b><span>${(state.balanceAnchors||[]).length} фиксаций остатка</span></div><div><b>Правило</b><span>перед обновлением жми “Страховка перед обновлением”</span></div></div><div class="top-actions"><button class="primary" data-action="prepareSafeUpdate">Страховка перед обновлением</button><button class="ghost" data-action="restoreOperationsFromGuard">Восстановить операции из страховки</button></div>${window.__sbosRecoveredByDataGuard?`<p class="sub green-text">Автовосстановление сработало: ${esc(window.__sbosRecoveredByDataGuard.label)}</p>`:''}</section>`;
+  return `<section class="card panel data-guard-card"><div class="section-head"><div><h3>Защита данных при обновлениях</h3><p class="sub">Данные не должны зависеть от новой версии кода. V40.12 держит страховочную копию и может восстановить операции, если после обновления они пропали.</p></div><span class="tag ${bestOps>0?'green':'amber'}">${bestOps} операций в страховке</span></div><div class="bank-rules-grid"><div><b>Текущая база</b><span>${(state.operations||[]).length} операций · score ${currentScore}</span></div><div><b>Лучшая страховка</b><span>${best?`${best.label} · score ${best.score}`:'нет'}</span></div><div><b>Последний факт</b><span>${(state.balanceAnchors||[]).length} фиксаций остатка</span></div><div><b>Правило</b><span>перед обновлением жми “Страховка перед обновлением”</span></div></div><div class="top-actions"><button class="primary" data-action="prepareSafeUpdate">Страховка перед обновлением</button><button class="ghost" data-action="restoreOperationsFromGuard">Восстановить операции из страховки</button></div>${window.__sbosRecoveredByDataGuard?`<p class="sub green-text">Автовосстановление сработало: ${esc(window.__sbosRecoveredByDataGuard.label)}</p>`:''}</section>`;
 }
 function balanceAnchorPanel(){
   const month=state.settings.currentMonth || monthKey();
@@ -1915,7 +1915,7 @@ handleAction = function(a, el){
   return __v409_oldHandleAction(a, el);
 };
 const __v409_oldRender = render;
-render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.11 UPDATE SAFE'; };
+render = function(){ __v409_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
 function injectV409Styles(){
   if(document.getElementById('v409Styles')) return;
   const st=document.createElement('style'); st.id='v409Styles'; st.textContent=`.data-guard-card,.balance-anchor-card{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.data-guard-card .top-actions,.balance-anchor-card .top-actions{margin-top:12px}.green-text{color:#3f7f4b}.red-text{color:#9b3b35}@media(max-width:760px){.data-guard-card .top-actions,.balance-anchor-card .top-actions{display:grid;grid-template-columns:1fr}.data-guard-card .top-actions button,.balance-anchor-card .top-actions button{width:100%}}`;
@@ -1926,8 +1926,8 @@ recoverStateIfNeeded();
 writeDataGuard('boot-v40-10');
 
 
-/* V40.11 UPDATE SAFE + BALANCE INPUT GUARD — final click/save stabilization */
-const SBOS_V410 = 'v40-11-update-safe-private-20260629';
+/* V40.12 BUTTON HARDWIRE + BALANCE INPUT GUARD — final click/save stabilization */
+const SBOS_V410 = 'v40-12-buttons-hardwired-private-20260629';
 function ensureV410Data(){
   try { if(typeof ensureV408Data === 'function') ensureV408Data(); } catch(_e) {}
   state ||= {};
@@ -1998,7 +1998,7 @@ function v410FallbackAction(a, el, before){
     if(a==='savePaymentEdit') { v410ManualSavePayment(el?.dataset?.id||''); return true; }
     if(a==='saveLifePlan') { if((state.lifePlans||[]).length>before.lifePlans) return true; v410ManualSaveLifePlan(false, el?.dataset?.id||''); return true; }
     if(a==='saveLifePlanPaid') { v410ManualSaveLifePlan(true, el?.dataset?.id||''); return true; }
-  }catch(fallbackError){ console.error('V40.11 fallback failed', fallbackError); }
+  }catch(fallbackError){ console.error('V40.12 fallback failed', fallbackError); }
   return false;
 }
 const __v410_oldHandleAction = handleAction;
@@ -2049,7 +2049,7 @@ runButtonAudit = function(){
   const pages=Array.from(document.querySelectorAll('[data-page]')).map(el=>el.dataset.page).filter(Boolean);
   const report={at:new Date().toISOString(),version:SBOS_V410,page:activePage,activeActionButtons:actions.length,activePageButtons:pages.length,uniqueActions:Array.from(new Set(actions)).sort(),uniquePages:Array.from(new Set(pages)).sort(),recentErrors:(state.settings.buttonRuntimeLog||[]).slice(0,8)};
   state.settings.buttonAuditLog ||= []; state.settings.buttonAuditLog.unshift(report); state.settings.buttonAuditLog=state.settings.buttonAuditLog.slice(0,20); save();
-  openModal('Инспекция кнопок V40.11', `<pre class="diagnostic-pre">${esc(JSON.stringify(report,null,2))}</pre><p class="sub">V40.11 ловит ошибки кнопок, защищает от двойных кликов и включает fallback-сохранение для расходов, платежей и планов.</p><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button></div>`);
+  openModal('Инспекция кнопок V40.12', `<pre class="diagnostic-pre">${esc(JSON.stringify(report,null,2))}</pre><p class="sub">V40.12 ловит ошибки кнопок, защищает от двойных кликов и включает fallback-сохранение для расходов, платежей и планов.</p><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button></div>`);
 };
 const __v410_oldFinance = finance;
 finance = function(){
@@ -2062,13 +2062,13 @@ finance = function(){
 const __v410_oldSync = sync;
 sync = function(){
   let html=__v410_oldSync();
-  if(!html.includes('Runtime кнопок V40.11')){
-    html += `<section class="card panel"><div class="section-head"><div><h3>Runtime кнопок V40.11</h3><p class="sub">Проверка кликов, ошибок и активных действий текущего экрана.</p></div><button class="primary" data-action="runButtonAudit">Проверить кнопки</button></div>${(state.settings.buttonRuntimeLog||[]).length?`<pre class="diagnostic-pre">${esc(JSON.stringify((state.settings.buttonRuntimeLog||[]).slice(0,5),null,2))}</pre>`:'<div class="empty">Ошибок кнопок пока нет</div>'}</section>`;
+  if(!html.includes('Runtime кнопок V40.12')){
+    html += `<section class="card panel"><div class="section-head"><div><h3>Runtime кнопок V40.12</h3><p class="sub">Проверка кликов, ошибок и активных действий текущего экрана.</p></div><button class="primary" data-action="runButtonAudit">Проверить кнопки</button></div>${(state.settings.buttonRuntimeLog||[]).length?`<pre class="diagnostic-pre">${esc(JSON.stringify((state.settings.buttonRuntimeLog||[]).slice(0,5),null,2))}</pre>`:'<div class="empty">Ошибок кнопок пока нет</div>'}</section>`;
   }
   return html;
 };
 const __v410_oldRender = render;
-render = function(){ __v410_oldRender(); normalizeV410Buttons(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.11 UPDATE SAFE'; };
+render = function(){ __v410_oldRender(); normalizeV410Buttons(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.12 BUTTON HARDWIRE'; };
 function injectV410Styles(){
   if(document.getElementById('v410Styles')) return;
   const st=document.createElement('style'); st.id='v410Styles'; st.textContent=`.modal [data-action],.modal [data-page],button[data-action],button[data-page]{pointer-events:auto!important}.modal .primary,.modal .ghost,.modal .danger-btn{position:relative;z-index:2}.diagnostic-pre{white-space:pre-wrap;overflow:auto;max-height:360px;background:#fffdf8;border:1px solid var(--line2);border-radius:16px;padding:14px}.runtime-ok{border-color:#d9e7d7;background:linear-gradient(180deg,#fbfff8,#fffdfa)}`;
@@ -2076,18 +2076,208 @@ function injectV410Styles(){
 }
 injectV410Styles(); ensureV410Data(); normalizeV410Buttons();
 
+
+
+/* V40.12 BUTTON HARDWIRE — final stable click/save layer */
+const SBOS_V412 = 'v40-12-buttons-hardwired-private-20260629';
+function v412NormalizeButtons(){
+  document.querySelectorAll('button:not([type])').forEach(b=>b.type='button');
+  document.querySelectorAll('button,[data-action],[data-page]').forEach(el=>{
+    el.style.pointerEvents='auto';
+    if(el.tagName==='BUTTON') el.disabled=false;
+    el.removeAttribute('aria-disabled');
+  });
+  const badge=document.getElementById('releaseBadge');
+  if(badge) badge.textContent='V40.12 BUTTON HARDWIRE';
+  document.querySelectorAll('.sidebar-status').forEach(box=>{
+    const b=box.querySelector('b'); if(b) b.textContent='V40.12';
+    const s=box.querySelector('.sync-dot'); if(s) s.textContent='BUTTON HARDWIRE + DATA GUARD';
+  });
+}
+function v412EnsureState(){
+  state ||= {};
+  state.settings ||= {};
+  state.operations = Array.isArray(state.operations) ? state.operations : [];
+  state.debts = Array.isArray(state.debts) ? state.debts : [];
+  state.plannedExpenses = Array.isArray(state.plannedExpenses) ? state.plannedExpenses : [];
+  state.lifePlans = Array.isArray(state.lifePlans) ? state.lifePlans : [];
+  state.people = Array.isArray(state.people) ? state.people : [];
+  state.balanceAnchors = Array.isArray(state.balanceAnchors) ? state.balanceAnchors : [];
+  state.settings.currentMonth ||= monthKey();
+  state.settings.buttonRuntimeLog = Array.isArray(state.settings.buttonRuntimeLog) ? state.settings.buttonRuntimeLog : [];
+  state.settings.bankAccountActualBalances = state.settings.bankAccountActualBalances && typeof state.settings.bankAccountActualBalances==='object' ? state.settings.bankAccountActualBalances : {};
+  state.settings.bankAccountOpeningBalances = state.settings.bankAccountOpeningBalances && typeof state.settings.bankAccountOpeningBalances==='object' ? state.settings.bankAccountOpeningBalances : {};
+  state.settings.bankActualBalances = state.settings.bankActualBalances && typeof state.settings.bankActualBalances==='object' ? state.settings.bankActualBalances : {};
+  state.settings.bankOpeningBalances = state.settings.bankOpeningBalances && typeof state.settings.bankOpeningBalances==='object' ? state.settings.bankOpeningBalances : {};
+}
+function v412ActionError(action, err){
+  console.error('V40.12 action failed:', action, err);
+  try{
+    state.settings.buttonRuntimeLog ||= [];
+    state.settings.buttonRuntimeLog.unshift({at:new Date().toISOString(),version:SBOS_V412,page:activePage,action,error:String(err && (err.stack||err.message)||err)});
+    state.settings.buttonRuntimeLog=state.settings.buttonRuntimeLog.slice(0,50);
+    save({snapshot:true, reason:'v40-12-action-error'});
+  }catch(_e){}
+  toast('Кнопка поймана, но есть ошибка: '+action);
+}
+function v412SaveAndRefresh(message, reason='v40-12-hardwire-save'){
+  try{ v412EnsureState(); save({snapshot:true, reason}); if(typeof writeDataGuard==='function') writeDataGuard(reason); }catch(e){ console.warn(e); }
+  closeModal(); render(); setTimeout(v412NormalizeButtons,60); toast(message||'Сохранено');
+}
+function v412CategoryValue(fallback='Другое'){
+  return (val('mCategoryCustom') || val('mCategory') || fallback || 'Другое').trim();
+}
+function v412SaveOperation(type, id=''){
+  v412EnsureState();
+  const amount=num(val('mAmount'));
+  if(!amount) return toast('Укажи сумму');
+  const payload={
+    date: val('mDate') || todayKey(),
+    type: (type||val('mType')||'expense')==='income' ? 'income' : 'expense',
+    amount,
+    category: v412CategoryValue((type==='income'||val('mType')==='income')?'Доход':'Другое'),
+    note: val('mNote') || val('mComment') || '',
+    excludeFromLimit: val('mLimit')==='no',
+    includeInBalance: val('mBalance')!=='no',
+    source: id ? undefined : 'manual',
+    updatedAt: new Date().toISOString(),
+    runtimeFixed: true
+  };
+  let op;
+  if(id){
+    op=state.operations.find(x=>x.id===id);
+    if(!op) return toast('Операция не найдена');
+    Object.assign(op,payload);
+  }else{
+    op={id:uid(),createdAt:new Date().toISOString(),...payload};
+    state.operations.unshift(op);
+  }
+  const mode=val('mDebtMode')||'none';
+  if(mode==='none'){ op.debtId=''; op.debtRole=''; }
+  if(mode==='link'){
+    const debtId=val('mDebtId');
+    if(debtId){ op.debtId=debtId; op.debtRole='linked'; }
+  }
+  if(mode==='create_owe' || mode==='create_owed'){
+    const direction=mode==='create_owe'?'owe':'owed_to_me';
+    const d={id:uid(),direction,person:val('mDebtPerson')||op.note||'Без имени',amount:op.amount,due:val('mDebtDue')||'',status:direction==='owe'?'Активен':'Ожидаю',note:`Создано из операции: ${op.category}`,operationId:op.id,createdAt:new Date().toISOString()};
+    state.debts.unshift(d); op.debtId=d.id; op.debtRole='created';
+  }
+  if(mode==='payment') op.debtRole='payment';
+  return v412SaveAndRefresh(id?'Операция обновлена':'Операция сохранена','v40-12-operation-save');
+}
+function v412SavePayment(id=''){
+  v412EnsureState();
+  const payload={title:val('mTitle')||'Платёж',amount:num(val('mAmount')),category:val('mCategory')||'Другое',day:num(val('mDay'))||1,month:val('mMonth')||state.settings.currentMonth||monthKey(),active:val('mActive')!=='false',debtId:val('mDebtId')||'',updatedAt:new Date().toISOString()};
+  if(id){
+    const p=state.plannedExpenses.find(x=>x.id===id); if(!p) return toast('Платёж не найден');
+    Object.assign(p,payload);
+  }else state.plannedExpenses.unshift({id:uid(),createdAt:new Date().toISOString(),...payload});
+  return v412SaveAndRefresh(id?'Платёж обновлён':'Платёж сохранён','v40-12-payment-save');
+}
+function v412SaveLifePlan(paid=false, id=''){
+  v412EnsureState();
+  const payload={
+    date: val('mPlanDate') || todayKey(),
+    kind: val('mPlanKind') || 'Другое',
+    title: (val('mPlanTitle') || 'План личной жизни').trim(),
+    amount: num(val('mPlanAmount')),
+    category: val('mPlanCategory') || 'Личная жизнь',
+    personId: val('mPlanPerson') || '',
+    status: paid ? 'Оплачено' : (val('mPlanStatus') || 'План'),
+    includeInBudget: val('mPlanBudget') !== 'no',
+    note: val('mPlanNote') || '',
+    updatedAt: new Date().toISOString()
+  };
+  let planId=id;
+  if(id){
+    const p=state.lifePlans.find(x=>x.id===id);
+    if(p) Object.assign(p,payload);
+    else { planId=uid(); state.lifePlans.unshift({id:planId,createdAt:new Date().toISOString(),...payload}); }
+  }else { planId=uid(); state.lifePlans.unshift({id:planId,createdAt:new Date().toISOString(),...payload}); }
+  if(paid && payload.amount>0){
+    const exists=state.operations.some(o=>o.lifePlanId===planId && o.source==='life-plan');
+    if(!exists) state.operations.unshift({id:uid(),date:payload.date,type:'expense',amount:payload.amount,category:payload.category,note:`План: ${payload.title}`,excludeFromLimit:!payload.includeInBudget,includeInBalance:true,source:'life-plan',lifePlanId:planId,createdAt:new Date().toISOString()});
+  }
+  return v412SaveAndRefresh(paid?'План сохранён и расход создан':'План сохранён','v40-12-life-plan-save');
+}
+function v412SaveAccountFacts(){
+  v412EnsureState();
+  try{
+    if(typeof saveAccountBalancesFromDom==='function') return saveAccountBalancesFromDom(state.settings.currentMonth || monthKey());
+  }catch(e){ console.warn('old saveAccountBalancesFromDom failed', e); }
+  const month=state.settings.currentMonth || monthKey();
+  state.settings.bankAccountOpeningBalances[month] ||= {};
+  state.settings.bankAccountActualBalances[month] ||= {};
+  document.querySelectorAll('[data-account-opening]').forEach(inp=>{ const k=String(inp.dataset.accountOpening||'').trim(); const raw=String(inp.value||'').trim(); if(!k) return; if(raw==='') delete state.settings.bankAccountOpeningBalances[month][k]; else state.settings.bankAccountOpeningBalances[month][k]=num(raw); });
+  document.querySelectorAll('[data-account-actual]').forEach(inp=>{ const k=String(inp.dataset.accountActual||'').trim(); const raw=String(inp.value||'').trim(); if(!k) return; if(raw==='') delete state.settings.bankAccountActualBalances[month][k]; else state.settings.bankAccountActualBalances[month][k]=num(raw); });
+  const vals=Object.values(state.settings.bankAccountActualBalances[month]||{}).map(num);
+  if(vals.length) state.settings.bankActualBalances[month]=vals.reduce((s,x)=>s+x,0);
+  save({snapshot:true, reason:'v40-12-account-facts'}); render(); setTimeout(v412NormalizeButtons,60); toast('Факт по картам сохранён');
+}
+function v412Dispatch(a, el){
+  v412EnsureState();
+  const id=el?.dataset?.id||'';
+  try{
+    if(a==='closeModal') return closeModal();
+    if(a==='addExpense') return addOperation('expense');
+    if(a==='addIncome') return addOperation('income');
+    if(a==='saveOperation') return v412SaveOperation(el?.dataset?.type||val('mType')||'expense','');
+    if(a==='saveOperationEdit') return v412SaveOperation(val('mType')||el?.dataset?.type||'expense',id);
+    if(a==='addPayment') return addPayment();
+    if(a==='savePayment') return v412SavePayment('');
+    if(a==='savePaymentEdit') return v412SavePayment(id);
+    if(a==='saveLifePlan') return v412SaveLifePlan(false,id);
+    if(a==='saveLifePlanEdit') return v412SaveLifePlan(false,id);
+    if(a==='saveLifePlanPaid' || a==='completeLifePlan') return v412SaveLifePlan(true,id);
+    if(a==='saveAccountBalances') return v412SaveAccountFacts();
+    if(a==='saveBalanceAnchor') return saveBalanceAnchorFromFacts();
+    if(a==='carryActualToNextMonth') return carryActualToNextMonth();
+    if(a==='hardUpdateApp') return resetCaches();
+    if(a==='pickCsv') return pickCsv();
+    if(a==='pickBackupFile') return pickBackupFile();
+    if(a==='backup') return exportBackup();
+    if(a==='createSnapshot') return createManualSnapshot();
+    if(a==='prepareSafeUpdate') return prepareSafeUpdate();
+    if(typeof handleAction==='function') return handleAction(a,el);
+  }catch(err){ return v412ActionError(a,err); }
+}
+function v412HardwireListener(e){
+  const el=e.target.closest('[data-page],[data-action]');
+  if(!el) return;
+  const p=el.dataset.page;
+  const a=el.dataset.action;
+  if(!p && !a) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  if(p){ try{ if(el.closest('#modalRoot')) closeModal(); return go(p); }catch(err){ return v412ActionError('page:'+p,err); } }
+  return v412Dispatch(a,el);
+}
+try{
+  document.removeEventListener('click', window.__sbosV412HardwireClick, true);
+}catch(_e){}
+window.__sbosV412HardwireClick = v412HardwireListener;
+document.addEventListener('click', window.__sbosV412HardwireClick, true);
+const __v412_oldRender = render;
+render = function(){ __v412_oldRender(); v412NormalizeButtons(); };
+const __v412_oldOpenModal = openModal;
+openModal = function(title, body, onSave){ __v412_oldOpenModal(title, body, onSave); v412NormalizeButtons(); };
+v412NormalizeButtons();
+setInterval(v412NormalizeButtons, 1500);
+
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot,openOperationsCleanup,deleteOperationsForPeriod,confirmBankReplaceImport,writeDataGuard,recoverStateIfNeeded,restoreOperationsFromGuard};
 save(); installSW(); render(); setTimeout(renderInstallHint, 700);
 
 
-/* V40.11 UPDATE SAFE — final visible version patch and safe updater */
+/* V40.12 BUTTON HARDWIRE — final visible version patch and safe updater */
 try {
-  const SBOS_V411_DISPLAY = 'V40.11 UPDATE SAFE';
+  const SBOS_V411_DISPLAY = 'V40.12 BUTTON HARDWIRE';
   function patchV411VisibleVersion(){
     try{
       const rb=document.getElementById('releaseBadge');
       if(rb) rb.textContent=SBOS_V411_DISPLAY;
-      document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V40.11'; });
+      document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V40.12'; });
       document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='UPDATE SAFE + DATA GUARD'; });
       document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V411_DISPLAY; });
     }catch(_e){}
@@ -2100,8 +2290,8 @@ try {
   if(__v411_oldSync){
     sync = function(){
       let html=__v411_oldSync.apply(this, arguments);
-      if(!String(html).includes('Обновление приложения V40.11')){
-        html += `<section class="card panel update-safe-card"><div class="section-head"><div><h3>Обновление приложения V40.11</h3><p class="sub">Если после заливки GitHub показывает старую версию, нажми эту кнопку. Она удалит только кэш и service worker, данные операций останутся в localStorage.</p></div><span class="tag green">update-safe</span></div><div class="top-actions"><button class="primary" data-action="hardUpdateApp">Жёстко обновить приложение</button><button class="ghost" data-action="prepareSafeUpdate">Страховка перед обновлением</button></div><p class="sub">Файл для ручного запуска: force-update.html?v=${RELEASE}</p></section>`;
+      if(!String(html).includes('Обновление приложения V40.12')){
+        html += `<section class="card panel update-safe-card"><div class="section-head"><div><h3>Обновление приложения V40.12</h3><p class="sub">Если после заливки GitHub показывает старую версию, нажми эту кнопку. Она удалит только кэш и service worker, данные операций останутся в localStorage.</p></div><span class="tag green">update-safe</span></div><div class="top-actions"><button class="primary" data-action="hardUpdateApp">Жёстко обновить приложение</button><button class="ghost" data-action="prepareSafeUpdate">Страховка перед обновлением</button></div><p class="sub">Файл для ручного запуска: force-update.html?v=${RELEASE}</p></section>`;
       }
       return html;
     };
@@ -2122,4 +2312,4 @@ try {
   window.addEventListener('load', patchV411VisibleVersion);
   setTimeout(patchV411VisibleVersion, 300);
   setTimeout(patchV411VisibleVersion, 1200);
-} catch(e){ console.warn('V40.11 visible/update patch failed', e); }
+} catch(e){ console.warn('V40.12 visible/update patch failed', e); }

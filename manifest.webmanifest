@@ -1,5 +1,5 @@
 {
-  "name": "Second Brain OS — Update Safe Private",
+  "name": "Second Brain OS V40.12",
   "short_name": "Second Brain",
   "description": "Личная Life RPG система с защитой данных, безопасными обновлениями, импортом банка и фиксацией фактического остатка по картам.",
   "start_url": "/second-brain-oc/?v=v40-11-update-safe-private-20260629",
@@ -38,5 +38,6 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/second-brain-oc/?app=second-brain-private-v40-11"
+  "id": "/second-brain-oc/?app=second-brain-private-v40-11",
+  "version": "v40-12-buttons-hardwired-private-20260629"
 }
