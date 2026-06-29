@@ -1,9 +1,9 @@
-const CACHE_NAME = 'second-brain-os-v40-5-operation-review-private-20260629';
+const CACHE_NAME = 'second-brain-os-v40-6-reconciliation-planning-private-20260629';
 const APP_SHELL = [
   './',
-  './index.html?v=v40-5-operation-review-private-20260629',
+  './index.html?v=v40-6-reconciliation-planning-private-20260629',
   './offline.html',
-  './manifest.webmanifest?v=v40-5-operation-review-private-20260629',
+  './manifest.webmanifest?v=v40-6-reconciliation-planning-private-20260629',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png'
@@ -30,10 +30,10 @@ self.addEventListener('fetch', event => {
       fetch(event.request, { cache: 'no-store' })
         .then(response => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html?v=v40-5-operation-review-private-20260629', copy)).catch(()=>{});
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html?v=v40-6-reconciliation-planning-private-20260629', copy)).catch(()=>{});
           return response;
         })
-        .catch(() => caches.match('./index.html?v=v40-5-operation-review-private-20260629').then(r => r || caches.match('./offline.html')))
+        .catch(() => caches.match('./index.html?v=v40-6-reconciliation-planning-private-20260629').then(r => r || caches.match('./offline.html')))
     );
     return;
   }

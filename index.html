@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <title>Second Brain OS</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v40-5-operation-review-private-20260629" />
+  <link rel="manifest" href="manifest.webmanifest?v=v40-6-reconciliation-planning-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -147,7 +147,7 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 @media (max-width:760px){.data-head .top-actions,.data-action-grid,.data-core-grid{grid-template-columns:1fr!important}.data-head .top-actions{width:100%}.data-head .top-actions button,.data-action-grid button{width:100%}.snapshot-row{grid-template-columns:1fr}.snapshot-actions{justify-content:stretch}.snapshot-actions button{flex:1}.diagnostic-pre{max-height:260px}.data-metrics{grid-template-columns:1fr 1fr!important}}
 
 /* ===============================
-   V40.5 OP REVIEW — app feel
+   V40.6 RECONCILE — app feel
 ================================ */
 .sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
 .sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
@@ -158,7 +158,7 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   
 
 /* ===============================
-   V40.5 OP REVIEW — real bank CSV
+   V40.6 RECONCILE — real bank CSV
 ================================ */
 .sidebar-status.v402-status{background:linear-gradient(180deg,#1f271e,#303d2e);color:#fff;border-color:#31442f;box-shadow:0 16px 40px rgba(35,55,33,.18)}
 .sidebar-status.v402-status small{color:rgba(255,255,255,.68)}
@@ -177,14 +177,14 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V40.5 OP REVIEW</div>
+  <div id="releaseBadge">V40.6 RECONCILE</div>
   <script>
 try {
-/* Second Brain OS — Operation Review Private V40.5 */
+/* Second Brain OS — Operation Review Private V40.6 */
 'use strict';
 
-const RELEASE = 'v40-5-operation-review-private-20260629';
-const DATA_VERSION = 405;
+const RELEASE = 'v40-6-reconciliation-planning-private-20260629';
+const DATA_VERSION = 406;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -404,7 +404,7 @@ function mobileHeaderTitle(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.5</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status"><small>PRIVATE APP</small><b>V40.6</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 function route(){
   const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts};
@@ -500,7 +500,7 @@ function sync(){
   const r = integrityReport();
   const ok = r.status === 'ok';
   const mb = (r.bytes/1024).toFixed(1) + ' КБ';
-  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.5</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
+  return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.6</div><h1>Данные и резервные копии</h1><p class="sub">Здесь ядро сохранности: бэкап, восстановление, локальные снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Важно: сброс кэша не удаляет твои данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`;
 }
 function settings(){ return `<div class="goals-head"><div><div class="page-label">Настройки системы</div><h1>Настройки</h1><p class="sub">Настрой роль, стиль прохождения и антисписок недели.</p></div></div><section class="card"><div class="form-grid"><label>Класс персонажа<input id="rpgClass" value="${esc(state.rpg.class||'')}"></label><label>Ранг<input id="rpgRank" value="${esc(state.rpg.rank||'')}"></label><label class="full">Что нельзя делать на неделе<textarea id="weekNoList">${esc(state.settings.weekNoList||'')}</textarea></label></div><button class="primary" data-action="saveSettings">Сохранить изменения</button></section>`; }
 function week(){ return `<div class="goals-head"><div><div class="page-label">План недели</div><h1>Неделя</h1><p class="sub">Фокус недели, ближайшие платежи и квесты.</p></div><button class="primary" data-action="weeklyReview">Сформировать обзор</button></div>${dashboard().split('<div class="home-grid">')[1] ? '<section class="card"><h3>Сводка недели</h3><p class="sub">Используй обзор недели на главной и цели как основной фокус.</p></section>' : ''}`; }
@@ -548,7 +548,7 @@ function exportBackup(){
   const payload = backupPayload('manual-download');
   state.dataCore.lastBackupAt = payload.createdAt;
   save({snapshot:true});
-  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-5.json`);
+  downloadJSON(payload, `second-brain-full-backup-${todayKey()}-v40-6.json`);
   toast('Полный бэкап скачан');
 }
 function createManualSnapshot(){
@@ -715,7 +715,7 @@ function render(){
     const navScroll=document.querySelector('.nav')?.scrollTop || 0;
     document.documentElement.dataset.theme = localStorage.getItem('secondBrainTheme')==='dark'?'dark':'';
     $('#app').innerHTML=shell();
-    $('#releaseBadge').textContent='V40.5 OP REVIEW';
+    $('#releaseBadge').textContent='V40.6 RECONCILE';
     const nav=document.querySelector('.nav'); if(nav) nav.scrollTop=navScroll;
     bind();
   }catch(e){
@@ -733,7 +733,7 @@ async function installSW(){
 
 
 /* ===============================
-   V40.5 OP REVIEW — final app pass
+   V40.6 RECONCILE — final app pass
    Активируем пустые кнопки, календарь, CRUD и единый дизайн-статус.
 ================================ */
 try {
@@ -825,7 +825,7 @@ dashboard = function(){
 
 function shell(){
   const nav=navGroups.map(([title,items])=>`<div class="nav-group"><div class="nav-title">${title}</div>${items.map(([id,ic,label])=>`<button data-page="${id}" class="nav-btn ${activePage===id?'active':''}"><span class="nav-ic">${ic}</span><b>${label}</b></button>`).join('')}</div>`).join('');
-  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.5</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
+  return `<div class="app shell-premium"><aside class="sidebar"><div class="brand"><div class="brand-mark">◔</div><div><b>Second Brain OS</b><span>Private Life RPG</span></div></div><nav class="nav">${nav}</nav><button class="quick-input" data-action="quickMenu"><span>⚡</span><b>Быстрый ввод</b><small>⌘ K</small></button><div class="sidebar-status v403-status"><small>PRIVATE APP</small><b>V40.6</b><span class="sync-dot">OPERATIONS REVIEW OK</span><small>${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</small></div></aside><main class="main"><header class="topbar premium-topbar"><div class="topbar-spacer"></div><div class="topbar-tools"><div class="search-box"><span>⌕</span><input id="search" class="search" placeholder="Поиск" value="${esc(searchQuery)}"></div><button class="ghost pwa-only-hide" data-action="installApp">Установить</button><button class="icon-btn" data-page="week" title="Календарь">◫</button><button class="icon-btn bell-btn" data-page="control" title="Уведомления"><span>◌</span><i>${attentionItems().length}</i></button><button class="avatar-btn" data-page="settings" title="Профиль">А</button></div></header><section class="mobile-page-title"><b>${mobileHeaderTitle()}</b><span>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</span></section><section class="view premium-view">${route()}</section></main>${mobileNav()}</div>`;
 }
 
 function editOperation(id){ const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена'); openModal('Изменить операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<input id="mCategory" value="${esc(o.category||'')}"></label><label class="full">Комментарий<input id="mNote" value="${esc(o.note||'')}"></label></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`); }
@@ -960,7 +960,7 @@ function importCsvFile(event){
   reader.onload=()=>{ const rows=parseBankStatementText(reader.result); if(!rows.length) return toast('Не нашёл операции в файле'); previewBankImport(rows, file.name); };
   reader.readAsText(file);
 }
-function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.5</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
+function importPage(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт банка</div><h1>Bank Import V40.6</h1><p class="sub">Загружаешь банковскую CSV-выгрузку — приложение само определяет дату, тип, сумму, категорию и убирает дубли.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой формат: operationDate, transactionDate, merchant, amount, category, type. Всё обрабатывается локально, файл никуда не отправляется.</p></button></section><section class="card panel"><div class="section-head"><h3>Как импортирует</h3><span class="tag green">безопасно</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`; }
 
 function editPerson(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; openModal('Изменить человека', `<div class="form-grid"><label>Имя<input id="mName" value="${esc(p.name||'')}"></label><label>Тип связи<input id="mRelation" value="${esc(p.relation||'')}"></label><label>День рождения<input id="mBirthday" type="date" value="${esc(p.birthday||'')}"></label><label class="full">Что любит<input id="mLikes" value="${esc(p.likes||'')}"></label><label class="full">О чём поговорить<input id="mTalk" value="${esc(p.talkIdeas||'')}"></label><label class="full">Идеи подарков<input id="mGifts" value="${esc(p.gifts||'')}"></label><label class="full">Заметка<textarea id="mNotes">${esc(p.notes||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="savePersonEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deletePerson" data-id="${id}">Удалить</button></div>`); }
 function savePersonEdit(id){ const p=(state.people||[]).find(x=>x.id===id); if(!p) return; Object.assign(p,{name:val('mName')||'Человек',relation:val('mRelation'),birthday:val('mBirthday'),likes:val('mLikes'),talkIdeas:val('mTalk'),gifts:val('mGifts'),notes:val('mNotes')}); save(); closeModal(); render(); toast('Контакт обновлён'); }
@@ -993,7 +993,7 @@ function saveBookEdit(id){ const b=(state.books||[]).find(x=>x.id===id); if(!b) 
 function deleteBook(id){ state.books=(state.books||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Книга удалена'); }
 function books(){ return `<div class="goals-head premium-page-head"><div><div class="page-label">Книги</div><h1>Книги</h1><p class="sub">Библиотека роста: книги, статус и главный инсайт.</p></div><button class="primary" data-action="addBook">＋ Новая книга</button></div><section class="card panel"><div class="section-head"><h3>Список книг</h3><span class="tag">${state.books.length}</span></div>${state.books.length?state.books.map(b=>`<div class="line-row"><div><b>${esc(b.title)}</b><p class="sub">${esc(b.author||'')} · ${esc(b.status||'')}</p></div><button class="ghost small" data-action="editBook" data-id="${b.id}">Открыть</button></div>`).join(''):'<div class="empty">Книг пока нет</div>'}</section>`; }
 
-function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.5</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
+function sync(){ const r=integrityReport(); const ok=r.status==='ok'; const mb=(r.bytes/1024).toFixed(1)+' КБ'; return `<div class="goals-head data-head"><div><div class="page-label">Data Core V40.6</div><h1>Данные и резервные копии</h1><p class="sub">Ядро сохранности: бэкап, восстановление, снимки, диагностика и сброс кэша без потери данных.</p></div><div class="top-actions"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="createSnapshot">Создать снимок</button></div></div><div class="metrics data-metrics">${dataMetric('Статус базы', ok?'OK':'Нужна проверка', ok?'структура целая':r.problems.join(', '), ok?'':'warn')} ${dataMetric('Размер данных', mb, 'localStorage')} ${dataMetric('Снимков', r.localSnapshots, 'последние локальные копии')} ${dataMetric('Checksum', r.checksum, 'контрольная сумма')}</div><div class="data-core-grid"><section class="card panel data-card"><div class="section-head"><div><h3>Резервная копия</h3><p class="sub">Перед каждым крупным обновлением скачивай полный JSON. Его можно вернуть обратно кнопкой восстановления.</p></div><span class="tag green">безопасно</span></div><div class="data-action-grid"><button class="primary" data-action="backup">Скачать полный бэкап</button><button class="ghost" data-action="pickBackupFile">Восстановить из файла</button><button class="ghost" data-action="repair">Проверить целостность</button><button class="danger-btn" data-action="resetCaches">Сбросить кэш приложения</button></div><input id="restoreFile" class="hidden-file" type="file" accept="application/json"><p class="sub">Сброс кэша не удаляет данные. Данные живут отдельно в Data Core.</p></section><section class="card panel data-card"><div class="section-head"><div><h3>Диагностика</h3><p class="sub">Версия базы, счётчики сущностей и состояние PWA.</p></div><span class="tag blue">v40.5</span></div><pre class="diagnostic-pre">${esc(JSON.stringify({...r, serviceWorker:!!(navigator.serviceWorker&&navigator.serviceWorker.controller), standalone:isStandalone(), online:navigator.onLine}, null, 2))}</pre></section></div><section class="card panel"><div class="section-head"><div><h3>Локальные снимки</h3><p class="sub">Автоматические и ручные точки восстановления внутри приложения.</p></div><button class="ghost small" data-action="clearSnapshots">Очистить снимки</button></div><div class="snapshot-list">${snapshotRows()}</div></section>`; }
 
 function handleAction(a, el){
   const id=el?.dataset?.id;
@@ -1026,7 +1026,7 @@ addTask = function(goalId='', presetDate=''){ openModal('Новая задача
 
 
 
-/* V40.5 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
+/* V40.6 OPERATIONS CLEANUP — safe period delete + CSV replace mode */
 function isBankOperation(o){ return o && (o.source==='bank-csv' || String(o.sourceId||'').startsWith('bank_')); }
 function operationDateKey(o){ return String((o&&o.date)||'').slice(0,10); }
 function operationInPeriod(o, from, to){
@@ -1145,7 +1145,7 @@ function confirmBankReplaceImport(){
 importPage = function(){
   const r=currentMonthRange();
   const s=operationCleanupSummary(r.from,r.to,'all');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.5</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Импорт и очистка</div><h1>Bank Import V40.6</h1><p class="sub">Теперь можно безопасно удалить прошлый период и загрузить операции банка заново через CSV.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить файл банка</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Сначала бэкап</button></div></div><section class="card panel bank-import-hero"><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"><button class="drop-zone active-drop bank-drop" data-action="pickCsv"><b>Нажми и выбери выгрузку банка</b><p class="sub">Поддержан твой CSV: operationDate, transactionDate, merchant, amount, category, type. После выбора появится предпросмотр и кнопка “Заменить период этим CSV”.</p></button></section><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Очистка текущего периода</h3><p class="sub">${esc(r.from)} — ${esc(r.to)}. Найдено операций: ${s.count}. Расходы: ${money(s.expenses)}. Доходы: ${money(s.income)}.</p></div><span class="tag amber">снимок перед удалением</span></div><div class="data-action-grid"><button class="danger-btn" data-action="openOperationsCleanup">Удалить операции за период</button><button class="ghost" data-action="backup">Скачать бэкап</button></div></section><section class="card panel"><div class="section-head"><h3>Как правильно перезалить месяц</h3><span class="tag green">рекомендую</span></div><div class="bank-rules-grid"><div><b>1</b><span>Скачать бэкап</span></div><div><b>2</b><span>Загрузить CSV</span></div><div><b>3</b><span>Нажать “Заменить период”</span></div><div><b>4</b><span>Проверить категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Правила импорта</h3><span class="tag green">локально</span></div><div class="bank-rules-grid"><div><b>Дата</b><span>transactionDate → operationDate</span></div><div><b>Тип</b><span>Пополнение = доход, Списание = расход</span></div><div><b>Категория</b><span>берём категорию банка + автоправила</span></div><div><b>Дубли</b><span>по хэшу даты, суммы, описания и счёта</span></div></div></section>`;
 }
 const __v403_oldHandleAction = handleAction;
 handleAction = function(a, el){
@@ -1157,7 +1157,7 @@ handleAction = function(a, el){
 }
 
 
-/* V40.5 OPERATION REVIEW — category + debt assignment center */
+/* V40.6 OPERATION REVIEW — category + debt assignment center */
 const SBOS_CATEGORIES_V405 = [
   'Продукты','Кафе и рестораны','Кофе','Транспорт','Такси','Авто / бензин','Маркетплейсы','Одежда','Дом','Здоровье','Аптеки','Связь / интернет','Подписки','Обучение','Развлечения','Подарки','Путешествия','Переводы','Копилка / сбережения','Долги / обязательства','Кредиты','Налоги','Доход','Зарплата','Проект','Возврат','Другое'
 ];
@@ -1232,7 +1232,7 @@ function operationsReview(){
   const rows=operationReviewRows();
   const st=operationsStats(rows);
   const tableRows=rows.map(o=>`<tr class="${operationNeedReview(o)?'needs-review':''}"><td><b>${esc(o.date||'')}</b><br>${operationSourceLabel(o)}</td><td><select class="mini-select" data-op-type="${esc(o.id)}"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></td><td class="operation-note-cell"><b>${esc(o.note||'Без описания')}</b><small>${esc(o.merchant||o.comment||'')}</small></td><td><select class="mini-select category-inline" data-op-category="${esc(o.id)}">${categoryOptions(o.category||'Другое')}</select></td><td><b class="${o.type==='income'?'green-text':'red-text'}">${money(o.amount)}</b><label class="mini-check"><input type="checkbox" data-op-exclude="${esc(o.id)}" ${o.excludeFromLimit?'checked':''}> не в лимит</label></td><td>${operationDebtLabel(o)}</td><td><button class="ghost small" data-action="editOperation" data-id="${esc(o.id)}">Открыть</button></td></tr>`).join('');
-  return `<div class="goals-head premium-page-head"><div><div class="page-label">Разбор операций</div><h1>Операции и категории</h1><p class="sub">Здесь можно массово привести банковскую выгрузку в порядок: категории, лимит, долги и ручная правка каждой операции.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="import">Импорт CSV</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${st.count}</b><span>операций</span></article><article class="metric"><b class="red-text">${money(st.expenses)}</b><span>расходы в лимит</span></article><article class="metric"><b class="green-text">${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.linked}</b><span>связано с долгами</span></article><article class="metric"><b>${st.need}</b><span>на разбор</span></article></div><section class="card panel operation-review-panel"><div class="section-head"><div><h3>Фильтр операций</h3><p class="sub">Выбери месяц и правь прямо в таблице. Изменения сохраняются сразу.</p></div><span class="tag green">V40.5</span></div><div class="operation-filter-grid"><label>Месяц<input id="opFilterMonth" type="month" value="${esc(month)}"></label><label>Тип<select id="opFilterType"><option value="all" ${type==='all'?'selected':''}>Все</option><option value="expense" ${type==='expense'?'selected':''}>Расходы</option><option value="income" ${type==='income'?'selected':''}>Доходы</option></select></label><label>Долги<select id="opFilterDebt"><option value="all" ${debt==='all'?'selected':''}>Все</option><option value="linked" ${debt==='linked'?'selected':''}>Только с долгом</option><option value="unlinked" ${debt==='unlinked'?'selected':''}>Без долга</option></select></label><label>Разбор<select id="opFilterReview"><option value="all" ${review==='all'?'selected':''}>Все</option><option value="need" ${review==='need'?'selected':''}>Нужно разобрать</option><option value="limit" ${review==='limit'?'selected':''}>Не в лимит</option></select></label><button class="ghost" data-action="applyOperationFilters">Показать</button></div></section><section class="card panel"><div class="section-head"><div><h3>Операции месяца</h3><p class="sub">Категория, тип и “не в лимит” меняются прямо в строке. Для долга нажми “Открыть”.</p></div><button class="ghost small" data-action="applyCategoryRules">Применить правила</button></div><div class="table-wrap operations-table-wrap"><table class="table operations-review-table"><thead><tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Категория</th><th>Сумма</th><th>Долг</th><th></th></tr></thead><tbody>${tableRows || '<tr><td colspan="7"><div class="empty">Операций по фильтру нет</div></td></tr>'}</tbody></table></div></section>`;
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Разбор операций</div><h1>Операции и категории</h1><p class="sub">Здесь можно массово привести банковскую выгрузку в порядок: категории, лимит, долги и ручная правка каждой операции.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addDebtOwe">＋ Долг</button><button class="ghost" data-page="import">Импорт CSV</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${st.count}</b><span>операций</span></article><article class="metric"><b class="red-text">${money(st.expenses)}</b><span>расходы в лимит</span></article><article class="metric"><b class="green-text">${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.linked}</b><span>связано с долгами</span></article><article class="metric"><b>${st.need}</b><span>на разбор</span></article></div><section class="card panel operation-review-panel"><div class="section-head"><div><h3>Фильтр операций</h3><p class="sub">Выбери месяц и правь прямо в таблице. Изменения сохраняются сразу.</p></div><span class="tag green">V40.6</span></div><div class="operation-filter-grid"><label>Месяц<input id="opFilterMonth" type="month" value="${esc(month)}"></label><label>Тип<select id="opFilterType"><option value="all" ${type==='all'?'selected':''}>Все</option><option value="expense" ${type==='expense'?'selected':''}>Расходы</option><option value="income" ${type==='income'?'selected':''}>Доходы</option></select></label><label>Долги<select id="opFilterDebt"><option value="all" ${debt==='all'?'selected':''}>Все</option><option value="linked" ${debt==='linked'?'selected':''}>Только с долгом</option><option value="unlinked" ${debt==='unlinked'?'selected':''}>Без долга</option></select></label><label>Разбор<select id="opFilterReview"><option value="all" ${review==='all'?'selected':''}>Все</option><option value="need" ${review==='need'?'selected':''}>Нужно разобрать</option><option value="limit" ${review==='limit'?'selected':''}>Не в лимит</option></select></label><button class="ghost" data-action="applyOperationFilters">Показать</button></div></section><section class="card panel"><div class="section-head"><div><h3>Операции месяца</h3><p class="sub">Категория, тип и “не в лимит” меняются прямо в строке. Для долга нажми “Открыть”.</p></div><button class="ghost small" data-action="applyCategoryRules">Применить правила</button></div><div class="table-wrap operations-table-wrap"><table class="table operations-review-table"><thead><tr><th>Дата</th><th>Тип</th><th>Описание</th><th>Категория</th><th>Сумма</th><th>Долг</th><th></th></tr></thead><tbody>${tableRows || '<tr><td colspan="7"><div class="empty">Операций по фильтру нет</div></td></tr>'}</tbody></table></div></section>`;
 }
 function quickSetOperationCategory(id, category){
   const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
@@ -1419,13 +1419,336 @@ bind = function(){
 ensureFinanceMeta();
 
 
+
+
+/* V40.6 RECONCILIATION + LIFE PLANNING — bank balance control + daily budget planning */
+const SBOS_V406 = 'v40-6-reconciliation-planning-private-20260629';
+function ensureV406Data(){
+  ensureFinanceMeta();
+  state.importLogs = Array.isArray(state.importLogs) ? state.importLogs : [];
+  state.lifePlans = Array.isArray(state.lifePlans) ? state.lifePlans : [];
+  state.budgetPlans = Array.isArray(state.budgetPlans) ? state.budgetPlans : [];
+  state.settings ||= {};
+  state.settings.bankOpeningBalances = state.settings.bankOpeningBalances && typeof state.settings.bankOpeningBalances==='object' ? state.settings.bankOpeningBalances : {};
+  state.settings.bankActualBalances = state.settings.bankActualBalances && typeof state.settings.bankActualBalances==='object' ? state.settings.bankActualBalances : {};
+  for(const o of (state.operations||[])){
+    if(o.includeInBalance === undefined) o.includeInBalance = true;
+    if(o.source && String(o.source).includes('bank')) o.source = 'bank-csv';
+    if(o.source==='bank-csv' && !o.importBatchId) o.importBatchId = o.sourceId ? 'legacy-bank' : '';
+  }
+  for(const p of (state.lifePlans||[])){
+    if(p.includeInBudget === undefined) p.includeInBudget = true;
+    if(!p.status) p.status = 'План';
+  }
+}
+const __v406_oldDefaultState = defaultState;
+defaultState = function(){
+  const s = __v406_oldDefaultState();
+  s.importLogs = Array.isArray(s.importLogs) ? s.importLogs : [];
+  s.lifePlans = Array.isArray(s.lifePlans) ? s.lifePlans : [];
+  s.budgetPlans = Array.isArray(s.budgetPlans) ? s.budgetPlans : [];
+  s.settings ||= {};
+  s.settings.bankOpeningBalances ||= {};
+  s.settings.bankActualBalances ||= {};
+  return s;
+};
+const __v406_oldEssentialArrays = essentialArrays;
+essentialArrays = function(){
+  return Array.from(new Set([...__v406_oldEssentialArrays(), 'lifePlans', 'budgetPlans', 'importLogs']));
+};
+function opDate(o){ return String(o?.date||'').slice(0,10); }
+function opInMonth(o, month=state.settings.currentMonth){ return opDate(o).startsWith(month); }
+function isPendingOperation(o){ return /обработке|pending|processing/i.test(`${o?.bankStatus||''} ${o?.status||''}`); }
+function includeInBalance(o){ return o && o.includeInBalance !== false; }
+function balanceOps(month=state.settings.currentMonth){ return (state.operations||[]).filter(o=>opInMonth(o,month) && includeInBalance(o)); }
+function balanceCompletedOps(month=state.settings.currentMonth){ return balanceOps(month).filter(o=>!isPendingOperation(o)); }
+function limitOps(month=state.settings.currentMonth){ return (state.operations||[]).filter(o=>opInMonth(o,month) && !o.excludeFromLimit); }
+function accountKey(o){ return String(o.accountName||o.accountNumber||o.cardName||o.cardNumber||'Основной счёт').trim() || 'Основной счёт'; }
+function getOpeningBalance(month=state.settings.currentMonth){ return num(state.settings.bankOpeningBalances?.[month] || 0); }
+function getActualBalance(month=state.settings.currentMonth){ const v=state.settings.bankActualBalances?.[month]; return v==='' || v===undefined || v===null ? null : num(v); }
+function reconciliationSummary(month=state.settings.currentMonth){
+  ensureV406Data();
+  const all=balanceOps(month), done=balanceCompletedOps(month), pending=all.filter(isPendingOperation), lim=limitOps(month);
+  const bankIncome=total(done.filter(o=>o.type==='income'));
+  const bankExpense=total(done.filter(o=>o.type==='expense'));
+  const bankMovement=bankIncome-bankExpense;
+  const pendingIncome=total(pending.filter(o=>o.type==='income'));
+  const pendingExpense=total(pending.filter(o=>o.type==='expense'));
+  const pendingMovement=pendingIncome-pendingExpense;
+  const limitIncome=total(lim.filter(o=>o.type==='income'));
+  const limitExpense=total(lim.filter(o=>o.type==='expense'));
+  const internal=all.filter(o=>o.excludeFromLimit);
+  const internalIncome=total(internal.filter(o=>o.type==='income'));
+  const internalExpense=total(internal.filter(o=>o.type==='expense'));
+  const opening=getOpeningBalance(month);
+  const calculated=opening+bankMovement;
+  const actual=getActualBalance(month);
+  const diff=actual===null?null:actual-calculated;
+  const accounts={};
+  all.forEach(o=>{ const k=accountKey(o); accounts[k] ||= {count:0,income:0,expense:0}; accounts[k].count++; if(o.type==='income') accounts[k].income+=num(o.amount); else accounts[k].expense+=num(o.amount); });
+  const uncat=all.filter(operationNeedReview).length;
+  const imports=(state.importLogs||[]).filter(l=>String(l.from||'').startsWith(month)||String(l.to||'').startsWith(month)||String(l.month||'')===month);
+  return {month, all, done, pending, count:all.length, doneCount:done.length, pendingCount:pending.length, bankIncome, bankExpense, bankMovement, pendingIncome, pendingExpense, pendingMovement, limitIncome, limitExpense, internalIncome, internalExpense, opening, calculated, actual, diff, accounts, uncat, imports};
+}
+function budgetPlanFor(month=state.settings.currentMonth){
+  ensureV406Data();
+  let b=(state.budgetPlans||[]).find(x=>x.month===month);
+  if(!b){ b={id:uid(), month, expectedIncome:0, monthlyLimit:0, note:''}; state.budgetPlans.push(b); }
+  return b;
+}
+function lifePlansForMonth(month=state.settings.currentMonth){ return (state.lifePlans||[]).filter(p=>String(p.date||'').startsWith(month)).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))); }
+function lifePlanSummary(month=state.settings.currentMonth){
+  const rows=lifePlansForMonth(month);
+  const planned=rows.filter(p=>p.includeInBudget!==false && p.status!=='Отменено').reduce((s,p)=>s+num(p.amount),0);
+  const paid=rows.filter(p=>p.status==='Оплачено').reduce((s,p)=>s+num(p.amount),0);
+  const upcoming=rows.filter(p=>p.status!=='Оплачено' && p.status!=='Отменено' && String(p.date||'')>=todayKey()).reduce((s,p)=>s+num(p.amount),0);
+  const byDate={}; rows.forEach(p=>{ const d=String(p.date||''); byDate[d]=(byDate[d]||0)+num(p.amount); });
+  return {rows, planned, paid, upcoming, byDate};
+}
+function plannedBudgetSummary(month=state.settings.currentMonth){
+  const b=budgetPlanFor(month), life=lifePlanSummary(month), rec=reconciliationSummary(month);
+  const requiredPayments=(state.plannedExpenses||[]).filter(p=>p.active!==false && (!p.month || p.month===month)).reduce((s,p)=>s+num(p.amount),0);
+  const expectedIncome=num(b.expectedIncome)||rec.limitIncome||rec.bankIncome;
+  const totalPlanned=requiredPayments+life.planned+num(b.monthlyLimit);
+  const forecast=expectedIncome-rec.limitExpense-requiredPayments-life.planned-num(b.monthlyLimit);
+  return {budget:b, life, rec, requiredPayments, expectedIncome, totalPlanned, forecast};
+}
+function moneySigned(v){ const n=num(v); return `${n>0?'+':''}${money(n)}`; }
+function reconciliationTone(diff){ if(diff===null) return 'blue'; return Math.abs(num(diff))<=1 ? 'green' : 'warn'; }
+function logBankImport(mode, rows, range, extra={}){
+  ensureV406Data();
+  const batchId='imp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+  const cleanRows=Array.from(rows||[]);
+  const income=total(cleanRows.filter(o=>o.type==='income'));
+  const expense=total(cleanRows.filter(o=>o.type==='expense'));
+  const limitExpense=total(cleanRows.filter(o=>o.type==='expense'&&!o.excludeFromLimit));
+  const checksum=checksumString(cleanRows.map(o=>[o.sourceId,o.date,o.type,o.amount,o.category,o.note].join('|')).join('\n'));
+  state.importLogs.unshift({id:batchId, mode, from:range?.from||'', to:range?.to||'', month:(range?.from||'').slice(0,7), createdAt:new Date().toISOString(), count:cleanRows.length, income, expense, limitExpense, checksum, ...extra});
+  return batchId;
+}
+const __v406_oldParseBankStatementText = parseBankStatementText;
+parseBankStatementText = function(text){
+  const rows = __v406_oldParseBankStatementText(text);
+  for(const r of rows){
+    r.includeInBalance = true;
+    r.rawAmount = r.amount;
+    r.reconcileStatus = r.pending ? 'pending' : 'posted';
+    if(!r.source) r.source='bank-csv';
+  }
+  return rows;
+};
+const __v406_oldCleanImportedBankRows = cleanImportedBankRows;
+cleanImportedBankRows = function(rows){
+  const out = __v406_oldCleanImportedBankRows(rows);
+  for(const o of out){ if(o.includeInBalance===undefined) o.includeInBalance=true; if(!o.source) o.source='bank-csv'; }
+  return out;
+};
+function importPreviewStats406(rows){
+  const newRows=(rows||[]).filter(x=>!x.duplicate);
+  const allRows=(rows||[]);
+  return {
+    newRows,
+    allIncome: total(allRows.filter(x=>x.type==='income')),
+    allExpense: total(allRows.filter(x=>x.type==='expense')),
+    limitIncome: total(allRows.filter(x=>x.type==='income'&&!x.excludeFromLimit)),
+    limitExpense: total(allRows.filter(x=>x.type==='expense'&&!x.excludeFromLimit)),
+    internal: total(allRows.filter(x=>x.excludeFromLimit)),
+    internalCount: allRows.filter(x=>x.excludeFromLimit).length,
+    pending: allRows.filter(x=>x.pending).length,
+    duplicates: allRows.filter(x=>x.duplicate).length,
+    review: allRows.filter(operationNeedReview).length
+  };
+}
+previewBankImport = function(rows, fileName='bank.csv'){
+  ensureV406Data();
+  pendingBankImportAll=Array.from(rows||[]);
+  pendingBankImport=pendingBankImportAll.filter(x=>!x.duplicate);
+  pendingBankImportMeta=rows.meta || {kind:'unknown', totalRows:pendingBankImportAll.length, skipped:0};
+  pendingBankImportMeta.fileName=fileName;
+  const st=importPreviewStats406(pendingBankImportAll);
+  const range=bankImportDateRange(pendingBankImportAll);
+  pendingBankImportMeta.from=range.from; pendingBankImportMeta.to=range.to;
+  const existingInPeriod=range.from&&range.to ? operationCleanupSummary(range.from,range.to,'all') : {count:0,expenses:0,income:0};
+  const before=reconciliationSummary((range.from||state.settings.currentMonth).slice(0,7)||state.settings.currentMonth);
+  const expectedMovement=st.allIncome-st.allExpense;
+  const sample=pendingBankImportAll.slice(0,55).map(r=>`<tr class="${r.duplicate?'muted-line':''}"><td>${esc(r.date)}</td><td><span class="tag ${r.type==='income'?'green':'warn'}">${r.type==='income'?'Доход':'Расход'}</span></td><td><b>${esc(r.category)}</b><br><small>${esc(r.note)}</small></td><td>${money(r.amount)}</td><td>${r.duplicate?'<span class="tag">дубль</span>':(r.excludeFromLimit?'<span class="tag blue">не в лимит</span>':(r.pending?'<span class="tag amber">в обработке</span>':'<span class="tag green">новая</span>'))}</td></tr>`).join('');
+  openModal('Сверка импорта банка', `<div class="bank-import-summary reconcile-preview"><article class="metric"><b>${pendingBankImportAll.length}</b><span>операций в файле</span></article><article class="metric"><b>${money(st.allExpense)}</b><span>все списания банка</span></article><article class="metric"><b>${money(st.allIncome)}</b><span>все пополнения банка</span></article><article class="metric"><b>${moneySigned(expectedMovement)}</b><span>движение файла</span></article><article class="metric"><b>${money(st.limitExpense)}</b><span>расходы в лимит</span></article><article class="metric"><b>${st.internalCount}</b><span>не в лимит</span></article></div><div class="import-note"><b>${esc(fileName)}</b><p class="sub">Период файла: ${esc(range.from||'—')} — ${esc(range.to||'—')}. Уже есть операций в этом периоде: ${existingInPeriod.count}. Дублей: ${st.duplicates}. В обработке: ${st.pending}. На разбор: ${st.review}. До импорта движение месяца в приложении: ${moneySigned(before.bankMovement)}.</p></div><div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория / описание</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>${sample || '<tr><td colspan="5"><div class="empty">Операций нет</div></td></tr>'}</tbody></table></div><div class="top-actions"><button class="primary" data-action="confirmBankImport">Импортировать только новые</button><button class="danger-btn" data-action="confirmBankReplaceImport">Обновить / заменить период этим CSV</button><button class="ghost" data-action="openOperationsCleanup" data-from="${esc(range.from)}" data-to="${esc(range.to)}">Удалить период вручную</button><button class="ghost" data-page="reconcile">Открыть сверку</button><button class="ghost" data-action="pickCsv">Другой файл</button></div><p class="sub"><b>Для ежедневного режима:</b> можно каждый день выгружать CSV и нажимать “Импортировать только новые”. Если банк выгружает месяц целиком — используй “Обновить / заменить период”, чтобы не было дублей.</p>`);
+};
+confirmBankImport = function(){
+  ensureV406Data();
+  if(!pendingBankImport.length) return toast('Новых операций для импорта нет');
+  saveLocalSnapshot('before-bank-import-v406');
+  const range=bankImportDateRange(pendingBankImport);
+  const batchId=logBankImport('new-only', pendingBankImport, range, {fileName: pendingBankImportMeta?.fileName || 'bank.csv', duplicates: pendingBankImportAll.filter(x=>x.duplicate).length});
+  state.operations.unshift(...pendingBankImport.map(x=>{ const {duplicate,pending,...clean}=x; clean.importBatchId=batchId; clean.includeInBalance=true; return clean; }));
+  const count=pendingBankImport.length;
+  pendingBankImport=[]; pendingBankImportAll=[]; pendingBankImportMeta=null;
+  save({snapshot:true}); closeModal(); render(); toast(`Импортировано новых операций: ${count}`);
+};
+confirmBankReplaceImport = function(){
+  ensureV406Data();
+  if(!pendingBankImportAll.length) return toast('Сначала выбери CSV-файл');
+  const range=bankImportDateRange(pendingBankImportAll);
+  if(!range.from || !range.to) return toast('Не смог определить период файла');
+  saveLocalSnapshot('before-bank-replace-import-v406');
+  const before=state.operations.length;
+  state.operations=(state.operations||[]).filter(o=>!operationInPeriod(o,range.from,range.to));
+  const deleted=before-state.operations.length;
+  const imported=cleanImportedBankRows(pendingBankImportAll);
+  const batchId=logBankImport('replace-period', imported, range, {fileName: pendingBankImportMeta?.fileName || 'bank.csv', deleted});
+  imported.forEach(o=>{ o.importBatchId=batchId; o.includeInBalance=true; });
+  state.operations.unshift(...imported);
+  pendingBankImport=[]; pendingBankImportAll=[]; pendingBankImportMeta=null;
+  save({snapshot:true}); closeModal(); render(); toast(`Период обновлён: удалено ${deleted}, импортировано ${imported.length}`);
+};
+function saveReconcileBalances(){
+  ensureV406Data();
+  const month=val('reconMonth') || state.settings.currentMonth || monthKey();
+  state.settings.currentMonth=month;
+  state.settings.bankOpeningBalances[month]=num(val('openingBalance'));
+  const actual=String(val('actualBalance')||'').trim();
+  if(actual==='') delete state.settings.bankActualBalances[month]; else state.settings.bankActualBalances[month]=num(actual);
+  save(); render(); toast('Сверка сохранена');
+}
+function reconciliationPage(){
+  ensureV406Data();
+  const month=state.settings.currentMonth || monthKey();
+  const r=reconciliationSummary(month);
+  const diffTone=reconciliationTone(r.diff);
+  const accounts=Object.entries(r.accounts).map(([name,a])=>`<tr><td><b>${esc(name)}</b></td><td>${a.count}</td><td class="green-text">${money(a.income)}</td><td class="red-text">${money(a.expense)}</td><td>${money(a.income-a.expense)}</td></tr>`).join('');
+  const logs=(state.importLogs||[]).slice(0,8).map(l=>`<tr><td>${new Date(l.createdAt).toLocaleString('ru-RU')}</td><td>${esc(l.mode==='replace-period'?'замена периода':'новые')}</td><td>${esc(l.from||'')} — ${esc(l.to||'')}</td><td>${l.count||0}</td><td>${moneySigned(num(l.income)-num(l.expense))}</td></tr>`).join('');
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Сверка банка</div><h1>Сверка баланса</h1><p class="sub">Разделяем банковский баланс, расходы в лимит и личную чистую позицию. Так суммы не будут путаться.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-page="operations">Разобрать операции</button><button class="ghost" data-page="planning">План бюджета</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${r.count}</b><span>операций банка</span></article><article class="metric"><b>${moneySigned(r.bankMovement)}</b><span>движение по банку</span></article><article class="metric"><b>${money(r.limitExpense)}</b><span>расходы в лимит</span></article><article class="metric"><b>${money(r.internalIncome+r.internalExpense)}</b><span>внутренние / копилка</span></article><article class="metric"><b class="${r.diff!==null && Math.abs(r.diff)>1?'red-text':'green-text'}">${r.diff===null?'—':moneySigned(r.diff)}</b><span>расхождение</span></article></div><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Контроль остатка</h3><p class="sub">CSV не содержит “остаток после операции”, поэтому для точной сверки надо один раз ввести начальный и фактический баланс.</p></div><span class="tag ${diffTone}">${r.diff===null?'нужен факт':(Math.abs(r.diff)<=1?'сошлось':'есть расхождение')}</span></div><div class="form-grid"><label>Месяц<input id="reconMonth" type="month" value="${esc(month)}"></label><label>Начальный остаток месяца<input id="openingBalance" type="number" value="${r.opening}"></label><label>Фактический остаток сейчас<input id="actualBalance" type="number" value="${r.actual===null?'':r.actual}"></label><label>Расчётный остаток<input readonly value="${money(r.calculated)}"></label></div><div class="top-actions"><button class="primary" data-action="saveReconcileBalances">Сохранить сверку</button><button class="ghost" data-action="applyOperationFilters" data-page="operations">К операциям</button></div></section><section class="card panel"><div class="section-head"><h3>Что считается отдельно</h3><span class="tag green">V40.6</span></div><div class="bank-rules-grid"><div><b>Баланс банка</b><span>все выполненные операции, даже копилка и переводы</span></div><div><b>Лимит</b><span>только реальные расходы без “не в лимит”</span></div><div><b>В обработке</b><span>${r.pendingCount} операций, движение ${moneySigned(r.pendingMovement)}</span></div><div><b>На разбор</b><span>${r.uncat} операций без нормальной категории</span></div></div></section></div><section class="card panel"><div class="section-head"><h3>Счета / карты из CSV</h3><span class="tag">${Object.keys(r.accounts).length}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Счёт / карта</th><th>Операций</th><th>Пополнения</th><th>Списания</th><th>Движение</th></tr></thead><tbody>${accounts || '<tr><td colspan="5"><div class="empty">Нет операций за месяц</div></td></tr>'}</tbody></table></div></section><section class="card panel"><div class="section-head"><h3>Журнал импортов</h3><span class="tag blue">контроль</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Когда</th><th>Режим</th><th>Период</th><th>Операций</th><th>Движение</th></tr></thead><tbody>${logs || '<tr><td colspan="5"><div class="empty">Импортов пока нет</div></td></tr>'}</tbody></table></div></section>`;
+}
+function planningPage(){
+  ensureV406Data();
+  const month=state.settings.currentMonth||monthKey();
+  const bs=plannedBudgetSummary(month);
+  const rows=bs.life.rows;
+  const rowHtml=rows.map(p=>`<tr><td><b>${esc(p.date||'')}</b></td><td><b>${esc(p.title||'План')}</b><br><small>${esc(p.note||'')}</small></td><td>${esc(p.category||'Личная жизнь')}</td><td>${money(p.amount)}</td><td>${p.includeInBudget===false?'<span class="tag blue">не в бюджет</span>':'<span class="tag green">в бюджет</span>'}</td><td><span class="tag ${p.status==='Оплачено'?'green':p.status==='Отменено'?'warn':'blue'}">${esc(p.status||'План')}</span></td><td><button class="ghost small" data-action="editLifePlan" data-id="${esc(p.id)}">Изм.</button></td></tr>`).join('');
+  return `<div class="goals-head premium-page-head"><div><div class="page-label">Личная жизнь + бюджет</div><h1>Планирование по датам</h1><p class="sub">Планируй события, поездки, подарки, встречи и будущие расходы. Они попадут в бюджет месяца и календарь.</p></div><div class="top-actions"><button class="primary" data-action="addLifePlan">＋ План</button><button class="ghost" data-page="week">Календарь</button><button class="ghost" data-page="reconcile">Сверка</button></div></div><div class="metrics finance-metrics"><article class="metric"><b>${money(bs.expectedIncome)}</b><span>план дохода</span></article><article class="metric"><b>${money(bs.requiredPayments)}</b><span>обязательные платежи</span></article><article class="metric"><b>${money(bs.life.planned)}</b><span>личные планы</span></article><article class="metric"><b class="${bs.forecast>=0?'green-text':'red-text'}">${moneySigned(bs.forecast)}</b><span>прогноз остатка</span></article></div><div class="data-core-grid"><section class="card panel"><div class="section-head"><div><h3>Бюджет месяца</h3><p class="sub">Задай плановый доход и дополнительный резерв/лимит. Остальное приложение посчитает по платежам и личным планам.</p></div><span class="tag green">${esc(month)}</span></div><div class="form-grid"><label>Месяц<input id="budgetMonth" type="month" value="${esc(month)}"></label><label>План дохода<input id="budgetIncome" type="number" value="${num(bs.budget.expectedIncome)}"></label><label>Доп. резерв / лимит<input id="budgetMonthlyLimit" type="number" value="${num(bs.budget.monthlyLimit)}"></label><label class="full">Заметка<textarea id="budgetNote">${esc(bs.budget.note||'')}</textarea></label></div><button class="primary" data-action="saveBudgetPlan">Сохранить бюджет месяца</button></section><section class="card panel"><div class="section-head"><h3>Как это влияет на деньги</h3><span class="tag blue">план</span></div><div class="money-list"><p><span>План дохода / факт банка</span><b>${money(bs.expectedIncome)}</b></p><p><span>Факт расходов в лимит</span><b class="red-text">${money(bs.rec.limitExpense)}</b></p><p><span>Платежи</span><b>${money(bs.requiredPayments)}</b></p><p><span>Личная жизнь</span><b>${money(bs.life.planned)}</b></p><p><span>Прогноз остатка</span><b class="${bs.forecast>=0?'green-text':'red-text'}">${moneySigned(bs.forecast)}</b></p></div></section></div><section class="card panel"><div class="section-head"><div><h3>Планы и будущие расходы</h3><p class="sub">Нажми “Оплачено” внутри плана — приложение создаст расход и свяжет его с событием.</p></div><button class="primary" data-action="addLifePlan">＋ Добавить</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Дата</th><th>Событие</th><th>Категория</th><th>Сумма</th><th>Бюджет</th><th>Статус</th><th></th></tr></thead><tbody>${rowHtml || '<tr><td colspan="7"><div class="empty">Планов пока нет</div></td></tr>'}</tbody></table></div></section>`;
+}
+function addLifePlan(date=''){
+  ensureV406Data();
+  const d = date || todayKey();
+  openModal('План личной жизни', `<div class="form-grid"><label>Дата<input id="mPlanDate" type="date" value="${esc(d)}"></label><label>Название<input id="mPlanTitle" placeholder="Поездка, подарок, встреча"></label><label>Сумма / бюджет<input id="mPlanAmount" type="number" placeholder="0"></label><label>Категория<select id="mPlanCategory">${categoryOptions('Личная жизнь')}</select></label><label>Статус<select id="mPlanStatus"><option>План</option><option>Оплачено</option><option>Отменено</option></select></label><label>Учитывать в бюджете<select id="mPlanBudget"><option value="yes">Да</option><option value="no">Нет</option></select></label><label class="full">Заметка<textarea id="mPlanNote" placeholder="Что важно помнить"></textarea></label></div><div class="top-actions"><button class="primary" data-action="saveLifePlan">Сохранить план</button></div>`);
+}
+function saveLifePlan(){
+  ensureV406Data();
+  const p={id:uid(), date:val('mPlanDate')||todayKey(), title:val('mPlanTitle')||'План', amount:num(val('mPlanAmount')), category:val('mPlanCategory')||'Личная жизнь', status:val('mPlanStatus')||'План', includeInBudget:val('mPlanBudget')!=='no', note:val('mPlanNote')||'', createdAt:new Date().toISOString()};
+  state.lifePlans.unshift(p);
+  if(p.status==='Оплачено' && p.amount>0) createOperationFromLifePlan(p);
+  save(); closeModal(); render(); toast('План добавлен');
+}
+function editLifePlan(id){
+  ensureV406Data();
+  const p=(state.lifePlans||[]).find(x=>x.id===id); if(!p) return toast('План не найден');
+  openModal('Изменить план', `<div class="form-grid"><label>Дата<input id="mPlanDate" type="date" value="${esc(p.date||todayKey())}"></label><label>Название<input id="mPlanTitle" value="${esc(p.title||'')}"></label><label>Сумма / бюджет<input id="mPlanAmount" type="number" value="${num(p.amount)}"></label><label>Категория<select id="mPlanCategory">${categoryOptions(p.category||'Личная жизнь')}</select></label><label>Статус<select id="mPlanStatus"><option ${p.status==='План'?'selected':''}>План</option><option ${p.status==='Оплачено'?'selected':''}>Оплачено</option><option ${p.status==='Отменено'?'selected':''}>Отменено</option></select></label><label>Учитывать в бюджете<select id="mPlanBudget"><option value="yes" ${p.includeInBudget!==false?'selected':''}>Да</option><option value="no" ${p.includeInBudget===false?'selected':''}>Нет</option></select></label><label class="full">Заметка<textarea id="mPlanNote">${esc(p.note||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="saveLifePlanEdit" data-id="${esc(id)}">Сохранить</button><button class="ghost" data-action="completeLifePlan" data-id="${esc(id)}">Оплачено → расход</button><button class="danger-btn" data-action="deleteLifePlan" data-id="${esc(id)}">Удалить</button></div>`);
+}
+function saveLifePlanEdit(id){
+  ensureV406Data();
+  const p=(state.lifePlans||[]).find(x=>x.id===id); if(!p) return;
+  Object.assign(p,{date:val('mPlanDate')||todayKey(), title:val('mPlanTitle')||'План', amount:num(val('mPlanAmount')), category:val('mPlanCategory')||'Личная жизнь', status:val('mPlanStatus')||'План', includeInBudget:val('mPlanBudget')!=='no', note:val('mPlanNote')||''});
+  if(p.status==='Оплачено' && p.amount>0 && !p.operationId) createOperationFromLifePlan(p);
+  save(); closeModal(); render(); toast('План обновлён');
+}
+function deleteLifePlan(id){ state.lifePlans=(state.lifePlans||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('План удалён'); }
+function createOperationFromLifePlan(p){
+  const op={id:uid(), date:p.date||todayKey(), type:'expense', amount:num(p.amount), category:p.category||'Личная жизнь', note:`План: ${p.title||'личная жизнь'}`, source:'life-plan', sourceId:'life_'+p.id, lifePlanId:p.id, excludeFromLimit:p.includeInBudget===false, includeInBalance:false};
+  state.operations.unshift(op); p.operationId=op.id; p.status='Оплачено'; return op;
+}
+function completeLifePlan(id){ const p=(state.lifePlans||[]).find(x=>x.id===id); if(!p) return; if(!p.operationId) createOperationFromLifePlan(p); save(); closeModal(); render(); toast('Создан расход из плана'); }
+function saveBudgetPlan(){
+  ensureV406Data();
+  const month=val('budgetMonth') || state.settings.currentMonth || monthKey();
+  state.settings.currentMonth=month;
+  const b=budgetPlanFor(month);
+  b.expectedIncome=num(val('budgetIncome')); b.monthlyLimit=num(val('budgetMonthlyLimit')); b.note=val('budgetNote')||''; b.updatedAt=new Date().toISOString();
+  save(); render(); toast('Бюджет месяца сохранён');
+}
+const __v406_oldDayEvents = dayEvents;
+dayEvents = function(date){ const ev=__v406_oldDayEvents(date); ev.lifePlans=(state.lifePlans||[]).filter(p=>p.date===date); return ev; };
+const __v406_oldDayBadges = dayBadges;
+dayBadges = function(date){ const base=__v406_oldDayBadges(date); const plans=(state.lifePlans||[]).filter(p=>p.date===date && p.status!=='Отменено'); return base + (plans.length?`<span class="cal-dot plan">${plans.length}</span>`:''); };
+openDay = function(date){
+  if(!date) return;
+  const ev=dayEvents(date);
+  openModal(new Date(date+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}), `<div class="day-sheet-grid"><section class="card soft-card"><div class="section-head"><h3>Планы</h3><button class="ghost small" data-action="addLifePlan" data-date="${date}">＋</button></div>${ev.lifePlans.length?ev.lifePlans.map(p=>`<div class="line-row"><span class="tag blue">план</span><b>${esc(p.title)}</b><strong>${money(p.amount)}</strong><button class="ghost small" data-action="editLifePlan" data-id="${esc(p.id)}">Открыть</button></div>`).join(''):'<div class="empty">Планов нет</div>'}</section><section class="card soft-card"><div class="section-head"><h3>Задачи</h3><button class="ghost small" data-action="addTaskDay" data-date="${date}">＋</button></div>${ev.tasks.length?ev.tasks.map(t=>`<div class="line-row"><button class="round-check" data-action="toggleTask" data-id="${t.id}">${t.status==='Готово'?'✓':'○'}</button><b>${esc(t.title)}</b><button class="ghost small" data-action="editTask" data-id="${t.id}">Открыть</button></div>`).join(''):'<div class="empty">Задач нет</div>'}</section><section class="card soft-card"><h3>Деньги</h3>${ev.payments.map(p=>`<div class="line-row"><span class="tag warn">платёж</span><b>${esc(p.title)}</b><strong>${money(p.amount)}</strong></div>`).join('') || ''}${ev.operations.map(o=>`<div class="line-row"><span class="tag ${o.type==='income'?'green':'warn'}">${o.type==='income'?'доход':'расход'}</span><b>${esc(o.category||'Операция')}</b><strong>${money(o.amount)}</strong></div>`).join('') || '<div class="empty">Операций нет</div>'}</section><section class="card soft-card"><h3>Люди</h3>${ev.birthdays.length?ev.birthdays.map(p=>`<div class="line-row"><span>🎁</span><b>${esc(p.name)}</b><button class="ghost small" data-action="editPerson" data-id="${p.id}">Открыть</button></div>`).join(''):'<div class="empty">Дней рождения нет</div>'}</section></div>`);
+};
+const __v406_oldWeek = week;
+week = function(){
+  const html=__v406_oldWeek();
+  const mk=calendarMonthKey();
+  const ps=lifePlanSummary(mk);
+  return html.replace('</aside></div>', `<section class="card panel"><div class="section-head"><h3>Личные планы</h3><button class="ghost small" data-action="addLifePlan">＋</button></div>${ps.rows.slice(0,6).map(p=>`<div class="pay-row"><span>${esc(p.title)}</span><b>${money(p.amount)}</b><small>${esc(String(p.date||'').slice(8,10))}</small></div>`).join('') || '<div class="empty">Нет личных планов</div>'}</section></aside></div>`);
+};
+const __v406_oldFinanceModel = financeModel;
+financeModel = function(){ const f=__v406_oldFinanceModel(); const r=reconciliationSummary(state.settings.currentMonth); return {...f, bank:r}; };
+const __v406_oldFinance = finance;
+finance = function(){
+  const r=reconciliationSummary(state.settings.currentMonth), b=plannedBudgetSummary(state.settings.currentMonth);
+  const card=`<section class="card panel reconcile-strip"><div class="section-head"><div><h3>Сверка и план бюджета</h3><p class="sub">Банк: ${moneySigned(r.bankMovement)} · Расходы в лимит: ${money(r.limitExpense)} · План личной жизни: ${money(b.life.planned)}</p></div><div class="top-actions"><button class="ghost small" data-page="reconcile">Сверка</button><button class="ghost small" data-page="planning">Планирование</button></div></div></section>`;
+  return __v406_oldFinance()+card;
+};
+const __v406_oldImportPage = importPage;
+importPage = function(){
+  const r=reconciliationSummary(state.settings.currentMonth);
+  return __v406_oldImportPage().replace('Bank Import V40.6','Bank Import V40.6') + `<section class="card panel"><div class="section-head"><div><h3>Ежедневная сверка</h3><p class="sub">После импорта проверяй: операции банка ${r.count}, движение ${moneySigned(r.bankMovement)}, расходы в лимит ${money(r.limitExpense)}, на разбор ${r.uncat}.</p></div><button class="primary" data-page="reconcile">Открыть сверку</button></div></section>`;
+};
+const __v406_oldRoute = route;
+route = function(){ if(activePage==='reconcile') return reconciliationPage(); if(activePage==='planning') return planningPage(); return __v406_oldRoute(); };
+try{
+  const moneyGroup=navGroups.find(g=>g[0]==='Деньги');
+  if(moneyGroup && !moneyGroup[1].some(x=>x[0]==='reconcile')) moneyGroup[1].splice(2,0,['reconcile','≋','Сверка']);
+  const dayGroup=navGroups.find(g=>g[0]==='День');
+  if(dayGroup && !dayGroup[1].some(x=>x[0]==='planning')) dayGroup[1].splice(2,0,['planning','◇','Планирование']);
+  pageTitles.reconcile='Сверка'; pageTitles.planning='Планирование';
+}catch(_e){}
+const __v406_oldHandleAction = handleAction;
+handleAction = function(a, el){
+  const id=el?.dataset?.id;
+  if(a==='saveReconcileBalances') return saveReconcileBalances();
+  if(a==='addLifePlan') return addLifePlan(el?.dataset?.date||'');
+  if(a==='saveLifePlan') return saveLifePlan();
+  if(a==='editLifePlan') return editLifePlan(id);
+  if(a==='saveLifePlanEdit') return saveLifePlanEdit(id);
+  if(a==='deleteLifePlan') return deleteLifePlan(id);
+  if(a==='completeLifePlan') return completeLifePlan(id);
+  if(a==='saveBudgetPlan') return saveBudgetPlan();
+  return __v406_oldHandleAction(a, el);
+};
+const __v406_oldEnhancedEditOperation = enhancedEditOperation;
+enhancedEditOperation = function(id){
+  ensureV406Data();
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return toast('Операция не найдена');
+  const currentDebt=o.debtId || '';
+  openModal('Разобрать операцию', `<div class="form-grid"><label>Дата<input id="mDate" type="date" value="${esc(o.date||todayKey())}"></label><label>Сумма<input id="mAmount" type="number" value="${num(o.amount)}"></label><label>Тип<select id="mType"><option value="expense" ${o.type==='expense'?'selected':''}>Расход</option><option value="income" ${o.type==='income'?'selected':''}>Доход</option></select></label><label>Категория<select id="mCategory">${categoryOptions(o.category||'Другое')}</select></label><label class="full">Своя категория<input id="mCategoryCustom" placeholder="Заполни, если нужна новая категория"></label><label class="full">Описание<input id="mNote" value="${esc(o.note||'')}"></label><label>В лимит<select id="mLimit"><option value="yes" ${!o.excludeFromLimit?'selected':''}>Да, реальный расход/доход</option><option value="no" ${o.excludeFromLimit?'selected':''}>Нет, не считать в лимит</option></select></label><label>В баланс банка<select id="mBalance"><option value="yes" ${o.includeInBalance!==false?'selected':''}>Да</option><option value="no" ${o.includeInBalance===false?'selected':''}>Нет</option></select></label><label>Связь с долгом<select id="mDebtMode"><option value="none" ${!currentDebt?'selected':''}>Нет</option><option value="link" ${currentDebt?'selected':''}>Привязать к существующему долгу</option><option value="create_owe">Создать долг: я должен</option><option value="create_owed">Создать долг: мне должны</option><option value="payment">Это платёж / погашение долга</option></select></label><label class="full">Существующий долг<select id="mDebtId">${activeDebtOptions(currentDebt)}</select></label><label>Кто / кому для нового долга<input id="mDebtPerson" value="${esc((o.note||'').slice(0,60))}"></label><label>Дата возврата<input id="mDebtDue" type="date" value="${todayKey()}"></label><label class="full mini-check wide"><input id="mRememberRule" type="checkbox"> Запомнить правило для похожих операций</label><label class="full mini-check wide"><input id="mApplySimilar" type="checkbox"> Сразу применить категорию к похожим операциям</label></div><div class="import-note"><b>${isBankOperation(o)?'Импорт банка':'Ручная операция'}</b><p class="sub">Баланс банка: ${o.includeInBalance===false?'не учитывается':'учитывается'} · Лимит: ${o.excludeFromLimit?'не в лимит':'в лимит'} · ${esc(o.bankStatus||o.status||'')}</p></div><div class="top-actions"><button class="primary" data-action="saveOperationEdit" data-id="${id}">Сохранить разбор</button><button class="danger-btn" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`);
+};
+const __v406_oldEnhancedSaveOperationEdit = enhancedSaveOperationEdit;
+enhancedSaveOperationEdit = function(id){
+  const o=(state.operations||[]).find(x=>x.id===id); if(!o) return;
+  const oldMode=val('mBalance');
+  __v406_oldEnhancedSaveOperationEdit(id);
+  const updated=(state.operations||[]).find(x=>x.id===id);
+  if(updated){ updated.includeInBalance = oldMode !== 'no'; save(); }
+};
+editOperation = enhancedEditOperation;
+saveOperationEdit = enhancedSaveOperationEdit;
+const __v406_oldRender = render;
+render = function(){ __v406_oldRender(); const b=document.getElementById('releaseBadge'); if(b) b.textContent='V40.6 RECONCILE'; };
+function injectV406Styles(){
+  if(document.getElementById('v406Styles')) return;
+  const st=document.createElement('style'); st.id='v406Styles'; st.textContent=`.reconcile-preview{grid-template-columns:repeat(6,minmax(0,1fr))}.reconcile-strip{border-color:#dbe8d8;background:linear-gradient(180deg,#fbfff8,#fffdfa)}.cal-dot.plan{background:#eadfff;color:#6d4bc2}.mini-check.wide{align-items:center}.import-preview-table{max-height:360px}.planning-plan-card{border-color:#eadfce}.form-grid input[readonly]{background:#f7f2ea;color:#70675f}.bank-rules-grid div b{display:block;margin-bottom:4px}@media(max-width:760px){.reconcile-preview{grid-template-columns:repeat(2,minmax(0,1fr))}.data-core-grid{grid-template-columns:1fr}.finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}`; document.head.appendChild(st);
+}
+injectV406Styles();
+ensureV406Data();
+
 window.SecondBrainBuild={version:RELEASE,inspect,resetCaches,exportBackup,integrityReport,saveLocalSnapshot,openOperationsCleanup,deleteOperationsForPeriod,confirmBankReplaceImport};
 save(); installSW(); render(); setTimeout(renderInstallHint, 700);
 
 } catch(e) {
   console.error(e);
   const app = document.getElementById('app');
-  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v40-5-operation-review-private-20260629</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
+  if (app) app.innerHTML = '<main style="padding:32px;font-family:system-ui"><h1>Ошибка загрузки интерфейса</h1><p>Сборка: v40-6-reconciliation-planning-private-20260629</p><pre style="white-space:pre-wrap;background:#fff;padding:16px;border-radius:16px;border:1px solid #eadfce">' + (e && e.stack ? e.stack : (e && e.message ? e.message : 'unknown error')) + '</pre><button onclick="location.reload()" style="padding:12px 18px;border-radius:14px;border:0;background:#4d8758;color:#fff;font-weight:700">Перезагрузить</button></main>';
 }
   </script>
 </body>

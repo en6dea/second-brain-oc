@@ -174,3 +174,9 @@ tr.needs-review td{background:rgba(239,174,83,.08)}
   .operation-note-cell{min-width:220px}
   .category-inline{min-width:170px}
 }
+
+/* V40.6 Reconciliation + Planning */
+.reconcile-strip{border-color:#dbe8d8;background:linear-gradient(180deg,#fbfff8,#fffdfa)}
+.reconcile-preview{grid-template-columns:repeat(6,minmax(0,1fr))}
+.cal-dot.plan{background:#eadfff;color:#6d4bc2}
+@media(max-width:760px){.reconcile-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}
