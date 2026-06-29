@@ -2,7 +2,7 @@
   "name": "Second Brain OS — Lifestyle Planning Private",
   "short_name": "Second Brain",
   "description": "Личная Life RPG система с автосверкой банковских CSV, ежедневным импортом, планированием поездок, отдыха и развлечений с бюджетом.",
-  "start_url": "/second-brain-oc/?v=v40-7-lifestyle-planning-private-20260629",
+  "start_url": "/second-brain-oc/?v=v40-8-button-card-balance-private-20260629",
   "scope": "./",
   "display": "standalone",
   "display_override": [
