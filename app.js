@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='timeline-focus-ui2-buttons-hotfix-20260630';
+const BUILD='timeline-focus-ui2-buttons-nuclear-fix-20260630';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -274,44 +274,98 @@ function deleteTrip(id){state.trips=state.trips.filter(x=>x.id!==id);save(true);
 function tripToBudget(id){const t=state.trips.find(x=>x.id===id);if(!t)return;state.plannedPurchases.unshift({id:uid(),title:`Поездка: ${t.title}`,category:'Путешествия',amount:num(t.budget)-num(t.saved),month:state.settings.currentMonth,importance:'Важно',includeInBudget:true,note:'Добавлено из планирования поездки'});save(true);toast('Поездка добавлена в бюджет');render()}
 // extend action map after trip overrides
 Object.assign(windowActions,{addTrip,saveTrip,editTrip,saveEditedTrip,deleteTrip,tripToBudget});
-// replace click router so actions can receive dataset fields too
-const oldBodyClick = document.body.onclick;
+// replace click router so actions can receive dataset fields too — NUCLEAR FIX
+function runActionFromElement(el, event){
+  if(!el) return false;
+  const ds=el.dataset||{};
+  const action=ds.action;
+  if(!action) return false;
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  try{
+    const direct={
+      openQuick,closeModal,exportData,snapshot,clearCaches,
+      addTask,saveTask,editTask,saveEditedTask,toggleTask,deleteTask,setTaskScope,
+      addExpense,addIncome,saveOperation,editOperation,saveEditedOperation,editActualBalance,saveActualBalance,
+      addCategory,saveCategory,editCategory,saveEditedCategory,deleteCategory,
+      addDebt,saveDebt,editDebt,saveEditedDebt,closeDebt,debtTask,deleteDebt,
+      addPurchase,savePurchase,editPurchase,saveEditedPurchase,deletePurchase,
+      addGoal,saveGoal,editGoal,saveEditedGoal,deleteGoal,
+      addNote,saveNote,editNote,saveEditedNote,deleteNote,saveDailyReflection,
+      addPerson,savePerson,editPerson,saveEditedPerson,deletePerson,
+      addHabit,saveHabit,editHabit,saveEditedHabit,deleteHabit,toggleHabitDate,
+      addBook,saveBook,editBook,saveEditedBook,deleteBook,
+      addIdea,saveIdea,editIdea,saveEditedIdea,deleteIdea,
+      addMedia,saveMedia,editMedia,saveEditedMedia,deleteMedia,
+      addSphere,saveSphere,editSphere,saveEditedSphere,deleteSphere,
+      addEvent,saveEvent,editEvent,saveEditedEvent,googleTask,googleEvent,
+      loadCsv,confirmCsv,saveImportBalance,filterDayOps,
+      addTrip,saveTrip,editTrip,saveEditedTrip,deleteTrip,tripToBudget
+    };
+    if(action==='filterDayOps') { filterDayOps(ds.day); return true; }
+    if(action==='toggleHabitDate') { toggleHabitDate(ds.id, ds.date); return true; }
+    if(action==='setTaskScope') { setTaskScope.call(el, ds.scope||ds.id||'today'); return true; }
+    if(action==='addDebt') { addDebt.call(el, ds.direction||ds.id||'owe'); return true; }
+    const fn=direct[action] || (typeof windowActions!=='undefined'&&windowActions[action]) || window[action];
+    if(typeof fn==='function'){
+      const arg=ds.id ?? ds.row ?? ds.day ?? ds.scope ?? ds.type ?? '';
+      fn.call(el,arg);
+      return true;
+    }
+    console.warn('[Second Brain OS] Неизвестное действие:', action, ds);
+    toast('Действие пока не подключено: '+action);
+    return false;
+  }catch(err){
+    console.error('[Second Brain OS] Ошибка действия', action, err);
+    toast('Ошибка кнопки: '+(err && err.message ? err.message : action));
+    return false;
+  }
+}
+function runGoFromElement(el,event){
+  if(!el) return false;
+  if(event){event.preventDefault();event.stopPropagation();}
+  go(el.dataset.go);
+  return true;
+}
+function runLifeFolderFromElement(el,event){
+  if(!el) return false;
+  if(event){event.preventDefault();event.stopPropagation();}
+  setLifeFolder(el.dataset.lifeFolder);
+  return true;
+}
+// Capture handler: срабатывает до любых старых/вложенных обработчиков.
 document.addEventListener('click', e=>{
- const goEl=e.target.closest('[data-go]');
- if(goEl){
-   e.preventDefault();
-   go(goEl.dataset.go);
-   return;
- }
- const lf=e.target.closest('[data-life-folder]');
- if(lf){
-   e.preventDefault();
-   setLifeFolder(lf.dataset.lifeFolder);
-   return;
- }
- const a=e.target.closest('[data-action]');
- if(!a)return;
- e.preventDefault();
- e.stopImmediatePropagation();
- const action=a.dataset.action;
- try{
-   if(action==='filterDayOps') return filterDayOps(a.dataset.day);
-   if(action==='toggleHabitDate') return toggleHabitDate(a.dataset.id,a.dataset.date);
-   if(action==='setTaskScope') return setTaskScope.call(a,a.dataset.scope||a.dataset.id||'today');
-   if(action==='addDebt') return addDebt.call(a,a.dataset.direction||a.dataset.id||'owe');
-   const fn=(typeof windowActions!=='undefined'&&windowActions[action]) || window[action];
-   if(typeof fn==='function'){
-     const arg=a.dataset.id ?? a.dataset.row ?? a.dataset.day ?? a.dataset.scope ?? a.dataset.type ?? '';
-     return fn.call(a,arg);
-   }
-   console.warn('[Second Brain OS] Неизвестное действие:', action, a.dataset);
-   toast('Действие пока не подключено: '+action);
- }catch(err){
-   console.error('[Second Brain OS] Ошибка действия', action, err);
-   toast('Кнопка сработала с ошибкой — смотри консоль');
- }
+  const actionEl=e.target.closest('[data-action]');
+  if(actionEl) return runActionFromElement(actionEl,e);
+  const goEl=e.target.closest('[data-go]');
+  if(goEl) return runGoFromElement(goEl,e);
+  const lf=e.target.closest('[data-life-folder]');
+  if(lf) return runLifeFolderFromElement(lf,e);
 }, true);
-try{render()}catch(e){console.error(e)}
+// Target onclick safety belt: если браузер/кэш/старый слой перебьёт delegation, кнопки всё равно оживут.
+function patchClickableButtons(){
+  document.querySelectorAll('[data-action]').forEach(el=>{
+    if(el.__sbosPatched) return;
+    el.__sbosPatched=true;
+    el.onclick=function(ev){ return runActionFromElement(el,ev), false; };
+  });
+  document.querySelectorAll('[data-go]').forEach(el=>{
+    if(el.__sbosGoPatched) return;
+    el.__sbosGoPatched=true;
+    el.onclick=function(ev){ return runGoFromElement(el,ev), false; };
+  });
+  document.querySelectorAll('[data-life-folder]').forEach(el=>{
+    if(el.__sbosLifePatched) return;
+    el.__sbosLifePatched=true;
+    el.onclick=function(ev){ return runLifeFolderFromElement(el,ev), false; };
+  });
+}
+const __sbosRender=render;
+render=function(){
+  const out=__sbosRender.apply(this,arguments);
+  setTimeout(patchClickableButtons,0);
+  return out;
+};
+try{render();setTimeout(patchClickableButtons,0)}catch(e){console.error(e)}
 
 /* ===== Timeline Focus Polish Fix — categories preserved, logic clarified ===== */
 try{ localStorage.setItem('secondBrainOS.currentBuild','timeline-focus-polish-light-tech-20260630'); }catch(e){}
