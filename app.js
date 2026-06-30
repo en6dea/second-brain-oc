@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='life-smart-polish-light-tech-20260630';
+const BUILD='timeline-focus-ui2-buttons-hotfix-20260630';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -171,7 +171,20 @@ function addCategory(){openModal('Категория',`<div class="form-grid">${
 function saveCategory(){state.categories.push({id:uid(),name:formVal('f_name')||'Категория',type:formVal('f_type')||'expense',limit:num(formVal('f_limit'))});save(true);closeModal();render()}
 function editCategory(id){const c=state.categories.find(x=>x.id===id);if(!c)return;openModal('Редактировать категорию',`<div class="form-grid">${field('Название','f_name',c.name)}<div class="field"><label>Тип</label><select id="f_type"><option value="expense" ${c.type==='expense'?'selected':''}>Расход</option><option value="income" ${c.type==='income'?'selected':''}>Доход</option></select></div>${field('Лимит в месяц','f_limit',c.limit)}</div><div class="actions"><button class="btn" data-action="saveEditedCategory" data-id="${id}">Сохранить</button></div>`)}
 function saveEditedCategory(id){const c=state.categories.find(x=>x.id===id);const old=c?.name;if(c){c.name=formVal('f_name');c.type=formVal('f_type');c.limit=num(formVal('f_limit'));state.operations.forEach(o=>{if(o.category===old)o.category=c.name});state.plannedPurchases.forEach(p=>{if(p.category===old)p.category=c.name})}save(true);closeModal();render()}
-function deleteCategory(id){state.categories=state.categories.filter(x=>x.id!==id);save(true);render()}
+function deleteCategory(id){
+ const c=state.categories.find(x=>x.id===id);
+ if(!c)return;
+ const usedOps=state.operations.filter(o=>String(o.category||'')===String(c.name||'')).length;
+ const usedPurch=state.plannedPurchases.filter(p=>String(p.category||'')===String(c.name||'')).length;
+ const ok=confirm(`Удалить категорию «${c.name}»?${usedOps+usedPurch?`\nОна используется в ${usedOps+usedPurch} записях. Они будут переведены в «Без категории».`:''}`);
+ if(!ok)return;
+ state.operations.forEach(o=>{if(String(o.category||'')===String(c.name||''))o.category='Без категории'});
+ state.plannedPurchases.forEach(p=>{if(String(p.category||'')===String(c.name||''))p.category='Без категории'});
+ state.categories=state.categories.filter(x=>x.id!==id);
+ save(true);
+ toast('Категория удалена');
+ render();
+}
 function addDebt(){openModal('Долг',`<div class="form-grid">${field('Кому / что','f_person')}${field('Сумма','f_amount')}${field('Когда отдать','f_due',todayKey(),'date')}${field('Комментарий','f_note')}</div>${modalButtons('saveDebt')}`)}
 function saveDebt(){state.debts.unshift({id:uid(),person:formVal('f_person')||'Долг',amount:num(formVal('f_amount')),due:formVal('f_due'),status:'Активен',note:formVal('f_note')});save(true);closeModal();render()}
 function editDebt(id){const d=state.debts.find(x=>x.id===id);if(!d)return;openModal('Редактировать долг',`<div class="form-grid">${field('Кому / что','f_person',d.person)}${field('Сумма','f_amount',d.amount)}${field('Когда отдать','f_due',d.due,'date')}${field('Комментарий','f_note',d.note)}</div><div class="actions"><button class="btn" data-action="saveEditedDebt" data-id="${id}">Сохранить</button></div>`)}
@@ -264,16 +277,39 @@ Object.assign(windowActions,{addTrip,saveTrip,editTrip,saveEditedTrip,deleteTrip
 // replace click router so actions can receive dataset fields too
 const oldBodyClick = document.body.onclick;
 document.addEventListener('click', e=>{
- const goEl=e.target.closest('[data-go]'); if(goEl){go(goEl.dataset.go);return}
- const lf=e.target.closest('[data-life-folder]'); if(lf){setLifeFolder(lf.dataset.lifeFolder);return}
- const a=e.target.closest('[data-action]'); if(!a)return;
+ const goEl=e.target.closest('[data-go]');
+ if(goEl){
+   e.preventDefault();
+   go(goEl.dataset.go);
+   return;
+ }
+ const lf=e.target.closest('[data-life-folder]');
+ if(lf){
+   e.preventDefault();
+   setLifeFolder(lf.dataset.lifeFolder);
+   return;
+ }
+ const a=e.target.closest('[data-action]');
+ if(!a)return;
  e.preventDefault();
  e.stopImmediatePropagation();
  const action=a.dataset.action;
- if(action==='filterDayOps') return filterDayOps(a.dataset.day);
- if(action==='toggleHabitDate') return toggleHabitDate(a.dataset.id,a.dataset.date);
- if(action==='setTaskScope') return setTaskScope.call(a,a.dataset.id);
- const fn=windowActions[action]; if(fn) return fn.call(a,a.dataset.id);
+ try{
+   if(action==='filterDayOps') return filterDayOps(a.dataset.day);
+   if(action==='toggleHabitDate') return toggleHabitDate(a.dataset.id,a.dataset.date);
+   if(action==='setTaskScope') return setTaskScope.call(a,a.dataset.scope||a.dataset.id||'today');
+   if(action==='addDebt') return addDebt.call(a,a.dataset.direction||a.dataset.id||'owe');
+   const fn=(typeof windowActions!=='undefined'&&windowActions[action]) || window[action];
+   if(typeof fn==='function'){
+     const arg=a.dataset.id ?? a.dataset.row ?? a.dataset.day ?? a.dataset.scope ?? a.dataset.type ?? '';
+     return fn.call(a,arg);
+   }
+   console.warn('[Second Brain OS] Неизвестное действие:', action, a.dataset);
+   toast('Действие пока не подключено: '+action);
+ }catch(err){
+   console.error('[Second Brain OS] Ошибка действия', action, err);
+   toast('Кнопка сработала с ошибкой — смотри консоль');
+ }
 }, true);
 try{render()}catch(e){console.error(e)}
 
@@ -443,7 +479,7 @@ function rowDebt(d){
   return `<div class="debt-row ${overdue?'danger':''}">
     <div class="debt-icon ${incoming?'green':'red'}">${incoming?'↙':'↗'}</div>
     <div class="debt-main"><div class="row-title">${esc(d.person||'Долг')} · ${money(d.amount)}</div><div class="row-sub">${incoming?'мне должны':'я должен'} · срок ${esc(d.due||'—')} · ${esc(d.note||'')}</div></div>
-    <div class="debt-actions"><button class="mini-btn blue" data-action="debtTask" data-id="${d.id}">Напомнить</button><button class="mini-btn" data-action="editDebt" data-id="${d.id}">Ред.</button><button class="mini-btn green" data-action="closeDebt" data-id="${d.id}">Закрыт</button></div>
+    <div class="debt-actions"><button class="mini-btn blue" data-action="debtTask" data-id="${d.id}">Напомнить</button><button class="mini-btn" data-action="editDebt" data-id="${d.id}">Ред.</button><button class="mini-btn green" data-action="closeDebt" data-id="${d.id}">Закрыть</button></div>
   </div>`;
 }
 function addDebt(direction='owe'){
