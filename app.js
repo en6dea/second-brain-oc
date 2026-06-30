@@ -1,8 +1,8 @@
-/* Second Brain OS — Goals & Financial Roadmap Private V46 */
+/* Second Brain OS — Premium Visual Foundation Private V47 */
 'use strict';
 
-const RELEASE = 'v46-financial-roadmap-private-20260630';
-const DATA_VERSION = 460;
+const RELEASE = 'v47-premium-visual-foundation-private-20260630';
+const DATA_VERSION = 471;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -3393,3 +3393,265 @@ try{
   injectV46Styles(); v46PatchVisibleVersion();
   setTimeout(v46PatchVisibleVersion,50); setTimeout(v46PatchVisibleVersion,250); setTimeout(v46PatchVisibleVersion,1000); setTimeout(v46PatchVisibleVersion,3000);
 }catch(e){ console.warn('V46 Financial Roadmap failed', e); }
+
+/* ===============================
+   V47 — Premium Visual Foundation
+   Safe visual layer over stable V46
+   =============================== */
+const SBOS_V47 = 'v47-premium-visual-foundation-private-20260630';
+const SBOS_V47_DISPLAY = 'V47 PREMIUM VISUAL';
+function injectV47VisualStyles(){
+  if(document.getElementById('v47-premium-visual-style')) return;
+  const css = `
+  :root{
+    --v47-bg:#F8F3EA;
+    --v47-bg2:#FFFDF8;
+    --v47-card:rgba(255,255,255,.78);
+    --v47-card-solid:#FFFDF9;
+    --v47-text:#211912;
+    --v47-muted:#8A7A6B;
+    --v47-line:rgba(64,43,24,.105);
+    --v47-shadow:0 20px 60px rgba(53,37,22,.10);
+    --v47-shadow-soft:0 12px 34px rgba(53,37,22,.075);
+    --v47-accent:#6F4E37;
+    --v47-accent-2:#4D8758;
+    --v47-blue:#5C7FB8;
+    --v47-warn:#C8783F;
+    --v47-red:#B85A4F;
+  }
+  html{background:var(--v47-bg);}
+  body{
+    background:
+      radial-gradient(circle at 8% 0%, rgba(226,196,151,.28), transparent 30%),
+      radial-gradient(circle at 92% 4%, rgba(120,154,105,.16), transparent 26%),
+      linear-gradient(180deg,#fbf7f0 0%,#f7f1e8 42%,#f9f4ec 100%)!important;
+    color:var(--v47-text);
+    text-rendering:geometricPrecision;
+  }
+  .app{background:transparent!important;}
+  .main{padding-top:24px;}
+  .brand{
+    padding:14px 12px 16px;
+    border-radius:24px;
+    background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(248,237,222,.60));
+    border:1px solid rgba(111,78,55,.10);
+    box-shadow:0 12px 30px rgba(71,50,30,.055);
+  }
+  .brand-logo,.logo-mark{
+    box-shadow:0 12px 28px rgba(111,78,55,.18)!important;
+    background:linear-gradient(135deg,#7A553B,#B88A55)!important;
+  }
+  .sidebar{
+    background:linear-gradient(180deg,rgba(255,253,248,.86),rgba(247,238,225,.74))!important;
+    border-right:1px solid rgba(74,52,30,.10)!important;
+    box-shadow:12px 0 40px rgba(65,43,23,.045);
+    backdrop-filter:blur(22px)!important;
+  }
+  .nav{gap:8px!important;}
+  .nav-btn{
+    border:1px solid transparent!important;
+    color:#5E5146!important;
+    transition:transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease;
+  }
+  .nav-btn:hover{
+    transform:translateY(-1px);
+    background:rgba(255,255,255,.58)!important;
+    border-color:rgba(111,78,55,.10)!important;
+    box-shadow:0 10px 24px rgba(71,50,30,.055);
+  }
+  .nav-btn.active{
+    background:linear-gradient(135deg,#fff7eb,#f1e2cc)!important;
+    color:#221914!important;
+    border-color:rgba(111,78,55,.18)!important;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.64),0 16px 34px rgba(111,78,55,.12)!important;
+  }
+  .nav-btn.active .nav-ic{color:var(--v47-accent)!important;}
+  .sidebar-status,.v403-status{
+    background:linear-gradient(145deg,#241914,#4B3322)!important;
+    color:#FFF7EC!important;
+    border-color:rgba(255,255,255,.14)!important;
+    box-shadow:0 18px 46px rgba(36,25,20,.18)!important;
+  }
+  .sidebar-status small,.v403-status small{color:rgba(255,247,236,.68)!important;}
+  .sidebar-status b,.v403-status b{letter-spacing:-.04em;}
+  #releaseBadge{
+    background:rgba(36,25,20,.88)!important;
+    color:#FFF7EA!important;
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 12px 32px rgba(36,25,20,.18);
+    backdrop-filter:blur(12px);
+  }
+  .card,.panel,.metric,.finance-command-card,.finance-flow-card,.finance-rpg-card,.debt-card,.insight-card{
+    border:1px solid var(--v47-line)!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,251,245,.78))!important;
+    box-shadow:var(--v47-shadow-soft)!important;
+    border-radius:28px!important;
+  }
+  .card:hover,.panel:hover{
+    box-shadow:var(--v47-shadow)!important;
+    border-color:rgba(111,78,55,.16)!important;
+  }
+  .premium-page-head,.goals-head,.finance-head{
+    padding:22px!important;
+    border:1px solid rgba(111,78,55,.10);
+    border-radius:32px;
+    background:linear-gradient(135deg,rgba(255,255,255,.76),rgba(250,239,224,.58));
+    box-shadow:0 18px 56px rgba(76,53,31,.075);
+    margin-bottom:20px;
+  }
+  .premium-page-head h1,.goals-head h1,.finance-head h1{
+    letter-spacing:-.055em!important;
+    font-weight:900!important;
+  }
+  .page-label{
+    color:var(--v47-accent)!important;
+    font-weight:900!important;
+    letter-spacing:.12em!important;
+  }
+  .sub{color:var(--v47-muted)!important;line-height:1.5!important;}
+  .primary{
+    background:linear-gradient(135deg,#6F4E37,#9E744A)!important;
+    color:#FFF9F1!important;
+    border:0!important;
+    box-shadow:0 14px 30px rgba(111,78,55,.20)!important;
+  }
+  .primary:hover{transform:translateY(-1px);box-shadow:0 20px 42px rgba(111,78,55,.25)!important;}
+  .ghost{
+    background:rgba(255,255,255,.62)!important;
+    border:1px solid rgba(111,78,55,.13)!important;
+    color:#46382E!important;
+    box-shadow:0 8px 20px rgba(71,50,30,.045);
+  }
+  .ghost:hover{background:#fff!important;transform:translateY(-1px);}
+  .tag{
+    border:1px solid rgba(111,78,55,.12)!important;
+    background:rgba(255,255,255,.66)!important;
+    color:#5D4939!important;
+    border-radius:999px!important;
+    font-weight:800!important;
+  }
+  .tag.green{background:rgba(77,135,88,.12)!important;color:#3C7248!important;border-color:rgba(77,135,88,.18)!important;}
+  .tag.red,.tag.warn{background:rgba(184,90,79,.11)!important;color:#A24B43!important;border-color:rgba(184,90,79,.18)!important;}
+  .tag.blue{background:rgba(92,127,184,.12)!important;color:#4E6FA6!important;border-color:rgba(92,127,184,.18)!important;}
+  .metrics,.premium-metrics{gap:16px!important;}
+  .metric{
+    min-height:116px;
+    position:relative;
+    overflow:hidden;
+  }
+  .metric:after{
+    content:'';
+    position:absolute;
+    right:-34px;bottom:-44px;
+    width:118px;height:118px;border-radius:50%;
+    background:radial-gradient(circle,rgba(111,78,55,.10),transparent 66%);
+    pointer-events:none;
+  }
+  .metric b{font-size:30px!important;letter-spacing:-.045em!important;}
+  .metric span{color:var(--v47-muted)!important;}
+  .finance-balance,.big{
+    letter-spacing:-.065em!important;
+    text-shadow:0 10px 26px rgba(33,25,18,.07);
+  }
+  .finance-command-card{
+    background:
+      radial-gradient(circle at 90% 85%,rgba(77,135,88,.17),transparent 34%),
+      linear-gradient(135deg,#fffdf8,#f3eadc)!important;
+  }
+  .v46-roadmap-widget{
+    background:
+      radial-gradient(circle at 94% 10%,rgba(92,127,184,.17),transparent 32%),
+      linear-gradient(135deg,rgba(255,255,255,.88),rgba(244,235,221,.76))!important;
+  }
+  .v45-budget-coach{
+    background:
+      radial-gradient(circle at 0% 0%,rgba(92,127,184,.16),transparent 34%),
+      linear-gradient(135deg,rgba(255,255,255,.88),rgba(247,241,232,.84))!important;
+  }
+  .v46-step,.line-row,.debt-mini-row,.person-row,.task-line,.habit-line{
+    border-color:rgba(64,43,24,.08)!important;
+  }
+  input,select,textarea{
+    background:rgba(255,255,255,.78)!important;
+    border:1px solid rgba(111,78,55,.14)!important;
+    border-radius:16px!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8)!important;
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:0!important;
+    border-color:rgba(111,78,55,.34)!important;
+    box-shadow:0 0 0 4px rgba(111,78,55,.10)!important;
+  }
+  .modal-card,.modal,.dialog{
+    background:linear-gradient(180deg,#fffdf9,#f8f0e6)!important;
+    border:1px solid rgba(111,78,55,.14)!important;
+    border-radius:30px!important;
+    box-shadow:0 30px 90px rgba(36,25,20,.24)!important;
+  }
+  .mobile-tabbar{
+    background:rgba(255,253,248,.88)!important;
+    border:1px solid rgba(111,78,55,.12)!important;
+    box-shadow:0 -18px 50px rgba(54,38,22,.12)!important;
+    backdrop-filter:blur(22px)!important;
+  }
+  .mobile-tab.active{
+    background:linear-gradient(135deg,#fff7eb,#f0e1cc)!important;
+    color:#221914!important;
+    box-shadow:0 10px 26px rgba(111,78,55,.13)!important;
+  }
+  .mobile-tab-main{
+    background:linear-gradient(135deg,#6F4E37,#A77A4E)!important;
+    color:#fff!important;
+    box-shadow:0 16px 34px rgba(111,78,55,.28)!important;
+  }
+  .empty,.notice{
+    border-radius:22px!important;
+    border:1px solid rgba(111,78,55,.10)!important;
+    background:rgba(255,255,255,.58)!important;
+  }
+  .progress,.flow-bar,.v45-budget-bar{background:rgba(35,25,18,.075)!important;}
+  .progress span,.flow-bar i,.v45-budget-bar span{background:linear-gradient(90deg,#6F4E37,#4D8758)!important;}
+  @media(max-width:900px){
+    .main{padding:14px 12px calc(98px + env(safe-area-inset-bottom))!important;}
+    .premium-page-head,.goals-head,.finance-head{padding:18px!important;border-radius:26px!important;}
+    .premium-page-head h1,.goals-head h1,.finance-head h1{font-size:30px!important;}
+    .card,.panel,.metric{border-radius:24px!important;}
+    .metric{min-height:96px;}
+    .metric b{font-size:24px!important;}
+    #releaseBadge{display:none!important;}
+  }
+  `;
+  const s=document.createElement('style');
+  s.id='v47-premium-visual-style';
+  s.textContent=css;
+  document.head.appendChild(s);
+}
+function v47PatchVisibleVersion(){
+  try{
+    if(typeof v46PatchVisibleVersion==='function') v46PatchVisibleVersion();
+    document.title='Second Brain OS — V47 Premium Visual';
+    let meta=document.querySelector('meta[name="second-brain-build"]');
+    if(!meta){ meta=document.createElement('meta'); meta.name='second-brain-build'; document.head.appendChild(meta); }
+    meta.setAttribute('content',SBOS_V47);
+    const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=SBOS_V47_DISPLAY;
+    document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V47'; });
+    document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='PREMIUM VISUAL'; });
+    document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V47_DISPLAY; });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V47, visible:SBOS_V47, display:SBOS_V47_DISPLAY});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V47); }catch(_e){}
+  }catch(e){ console.warn('V47 visual version patch failed', e); }
+}
+function forceVersionBadgeRepair(){ v47PatchVisibleVersion(); try{ toast('Версия обновлена: V47'); }catch(_e){} }
+try{
+  const __v47_oldRender = typeof render==='function' ? render : null;
+  if(__v47_oldRender){ render=function(){ const r=__v47_oldRender.apply(this, arguments); injectV47VisualStyles(); v47PatchVisibleVersion(); return r; }; }
+  const __v47_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v47_oldOpenModal){ openModal=function(){ const r=__v47_oldOpenModal.apply(this, arguments); injectV47VisualStyles(); v47PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV47Visual={version:SBOS_V47,display:SBOS_V47_DISPLAY,apply:function(){injectV47VisualStyles();v47PatchVisibleVersion();}};
+  injectV47VisualStyles(); v47PatchVisibleVersion();
+  if(window.__sbosV47VisualObserver){ try{ window.__sbosV47VisualObserver.disconnect(); }catch(_e){} }
+  window.__sbosV47VisualObserver = new MutationObserver(()=>{ injectV47VisualStyles(); v47PatchVisibleVersion(); });
+  window.__sbosV47VisualObserver.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  [50,250,800,1600,3000,5200].forEach(t=>setTimeout(()=>{injectV47VisualStyles();v47PatchVisibleVersion();},t));
+}catch(e){ console.warn('V47 Premium Visual failed', e); }
+
