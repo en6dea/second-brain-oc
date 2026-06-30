@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-single-runtime-20260630';
+const CACHE_NAME = 'second-brain-os-folder-system-v2-20260630';
 self.addEventListener('install', event => self.skipWaiting());
 self.addEventListener('activate', event => {
   event.waitUntil((async()=>{
