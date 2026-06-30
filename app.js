@@ -1,8 +1,8 @@
-/* Second Brain OS — Goals & Financial Roadmap Private V46 */
+/* Second Brain OS — Life Categories Core Private V47 */
 'use strict';
 
-const RELEASE = 'v46-financial-roadmap-private-20260630';
-const DATA_VERSION = 460;
+const RELEASE = 'v47-life-categories-core-private-20260630';
+const DATA_VERSION = 470;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -3393,3 +3393,202 @@ try{
   injectV46Styles(); v46PatchVisibleVersion();
   setTimeout(v46PatchVisibleVersion,50); setTimeout(v46PatchVisibleVersion,250); setTimeout(v46PatchVisibleVersion,1000); setTimeout(v46PatchVisibleVersion,3000);
 }catch(e){ console.warn('V46 Financial Roadmap failed', e); }
+
+
+/* V47 LIFE CATEGORIES CORE — personal second brain areas, universal entries, simple links */
+const SBOS_V47 = 'v47-life-categories-core-private-20260630';
+const SBOS_V47_DISPLAY = 'V47 LIFE CATEGORIES CORE';
+function v47LifeAreas(){
+  return [
+    {id:'finance', icon:'◔', title:'Финансы', desc:'Бюджет, долги, подушка, расходы', tone:'green', keywords:'деньги доход расход бюджет долг кредит подушка накопить оплатить счёт счет платеж платежи'},
+    {id:'health', icon:'♡', title:'Здоровье', desc:'Врачи, анализы, лекарства, сон, энергия', tone:'red', keywords:'здоров врач стоматолог анализ лекар аптек сон тренировка спорт прогулка давление зуб'},
+    {id:'home', icon:'⌂', title:'Дом и быт', desc:'Платежи, ремонт, покупки, бытовые дела', tone:'blue', keywords:'дом квартира жкх коммун интернет ремонт уборка техника мебель'},
+    {id:'car', icon:'◇', title:'Машина', desc:'ТО, масло, страховка, бензин, документы', tone:'warn', keywords:'машин авто бензин газ азс масло то страховка осаго каско штраф резина шины пробег'},
+    {id:'docs', icon:'□', title:'Документы', desc:'Паспорта, договоры, страховки, сроки', tone:'blue', keywords:'документ паспорт договор справка страховка полис права снилс инн дата срок продлить'},
+    {id:'travel', icon:'✈', title:'Поездки', desc:'Билеты, жильё, вещи, бюджет поездки', tone:'green', keywords:'поездка отпуск билет отель бронь море самолёт самолет поезд чемодан виза'},
+    {id:'learning', icon:'◧', title:'Обучение', desc:'Книги, курсы, идеи, навыки', tone:'blue', keywords:'курс книга обучение урок прочитать изучить навык конспект'},
+    {id:'habits', icon:'✓', title:'Привычки', desc:'Повторяемые действия и личная дисциплина', tone:'green', keywords:'привычка каждый ежедневно неделю спорт вода сон план'},
+    {id:'ideas', icon:'✦', title:'Идеи', desc:'Мысли, проекты, заметки, инсайты', tone:'warn', keywords:'идея мысль проект придумать заметка инсайт хочу можно'},
+    {id:'pets', icon:'◌', title:'Питомцы', desc:'Уход, покупки, здоровье, напоминания', tone:'blue', keywords:'собак шпиц корм ветеринар груминг прививка питомец'}
+  ];
+}
+function v47AreaById(id){ return v47LifeAreas().find(a=>a.id===id) || v47LifeAreas()[0]; }
+function v47AreaOptions(selected=''){ return v47LifeAreas().map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${esc(a.icon+' '+a.title)}</option>`).join(''); }
+function v47TypeOptions(selected='task'){
+  const rows=[['task','Задача'],['note','Заметка'],['expense','Расход'],['income','Доход'],['goal','Цель'],['event','Событие'],['document','Документ'],['habit','Привычка'],['idea','Идея'],['asset','Имущество']];
+  return rows.map(([id,t])=>`<option value="${id}" ${id===selected?'selected':''}>${esc(t)}</option>`).join('');
+}
+function v47LifeTypeLabel(type){ return ({task:'Задача',note:'Заметка',expense:'Расход',income:'Доход',goal:'Цель',event:'Событие',document:'Документ',habit:'Привычка',idea:'Идея',asset:'Имущество'}[type]||'Запись'); }
+function v47EnsureLifeCoreState(){
+  try{
+    state.lifeEntries = Array.isArray(state.lifeEntries) ? state.lifeEntries : [];
+    state.lifeSettings = (state.lifeSettings && typeof state.lifeSettings==='object') ? state.lifeSettings : {};
+    state.lifeSettings.version = SBOS_V47;
+    state.lifeSettings.defaultArea = state.lifeSettings.defaultArea || 'finance';
+    state.lifeSettings.updatedAt = state.lifeSettings.updatedAt || new Date().toISOString();
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    state.goals = Array.isArray(state.goals) ? state.goals : [];
+    state.habits = Array.isArray(state.habits) ? state.habits : [];
+    state.notes = Array.isArray(state.notes) ? state.notes : [];
+    state.operations = Array.isArray(state.operations) ? state.operations : [];
+    if(!state.dataCore) state.dataCore = {};
+    state.dataCore.schema = Math.max(num(state.dataCore.schema),470);
+    state.dataCore.lifeCategoriesCore = SBOS_V47;
+    if(!(state.lifeEntries||[]).length && !localStorage.getItem('secondBrainOS.v47.seeded')){
+      state.lifeEntries.push({id:uid(),area:'docs',type:'document',title:'Проверить важные документы',date:todayKey(),status:'open',amount:0,note:'Паспорт, права, страховки, договоры — добавить сроки и напоминания.',createdAt:new Date().toISOString(),source:'v47-seed'});
+      state.lifeEntries.push({id:uid(),area:'car',type:'task',title:'Добавить данные по машине',date:todayKey(),status:'open',amount:0,note:'Страховка, ТО, масло, пробег, расходы на бензин.',createdAt:new Date().toISOString(),source:'v47-seed'});
+      try{ localStorage.setItem('secondBrainOS.v47.seeded','1'); }catch(_e){}
+    }
+  }catch(e){ console.warn('V47 ensure failed', e); }
+}
+function v47InferArea(text=''){
+  const s=String(text).toLowerCase();
+  let best='finance', score=0;
+  for(const a of v47LifeAreas()){
+    const words=String(a.keywords||'').split(/\s+/).filter(Boolean);
+    const hit=words.reduce((n,w)=>n+(s.includes(w)?1:0),0);
+    if(hit>score){ score=hit; best=a.id; }
+  }
+  return best;
+}
+function v47InferType(text=''){
+  const s=String(text).toLowerCase();
+  if(/расход|купить|оплат|заплат|потрат|списал|списали/.test(s)) return 'expense';
+  if(/доход|получил|пришл|зарплат|аванс|оплата от/.test(s)) return 'income';
+  if(/цель|накопить|хочу накопить|собрать/.test(s)) return 'goal';
+  if(/документ|паспорт|права|договор|полис|страхов/.test(s)) return 'document';
+  if(/привычк|каждый день|ежедневно|раз в неделю/.test(s)) return 'habit';
+  if(/идея|мысль|инсайт|можно сделать/.test(s)) return 'idea';
+  if(/встреча|записаться|приём|прием|событие|поездка/.test(s)) return 'event';
+  return 'task';
+}
+function v47ExtractAmount(text=''){ const m=String(text).replace(/\s+/g,' ').match(/(?:^|\s)(\d[\d\s]{1,12})(?:\s?₽|\s?руб|\s|$)/i); return m?num(m[1]):0; }
+function v47DueFromText(text=''){
+  const s=String(text).toLowerCase(); const now=new Date();
+  if(/завтра/.test(s)){ const d=new Date(now); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+  if(/послезавтра/.test(s)){ const d=new Date(now); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); }
+  if(/сегодня/.test(s)) return todayKey();
+  const iso=s.match(/(20\d{2})[-\.\/](\d{1,2})[-\.\/](\d{1,2})/); if(iso) return `${iso[1]}-${String(iso[2]).padStart(2,'0')}-${String(iso[3]).padStart(2,'0')}`;
+  const dm=s.match(/(?:до\s*)?(\d{1,2})[\.\/](\d{1,2})(?:[\.\/](\d{2,4}))?/); if(dm){ const y=dm[3]?String(dm[3]).padStart(4, dm[3].length===2?'20':''):String(now.getFullYear()); return `${y}-${String(dm[2]).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`; }
+  return '';
+}
+function v47LifeEntries(area=''){
+  v47EnsureLifeCoreState();
+  return (state.lifeEntries||[]).filter(x=>!area || x.area===area).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')) || String(b.date||'').localeCompare(String(a.date||'')));
+}
+function v47AreaStats(areaId){
+  const entries=v47LifeEntries(areaId); const today=todayKey(); const month=state.settings?.currentMonth||monthKey();
+  const tasks=(state.tasks||[]).filter(t=>String(t.area||'').toLowerCase().includes(v47AreaById(areaId).title.toLowerCase()) || t.lifeArea===areaId);
+  const goals=(state.goals||[]).filter(g=>g.lifeArea===areaId || String(g.area||'').toLowerCase().includes(v47AreaById(areaId).title.toLowerCase()));
+  const ops=(state.operations||[]).filter(o=>String(o.date||'').startsWith(month) && (o.lifeArea===areaId || String(o.category||'').toLowerCase().includes(v47AreaById(areaId).title.toLowerCase())));
+  const open=entries.filter(x=>String(x.status||'open')!=='done');
+  const due=open.filter(x=>x.date && x.date<=today).length + tasks.filter(t=>t.due && t.due<=today && t.status!=='Готово').length;
+  return {entries,open,due,tasks,goals,ops,expense:total(ops.filter(o=>o.type==='expense').map(o=>o.amount)),income:total(ops.filter(o=>o.type==='income').map(o=>o.amount))};
+}
+function v47LifeSummary(){
+  v47EnsureLifeCoreState(); const areas=v47LifeAreas().map(a=>({area:a,...v47AreaStats(a.id)}));
+  const open=areas.reduce((s,x)=>s+x.open.length,0); const due=areas.reduce((s,x)=>s+x.due,0); const docs=v47LifeEntries('docs').filter(x=>String(x.status||'open')!=='done').length;
+  const health=v47LifeEntries('health').filter(x=>String(x.status||'open')!=='done').length; const car=v47LifeEntries('car').filter(x=>String(x.status||'open')!=='done').length;
+  return {areas,open,due,docs,health,car,totalEntries:(state.lifeEntries||[]).length,linkedOps:(state.lifeEntries||[]).filter(x=>x.operationId).length};
+}
+function v47AreaCard(a){ const s=v47AreaStats(a.id); const attention=s.due>0?`${s.due} требует внимания`:(s.open.length?`${s.open.length} открыто`:'спокойно'); return `<article class="v47-area-card card panel"><div class="v47-area-top"><i>${a.icon}</i><span class="tag ${a.tone||'blue'}">${esc(attention)}</span></div><h3>${esc(a.title)}</h3><p class="sub">${esc(a.desc)}</p><div class="v47-area-meta"><b>${s.entries.length}</b><span>записей</span><b>${money(s.expense)}</b><span>расходы месяца</span></div><div class="top-actions"><button class="primary small" data-action="addLifeEntry" data-area="${a.id}">＋ Запись</button><button class="ghost small" data-action="filterLifeArea" data-area="${a.id}">Открыть</button></div></article>`; }
+function v47EntryRow(x){ const a=v47AreaById(x.area); const amount=num(x.amount); const linked=x.operationId?' · связано с деньгами':''; return `<div class="v47-entry-row ${x.status==='done'?'done':''}"><div><span class="v47-entry-icon">${a.icon}</span><b>${esc(x.title||'Запись')}</b><p class="sub">${esc(a.title)} · ${esc(v47LifeTypeLabel(x.type))}${x.date?' · '+esc(x.date):''}${amount?' · '+money(amount):''}${linked}</p>${x.note?`<p class="sub">${esc(x.note)}</p>`:''}</div><div class="v47-entry-actions"><button class="ghost small" data-action="editLifeEntry" data-id="${x.id}">Открыть</button><button class="${x.status==='done'?'ghost':'primary'} small" data-action="toggleLifeEntry" data-id="${x.id}">${x.status==='done'?'Вернуть':'Готово'}</button></div></div>`; }
+function life(){
+  v47EnsureLifeCoreState(); const sum=v47LifeSummary(); const filter=localStorage.getItem('secondBrainOS.v47.lifeFilter')||''; const areas=v47LifeAreas(); const entries=v47LifeEntries(filter).slice(0,30);
+  return `<div class="goals-head premium-page-head v47-head"><div><div class="page-label">Life Categories Core V47</div><h1>Жизнь</h1><p class="sub">Единый второй мозг: здоровье, дом, машина, документы, поездки, идеи, привычки и деньги в одной системе.</p></div><div class="top-actions"><button class="primary" data-action="addLifeEntry">＋ Запись</button><button class="ghost" data-action="quickMenu">Быстрый ввод</button><button class="ghost" data-action="runLifeCheck">Проверить жизнь</button></div></div>
+  <div class="metrics premium-metrics v47-metrics"><article class="metric focus"><b>${sum.open}</b><span>открытых записей</span></article><article class="metric"><b>${sum.due}</b><span>требует внимания</span></article><article class="metric"><b>${sum.docs}</b><span>документы</span></article><article class="metric"><b>${sum.linkedOps}</b><span>связано с финансами</span></article></div>
+  <section class="v47-life-grid">${areas.map(v47AreaCard).join('')}</section>
+  <section class="card panel"><div class="section-head"><div><h3>${filter?'Записи: '+esc(v47AreaById(filter).title):'Последние записи'}</h3><p class="sub">Любая запись может стать задачей, расходом, целью, документом, привычкой или идеей.</p></div><div class="top-actions"><button class="ghost small" data-action="filterLifeArea" data-area="">Все</button><button class="primary small" data-action="addLifeEntry" data-area="${esc(filter)}">＋ Добавить</button></div></div><div class="v47-entry-list">${entries.length?entries.map(v47EntryRow).join(''):'<div class="empty">Пока нет записей в этой сфере</div>'}</div></section>`;
+}
+function v47LifeDashboardCard(){ const s=v47LifeSummary(); const top=s.areas.filter(x=>x.due>0||x.open.length>0).sort((a,b)=>b.due-a.due || b.open.length-a.open.length).slice(0,3); return `<section class="card panel v47-life-widget"><div class="section-head"><div><h3>Второй мозг жизни</h3><p class="sub">Не только деньги: дом, здоровье, машина, документы, поездки и идеи.</p></div><span class="tag blue">V47</span></div><div class="v47-life-pulse"><b>${s.due?`${s.due} требует внимания`:'Жизнь под контролем'}</b><span>${s.open} открытых записей · ${s.linkedOps} связей с финансами</span></div><div class="v47-mini-areas">${top.length?top.map(x=>`<button class="ghost small" data-action="filterLifeArea" data-area="${x.area.id}">${x.area.icon} ${esc(x.area.title)} · ${x.due||x.open.length}</button>`).join(''):'<span class="sub">Добавь первые записи по машине, документам или здоровью.</span>'}</div><div class="top-actions"><button class="primary small" data-page="life">Открыть жизнь</button><button class="ghost small" data-action="addLifeEntry">＋ Запись</button></div></section>`; }
+function addLifeEntry(area='', type='task'){
+  v47EnsureLifeCoreState(); const a=area || localStorage.getItem('secondBrainOS.v47.lifeFilter') || state.lifeSettings?.defaultArea || 'finance';
+  openModal('Новая запись Second Brain', `<div class="form-grid"><label>Тип<select id="mLifeType">${v47TypeOptions(type)}</select></label><label>Сфера<select id="mLifeArea">${v47AreaOptions(a)}</select></label><label class="full">Название<input id="mLifeTitle" placeholder="Например: поменять масло, записаться к врачу, проверить страховку"></label><label>Дата / срок<input id="mLifeDate" type="date" value="${todayKey()}"></label><label>Сумма, если есть<input id="mLifeAmount" type="number" placeholder="0"></label><label>Статус<select id="mLifeStatus"><option value="open">Открыто</option><option value="done">Готово</option></select></label><label class="full">Заметка<textarea id="mLifeNote" placeholder="Детали, ссылки, что важно помнить"></textarea></label><label class="full check-line"><input id="mLifeCreateFinance" type="checkbox"> Если это расход/доход — добавить в финансы</label><label class="full check-line"><input id="mLifeCreateTask" type="checkbox"> Создать связанную задачу</label></div><div class="top-actions"><button class="primary" data-action="saveLifeEntry">Сохранить</button><button class="ghost" data-action="closeModal">Отмена</button></div>`);
+}
+function saveLifeEntry(){
+  v47EnsureLifeCoreState(); const title=(val('mLifeTitle')||'').trim(); if(!title) return toast('Название обязательно');
+  const type=val('mLifeType')||'task', area=val('mLifeArea')||'finance', amount=num(val('mLifeAmount')), date=val('mLifeDate')||todayKey();
+  const entry={id:uid(),area,type,title,date,amount,status:val('mLifeStatus')||'open',note:val('mLifeNote'),createdAt:new Date().toISOString(),source:'manual-v47'};
+  if((type==='expense'||type==='income'||$('#mLifeCreateFinance')?.checked) && amount>0){ const op={id:uid(),date,type:type==='income'?'income':'expense',amount,category:v47AreaById(area).title,note:title,source:'life-v47',lifeArea:area}; state.operations.unshift(op); entry.operationId=op.id; }
+  if($('#mLifeCreateTask')?.checked || type==='task' || type==='document' || type==='event'){ const task={id:uid(),title,area:v47AreaById(area).title,due:date,time:'',priority:type==='document'?'Высокий':'Средний',status:'В работе',goalId:'',nextAction:entry.note||'',lifeArea:area,lifeEntryId:entry.id}; state.tasks.unshift(task); entry.taskId=task.id; }
+  if(type==='goal'){ const g={id:uid(),title,area:v47AreaById(area).title,metric:amount?'₽':'',targetValue:amount,currentValue:0,deadline:date,why:entry.note||'',nextAction:'Определить первый шаг',status:'Активна',lifeArea:area,lifeEntryId:entry.id}; state.goals.unshift(g); entry.goalId=g.id; }
+  if(type==='habit'){ const h={id:uid(),name:title,area:v47AreaById(area).title,targetPerWeek:5,active:true,lifeArea:area,lifeEntryId:entry.id}; state.habits.unshift(h); entry.habitId=h.id; }
+  if(type==='note'||type==='idea'){ state.notes.unshift({id:uid(),title,text:entry.note||title,goalId:'',personId:'',tags:[v47AreaById(area).title,type],createdAt:todayKey(),lifeArea:area,lifeEntryId:entry.id}); }
+  state.lifeEntries.unshift(entry); try{ v42LogAction('life','Создана запись жизни: '+title,{entry}); }catch(_e){}
+  save({snapshot:true}); closeModal(); activePage='life'; render(); toast('Запись добавлена в Second Brain');
+}
+function editLifeEntry(id){ const x=(state.lifeEntries||[]).find(e=>e.id===id); if(!x) return toast('Запись не найдена'); openModal('Запись Second Brain', `<div class="form-grid"><label>Тип<select id="mLifeType">${v47TypeOptions(x.type)}</select></label><label>Сфера<select id="mLifeArea">${v47AreaOptions(x.area)}</select></label><label class="full">Название<input id="mLifeTitle" value="${esc(x.title)}"></label><label>Дата / срок<input id="mLifeDate" type="date" value="${esc(x.date||todayKey())}"></label><label>Сумма<input id="mLifeAmount" type="number" value="${num(x.amount)}"></label><label>Статус<select id="mLifeStatus"><option value="open" ${x.status!=='done'?'selected':''}>Открыто</option><option value="done" ${x.status==='done'?'selected':''}>Готово</option></select></label><label class="full">Заметка<textarea id="mLifeNote">${esc(x.note||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="saveLifeEntryEdit" data-id="${id}">Сохранить</button><button class="danger-btn" data-action="deleteLifeEntry" data-id="${id}">Удалить</button></div>`); }
+function saveLifeEntryEdit(id){ const x=(state.lifeEntries||[]).find(e=>e.id===id); if(!x) return; Object.assign(x,{type:val('mLifeType')||x.type,area:val('mLifeArea')||x.area,title:val('mLifeTitle')||x.title,date:val('mLifeDate'),amount:num(val('mLifeAmount')),status:val('mLifeStatus')||'open',note:val('mLifeNote'),updatedAt:new Date().toISOString()}); save({snapshot:true}); closeModal(); render(); toast('Запись обновлена'); }
+function deleteLifeEntry(id){ state.lifeEntries=(state.lifeEntries||[]).filter(e=>e.id!==id); save({snapshot:true}); closeModal(); render(); toast('Запись удалена'); }
+function toggleLifeEntry(id){ const x=(state.lifeEntries||[]).find(e=>e.id===id); if(!x) return; x.status=x.status==='done'?'open':'done'; x.updatedAt=new Date().toISOString(); if(x.taskId){ const t=(state.tasks||[]).find(t=>t.id===x.taskId); if(t) t.status=x.status==='done'?'Готово':'В работе'; } save(); render(); toast(x.status==='done'?'Готово':'Вернул в работу'); }
+function filterLifeArea(area=''){ if(area) localStorage.setItem('secondBrainOS.v47.lifeFilter', area); else localStorage.removeItem('secondBrainOS.v47.lifeFilter'); activePage='life'; closeModal(); render(); }
+function createQuickCapture(){
+  v47EnsureLifeCoreState(); const text=(val('mQuickText')||'').trim(); if(!text) return toast('Напиши текст');
+  const area=v47InferArea(text), type=v47InferType(text), amount=v47ExtractAmount(text), date=v47DueFromText(text)||todayKey();
+  const entry={id:uid(),area,type,title:text,date,amount,status:'open',note:'Создано через быстрый ввод V47',createdAt:new Date().toISOString(),source:'quick-v47'};
+  state.lifeEntries.unshift(entry);
+  if(type==='expense'||type==='income'){
+    if(amount>0){ const op={id:uid(),date:todayKey(),type:type==='income'?'income':'expense',amount,category:v47AreaById(area).title,note:text,source:'quick-life-v47',lifeArea:area}; state.operations.unshift(op); entry.operationId=op.id; }
+  } else if(type==='goal'){
+    const g={id:uid(),title:text,area:v47AreaById(area).title,metric:amount?'₽':'',targetValue:amount,currentValue:0,deadline:date,why:'Быстрый ввод V47',nextAction:'Определить первый шаг',status:'Активна',lifeArea:area,lifeEntryId:entry.id}; state.goals.unshift(g); entry.goalId=g.id;
+  } else if(type==='habit'){
+    const h={id:uid(),name:text,area:v47AreaById(area).title,targetPerWeek:5,active:true,lifeArea:area,lifeEntryId:entry.id}; state.habits.unshift(h); entry.habitId=h.id;
+  } else if(type==='note'||type==='idea'){
+    state.notes.unshift({id:uid(),title:text,text:'',goalId:'',personId:'',tags:[v47AreaById(area).title,type],createdAt:todayKey(),lifeArea:area,lifeEntryId:entry.id});
+  } else {
+    const task={id:uid(),title:text,area:v47AreaById(area).title,due:date,time:'',priority:type==='document'?'Высокий':'Средний',status:'В работе',goalId:'',nextAction:'',lifeArea:area,lifeEntryId:entry.id}; state.tasks.unshift(task); entry.taskId=task.id;
+  }
+  try{ state.quickCaptures = Array.isArray(state.quickCaptures)?state.quickCaptures:[]; state.quickCaptures.unshift({id:uid(),text,createdAt:new Date().toISOString(),parsed:{area,type,amount,date},engine:'v47'}); v42LogAction('quick','Быстрый ввод V47: '+text,{area,type,amount,date}); }catch(_e){}
+  save({snapshot:true}); closeModal(); render(); toast('Разложил по Second Brain');
+}
+function quickMenu(){ openModal('Универсальный быстрый ввод V47', `<div class="quick-v42 v47-quick"><p class="sub">Пиши обычным языком. Приложение само определит: деньги, задача, документ, машина, здоровье, дом, поездка, идея или цель.</p><textarea id="mQuickText" class="quick-textarea" placeholder="Например: поменять масло в машине через 2000 км\nоплатить интернет 900 до 5 числа\nзаписаться к стоматологу на пятницу\nцель накопить 100000 на отпуск"></textarea><div class="v47-quick-examples"><span>машина</span><span>здоровье</span><span>документы</span><span>дом</span><span>поездка</span><span>расход</span></div><div class="v43-action-grid"><button class="primary" data-action="createQuickCapture">Разобрать и создать</button><button class="ghost" data-action="addLifeEntry">Запись вручную</button><button class="ghost" data-action="addExpense">Расход</button><button class="ghost" data-action="addTask">Задача</button></div></div>`); }
+function runLifeCheck(){ const s=v47LifeSummary(); const next=[]; if(!v47LifeEntries('docs').length) next.push('Добавить документы и сроки'); if(!v47LifeEntries('car').length) next.push('Добавить машину / обслуживание'); if(!v47LifeEntries('health').length) next.push('Добавить здоровье: врачи, анализы, привычки'); if(s.due>0) next.push(`Разобрать ${s.due} просроченных/срочных записей`); openModal('Проверка Second Brain V47', `<div class="metrics"><article class="metric"><b>${s.totalEntries}</b><span>записей жизни</span></article><article class="metric"><b>${s.open}</b><span>открыто</span></article><article class="metric"><b>${s.due}</b><span>срочно</span></article><article class="metric"><b>${s.linkedOps}</b><span>связей с деньгами</span></article></div><section class="card panel"><h3>Что сделать дальше</h3>${next.length?next.map(x=>`<div class="line-row"><b>${esc(x)}</b><button class="ghost small" data-page="life">Открыть</button></div>`).join(''):'<div class="empty">База жизни выглядит спокойно. Можно добавлять шаблоны.</div>'}</section><div class="top-actions"><button class="primary" data-page="life">Открыть жизнь</button><button class="ghost" data-action="closeModal">ОК</button></div>`); }
+function v47HealthReport(){ const base=typeof v46HealthReport==='function'?v46HealthReport():{}; const s=v47LifeSummary(); return Object.assign({}, base, {version:SBOS_V47_DISPLAY, v47:true, lifeEntries:s.totalEntries, lifeOpen:s.open, lifeDue:s.due, docs:s.docs, health:s.health, car:s.car, linkedOps:s.linkedOps}); }
+function injectV47Styles(){ if(document.getElementById('v47LifeStyles')) return; const st=document.createElement('style'); st.id='v47LifeStyles'; st.textContent=`
+.v47-life-widget{background:linear-gradient(135deg,rgba(36,25,20,.05),rgba(111,143,114,.11));border:1px solid rgba(111,143,114,.18)}.v47-life-pulse b{display:block;font-size:20px;letter-spacing:-.03em}.v47-life-pulse span{display:block;color:var(--muted);font-size:13px;margin-top:4px}.v47-mini-areas{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.v47-life-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0}.v47-area-card{min-height:190px}.v47-area-top{display:flex;align-items:center;justify-content:space-between}.v47-area-top i{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;background:#f0e7dc;font-style:normal;font-size:20px}.v47-area-card h3{margin:14px 0 5px}.v47-area-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;margin:14px 0;color:var(--muted);font-size:13px}.v47-area-meta b{color:var(--text);font-size:16px}.v47-entry-list{display:grid;gap:10px}.v47-entry-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.68)}.v47-entry-row.done{opacity:.62}.v47-entry-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:#f4ede5;margin-right:8px}.v47-entry-actions{display:flex;gap:8px;align-items:center}.v47-quick-examples{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.v47-quick-examples span{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 9px;background:rgba(255,255,255,.65)}.check-line{display:flex!important;align-items:center;gap:8px}.check-line input{width:auto!important}.v47-head .page-label{color:var(--accent)}@media(max-width:1080px){.v47-life-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.v47-life-grid{grid-template-columns:1fr}.v47-entry-row{grid-template-columns:1fr}.v47-entry-actions{justify-content:flex-start;flex-wrap:wrap}.v47-area-card{min-height:auto}.v47-metrics{grid-template-columns:1fr 1fr}.v47-metrics .focus{grid-column:span 2}}
+`; document.head.appendChild(st); }
+function v47PatchVisibleVersion(){
+  try{
+    document.title='Second Brain OS — V47 Life Categories Core';
+    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V47);
+    const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V47_DISPLAY; rb.setAttribute('data-build-version',SBOS_V47_DISPLAY); rb.title=SBOS_V47; }
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V47_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V47'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|V4[0-7]/i.test(String(s.textContent||''))){ s.textContent='LIFE CATEGORIES CORE'; } });
+    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V4[0-6].*|^V45\.1.*|^V46.*$/i.test(t)){ el.textContent=SBOS_V47_DISPLAY; } });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V47, visible:SBOS_V47, display:SBOS_V47_DISPLAY});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V47); }catch(_e){}
+  }catch(e){ console.warn('V47 version patch failed', e); }
+}
+function forceVersionBadgeRepair(){ v47PatchVisibleVersion(); try{ toast('Версия обновлена: V47'); }catch(_e){} }
+try{
+  v47EnsureLifeCoreState();
+  if(typeof v46PatchVisibleVersion==='function') v46PatchVisibleVersion = v47PatchVisibleVersion;
+  if(typeof v451PatchVisibleVersion==='function') v451PatchVisibleVersion = v47PatchVisibleVersion;
+  if(window.__sbosV451Observer){ try{ window.__sbosV451Observer.disconnect(); }catch(_e){} }
+  if(Array.isArray(navGroups)){
+    const has=id=>navGroups.some(g=>g[1].some(x=>x[0]===id));
+    if(!has('life')) navGroups.splice(1,0,['Жизнь', [['life','✦','Жизнь']]]);
+    pageTitles.life='Жизнь';
+  }
+  const __v47_oldRoute = typeof route==='function' ? route : null;
+  if(__v47_oldRoute){ route=function(){ if(activePage==='life') return life(); return __v47_oldRoute.apply(this, arguments); }; }
+  const __v47_oldMobileNav = typeof mobileNav==='function' ? mobileNav : null;
+  if(__v47_oldMobileNav){ mobileNav=function(){ const items=[['dashboard','⌂','Главная'],['life','✦','Жизнь'],['quick','＋',''],['budget','▤','Бюджет'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; }; }
+  const __v47_oldDashboard = typeof dashboard==='function' ? dashboard : null;
+  if(__v47_oldDashboard){ dashboard=function(){ v47EnsureLifeCoreState(); const base=String(__v47_oldDashboard.apply(this, arguments)); const card=`<div class="v47-dashboard-life">${v47LifeDashboardCard()}</div>`; if(base.includes('v46-dashboard-roadmap')) return base.replace('<div class="v46-dashboard-roadmap">', card+'<div class="v46-dashboard-roadmap">'); return card+base; }; }
+  const __v47_oldDiagnostics = typeof diagnostics==='function' ? diagnostics : null;
+  if(__v47_oldDiagnostics){ diagnostics=function(){ const r=v47HealthReport(); const base=String(__v47_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V47</div><h1>Диагностика</h1><p class="sub">Проверка приложения, денег, дорожной карты и личного ядра Second Brain.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runLifeCheck">Проверить жизнь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V47_DISPLAY,'активна')} ${v43Kpi('Жизнь',r.lifeEntries,'записей')} ${v43Kpi('Срочно',r.lifeDue,'требует внимания',r.lifeDue?'warn':'green')} ${v43Kpi('Связи',r.linkedOps,'с финансами')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V47</h3><span class="tag green">life core</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V47 перекрывает старые плашки V46 и ниже.</p></div><span class="tag green">V47</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
+  const __v47_oldRunHealthCheck = typeof runHealthCheck==='function' ? runHealthCheck : null;
+  if(__v47_oldRunHealthCheck){ runHealthCheck=function(){ openModal('Проверка системы V47', `<pre class="diagnostic-pre">${esc(JSON.stringify(v47HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runLifeCheck">Проверить жизнь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }; }
+  const __v47_oldRepairHealth = typeof repairHealth==='function' ? repairHealth : null;
+  if(__v47_oldRepairHealth){ repairHealth=function(){ v47EnsureLifeCoreState(); if(__v47_oldRepairHealth) __v47_oldRepairHealth.apply(this, arguments); v47EnsureLifeCoreState(); v47PatchVisibleVersion(); save(); toast('Second Brain ядро проверено'); }; }
+  const __v47_oldHandleAction = typeof handleAction==='function' ? handleAction : null;
+  if(__v47_oldHandleAction){ handleAction=function(a,el){ const id=el?.dataset?.id; const area=el?.dataset?.area||''; if(a==='addLifeEntry') return addLifeEntry(area); if(a==='saveLifeEntry') return saveLifeEntry(); if(a==='editLifeEntry') return editLifeEntry(id); if(a==='saveLifeEntryEdit') return saveLifeEntryEdit(id); if(a==='deleteLifeEntry') return deleteLifeEntry(id); if(a==='toggleLifeEntry') return toggleLifeEntry(id); if(a==='filterLifeArea') return filterLifeArea(area); if(a==='runLifeCheck') return runLifeCheck(); if(a==='forceVersionBadgeRepair') return forceVersionBadgeRepair(); return __v47_oldHandleAction.apply(this, arguments); }; }
+  const __v47_oldRender = typeof render==='function' ? render : null;
+  if(__v47_oldRender){ render=function(){ v47EnsureLifeCoreState(); const r=__v47_oldRender.apply(this, arguments); injectV47Styles(); v47PatchVisibleVersion(); return r; }; }
+  const __v47_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v47_oldOpenModal){ openModal=function(){ const r=__v47_oldOpenModal.apply(this, arguments); injectV47Styles(); v47PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV47={version:SBOS_V47,display:SBOS_V47_DISPLAY,life,summary:v47LifeSummary,health:v47HealthReport};
+  try{ v42LogAction('system','Установлена Life Categories Core V47',{version:SBOS_V47}); }catch(_e){}
+  injectV47Styles(); v47PatchVisibleVersion();
+  setTimeout(v47PatchVisibleVersion,50); setTimeout(v47PatchVisibleVersion,250); setTimeout(v47PatchVisibleVersion,1000); setTimeout(v47PatchVisibleVersion,3000);
+}catch(e){ console.warn('V47 Life Categories Core failed', e); }
