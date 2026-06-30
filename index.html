@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="v46-3-finance-ui-polish-safe-20260630" />
-  <title>Second Brain OS — V46.3 Finance UI Polish</title>
-  <script>window.SecondBrainBuild={version:'v46-3-finance-ui-polish-safe-20260630',display:'V46.3 FINANCE UI POLISH',visible:'v46-3-finance-ui-polish-safe-20260630'};</script>
+  <meta name="second-brain-build" content="v46-4-budget-coach-ui-safe-20260630" />
+  <title>Second Brain OS — V46.4 Budget Coach UI</title>
+  <script>window.SecondBrainBuild={version:'v46-4-budget-coach-ui-safe-20260630',display:'V46.4 BUDGET COACH UI',visible:'v46-4-budget-coach-ui-safe-20260630'};</script>
 
 
-  <link rel="manifest" href="manifest.webmanifest?v=v46-3-finance-ui-polish-safe-20260630" />
+  <link rel="manifest" href="manifest.webmanifest?v=v46-4-budget-coach-ui-safe-20260630" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -360,7 +360,7 @@ input:focus,textarea:focus,select:focus{
   
 
 /* =========================================================
-   V46.3 FINANCE UI POLISH SAFE — VISUAL ONLY
+   V46.4 BUDGET COACH UI SAFE — VISUAL ONLY
    No data model changes. No new entities. Dashboard polish only.
    ========================================================= */
 :root{
@@ -430,7 +430,7 @@ body::before{
 }
 
 
-/* V46.3 early version guard: hide old badge during first render */
+/* V46.4 early version guard: hide old badge during first render */
 html:not(.sbos-version-ready) .sidebar-status,html:not(.sbos-version-ready) #releaseBadge{visibility:hidden}
 </style>
 </head>
@@ -3699,8 +3699,8 @@ try{
 
 
 /* V46 GOALS & FINANCIAL ROADMAP — emergency fund, debts, savings path */
-const SBOS_V46 = 'v46-3-finance-ui-polish-safe-20260630';
-const SBOS_V46_DISPLAY = 'V46.3 FINANCE UI POLISH';
+const SBOS_V46 = 'v46-4-budget-coach-ui-safe-20260630';
+const SBOS_V46_DISPLAY = 'V46.4 BUDGET COACH UI';
 function v46EnsureRoadmapState(){
   try{
     if(!state.financeRoadmap || typeof state.financeRoadmap !== 'object') state.financeRoadmap = {};
@@ -3794,16 +3794,16 @@ function injectV46Styles(){ if(document.getElementById('v46RoadmapStyles')) retu
 `; document.head.appendChild(st); }
 function v46PatchVisibleVersion(){
   try{
-    document.title='Second Brain OS — V46.3 Finance UI Polish';
+    document.title='Second Brain OS — V46.4 Budget Coach UI';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V46);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V46_DISPLAY; rb.setAttribute('data-build-version',SBOS_V46_DISPLAY); rb.title=SBOS_V46; }
-    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.3'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='FINANCE UI POLISH'; } });
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
     document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$|^V46$|^V46 FINANCIAL ROADMAP$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
     window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V46, visible:SBOS_V46, display:SBOS_V46_DISPLAY});
     try{ localStorage.setItem('second_brain_visible_build', SBOS_V46); }catch(_e){}
   }catch(e){ console.warn('V46 version patch failed', e); }
 }
-function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46.3'); }catch(_e){} }
+function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46.4'); }catch(_e){} }
 try{
   v46EnsureRoadmapState();
   if(typeof v451PatchVisibleVersion==='function') v451PatchVisibleVersion = v46PatchVisibleVersion;
@@ -3821,7 +3821,7 @@ try{
   const __v46_oldDashboard = typeof dashboard==='function' ? dashboard : null;
   if(__v46_oldDashboard){ dashboard=function(){ v46EnsureRoadmapState(); const base=String(__v46_oldDashboard.apply(this, arguments)); const card=`<div class="v46-dashboard-roadmap">${v46RoadmapCard()}</div>`; if(base.includes('v45-dashboard-budget')) return base.replace('<div class="v45-dashboard-budget">', card+'<div class="v45-dashboard-budget">'); return card+base; }; }
   const __v46_oldDiagnostics = typeof diagnostics==='function' ? diagnostics : null;
-  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46.3</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
+  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46.4</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
   const __v46_oldRunHealthCheck = typeof runHealthCheck==='function' ? runHealthCheck : null;
   if(__v46_oldRunHealthCheck){ runHealthCheck=function(){ openModal('Проверка системы V46', `<pre class="diagnostic-pre">${esc(JSON.stringify(v46HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }; }
   const __v46_oldHandleAction = typeof handleAction==='function' ? handleAction : null;
@@ -3837,9 +3837,9 @@ try{
 }catch(e){ console.warn('V46 Financial Roadmap failed', e); }
 
 
-/* === Second Brain OS V46.3 — Finance UI Polish Safe Layer === */
-const SBOS_V463 = 'v46-3-finance-ui-polish-safe-20260630';
-const SBOS_V463_DISPLAY = 'V46.3 FINANCE UI POLISH';
+/* === Second Brain OS V46.4 — Budget Coach UI Safe Layer === */
+const SBOS_V463 = 'v46-4-budget-coach-ui-safe-20260630';
+const SBOS_V463_DISPLAY = 'V46.4 BUDGET COACH UI';
 function v463MonthOpsSafe(){ try{ const m=state.settings?.currentMonth || monthKey(); return (state.operations||[]).filter(o=>String(o.date||'').startsWith(m) && !o.excludeFromLimit); }catch(e){ return []; } }
 function v463UncategorizedCount(){ return v463MonthOpsSafe().filter(o=>!o.category || /другое|без категории|разбор/i.test(String(o.category||''))).length; }
 function v463TopCategory(){ const cats=typeof categoryTotals==='function'?categoryTotals():[]; return cats && cats.length ? {name:cats[0][0], amount:num(cats[0][1])} : null; }
@@ -3857,7 +3857,7 @@ function v463FinanceCoachItems(f){
 }
 function v463CoachCard(f){
   const items=v463FinanceCoachItems(f);
-  return `<section class="card panel v463-coach"><div class="section-head"><div><div class="page-label">Finance Coach</div><h3>Что сделать с деньгами сейчас</h3><p class="sub">Простые шаги без сложной финансовой теории.</p></div><span class="tag green">V46.3</span></div><div class="v463-coach-grid">${items.map(x=>`<article class="v463-coach-item ${x[0]}"><i></i><div><b>${esc(x[1])}</b><p>${esc(x[2])}</p></div><button class="ghost small" ${x[3]==='addIncome'?'data-action="addIncome"':`data-page="${x[3]}"`}>${esc(x[4])}</button></article>`).join('')}</div></section>`;
+  return `<section class="card panel v463-coach"><div class="section-head"><div><div class="page-label">Finance Coach</div><h3>Что сделать с деньгами сейчас</h3><p class="sub">Простые шаги без сложной финансовой теории.</p></div><span class="tag green">V46.4</span></div><div class="v463-coach-grid">${items.map(x=>`<article class="v463-coach-item ${x[0]}"><i></i><div><b>${esc(x[1])}</b><p>${esc(x[2])}</p></div><button class="ghost small" ${x[3]==='addIncome'?'data-action="addIncome"':`data-page="${x[3]}"`}>${esc(x[4])}</button></article>`).join('')}</div></section>`;
 }
 function v463MoneyCard(label,value,note,tone){ return `<article class="v463-money-card ${tone||''}"><span>${esc(label)}</span><b>${value}</b><small>${esc(note||'')}</small></article>`; }
 function v463CategoryCards(){
@@ -3877,7 +3877,7 @@ function v463Finance(){
   const planGap=f.income-f.expenses;
   const budgetScore=typeof v45BudgetSummary==='function'?v45BudgetSummary().score:null;
   const road=typeof v46RoadmapSummary==='function'?v46RoadmapSummary():null;
-  return `<div class="goals-head premium-page-head v463-finance-head"><div><div class="page-label">Finance UI Polish</div><h1>Финансовый центр</h1><p class="sub">Баланс, поток, категории и ближайший финансовый шаг — на одном спокойном экране.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addIncome">＋ Доход</button><button class="ghost" data-page="budget">Бюджет</button><button class="ghost" data-page="roadmap">Карта</button></div></div>
+  return `<div class="goals-head premium-page-head v463-finance-head"><div><div class="page-label">Budget Coach UI</div><h1>Финансовый центр</h1><p class="sub">Баланс, поток, категории и ближайший финансовый шаг — на одном спокойном экране.</p></div><div class="top-actions"><button class="primary" data-action="addExpense">＋ Расход</button><button class="ghost" data-action="addIncome">＋ Доход</button><button class="ghost" data-page="budget">Бюджет</button><button class="ghost" data-page="roadmap">Карта</button></div></div>
   <section class="card panel v463-finance-hero"><div class="v463-orb"></div><div><div class="section-head"><div><h3>Денежная позиция</h3><p class="sub">Баланс месяца минус долги плюс ожидаемые возвраты.</p></div><span class="tag ${netTone==='green'?'green':'warn'}">${f.net>=0?'ресурс в плюсе':'есть нагрузка'}</span></div><div class="v463-balance">${money(f.balance)}</div><p class="sub">Чистая позиция: <b>${money(f.net)}</b> · можно сегодня: <b>${money(f.dailyLimit)}</b></p><div class="v463-money-grid">${v463MoneyCard('Доходы',money(f.income),'поступило за месяц','green')}${v463MoneyCard('Расходы',money(f.expenses),'потрачено за месяц','red')}${v463MoneyCard('Остаток',money(f.left),planGap>=0?'в рамках месяца':'нужен контроль',planGap>=0?'green':'red')}${v463MoneyCard('Запас',`${f.reserveDays} дн.`,'по текущему лимиту','blue')}</div></div></section>
   ${v463CoachCard(f)}
   <div class="v463-finance-grid"><section class="card panel"><div class="section-head"><div><h3>Денежный поток</h3><p class="sub">Доходы и расходы за неделю.</p></div><span class="tag blue">динамика</span></div><div class="v463-flow-duo"><article><span>Расходы</span><b class="red-text">${money(f.expenses)}</b>${typeof spark==='function'?spark(expSeries.map(x=>x.value),'var(--red)'):''}</article><article><span>Доходы</span><b class="green-text">${money(f.income)}</b>${typeof spark==='function'?spark(incSeries.map(x=>x.value),'var(--green)'):''}</article></div></section>
@@ -3891,20 +3891,20 @@ html:not(.sbos-version-ready) .sidebar-status,html:not(.sbos-version-ready) #rel
 function v463PatchVisibleVersion(){
   try{
     document.documentElement.classList.add('sbos-version-ready');
-    document.title='Second Brain OS — V46.3 Finance UI Polish';
+    document.title='Second Brain OS — V46.4 Budget Coach UI';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V463);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V463_DISPLAY; rb.setAttribute('data-build-version',SBOS_V463_DISPLAY); rb.title=SBOS_V463; }
-    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V463_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.3'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='FINANCE UI POLISH'; } });
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V463_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
     document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V46$|^V46\.1$|^V46\.2$|^V46 FINANCIAL ROADMAP$|^V46\.2 PREMIUM DASHBOARD$/i.test(t)){ el.textContent=SBOS_V463_DISPLAY; } });
     window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V463, visible:SBOS_V463, display:SBOS_V463_DISPLAY});
     try{ localStorage.setItem('second_brain_visible_build', SBOS_V463); }catch(_e){}
-  }catch(e){ console.warn('V46.3 version patch failed', e); }
+  }catch(e){ console.warn('V46.4 version patch failed', e); }
 }
-function forceVersionBadgeRepair(){ v463PatchVisibleVersion(); try{ toast('Версия обновлена: V46.3'); }catch(_e){} }
+function forceVersionBadgeRepair(){ v463PatchVisibleVersion(); try{ toast('Версия обновлена: V46.4'); }catch(_e){} }
 try{
   injectV463Styles();
   const __v463_oldFinance = typeof finance==='function' ? finance : null;
-  if(__v463_oldFinance){ finance=function(){ try{ return v463Finance(); }catch(e){ console.warn('V46.3 finance render failed', e); return __v463_oldFinance.apply(this, arguments); } }; }
+  if(__v463_oldFinance){ finance=function(){ try{ return v463Finance(); }catch(e){ console.warn('V46.4 finance render failed', e); return __v463_oldFinance.apply(this, arguments); } }; }
   const __v463_oldRender = typeof render==='function' ? render : null;
   if(__v463_oldRender){ render=function(){ const r=__v463_oldRender.apply(this, arguments); injectV463Styles(); v463PatchVisibleVersion(); return r; }; }
   const __v463_oldOpenModal = typeof openModal==='function' ? openModal : null;
@@ -3915,7 +3915,85 @@ try{
   let __v463Tick=null; window.__sbosV463Observer=new MutationObserver(()=>{ clearTimeout(__v463Tick); __v463Tick=setTimeout(v463PatchVisibleVersion,35); });
   if(document.body) window.__sbosV463Observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   [40,120,300,700,1400,2600,5000].forEach(t=>setTimeout(v463PatchVisibleVersion,t));
-}catch(e){ console.warn('V46.3 Finance UI Polish failed', e); }
+}catch(e){ console.warn('V46.4 Budget Coach UI failed', e); }
+
+
+/* === Second Brain OS V46.4 — Budget Coach UI Safe Layer === */
+const SBOS_V464 = 'v46-4-budget-coach-ui-safe-20260630';
+const SBOS_V464_DISPLAY = 'V46.4 BUDGET COACH UI';
+function v464DaysLeft(b){ return Math.max(1, num(b.days)-num(b.day)); }
+function v464DailyLeft(b){ return Math.floor(num(b.left)/v464DaysLeft(b)); }
+function v464BudgetMainMessage(b){
+  if(b.over && b.over.length) return `Перерасход по “${b.over[0].category}” на ${money(num(b.over[0].used)-num(b.over[0].limit))}. Сначала останови новые траты в этой категории на 48 часов.`;
+  if(b.risk && b.risk.length) return `Категория “${b.risk[0].category}” близко к лимиту. До конца месяца лучше платить только за необходимое.`;
+  if(b.unplanned && b.unplanned.length) return `Есть категории без лимита: “${b.unplanned[0].category}”. Создай лимит, чтобы бюджет начал предупреждать заранее.`;
+  if(num(b.savingsRate)<10) return 'Норма накоплений ниже 10%. Сначала отложи себе, потом распределяй остаток.';
+  return 'Бюджет выглядит спокойно. Продолжай вести факт, лимиты и недельную ревизию.';
+}
+function v464EnvelopeKindIcon(k){ return ({base:'⌂',wants:'♡',future:'↗',debt:'!',unknown:'?'}[k]||'•'); }
+function v464BudgetStatusText(r){ if(r.status==='over') return 'перерасход'; if(r.status==='risk') return 'риск'; if(r.status==='unplanned') return 'нужен лимит'; return 'норма'; }
+function v464ToneFromStatus(r){ return r.status==='over'?'over':r.status==='risk'?'risk':r.status==='unplanned'?'unplanned':'ok'; }
+function v464BudgetPercent(r){ return r.limit ? Math.round(num(r.used)/Math.max(1,num(r.limit))*100) : Math.min(100, Math.round(num(r.used)/Math.max(1,num(r.used))*100)); }
+function v464BudgetRowCard(r){
+  const pct=v464BudgetPercent(r), tone=v464ToneFromStatus(r), rest=num(r.limit)-num(r.used);
+  return `<article class="v464-envelope ${tone}"><div class="v464-envelope-head"><div class="v464-envelope-icon">${v464EnvelopeKindIcon(r.kind)}</div><div><b>${esc(r.category)}</b><small>${v45BudgetKindLabel?esc(v45BudgetKindLabel(r.kind)):esc(r.kind||'Категория')} · ${v464BudgetStatusText(r)}</small></div><button class="ghost small" data-action="openBudgetLimit" data-id="${esc(r.id)}">Изм.</button></div><div class="v464-envelope-money"><strong>${money(r.used)}</strong><span>${r.limit?`из ${money(r.limit)}`:'лимит не задан'}</span></div><div class="v464-envelope-bar ${tone}"><span style="width:${clamp(pct,3,140)}%"></span></div><div class="v464-envelope-foot"><span>${pct}%</span><b class="${rest>=0?'green-text':'red-text'}">${r.limit?moneySigned(rest):'—'}</b></div></article>`;
+}
+function v464BudgetSummaryStrip(b){
+  const daily=v464DailyLeft(b), dayPct=Math.round(num(b.day)/Math.max(1,num(b.days))*100);
+  return `<section class="card panel v464-budget-hero"><div><div class="page-label">Budget Coach UI</div><h2>Деньги до конца месяца</h2><p>${esc(v464BudgetMainMessage(b))}</p><div class="v464-budget-actions"><button class="primary" data-action="runBudgetCheck">Проверить бюджет</button><button class="ghost" data-action="autoCreateBudget">Автолимиты</button><button class="ghost" data-action="addBudgetReviewTask">Ревизия</button></div></div><div class="v464-hero-score ${v45Tone(b.score)}"><b>${b.score}</b><span>индекс</span></div><div class="v464-hero-metrics"><article><span>Остаток лимитов</span><b>${money(b.left)}</b></article><article><span>Можно в день</span><b>${money(daily)}</b></article><article><span>Прогноз</span><b>${money(b.forecast)}</b></article><article><span>Месяц</span><b>${dayPct}%</b></article></div></section>`;
+}
+function v464BudgetKindSummary(b){
+  const groups={base:0,wants:0,future:0,debt:0,unknown:0};
+  (b.rows||[]).forEach(r=>{groups[r.kind||'unknown']=(groups[r.kind||'unknown']||0)+num(r.used);});
+  const totalUsed=Math.max(1,Object.values(groups).reduce((s,v)=>s+v,0));
+  const entries=[['base','База','обязательное'],['wants','Желания','хочу'],['future','Будущее','цели'],['debt','Долги','нагрузка']];
+  return `<section class="card panel"><div class="section-head"><div><h3>Конверты месяца</h3><p class="sub">База, желания, будущее и долги. Так проще понять, куда уходит поток.</p></div><span class="tag blue">структура</span></div><div class="v464-kind-grid">${entries.map(([k,label,note])=>`<article><i>${v464EnvelopeKindIcon(k)}</i><b>${Math.round(groups[k]/totalUsed*100)}%</b><span>${label}</span><small>${note} · ${money(groups[k])}</small></article>`).join('')}</div></section>`;
+}
+function v464BudgetGuide(b){
+  const items=[];
+  if(b.over.length) items.push(['Стоп-лист на 48 часов',`Не тратить в “${b.over[0].category}”, кроме обязательного.`, 'openBudgetOverrunPlan','План']);
+  if(b.risk.length) items.push(['Осторожно с лимитом',`“${b.risk[0].category}” уже близко к потолку.`, 'openBudgetLimit','Лимит']);
+  if(b.unplanned.length) items.push(['Создать конверты',`${b.unplanned.length} категорий без лимита.`, 'autoCreateBudget','Создать']);
+  if(b.savingsRate<10) items.push(['Заплати себе сначала','Добавь задачу отложить 10% дохода.', 'createTenPercentTask','10% себе']);
+  if(!items.length) items.push(['Недельная ревизия','Раз в неделю посмотри топ-3 категории и прогноз.', 'addBudgetReviewTask','Задача']);
+  return `<section class="card panel v464-guide"><div class="section-head"><div><h3>Что сделать сейчас</h3><p class="sub">Короткие финансовые действия, чтобы не перегореть и не усложнять.</p></div><span class="tag green">coach</span></div>${items.slice(0,4).map((it,i)=>`<div class="v464-guide-row"><span>${i+1}</span><div><b>${esc(it[0])}</b><p>${esc(it[1])}</p></div><button class="ghost small" data-action="${esc(it[2])}">${esc(it[3])}</button></div>`).join('')}</section>`;
+}
+function v464Budget(){
+  const b=v45BudgetSummary();
+  const order={over:0,risk:1,unplanned:2,ok:3};
+  const rows=[...(b.rows||[])].sort((ra,rb)=>(order[ra.status]??4)-(order[rb.status]??4));
+  return `<div class="goals-head premium-page-head v464-head"><div><div class="page-label">Budget Coach V46.4</div><h1>Бюджет месяца</h1><p class="sub">Конверты, лимиты, дневной остаток и подсказки — простым языком, без бухгалтерской сложности.</p></div><div class="top-actions"><button class="primary" data-action="openBudgetLimit">＋ Лимит</button><button class="ghost" data-action="autoCreateBudget">Автолимиты</button><button class="ghost" data-page="analytics">Аналитика</button></div></div>${v464BudgetSummaryStrip(b)}<div class="v464-budget-grid"><section class="card panel"><div class="section-head"><div><h3>Лимиты по категориям</h3><p class="sub">Каждая категория — как конверт. Зелёное — спокойно, жёлтое — притормозить, красное — разобрать.</p></div><span class="tag ${b.over.length?'warn':'green'}">${rows.length}</span></div><div class="v464-envelope-grid">${rows.length?rows.map(v464BudgetRowCard).join(''):'<div class="empty">Лимитов пока нет. Нажми “Автолимиты” или создай первый лимит вручную.</div>'}</div></section><aside class="rail">${v464BudgetGuide(b)}${v464BudgetKindSummary(b)}<section class="card panel"><div class="section-head"><h3>Правила месяца</h3><span class="tag blue">простые</span></div><div class="v464-rules"><p><b>10% себе</b><span>Сначала отложить, потом тратить.</span></p><p><b>24 часа</b><span>Пауза на необязательную покупку.</span></p><p><b>1 категория</b><span>Оптимизируй одну крупную категорию, а не всё сразу.</span></p></div></section></aside></div>`;
+}
+function injectV464Styles(){ if(document.getElementById('v464BudgetStyles')) return; const st=document.createElement('style'); st.id='v464BudgetStyles'; st.textContent=`
+html:not(.sbos-version-ready) .sidebar-status,html:not(.sbos-version-ready) #releaseBadge{visibility:hidden}.v464-budget-hero{display:grid;grid-template-columns:minmax(0,1fr) 140px 330px;gap:18px;align-items:center;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(255,253,248,.95),rgba(235,222,201,.86));border:1px solid rgba(118,83,49,.15);box-shadow:0 22px 70px rgba(55,38,22,.10);margin-bottom:18px}.v464-budget-hero:before{content:'';position:absolute;right:-80px;top:-100px;width:280px;height:280px;border-radius:999px;background:radial-gradient(circle,rgba(190,151,96,.22),transparent 68%)}.v464-budget-hero h2{font-size:34px;letter-spacing:-.045em;margin:5px 0;color:#251b13}.v464-budget-hero p{font-size:15px;color:var(--muted);max-width:760px}.v464-budget-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.v464-hero-score{width:116px;height:116px;border-radius:36px;display:grid;place-items:center;background:linear-gradient(135deg,#f8ecd8,#d8bd92);box-shadow:inset 0 0 22px rgba(255,255,255,.65);position:relative}.v464-hero-score b{font-size:42px;line-height:1}.v464-hero-score span{font-size:12px;color:var(--muted);margin-top:-24px}.v464-hero-score.warn{background:linear-gradient(135deg,#fae4dd,#e8aaa0)}.v464-hero-score.amber{background:linear-gradient(135deg,#f8ead5,#e7c084)}.v464-hero-score.green{background:linear-gradient(135deg,#e8f0df,#b9cfaa)}.v464-hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v464-hero-metrics article{padding:13px;border-radius:18px;background:rgba(255,255,255,.68);border:1px solid var(--line)}.v464-hero-metrics span{display:block;color:var(--muted);font-size:12px}.v464-hero-metrics b{display:block;font-size:20px;margin-top:5px}.v464-budget-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}.v464-envelope-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.v464-envelope{padding:14px;border-radius:22px;background:rgba(255,255,255,.74);border:1px solid var(--line);box-shadow:0 12px 32px rgba(45,31,18,.055)}.v464-envelope.over{border-color:rgba(210,105,95,.28);background:rgba(210,105,95,.065)}.v464-envelope.risk{border-color:rgba(216,168,108,.32);background:rgba(216,168,108,.075)}.v464-envelope.unplanned{border-style:dashed}.v464-envelope-head{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center}.v464-envelope-icon{width:40px;height:40px;border-radius:15px;display:grid;place-items:center;background:#f4eadc;border:1px solid var(--line);font-weight:900}.v464-envelope b{letter-spacing:-.02em}.v464-envelope small{display:block;color:var(--muted);margin-top:3px}.v464-envelope-money{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-top:15px}.v464-envelope-money strong{font-size:24px}.v464-envelope-money span{color:var(--muted);font-size:12px}.v464-envelope-bar{height:11px;border-radius:999px;background:rgba(31,23,18,.07);overflow:hidden;margin:12px 0 8px}.v464-envelope-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6f8f72,#c6d6ad)}.v464-envelope-bar.risk span{background:linear-gradient(90deg,#d8a86c,#eecb97)}.v464-envelope-bar.over span{background:linear-gradient(90deg,#d2695f,#e9a29a)}.v464-envelope-bar.unplanned span{background:linear-gradient(90deg,#6b95d8,#b7c9ec)}.v464-envelope-foot{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px}.v464-guide{background:linear-gradient(135deg,rgba(255,255,255,.84),rgba(246,237,224,.8))}.v464-guide-row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:12px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.62);margin-top:10px}.v464-guide-row>span{width:30px;height:30px;border-radius:12px;display:grid;place-items:center;background:#efe1cc;font-weight:900}.v464-guide-row p{margin:3px 0 0;color:var(--muted);font-size:13px}.v464-kind-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v464-kind-grid article{padding:13px;border-radius:18px;background:rgba(255,255,255,.68);border:1px solid var(--line)}.v464-kind-grid i{font-style:normal;color:var(--muted)}.v464-kind-grid b{display:block;font-size:25px;margin-top:5px}.v464-kind-grid span,.v464-kind-grid small{display:block;color:var(--muted);font-size:12px}.v464-rules{display:grid;gap:10px}.v464-rules p{padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.62);margin:0}.v464-rules span{display:block;color:var(--muted);margin-top:3px}@media(max-width:1100px){.v464-budget-hero,.v464-budget-grid{grid-template-columns:1fr}.v464-hero-score{width:96px;height:96px}.v464-hero-metrics{grid-template-columns:1fr 1fr}.v464-envelope-grid{grid-template-columns:1fr}.v464-guide-row{grid-template-columns:34px 1fr}.v464-guide-row button{grid-column:2}.v464-kind-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v464-budget-hero h2{font-size:28px}.v464-hero-metrics,.v464-kind-grid{grid-template-columns:1fr}.v464-budget-actions .primary,.v464-budget-actions .ghost{width:100%}.v464-envelope-head{grid-template-columns:38px 1fr}.v464-envelope-head button{grid-column:2;width:100%}}
+`; document.head.appendChild(st); }
+function v464PatchVisibleVersion(){
+  try{
+    document.documentElement.classList.add('sbos-version-ready');
+    document.title='Second Brain OS — V46.4 Budget Coach UI';
+    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V464);
+    const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V464_DISPLAY; rb.setAttribute('data-build-version',SBOS_V464_DISPLAY); rb.title=SBOS_V464; }
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V464_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|FINANCE UI POLISH|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V464, visible:SBOS_V464, display:SBOS_V464_DISPLAY});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V464); }catch(_e){}
+  }catch(e){ console.warn('V46.4 version patch failed', e); }
+}
+function forceVersionBadgeRepair(){ v464PatchVisibleVersion(); try{ toast('Версия обновлена: V46.4'); }catch(_e){} }
+try{
+  injectV464Styles();
+  const __v464_oldBudget = typeof budget==='function' ? budget : null;
+  if(__v464_oldBudget){ budget=function(){ try{ return v464Budget(); }catch(e){ console.warn('V46.4 budget render failed', e); return __v464_oldBudget.apply(this, arguments); } }; }
+  const __v464_oldRender = typeof render==='function' ? render : null;
+  if(__v464_oldRender){ render=function(){ const r=__v464_oldRender.apply(this, arguments); injectV464Styles(); v464PatchVisibleVersion(); return r; }; }
+  const __v464_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v464_oldOpenModal){ openModal=function(){ const r=__v464_oldOpenModal.apply(this, arguments); injectV464Styles(); v464PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV464={version:SBOS_V464,display:SBOS_V464_DISPLAY,budget:v464Budget};
+  v464PatchVisibleVersion();
+  if(window.__sbosV464Observer){ try{ window.__sbosV464Observer.disconnect(); }catch(_e){} }
+  let __v464Tick=null; window.__sbosV464Observer=new MutationObserver(()=>{ clearTimeout(__v464Tick); __v464Tick=setTimeout(v464PatchVisibleVersion,40); });
+  if(document.body) window.__sbosV464Observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  [40,120,300,700,1400,2600,5000].forEach(t=>setTimeout(v464PatchVisibleVersion,t));
+}catch(e){ console.warn('V46.4 Budget Coach UI failed', e); }
 
 </script>
 </body>
