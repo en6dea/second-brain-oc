@@ -9,7 +9,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <meta name="second-brain-build" content="v45-1-version-badge-hotfix-private-20260630" />
-  <title>Second Brain OS</title>
+  <title>Second Brain OS — V46 Financial Roadmap</title>
 
   <link rel="manifest" href="manifest.webmanifest?v=v45-analytics-budget-coach-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -178,13 +178,13 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V45.1 VERSION LOCK</div>
+  <div id="releaseBadge">V46 FINANCIAL ROADMAP</div>
   <script>
-/* Second Brain OS — Analytics Pro + Budget Coach Private V45.1 */
+/* Second Brain OS — Goals & Financial Roadmap Private V46 */
 'use strict';
 
-const RELEASE = 'v45-analytics-budget-coach-private-20260629';
-const DATA_VERSION = 450;
+const RELEASE = 'v46-financial-roadmap-private-20260630';
+const DATA_VERSION = 460;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -3437,6 +3437,145 @@ try{
   v451InstallVersionObserver(); v451PatchVisibleVersion();
   setTimeout(v451PatchVisibleVersion,50); setTimeout(v451PatchVisibleVersion,250); setTimeout(v451PatchVisibleVersion,1000); setTimeout(v451PatchVisibleVersion,3000);
 }catch(e){ console.warn('V45.1 Version Badge Hotfix failed', e); }
+
+
+/* V46 GOALS & FINANCIAL ROADMAP — emergency fund, debts, savings path */
+const SBOS_V46 = 'v46-goals-financial-roadmap-private-20260630';
+const SBOS_V46_DISPLAY = 'V46 FINANCIAL ROADMAP';
+function v46EnsureRoadmapState(){
+  try{
+    if(!state.financeRoadmap || typeof state.financeRoadmap !== 'object') state.financeRoadmap = {};
+    const fr = state.financeRoadmap;
+    fr.version = SBOS_V46;
+    fr.emergencyTargetMonths = num(fr.emergencyTargetMonths) || 3;
+    fr.emergencyMonthlyNeed = num(fr.emergencyMonthlyNeed) || 0;
+    fr.emergencyCurrent = num(fr.emergencyCurrent) || 0;
+    fr.monthlySavingsTarget = num(fr.monthlySavingsTarget) || 0;
+    fr.debtStrategy = fr.debtStrategy || 'snowball';
+    fr.updatedAt = fr.updatedAt || new Date().toISOString();
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    state.goals = Array.isArray(state.goals) ? state.goals : [];
+    state.debts = Array.isArray(state.debts) ? state.debts : [];
+    state.operations = Array.isArray(state.operations) ? state.operations : [];
+    if(!state.dataCore) state.dataCore = {};
+    state.dataCore.schema = Math.max(num(state.dataCore.schema),460);
+    state.dataCore.financialRoadmap = SBOS_V46;
+  }catch(e){ console.warn('V46 ensure failed', e); }
+}
+function v46MonthOps(){ const m = state.settings?.currentMonth || monthKey(); return (state.operations||[]).filter(o=>String(o.date||'').startsWith(m) && !o.excludeFromLimit); }
+function v46Income(){ return total(v46MonthOps().filter(o=>o.type==='income')); }
+function v46Expenses(){ return total(v46MonthOps().filter(o=>o.type==='expense')); }
+function v46ExpenseByCategory(){ const map={}; for(const o of v46MonthOps().filter(o=>o.type==='expense')){ const c=o.category||'Другое'; map[c]=(map[c]||0)+num(o.amount); } return Object.entries(map).map(([category,amount])=>({category,amount})).sort((a,b)=>b.amount-a.amount); }
+function v46IsEssentialCategory(cat){ return /продукт|еда|жиль|кварт|аренд|ипотек|жкх|коммун|транспорт|бенз|газ|связ|телефон|интернет|здоров|лекар|аптек|кредит|долг|страх/i.test(String(cat||'')); }
+function v46EssentialSpend(){ const cats=v46ExpenseByCategory(); const essential=total(cats.filter(x=>v46IsEssentialCategory(x.category)).map(x=>x.amount)); const exp=v46Expenses(); if(essential>0) return essential; return Math.round(exp*0.62); }
+function v46EmergencyGoalCurrent(){ const manual=num(state.financeRoadmap?.emergencyCurrent); const goals=(state.goals||[]).filter(g=>/подуш|резерв|безопас/i.test(String(g.title||'')) && String(g.status||'Активна')!=='Готово'); const gsum=goals.reduce((s,g)=>s+num(g.currentValue),0); return Math.max(manual, gsum); }
+function v46EmergencyTarget(){ const fr=state.financeRoadmap||{}; const need=num(fr.emergencyMonthlyNeed) || v46EssentialSpend() || Math.max(30000, Math.round(v46Expenses()*0.7)); return Math.max(0, Math.round(need * (num(fr.emergencyTargetMonths)||3))); }
+function v46DebtRows(){ return (state.debts||[]).filter(d=>String(d.direction||'owe')==='owe' && String(d.status||'Активен')!=='Закрыт').sort((a,b)=>num(a.amount)-num(b.amount)); }
+function v46DebtTotal(){ return total(v46DebtRows().map(d=>d.amount)); }
+function v46SavingsTarget(){ const manual=num(state.financeRoadmap?.monthlySavingsTarget); const inc=v46Income(); if(manual>0) return manual; return Math.round(inc*0.10); }
+function v46SavingsFact(){ const cats=v46ExpenseByCategory(); return total(cats.filter(x=>/накоп|инвест|подуш|резерв|сбереж/i.test(x.category)).map(x=>x.amount)); }
+function v46RoadmapSummary(){
+  v46EnsureRoadmapState();
+  const income=v46Income(), expenses=v46Expenses(), left=income-expenses;
+  const emergencyCurrent=v46EmergencyGoalCurrent(), emergencyTarget=v46EmergencyTarget();
+  const emergencyPct=emergencyTarget?Math.min(100,Math.round(emergencyCurrent/emergencyTarget*100)):0;
+  const debt=v46DebtTotal();
+  const savingsTarget=v46SavingsTarget();
+  const savingsFact=v46SavingsFact();
+  const savingsPct=savingsTarget?Math.min(100,Math.round(savingsFact/savingsTarget*100)):0;
+  const uncategorized=(state.operations||[]).filter(o=>String(o.date||'').startsWith(state.settings?.currentMonth||monthKey()) && (!o.category || /другое|без категории|разбор/i.test(String(o.category||'')))).length;
+  const budget = typeof v45BudgetSummary === 'function' ? v45BudgetSummary() : null;
+  let score=35;
+  if(income>0) score+=10;
+  if(expenses>0) score+=5;
+  if(left>=0) score+=10;
+  if(savingsPct>=80) score+=15; else if(savingsPct>=40) score+=8;
+  if(emergencyPct>=100) score+=20; else if(emergencyPct>=50) score+=12; else if(emergencyPct>=15) score+=6;
+  if(debt===0) score+=10; else if(debt<income) score+=4;
+  if(uncategorized===0) score+=8;
+  if(budget && budget.score>=70) score+=8;
+  score=Math.max(0,Math.min(100,Math.round(score)));
+  return {income,expenses,left,essential:v46EssentialSpend(),emergencyCurrent,emergencyTarget,emergencyPct,debt,savingsTarget,savingsFact,savingsPct,uncategorized,budgetScore:budget?budget.score:null,score,months:num(state.financeRoadmap?.emergencyTargetMonths)||3};
+}
+function v46Tone(score){ return score>=75?'green':score>=50?'warn':'red'; }
+function v46RoadmapSteps(){
+  const s=v46RoadmapSummary();
+  const out=[];
+  out.push({done:s.income>0 && s.expenses>0, title:'Вести учёт денег', note:s.income>0&&s.expenses>0?'Доходы и расходы уже есть в системе.':'Добавь доходы и расходы или импортируй выписку банка.', action:'Перейти к импорту', page:'import'});
+  out.push({done:s.uncategorized===0, title:'Разобрать категории', note:s.uncategorized===0?'Операции разложены по категориям.':`${s.uncategorized} операций требуют категории. Без этого бюджет врёт.`, action:'Разобрать операции', page:'operations'});
+  out.push({done:s.savingsPct>=80, title:'Заплатить себе сначала', note:s.savingsPct>=80?'Норма накоплений выполнена.':`Цель месяца: отложить ${money(s.savingsTarget)}. Сейчас учтено ${money(s.savingsFact)}.`, action:'Создать задачу', actionId:'createSavingsTask'});
+  out.push({done:s.emergencyPct>=100, title:'Собрать подушку безопасности', note:s.emergencyPct>=100?'Подушка собрана на выбранный срок.':`Собрано ${s.emergencyPct}%: ${money(s.emergencyCurrent)} из ${money(s.emergencyTarget)}.`, action:'Открыть настройки', actionId:'openRoadmapSettings'});
+  out.push({done:s.debt===0, title:'Закрыть долги', note:s.debt===0?'Активных долгов нет.':`Активный долг: ${money(s.debt)}. Лучше гасить системно, не хаотично.`, action:'Сделать план', actionId:'createDebtPlanTasks'});
+  out.push({done:(s.budgetScore||0)>=70, title:'Жить по лимитам', note:(s.budgetScore||0)>=70?'Бюджет месяца под контролем.':'Проверь лимиты по категориям и перерасходы.', action:'Бюджет', page:'budget'});
+  return out;
+}
+function v46StepHtml(x,i){ const cls=x.done?'done':'todo'; const btn=x.page?`<button class="ghost small" data-page="${x.page}">${esc(x.action||'Открыть')}</button>`:(x.actionId?`<button class="ghost small" data-action="${x.actionId}">${esc(x.action||'Сделать')}</button>`:''); return `<div class="v46-step ${cls}"><i>${x.done?'✓':i+1}</i><div><b>${esc(x.title)}</b><p>${esc(x.note)}</p></div>${btn}</div>`; }
+function v46RoadmapCard(){ const s=v46RoadmapSummary(); const risk=s.debt>0?'Сначала план долгов':(s.emergencyPct<50?'Нужна подушка безопасности':(s.savingsPct<80?'Нужно отложить 10%':'Финансовый путь стабилен')); return `<section class="card panel v46-roadmap-widget"><div class="section-head"><div><h3>Финансовая дорожная карта</h3><p class="sub">Следующий понятный шаг по деньгам.</p></div><span class="tag ${v46Tone(s.score)}">${s.score}/100</span></div><div class="v46-mini-road"><div><b>${esc(risk)}</b><span>Подушка ${s.emergencyPct}% · долги ${money(s.debt)}</span></div><button class="primary small" data-page="roadmap">Открыть</button></div><div class="progress"><span style="width:${s.score}%"></span></div></section>`; }
+function roadmap(){
+  v46EnsureRoadmapState();
+  const s=v46RoadmapSummary(), steps=v46RoadmapSteps(), cats=v46ExpenseByCategory().slice(0,5), debts=v46DebtRows().slice(0,5);
+  return `<div class="goals-head premium-page-head v46-head"><div><div class="page-label">Financial Roadmap V46</div><h1>Дорожная карта денег</h1><p class="sub">Подушка, долги, накопления и понятный порядок действий без сложной финансовой теории.</p></div><div class="top-actions"><button class="primary" data-action="openRoadmapSettings">Настроить</button><button class="ghost" data-action="createMoneyRoadmapTasks">Создать задачи</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button></div></div>
+  <div class="metrics premium-metrics"><article class="metric"><b>${s.score}/100</b><span>Индекс пути</span></article><article class="metric"><b>${s.emergencyPct}%</b><span>Подушка</span></article><article class="metric"><b>${money(s.debt)}</b><span>Активные долги</span></article><article class="metric"><b>${money(s.savingsTarget)}</b><span>Отложить себе</span></article></div>
+  <div class="v46-roadmap-grid"><section class="card panel v46-roadmap-main"><div class="section-head"><div><h3>План движения</h3><p class="sub">Идём по порядку: учёт → категории → 10% себе → подушка → долги → лимиты.</p></div><span class="tag blue">6 шагов</span></div>${steps.map(v46StepHtml).join('')}</section>
+  <aside class="rail v46-rail"><section class="card panel"><div class="section-head"><div><h3>Подушка безопасности</h3><p class="sub">Цель: ${s.months} мес. базовых расходов.</p></div><button class="ghost small" data-action="createEmergencyGoal">Создать цель</button></div><div class="big">${money(s.emergencyCurrent)}</div><p class="sub">из ${money(s.emergencyTarget)}</p><div class="progress"><span style="width:${s.emergencyPct}%"></span></div><div class="money-list"><p><span>База месяца</span><b>${money(s.essential)}</b></p><p><span>Готовность</span><b>${s.emergencyPct}%</b></p></div></section>
+  <section class="card panel"><div class="section-head"><h3>Долги</h3><button class="ghost small" data-action="createDebtPlanTasks">План</button></div>${debts.length?debts.map(d=>`<div class="line-row"><b>${esc(d.person||'Долг')}</b><span>${money(d.amount)}</span></div>`).join(''):'<div class="empty">Активных долгов нет</div>'}</section></aside></div>
+  <section class="card panel"><div class="section-head"><div><h3>Куда уходят деньги</h3><p class="sub">Топ категорий месяца. Снижение самой большой категории на 10% часто даёт быстрый результат.</p></div><button class="ghost small" data-page="analytics">Аналитика</button></div><div class="v46-category-bars">${cats.length?cats.map(c=>`<div class="v46-cat"><span>${esc(c.category)}</span><b>${money(c.amount)}</b><i style="width:${Math.min(100,Math.round(c.amount/Math.max(1,cats[0].amount)*100))}%"></i></div>`).join(''):'<div class="empty">Пока нет расходов месяца</div>'}</div></section>`;
+}
+function openRoadmapSettings(){ const fr=state.financeRoadmap||{}; const s=v46RoadmapSummary(); openModal('Настройки дорожной карты', `<div class="form-grid"><label>Месяцев подушки<input id="mEmergencyMonths" type="number" min="1" max="12" value="${num(fr.emergencyTargetMonths)||3}"></label><label>Базовые расходы месяца<input id="mEmergencyNeed" type="number" value="${num(fr.emergencyMonthlyNeed)||s.essential}"></label><label>Уже отложено в подушку<input id="mEmergencyCurrent" type="number" value="${v46EmergencyGoalCurrent()}"></label><label>Сколько откладывать в месяц<input id="mSavingsTarget" type="number" value="${v46SavingsTarget()}"></label><label>Метод долгов<select id="mDebtStrategy"><option value="snowball" ${(fr.debtStrategy||'snowball')==='snowball'?'selected':''}>Снежный ком: сначала маленькие долги</option><option value="avalanche" ${fr.debtStrategy==='avalanche'?'selected':''}>Лавина: сначала дорогие долги</option></select></label><label class="full">Комментарий<textarea id="mRoadmapNote">${esc(fr.note||'')}</textarea></label></div><div class="top-actions"><button class="primary" data-action="saveRoadmapSettings">Сохранить</button><button class="ghost" data-action="createEmergencyGoal">Создать цель подушки</button></div>`); }
+function saveRoadmapSettings(){ v46EnsureRoadmapState(); Object.assign(state.financeRoadmap,{emergencyTargetMonths:num(val('mEmergencyMonths'))||3, emergencyMonthlyNeed:num(val('mEmergencyNeed')), emergencyCurrent:num(val('mEmergencyCurrent')), monthlySavingsTarget:num(val('mSavingsTarget')), debtStrategy:val('mDebtStrategy')||'snowball', note:val('mRoadmapNote'), updatedAt:new Date().toISOString()}); save(); closeModal(); render(); toast('Дорожная карта сохранена'); }
+function createEmergencyGoal(){ v46EnsureRoadmapState(); const target=v46EmergencyTarget(); const cur=v46EmergencyGoalCurrent(); let g=(state.goals||[]).find(x=>/подуш|резерв|безопас/i.test(String(x.title||''))); if(g){ Object.assign(g,{targetValue:target,currentValue:Math.max(num(g.currentValue),cur),metric:'₽',area:'Финансы',nextAction:g.nextAction||'Отложить первую сумму в подушку'}); } else { state.goals.unshift({id:uid(),title:'Подушка безопасности',area:'Финансы',metric:'₽',targetValue:target,currentValue:cur,deadline:'',why:'Спокойствие и защита от непредвиденных расходов',nextAction:'Отложить первую сумму в подушку',status:'Активна'}); }
+  save(); closeModal(); activePage='goals'; render(); toast('Цель подушки создана'); }
+function createSavingsTask(){ const amount=v46SavingsTarget(); state.tasks.unshift({id:uid(),title:`Отложить себе ${money(amount)}`,area:'Финансы',due:todayKey(),priority:'Высокий',status:'В работе',nextAction:'Перевести сумму на отдельный счёт/накопления'}); save(); closeModal(); render(); toast('Задача накоплений создана'); }
+function createDebtPlanTasks(){ const debts=v46DebtRows(); if(!debts.length) return toast('Активных долгов нет'); const first=debts[0]; state.tasks.unshift({id:uid(),title:`Составить платёж по долгу: ${first.person||'долг'} — ${money(first.amount)}`,area:'Финансы',due:todayKey(),priority:'Высокий',status:'В работе',nextAction:'Определи минимальный платёж и дату. Не бери новые долги до закрытия текущего шага.'}); save(); closeModal(); activePage='tasks'; render(); toast('Задача по долгу создана'); }
+function createMoneyRoadmapTasks(){ const steps=v46RoadmapSteps().filter(x=>!x.done).slice(0,3); if(!steps.length) return toast('Все базовые шаги закрыты'); for(const x of steps.reverse()){ state.tasks.unshift({id:uid(),title:x.title,area:'Финансы',due:todayKey(),priority:'Высокий',status:'В работе',nextAction:x.note}); } save(); activePage='tasks'; render(); toast('Созданы задачи дорожной карты'); }
+function runRoadmapCheck(){ const s=v46RoadmapSummary(); const steps=v46RoadmapSteps(); const next=steps.find(x=>!x.done); openModal('Проверка финансового пути V46', `<div class="metrics"><article class="metric"><b>${s.score}/100</b><span>Индекс</span></article><article class="metric"><b>${s.emergencyPct}%</b><span>Подушка</span></article><article class="metric"><b>${money(s.debt)}</b><span>Долги</span></article></div><section class="card panel"><h3>Следующий шаг</h3><p>${esc(next?next.title:'База в порядке')}</p><p class="sub">${esc(next?next.note:'Можно усиливать накопления и цели.')}</p></section><div class="top-actions"><button class="primary" data-page="roadmap">Открыть карту</button><button class="ghost" data-action="closeModal">ОК</button></div>`); }
+function v46HealthReport(){ const base=typeof v45HealthReport==='function'?v45HealthReport():{}; const s=v46RoadmapSummary(); return Object.assign({}, base, {version:SBOS_V46_DISPLAY, v46:true, roadmapScore:s.score, emergencyPct:s.emergencyPct, emergencyTarget:s.emergencyTarget, debtTotal:s.debt, savingsTarget:s.savingsTarget, uncategorized:s.uncategorized}); }
+function injectV46Styles(){ if(document.getElementById('v46RoadmapStyles')) return; const st=document.createElement('style'); st.id='v46RoadmapStyles'; st.textContent=`
+.v46-roadmap-widget{background:linear-gradient(135deg,rgba(36,25,20,.05),rgba(111,78,55,.10));border:1px solid rgba(111,78,55,.16)}.v46-mini-road{display:flex;align-items:center;justify-content:space-between;gap:14px}.v46-mini-road b{display:block;font-size:18px}.v46-mini-road span{display:block;color:var(--muted);font-size:13px;margin-top:4px}.v46-roadmap-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}.v46-step{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;margin:10px 0;background:rgba(255,255,255,.65)}.v46-step i{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:#efe6dc;font-style:normal;font-weight:800}.v46-step.done i{background:#e6f4ea;color:#16723a}.v46-step.todo i{background:#fff2d6;color:#9a6500}.v46-step p{margin:4px 0 0;color:var(--muted);font-size:13px}.v46-category-bars{display:grid;gap:12px}.v46-cat{position:relative;display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px;border-radius:16px;background:rgba(36,25,20,.04);overflow:hidden}.v46-cat i{position:absolute;left:0;bottom:0;height:4px;background:var(--accent);border-radius:4px}.v46-rail{display:grid;gap:18px}.v46-head .page-label{color:var(--accent)}@media(max-width:860px){.v46-roadmap-grid{grid-template-columns:1fr}.v46-step{grid-template-columns:34px 1fr}.v46-step button{grid-column:2}.v46-mini-road{align-items:flex-start;flex-direction:column}.v46-rail{display:block}.v46-rail .card{margin-bottom:14px}}
+`; document.head.appendChild(st); }
+function v46PatchVisibleVersion(){
+  try{
+    document.title='Second Brain OS — V46 Financial Roadmap';
+    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V46);
+    const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V46_DISPLAY; rb.setAttribute('data-build-version',SBOS_V46_DISPLAY); rb.title=SBOS_V46; }
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='FINANCIAL ROADMAP'; } });
+    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V46, visible:SBOS_V46, display:SBOS_V46_DISPLAY});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V46); }catch(_e){}
+  }catch(e){ console.warn('V46 version patch failed', e); }
+}
+function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46'); }catch(_e){} }
+try{
+  v46EnsureRoadmapState();
+  if(typeof v451PatchVisibleVersion==='function') v451PatchVisibleVersion = v46PatchVisibleVersion;
+  if(window.__sbosV451Observer){ try{ window.__sbosV451Observer.disconnect(); }catch(_e){} }
+  if(Array.isArray(navGroups)){
+    const has=id=>navGroups.some(g=>g[1].some(x=>x[0]===id));
+    const moneyGroup=navGroups.find(g=>g[0]==='Деньги');
+    if(moneyGroup && !has('roadmap')) moneyGroup[1].splice(4,0,['roadmap','◇','Дорожная карта']);
+    pageTitles.roadmap='Дорожная карта';
+  }
+  const __v46_oldRoute = typeof route==='function' ? route : null;
+  if(__v46_oldRoute){ route=function(){ if(activePage==='roadmap') return roadmap(); return __v46_oldRoute.apply(this, arguments); }; }
+  const __v46_oldMobileNav = typeof mobileNav==='function' ? mobileNav : null;
+  if(__v46_oldMobileNav){ mobileNav=function(){ const items=[['dashboard','⌂','Главная'],['budget','▤','Бюджет'],['quick','＋',''],['roadmap','◇','Карта'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; }; }
+  const __v46_oldDashboard = typeof dashboard==='function' ? dashboard : null;
+  if(__v46_oldDashboard){ dashboard=function(){ v46EnsureRoadmapState(); const base=String(__v46_oldDashboard.apply(this, arguments)); const card=`<div class="v46-dashboard-roadmap">${v46RoadmapCard()}</div>`; if(base.includes('v45-dashboard-budget')) return base.replace('<div class="v45-dashboard-budget">', card+'<div class="v45-dashboard-budget">'); return card+base; }; }
+  const __v46_oldDiagnostics = typeof diagnostics==='function' ? diagnostics : null;
+  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
+  const __v46_oldRunHealthCheck = typeof runHealthCheck==='function' ? runHealthCheck : null;
+  if(__v46_oldRunHealthCheck){ runHealthCheck=function(){ openModal('Проверка системы V46', `<pre class="diagnostic-pre">${esc(JSON.stringify(v46HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }; }
+  const __v46_oldHandleAction = typeof handleAction==='function' ? handleAction : null;
+  if(__v46_oldHandleAction){ handleAction=function(a,el){ if(a==='openRoadmapSettings') return openRoadmapSettings(); if(a==='saveRoadmapSettings') return saveRoadmapSettings(); if(a==='createEmergencyGoal') return createEmergencyGoal(); if(a==='createSavingsTask') return createSavingsTask(); if(a==='createDebtPlanTasks') return createDebtPlanTasks(); if(a==='createMoneyRoadmapTasks') return createMoneyRoadmapTasks(); if(a==='runRoadmapCheck') return runRoadmapCheck(); if(a==='forceVersionBadgeRepair') return forceVersionBadgeRepair(); return __v46_oldHandleAction.apply(this, arguments); }; }
+  const __v46_oldRender = typeof render==='function' ? render : null;
+  if(__v46_oldRender){ render=function(){ v46EnsureRoadmapState(); const r=__v46_oldRender.apply(this, arguments); injectV46Styles(); v46PatchVisibleVersion(); return r; }; }
+  const __v46_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v46_oldOpenModal){ openModal=function(){ const r=__v46_oldOpenModal.apply(this, arguments); injectV46Styles(); v46PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV46={version:SBOS_V46,display:SBOS_V46_DISPLAY,roadmap,summary:v46RoadmapSummary,health:v46HealthReport};
+  try{ v42LogAction('system','Установлена Financial Roadmap V46',{version:SBOS_V46}); }catch(_e){}
+  injectV46Styles(); v46PatchVisibleVersion();
+  setTimeout(v46PatchVisibleVersion,50); setTimeout(v46PatchVisibleVersion,250); setTimeout(v46PatchVisibleVersion,1000); setTimeout(v46PatchVisibleVersion,3000);
+}catch(e){ console.warn('V46 Financial Roadmap failed', e); }
 
 </script>
 </body>
