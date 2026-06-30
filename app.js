@@ -3196,3 +3196,61 @@ try{
   save({reason:'v45-analytics-budget-coach'}); render(); v45PatchVisibleVersion(); setTimeout(v45PatchVisibleVersion,100); setTimeout(v45PatchVisibleVersion,600); setTimeout(v45PatchVisibleVersion,1600); setTimeout(v45PatchVisibleVersion,3200);
 }catch(e){ console.warn('V45 Analytics Budget Coach failed', e); }
 try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {analyticsBudgetCoach:SBOS_V45, v45BudgetSummary, v45HealthReport}); }catch(_e){}
+
+
+/* V45.1 VERSION BADGE HOTFIX — hard lock visible build labels */
+const SBOS_V451 = 'v45-1-version-badge-hotfix-private-20260630';
+const SBOS_V451_DISPLAY = 'V45.1 VERSION LOCK';
+function v451PatchVisibleVersion(){
+  try{
+    document.title='Second Brain OS — V45.1 Version Lock';
+    const meta=document.querySelector('meta[name="second-brain-build"]');
+    if(meta) meta.setAttribute('content',SBOS_V451);
+    const rb=document.getElementById('releaseBadge');
+    if(rb){ rb.textContent=SBOS_V451_DISPLAY; rb.setAttribute('data-build-version',SBOS_V451_DISPLAY); rb.title=SBOS_V451; }
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{
+      box.setAttribute('data-build-version',SBOS_V451_DISPLAY);
+      const b=box.matches('b')?box:box.querySelector('b');
+      if(b) b.textContent='V45.1';
+      const s=box.querySelector('.sync-dot, small:nth-child(1), span');
+      if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|V4[0-5]/i.test(String(s.textContent||''))){ s.textContent='ANALYTICS PRO + VERSION LOCK'; }
+    });
+    document.querySelectorAll('body *').forEach(el=>{
+      if(el.children && el.children.length>0) return;
+      const t=String(el.textContent||'').trim();
+      if(/^V40\.12$|^V40$|^V41$|^V42$|^V43$|^V44$|^V45$|^V41 IMPORT REVIEW CORE$|^V42 PRODUCT ENGINE$|^V43 PERSONAL OS$|^V44 FINANCE MENTOR$|^V45 ANALYTICS PRO$/i.test(t)){
+        el.textContent = /V40|V41|V42|V43|V44|V45/i.test(t) && t.length<=8 ? 'V45.1' : SBOS_V451_DISPLAY;
+      }
+      if(/UPDATE SAFE \+ DATA GUARD|UPDATE SAFE|DATA GUARD/i.test(t)) el.textContent='ANALYTICS PRO + VERSION LOCK';
+    });
+    if(window.SecondBrainBuild){ window.SecondBrainBuild.visible=SBOS_V451; window.SecondBrainBuild.display=SBOS_V451_DISPLAY; }
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V451); }catch(_e){}
+  }catch(e){ console.warn('V45.1 version patch failed', e); }
+}
+function v451InstallVersionObserver(){
+  try{
+    if(window.__sbosV451ObserverInstalled) return;
+    window.__sbosV451ObserverInstalled=true;
+    const run=()=>v451PatchVisibleVersion();
+    const obs=new MutationObserver(()=>{ clearTimeout(window.__sbosV451Timer); window.__sbosV451Timer=setTimeout(run,30); });
+    obs.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+    window.__sbosV451Observer=obs;
+    let ticks=0;
+    const int=setInterval(()=>{ run(); ticks++; if(ticks>240) clearInterval(int); },500);
+  }catch(e){ console.warn('V45.1 observer failed', e); }
+}
+function forceVersionBadgeRepair(){ v451PatchVisibleVersion(); try{ toast('Версия обновлена: V45.1'); }catch(_e){} }
+try{
+  const __v451_oldRender = typeof render === 'function' ? render : null;
+  if(__v451_oldRender){ render = function(){ const r=__v451_oldRender.apply(this, arguments); v451PatchVisibleVersion(); return r; }; }
+  const __v451_oldOpenModal = typeof openModal === 'function' ? openModal : null;
+  if(__v451_oldOpenModal){ openModal = function(){ const r=__v451_oldOpenModal.apply(this, arguments); v451PatchVisibleVersion(); return r; }; }
+  const __v451_oldHandleAction = typeof handleAction === 'function' ? handleAction : null;
+  if(__v451_oldHandleAction){ handleAction = function(a, el){ if(a==='forceVersionBadgeRepair') return forceVersionBadgeRepair(); return __v451_oldHandleAction.apply(this, arguments); }; }
+  const __v451_oldDiagnostics = typeof diagnostics === 'function' ? diagnostics : null;
+  if(__v451_oldDiagnostics){ diagnostics = function(){ const base=__v451_oldDiagnostics.apply(this, arguments); return String(base).replace('</section><div class="v44-hidden-base">', `</section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">Фактическая сборка V45.1 принудительно исправляет старую плашку снизу слева.</p></div><span class="tag green">V45.1</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">`); }; }
+  window.SecondBrainV451={version:SBOS_V451, display:SBOS_V451_DISPLAY, patch:v451PatchVisibleVersion, repair:forceVersionBadgeRepair};
+  window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {versionBadgeHotfix:SBOS_V451, visibleDisplay:SBOS_V451_DISPLAY});
+  v451InstallVersionObserver(); v451PatchVisibleVersion();
+  setTimeout(v451PatchVisibleVersion,50); setTimeout(v451PatchVisibleVersion,250); setTimeout(v451PatchVisibleVersion,1000); setTimeout(v451PatchVisibleVersion,3000);
+}catch(e){ console.warn('V45.1 Version Badge Hotfix failed', e); }
