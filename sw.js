@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-debt-category-real-fix-20260630';
+const CACHE_NAME = 'second-brain-os-category-delete-final-fix-20260630';
 self.addEventListener('install', event => self.skipWaiting());
 self.addEventListener('activate', event => {
   event.waitUntil((async()=>{

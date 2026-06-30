@@ -731,7 +731,7 @@ try{render()}catch(e){console.error(e)}
 
 /* ===== DEBT + CATEGORY REAL FIX — operation-derived debts + persistent category delete ===== */
 (function(){
-  const BUILD='debt-category-real-fix-20260630-1';
+  const BUILD='category-delete-final-fix-20260630-1';
   try{localStorage.setItem('secondBrainOS.currentBuild', BUILD);}catch(e){}
 
   function sbosMsg(msg){ try{toast(msg)}catch(e){ console.log('[SBOS]', msg); } }
@@ -949,4 +949,216 @@ try{render()}catch(e){console.error(e)}
   ensureArrays();
   save(false);
   setTimeout(()=>{try{render(); wireRealButtons();}catch(e){console.error(e)}},0);
+})();
+
+
+/* ===== CATEGORY DELETE FINAL FIX — name-based persistent deletion ===== */
+(function(){
+  const BUILD_CAT_FINAL = 'category-delete-final-fix-20260630-1';
+  try{ localStorage.setItem('secondBrainOS.currentBuild', BUILD_CAT_FINAL); }catch(e){}
+
+  function msg(text){ try{ toast(text); }catch(e){ console.log('[SBOS]', text); } }
+  function normName(v){ return String(v||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+  function typeNorm(v){ return (String(v||'').toLowerCase()==='income' || String(v||'').toLowerCase()==='доход') ? 'income' : 'expense'; }
+  function catNameKey(v){ return normName(v); }
+  function catFullKey(name,type){ return catNameKey(name)+'|'+typeNorm(type); }
+  function ensureCategoryState(){
+    state = state || {};
+    state.settings = state.settings || {};
+    state.categories = Array.isArray(state.categories) ? state.categories : [];
+    state.operations = Array.isArray(state.operations) ? state.operations : [];
+    state.plannedPurchases = Array.isArray(state.plannedPurchases) ? state.plannedPurchases : [];
+    state.budgets = Array.isArray(state.budgets) ? state.budgets : [];
+    state.settings.deletedCategories = Array.isArray(state.settings.deletedCategories) ? state.settings.deletedCategories : [];
+    state.settings.deletedCategoryNames = Array.isArray(state.settings.deletedCategoryNames) ? state.settings.deletedCategoryNames : [];
+  }
+  function isNameDeleted(name){
+    ensureCategoryState();
+    const k=catNameKey(name);
+    if(!k) return false;
+    return state.settings.deletedCategoryNames.map(String).includes(k) || state.settings.deletedCategories.map(String).some(x=>String(x).split('|')[0]===k);
+  }
+  function rememberDeletedCategory(name,type){
+    ensureCategoryState();
+    const nk=catNameKey(name), fk=catFullKey(name,type);
+    if(nk && !state.settings.deletedCategoryNames.includes(nk)) state.settings.deletedCategoryNames.push(nk);
+    if(fk && !state.settings.deletedCategories.includes(fk)) state.settings.deletedCategories.push(fk);
+  }
+  function unrememberDeletedCategory(name,type){
+    ensureCategoryState();
+    const nk=catNameKey(name), fk=catFullKey(name,type);
+    state.settings.deletedCategoryNames = state.settings.deletedCategoryNames.filter(x=>String(x)!==nk);
+    state.settings.deletedCategories = state.settings.deletedCategories.filter(x=>String(x)!==fk && String(x).split('|')[0]!==nk);
+  }
+  function cleanupDeletedCategories(){
+    ensureCategoryState();
+    const deletedNames = new Set((state.settings.deletedCategoryNames||[]).map(String));
+    const deletedFull = new Set((state.settings.deletedCategories||[]).map(String));
+    state.categories = (state.categories||[])
+      .map(c=>({...c,type:typeNorm(c.type),name:String(c.name||'').trim()}))
+      .filter(c=>c.name && !deletedNames.has(catNameKey(c.name)) && !deletedFull.has(catFullKey(c.name,c.type)));
+    const seen=new Set();
+    state.categories = state.categories.filter(c=>{
+      const k=catFullKey(c.name,c.type);
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+  function reassignCategoryEverywhere(oldName,newName='Без категории'){
+    ensureCategoryState();
+    const oldK=catNameKey(oldName);
+    [state.operations,state.plannedPurchases,state.budgets].forEach(arr=>{
+      (arr||[]).forEach(x=>{
+        if(catNameKey(x.category)===oldK) x.category=newName;
+      });
+    });
+  }
+  function hardPersistAndRender(text){
+    cleanupDeletedCategories();
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      localStorage.setItem(META_KEY, JSON.stringify({app:APP_NAME,build:BUILD_CAT_FINAL,updatedAt:new Date().toISOString()}));
+    }catch(e){ console.error(e); }
+    try{ render(); }catch(e){ console.error(e); }
+    if(text) msg(text);
+  }
+
+  // Global protection: normalize can no longer recreate a deleted category from old operations/budgets.
+  try{
+    const oldNormalize = normalizeState;
+    normalizeState = function(raw){
+      const next = oldNormalize(raw);
+      try{
+        const deletedNames = new Set([...
+          (((raw&&raw.settings&&raw.settings.deletedCategoryNames)||[]).map(String)),
+          ...(((state&&state.settings&&state.settings.deletedCategoryNames)||[]).map(String))
+        ]);
+        const deletedFull = new Set([...
+          (((raw&&raw.settings&&raw.settings.deletedCategories)||[]).map(String)),
+          ...(((state&&state.settings&&state.settings.deletedCategories)||[]).map(String))
+        ]);
+        next.settings = next.settings || {};
+        next.settings.deletedCategoryNames = Array.from(new Set([...(next.settings.deletedCategoryNames||[]),...deletedNames]));
+        next.settings.deletedCategories = Array.from(new Set([...(next.settings.deletedCategories||[]),...deletedFull]));
+        next.categories = (next.categories||[])
+          .map(c=>({...c,type:typeNorm(c.type),name:String(c.name||'').trim()}))
+          .filter(c=>c.name && !next.settings.deletedCategoryNames.includes(catNameKey(c.name)) && !next.settings.deletedCategories.includes(catFullKey(c.name,c.type)));
+        const seen = new Set();
+        next.categories = next.categories.filter(c=>{ const k=catFullKey(c.name,c.type); if(seen.has(k)) return false; seen.add(k); return true; });
+      }catch(e){ console.error('[category normalize protection]',e); }
+      return next;
+    };
+    window.normalizeState = normalizeState;
+  }catch(e){}
+
+  try{
+    const oldDerive = deriveCategories;
+    deriveCategories = function(s){
+      const arr = oldDerive(s)||[];
+      const deletedNames = new Set([...
+        (((s&&s.settings&&s.settings.deletedCategoryNames)||[]).map(String)),
+        ...(((state&&state.settings&&state.settings.deletedCategoryNames)||[]).map(String))
+      ]);
+      return arr.filter(c=>!deletedNames.has(catNameKey(c.name)) && !isNameDeleted(c.name));
+    };
+    window.deriveCategories = deriveCategories;
+  }catch(e){}
+
+  function findCategoryByIdOrName(id, el){
+    ensureCategoryState();
+    let c = (state.categories||[]).find(x=>String(x.id)===String(id));
+    if(c) return c;
+    const row = el && el.closest ? el.closest('.category-row,.list-row') : null;
+    const name = row ? (row.querySelector('.row-title')?.textContent || '') : '';
+    if(name) c = (state.categories||[]).find(x=>catNameKey(x.name)===catNameKey(name));
+    return c || null;
+  }
+
+  function deleteCategoryFinal(id, el){
+    ensureCategoryState();
+    const c = findCategoryByIdOrName(id, el);
+    if(!c){ msg('Категория не найдена. Обнови страницу через force-update и попробуй ещё раз.'); return true; }
+    const name = String(c.name||'').trim();
+    if(catNameKey(name)==='без категории') { msg('«Без категории» — служебная категория, её лучше оставить.'); return true; }
+    const used = (state.operations||[]).filter(o=>catNameKey(o.category)===catNameKey(name)).length + (state.plannedPurchases||[]).filter(p=>catNameKey(p.category)===catNameKey(name)).length + (state.budgets||[]).filter(b=>catNameKey(b.category)===catNameKey(name)).length;
+    const ok = confirm(`Удалить категорию «${name}»?${used?`\n${used} связанных записей будут переведены в «Без категории».`:''}`);
+    if(!ok) return true;
+    rememberDeletedCategory(name,c.type);
+    reassignCategoryEverywhere(name,'Без категории');
+    state.categories = (state.categories||[]).filter(x=>catNameKey(x.name)!==catNameKey(name));
+    hardPersistAndRender('Категория удалена');
+    return true;
+  }
+
+  function editCategoryFinal(id, el){
+    ensureCategoryState();
+    const c = findCategoryByIdOrName(id, el);
+    if(!c){ msg('Категория не найдена'); return true; }
+    openModal('Редактировать категорию',`<div class="form-grid">${field('Название','f_name',c.name)}<div class="field"><label>Тип</label><select id="f_type"><option value="expense" ${typeNorm(c.type)==='expense'?'selected':''}>Расход</option><option value="income" ${typeNorm(c.type)==='income'?'selected':''}>Доход</option></select></div>${field('Лимит в месяц','f_limit',c.limit)}</div><div class="actions"><button type="button" class="btn" data-action="saveEditedCategory" data-id="${esc(c.id)}">Сохранить</button></div>`);
+    return true;
+  }
+  function saveEditedCategoryFinal(id){
+    ensureCategoryState();
+    const c=(state.categories||[]).find(x=>String(x.id)===String(id));
+    if(!c){ msg('Категория не найдена'); return true; }
+    const oldName=c.name;
+    const newName=(formVal('f_name')||c.name||'Категория').trim();
+    const newType=typeNorm(formVal('f_type')||c.type);
+    unrememberDeletedCategory(newName,newType);
+    c.name=newName; c.type=newType; c.limit=num(formVal('f_limit'));
+    [state.operations,state.plannedPurchases,state.budgets].forEach(arr=>(arr||[]).forEach(x=>{ if(catNameKey(x.category)===catNameKey(oldName)) x.category=newName; }));
+    try{closeModal()}catch(e){}
+    hardPersistAndRender('Категория сохранена');
+    return true;
+  }
+  function saveCategoryFinal(){
+    ensureCategoryState();
+    const name=(formVal('f_name')||'Категория').trim();
+    const type=typeNorm(formVal('f_type')||'expense');
+    unrememberDeletedCategory(name,type);
+    const existing=state.categories.find(c=>catFullKey(c.name,c.type)===catFullKey(name,type));
+    if(existing){ existing.limit=num(formVal('f_limit')); }
+    else state.categories.push({id:uid(),name,type,limit:num(formVal('f_limit'))});
+    try{closeModal()}catch(e){}
+    hardPersistAndRender('Категория добавлена');
+    return true;
+  }
+
+  const prevForce = window.SBOS_FORCE_ACTION;
+  window.SBOS_FORCE_ACTION = function(action,id,el){
+    try{
+      action = action || (el&&el.dataset&&el.dataset.action) || '';
+      id = id || (el&&el.dataset&&el.dataset.id) || '';
+      if(action==='deleteCategory') return deleteCategoryFinal(id,el);
+      if(action==='editCategory') return editCategoryFinal(id,el);
+      if(action==='saveEditedCategory') return saveEditedCategoryFinal(id);
+      if(action==='saveCategory') return saveCategoryFinal();
+      return prevForce ? prevForce(action,id,el) : false;
+    }catch(err){ console.error('[SBOS category final]',err); msg('Ошибка категории: '+(err.message||action)); return true; }
+  };
+
+  // Strong direct hooks on every render; previous document handlers call the current SBOS_FORCE_ACTION.
+  function wireCategoryButtons(){
+    document.querySelectorAll('[data-action="deleteCategory"],[data-action="editCategory"],[data-action="saveEditedCategory"],[data-action="saveCategory"]').forEach(btn=>{
+      btn.setAttribute('type','button');
+      if(btn.__sbosCatFinal) return;
+      btn.__sbosCatFinal=true;
+      btn.addEventListener('click',function(ev){
+        ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+        window.SBOS_FORCE_ACTION(this.dataset.action,this.dataset.id,this);
+        return false;
+      }, true);
+      const a=btn.dataset.action||'', id=String(btn.dataset.id||'').replace(/'/g,"\\'");
+      btn.setAttribute('onclick',`return window.SBOS_FORCE_ACTION('${a}','${id}',this), false`);
+    });
+  }
+  try{
+    const oldRender = render;
+    render = function(){ const out=oldRender.apply(this,arguments); setTimeout(wireCategoryButtons,0); setTimeout(wireCategoryButtons,80); return out; };
+    window.render = render;
+  }catch(e){}
+  ensureCategoryState();
+  cleanupDeletedCategories();
+  hardPersistAndRender();
+  setInterval(wireCategoryButtons,1000);
 })();
