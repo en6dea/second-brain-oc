@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-life-folders-calendar-light-tech';
+const CACHE_NAME = 'second-brain-os-life-polish-light-tech';
 const APP_SHELL = ['./','./index.html','./app.js','./manifest.webmanifest','./offline.html'];
 self.addEventListener('install', event => {
   self.skipWaiting();
