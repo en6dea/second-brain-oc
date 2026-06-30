@@ -10,7 +10,7 @@
   <meta name="description" content="Second Brain OS — личная система для финансов, задач, целей, привычек и сфер жизни." />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="unified-planning-monthly-forecast-20260630" />
+  <meta name="second-brain-build" content="wishlist-payments-daily-interview-20260630" />
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -63,6 +63,9 @@
     .unified-plan-main{min-width:0}.unified-plan-top{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}.unified-plan-actions{margin-top:0;justify-content:flex-end}.unified-plan-image{width:118px;height:76px;object-fit:cover;border-radius:18px;border:1px solid #e6edf7;box-shadow:0 10px 20px rgba(15,23,42,.06)}
     .monthly-plan-card{margin-top:0}.monthly-plan-grid{display:grid;gap:10px}.monthly-plan-row{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #e6edf7;background:#f8fbff;border-radius:18px;padding:12px}.monthly-plan-row.current{background:linear-gradient(135deg,#eef5ff,#fff);border-color:#bfdbfe}.monthly-total{font-weight:900;color:#0f172a;white-space:nowrap}.monthly-plan-card-inner .card-head{display:none}
     @media(max-width:760px){.unified-plan-item{grid-template-columns:1fr}.unified-plan-image{width:100%;height:150px}.unified-plan-actions{justify-content:flex-start}.monthly-plan-row{align-items:flex-start;flex-direction:column}.monthly-total{font-size:18px}}
+
+  
+    .image-picker-field{grid-column:1/-1}.image-picker-box{border:1px dashed #cfe0f6;border-radius:22px;background:linear-gradient(135deg,#f8fbff,#fff);padding:12px}.image-picker-preview{min-height:126px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:rgba(239,246,255,.75);overflow:hidden}.image-picker-preview img{width:100%;max-height:240px;object-fit:cover;border-radius:18px;display:block}.image-picker-empty{display:flex;flex-direction:column;align-items:center;gap:5px;color:#2563eb}.image-picker-empty b{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;background:#eaf2ff;font-size:28px}.image-picker-empty small{color:#64748b}.image-upload-label{position:relative;overflow:hidden;cursor:pointer}.image-upload-label input{position:absolute;inset:0;opacity:0;cursor:pointer}.notebook-card{background:linear-gradient(135deg,#fff,#f8fbff);border-color:#dceaff}.notebook-quote,.notebook-question{border:1px solid #e3ecfb;border-radius:20px;background:#fff;padding:14px;margin-bottom:10px;box-shadow:0 10px 24px rgba(31,111,255,.06)}.notebook-quote span,.notebook-question span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:6px}.notebook-quote b,.notebook-question b{font-size:16px;line-height:1.35;color:#0f172a}.notebook-paper{background:repeating-linear-gradient(#fff,#fff 31px,#eef4ff 32px);border:1px solid #e3ecfb;border-radius:22px;padding:14px;margin:12px 0}.notebook-paper textarea{background:transparent;min-height:126px}.notebook-quote-line{font-weight:800;margin-bottom:8px;color:#1d4ed8}.daily-subconscious-card{position:relative;overflow:hidden}.daily-sub-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.habit-month-grid.compact-interview-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}.habit-day{border:1px solid #d9e7fb;background:#fff;border-radius:10px;min-height:30px;font-weight:800;color:#64748b}.habit-day.on{background:#2563eb;color:#fff;border-color:#2563eb}.habit-day.today{box-shadow:0 0 0 3px rgba(37,99,235,.16)}.daily-sub-recent{display:grid;gap:10px;margin-top:12px}.daily-sub-note{text-align:left}.notebook-entry{background:linear-gradient(135deg,#fff,#f8fbff)}.subfolder-tabs{margin:0 0 14px}.smart-life-grid .smart-folder-card{text-align:left;align-items:flex-start}.subfolder-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.subfolder-chips span{font-size:11px;font-weight:800;color:#2563eb;background:#eef5ff;border:1px solid #dbeafe;border-radius:999px;padding:5px 8px}.final-plan-row.wishlist,.unified-plan-item.wishlist{background:linear-gradient(135deg,#fff,#fbf8ff);border-color:#ede9fe}.final-plan-row.payment,.unified-plan-item.payment{background:linear-gradient(135deg,#fff,#fff7f7);border-color:#fecaca}.planning-summary .field input{height:38px}.monthly-plan-row .row-sub{margin-top:4px}@media(max-width:760px){.daily-sub-grid{grid-template-columns:1fr}.image-picker-preview{min-height:110px}.image-picker-preview img{max-height:190px}}
 
   </style>
 </head>
@@ -1685,6 +1688,371 @@ window.budgetRow = budgetRow;
   window.addTask=addTask; window.saveTask=saveTask; window.editTask=editTask; window.saveEditedTask=saveEditedTask; window.rowTask=rowTask;
   try{Object.assign(windowActions,{addTask,saveTask,editTask,saveEditedTask});}catch(e){}
   try{render();}catch(e){}
+})();
+
+/* ===== FINAL WISHLIST + PAYMENTS + DAILY INTERVIEW NOTEBOOK — no Polina category ===== */
+(function(){
+  const FINAL_BUILD='wishlist-payments-daily-interview-20260630';
+  try{localStorage.setItem('secondBrainOS.currentBuild',FINAL_BUILD);localStorage.setItem('secondBrainOS.finalAddonBuild',FINAL_BUILD);}catch(e){}
+
+  function arr(k){ if(!Array.isArray(state[k])) state[k]=[]; return state[k]; }
+  function txt(v){ return String(v||'').trim(); }
+  function curMonth(){ return (state.settings&&state.settings.currentMonth) || monthKey(); }
+  function asMoney(v){ try{return money(v)}catch(e){return `${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`; } }
+  function byId(id){ return state.plannedPurchases.find(x=>String(x.id)===String(id)); }
+  function finalKind(v){ v=String(v||'').trim(); if(/хотел/i.test(v))return 'Вишлист'; if(!v)return 'Покупка'; return v; }
+  function isTemplateItem(x){
+    const s=`${x.title||''} ${x.note||''}`.toLowerCase();
+    return s.includes('пример хотелки') || s.includes('добавь реальные платежи полины') || (s.includes('обязательный платёж полины') && !num(x.amount));
+  }
+  function planItems(){ return arr('plannedPurchases'); }
+  function includedPlanItems(m){ return planItems().filter(p=>(!m || (p.month||curMonth())===m) && p.includeInBudget!==false && p.active!==false); }
+  function planTotal(m){ return includedPlanItems(m).reduce((a,b)=>a+num(b.amount),0); }
+  function wishItems(m){ return planItems().filter(p=>finalKind(p.kind)==='Вишлист' && (!m || (p.month||curMonth())===m)); }
+  function paymentItems(m){ return planItems().filter(p=>finalKind(p.kind)==='Обязательный платёж' && (!m || (p.month||curMonth())===m)); }
+
+  function normalizeFinalPlanningState(){
+    state.settings=state.settings||{};
+    arr('plannedPurchases'); arr('polinaWishes'); arr('polinaPayments'); arr('subconsciousDiary'); arr('notes'); arr('habits');
+    state.plannedPurchases=state.plannedPurchases.filter(p=>!isTemplateItem(p)).map(p=>{
+      if(!p.id)p.id=uid();
+      p.kind=finalKind(p.kind);
+      if(!p.owner)p.owner='Я';
+      if(!p.month)p.month=curMonth();
+      if(p.includeInBudget===undefined)p.includeInBudget=true;
+      if(p.kind==='Обязательный платёж' && !p.category)p.category='Обязательные платежи';
+      if(p.kind==='Вишлист' && !p.category)p.category='Вишлист';
+      return p;
+    });
+    const existing=new Set(state.plannedPurchases.map(p=>String(p.legacyKey||p.id)));
+    state.polinaWishes.filter(w=>!isTemplateItem(w)).forEach(w=>{
+      const key='polinaWish:'+String(w.id||`${w.title}|${w.amount}|${w.month}`);
+      if(existing.has(key))return;
+      state.plannedPurchases.unshift({id:uid(),legacyKey:key,title:w.title||'Пункт вишлиста',owner:w.owner||'Полина',kind:'Вишлист',category:w.category||'Вишлист',amount:num(w.amount),month:w.month||curMonth(),importance:w.priority||w.importance||'Важно',includeInBudget:w.includeInBudget!==false,link:w.link||'',image:w.image||'',note:w.note||''});
+      existing.add(key);
+    });
+    state.polinaPayments.filter(p=>!isTemplateItem(p)).forEach(p=>{
+      const key='polinaPayment:'+String(p.id||`${p.title}|${p.amount}|${p.month}`);
+      if(existing.has(key))return;
+      state.plannedPurchases.unshift({id:uid(),legacyKey:key,title:p.title||'Обязательный платёж',owner:p.owner||'Полина',kind:'Обязательный платёж',category:p.category||'Обязательные платежи',amount:num(p.amount),month:p.month||curMonth(),dueDay:num(p.dueDay)||10,importance:'Важно',includeInBudget:p.active!==false,active:p.active!==false,note:p.note||''});
+      existing.add(key);
+    });
+    // Старые отдельные массивы очищаем, чтобы шаблоны «Полины» не возвращались и не двоили прогноз.
+    state.polinaWishes=[];
+    state.polinaPayments=[];
+    dailyInterviewHabit();
+  }
+
+  function finalPlannedInMonth(m=curMonth()){ normalizeFinalPlanningState(); return includedPlanItems(m); }
+  plannedInMonth=function(){ return finalPlannedInMonth(curMonth()); };
+  window.plannedInMonth=plannedInMonth;
+
+  dueUntil=function(date){
+    normalizeFinalPlanningState();
+    const d=new Date(date||todayKey());
+    const m=monthKey(d);
+    const p=planItems().filter(x=>x.includeInBudget!==false && x.active!==false && (!x.due || x.due<=date) && (!x.month || x.month<=m)).reduce((a,b)=>a+num(b.amount),0);
+    const debts=(typeof activeOwe==='function'?activeOwe():activeDebts().filter(x=>String(x.direction||'owe')==='owe')).filter(x=>x.due&&x.due<=date).reduce((a,b)=>a+num(b.amount),0);
+    return p+debts;
+  };
+  window.dueUntil=dueUntil;
+
+  const prevSummaryFinal=summary;
+  summary=function(){
+    normalizeFinalPlanningState();
+    const s=prevSummaryFinal?prevSummaryFinal():{};
+    s.planned=planTotal(curMonth());
+    s.polinaForecast=0;
+    if(s.nextSalary&&s.nextSalary.date){
+      s.obligations=dueUntil(s.nextSalary.date);
+      s.toNext=(s.actual||0)-s.obligations;
+      s.dailyLimit=Math.max(0,Math.floor((s.toNext||0)/Math.max(1,s.daysToSalary||1)));
+      s.dailyLimitReason=s.dailyLimit===0?'свободного остатка до зарплаты нет: учтены долги и все пункты планирования':'расчёт от фактического остатка, долгов и единого планирования';
+    }
+    return s;
+  };
+  window.summary=summary;
+
+  function ownerSelectFinal(id,val='Я'){
+    const owners=['Я','Полина','Общее'];
+    return `<div class="field"><label>Кому принадлежит</label><select id="${id}">${owners.map(o=>`<option value="${esc(o)}" ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  }
+  function monthField(id,val){ return `<div class="field"><label>Месяц</label><input id="${id}" type="month" value="${esc(val||curMonth())}"></div>`; }
+  function kindSelectFinal(val='Покупка'){
+    const kinds=['Покупка','Вишлист','Будущая трата','Обязательный платёж'];
+    return `<div class="field"><label>Тип</label><select id="f_kind">${kinds.map(k=>`<option value="${esc(k)}" ${k===finalKind(val)?'selected':''}>${esc(k)}</option>`).join('')}</select></div>`;
+  }
+  function prioritySelect(val='Важно'){
+    const list=['Очень важно','Важно','Можно позже'];
+    return `<div class="field"><label>Важность</label><select id="f_importance">${list.map(x=>`<option ${x===val?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+  }
+  function includeSelect(val=true){ return `<div class="field"><label>Учитывать в прогнозе</label><select id="f_include"><option value="true" ${val!==false?'selected':''}>Да</option><option value="false" ${val===false?'selected':''}>Нет</option></select></div>`; }
+  function imagePicker(id='f_image',value=''){
+    value=String(value||'');
+    return `<div class="field image-picker-field"><label>Картинка</label><input id="${id}" type="hidden" value="${esc(value)}"><div class="image-picker-box ${value?'has-image':''}" data-image-box="${id}"><div class="image-picker-preview" data-image-preview="${id}">${value?`<img src="${esc(value)}" alt="" onerror="this.remove()">`:`<div class="image-picker-empty"><b>＋</b><span>Добавить картинку</span><small>с устройства, не ссылкой</small></div>`}</div><div class="button-row"><label class="mini-btn blue image-upload-label">＋ Загрузить<input type="file" accept="image/*" data-image-file="${id}"></label><button class="mini-btn" data-action="clearImageField" data-id="${id}" type="button">− Убрать</button></div></div></div>`;
+  }
+  function setImageField(id,value){
+    const input=document.getElementById(id); if(input) input.value=value||'';
+    const preview=document.querySelector(`[data-image-preview="${id}"]`);
+    const box=document.querySelector(`[data-image-box="${id}"]`);
+    if(preview){ preview.innerHTML=value?`<img src="${value}" alt="">`:`<div class="image-picker-empty"><b>＋</b><span>Добавить картинку</span><small>с устройства, не ссылкой</small></div>`; }
+    if(box) box.classList.toggle('has-image',!!value);
+  }
+  function clearImageField(id){ setImageField(id,''); }
+  window.clearImageField=clearImageField;
+
+  function compressImageFile(file,cb){
+    if(!file || !file.type || !file.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=function(){
+      const img=new Image();
+      img.onload=function(){
+        const max=1100;
+        let w=img.width,h=img.height;
+        if(w>max || h>max){ const k=Math.min(max/w,max/h); w=Math.round(w*k); h=Math.round(h*k); }
+        const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+        cb(canvas.toDataURL('image/jpeg',0.84));
+      };
+      img.onerror=function(){ cb(String(reader.result||'')); };
+      img.src=String(reader.result||'');
+    };
+    reader.readAsDataURL(file);
+  }
+  document.addEventListener('change',function(ev){
+    const el=ev.target&&ev.target.closest?ev.target.closest('[data-image-file]'):null;
+    if(!el||!el.files||!el.files[0])return;
+    const id=el.dataset.imageFile;
+    compressImageFile(el.files[0],function(data){ setImageField(id,data); });
+  },true);
+
+  function openPlanItemModal(item={},presetKind){
+    const e=item||{};
+    const kind=finalKind(presetKind||e.kind||'Покупка');
+    openModal(e.id?'Редактировать пункт планирования':(kind==='Вишлист'?'Добавить вишлист':kind==='Обязательный платёж'?'Добавить обязательный платёж':'Добавить покупку / трату'),
+      `<div class="form-grid">${field(kind==='Вишлист'?'Что хочется / нужно':'Название','f_title',e.title||'')}${ownerSelectFinal('f_owner',e.owner||'Я')}${kindSelectFinal(kind)}${field('Категория / подпапка','f_category',e.category||(kind==='Вишлист'?'Вишлист':kind==='Обязательный платёж'?'Обязательные платежи':'Покупки'))}${field('Сумма','f_amount',e.amount||'', 'number')}${monthField('f_month',e.month||curMonth())}${field('День месяца для платежа','f_dueDay',e.dueDay||'', 'number')}${prioritySelect(e.importance||e.priority||'Важно')}${includeSelect(e.includeInBudget!==false)}${field('Ссылка на товар / страницу','f_link',e.link||'')}${imagePicker('f_image',e.image||'')}${area('Комментарий','f_note',e.note||'')}</div><div class="actions"><button class="btn" data-action="${e.id?'saveEditedPurchase':'savePurchase'}" ${e.id?`data-id="${esc(e.id)}"`:''}>Сохранить</button>${e.id?`<button class="btn red" data-action="deletePurchase" data-id="${esc(e.id)}">Удалить</button>`:''}</div>`
+    );
+  }
+  addPurchase=function(){ openPlanItemModal({},'Покупка'); };
+  function addWishlistItem(){ openPlanItemModal({},'Вишлист'); }
+  function addPaymentItem(){ openPlanItemModal({},'Обязательный платёж'); }
+  savePurchase=function(){
+    normalizeFinalPlanningState();
+    const kind=finalKind(formVal('f_kind'));
+    state.plannedPurchases.unshift({id:uid(),title:formVal('f_title')||(kind==='Вишлист'?'Пункт вишлиста':'Пункт плана'),owner:formVal('f_owner')||'Я',kind,category:formVal('f_category')||(kind==='Вишлист'?'Вишлист':'Покупки'),amount:num(formVal('f_amount')),month:formVal('f_month')||curMonth(),dueDay:num(formVal('f_dueDay'))||'',importance:formVal('f_importance')||'Важно',includeInBudget:formVal('f_include')!=='false',active:formVal('f_include')!=='false',link:formVal('f_link'),image:formVal('f_image'),note:formVal('f_note')});
+    save(true); closeModal(); toast('Добавлено в единое планирование'); render();
+  };
+  editPurchase=function(id){ const p=byId(id); if(!p)return toast('Пункт не найден'); openPlanItemModal(p); };
+  saveEditedPurchase=function(id){
+    normalizeFinalPlanningState();
+    const p=byId(id); if(!p)return toast('Пункт не найден');
+    p.title=formVal('f_title')||p.title; p.owner=formVal('f_owner')||'Я'; p.kind=finalKind(formVal('f_kind')); p.category=formVal('f_category'); p.amount=num(formVal('f_amount')); p.month=formVal('f_month')||curMonth(); p.dueDay=num(formVal('f_dueDay'))||''; p.importance=formVal('f_importance')||'Важно'; p.includeInBudget=formVal('f_include')!=='false'; p.active=p.includeInBudget; p.link=formVal('f_link'); p.image=formVal('f_image'); p.note=formVal('f_note');
+    save(true); closeModal(); render();
+  };
+  deletePurchase=function(id){
+    normalizeFinalPlanningState();
+    const before=state.plannedPurchases.length;
+    state.plannedPurchases=state.plannedPurchases.filter(x=>String(x.id)!==String(id));
+    if(state.plannedPurchases.length===before)return toast('Пункт не найден');
+    save(true); toast('Удалено из планирования'); render();
+  };
+  // Старые действия оставляем как совместимые алиасы, но они больше не создают отдельную категорию Полины.
+  addPolinaWish=function(){ openPlanItemModal({owner:'Полина'},'Вишлист'); };
+  savePolinaWish=savePurchase;
+  editPolinaWish=editPurchase;
+  saveEditedPolinaWish=saveEditedPurchase;
+  deletePolinaWish=deletePurchase;
+  addPolinaPayment=function(){ openPlanItemModal({owner:'Полина'},'Обязательный платёж'); };
+  savePolinaPayment=savePurchase;
+  editPolinaPayment=editPurchase;
+  saveEditedPolinaPayment=saveEditedPurchase;
+  deletePolinaPayment=deletePurchase;
+
+  function ownerPillFinal(owner){ owner=owner||'Я'; const cls=owner==='Полина'?'violet':owner==='Общее'?'green':'blue'; return `<span class="pill ${cls}">${esc(owner)}</span>`; }
+  function kindTone(kind){ kind=finalKind(kind); return kind==='Вишлист'?'violet':kind==='Обязательный платёж'?'red':kind==='Будущая трата'?'amber':'green'; }
+  function rowPurchase(p){
+    p.kind=finalKind(p.kind);
+    const img=p.image?`<img class="unified-plan-image" src="${esc(p.image)}" loading="lazy" alt="" onerror="this.remove()">`:'';
+    return `<div class="unified-plan-item final-plan-row ${p.kind==='Вишлист'?'wishlist':p.kind==='Обязательный платёж'?'payment':'purchase'}">${img}<div class="unified-plan-main"><div class="unified-plan-top"><span class="pill ${kindTone(p.kind)}">${esc(p.kind)}</span>${ownerPillFinal(p.owner)}${p.amount?`<span class="pill green">${asMoney(p.amount)}</span>`:''}</div><div class="row-title">${esc(p.title||'Пункт плана')}</div><div class="row-sub">${esc(p.category||'Без категории')} · ${esc(monthTitleFinal(p.month||curMonth()))} · ${p.includeInBudget!==false?'в прогнозе':'вне прогноза'}${p.dueDay?` · день ${esc(p.dueDay)}`:''}</div></div><div class="button-row unified-plan-actions">${p.link?`<a class="mini-btn blue" href="${esc(p.link)}" target="_blank" rel="noopener">Ссылка</a>`:''}<button class="mini-btn" data-action="editPurchase" data-id="${esc(p.id)}">Ред.</button><button class="mini-btn red" data-action="deletePurchase" data-id="${esc(p.id)}">Удалить</button></div></div>`;
+  }
+  window.rowPurchase=rowPurchase;
+
+  function monthTitleFinal(m){
+    const [y,mm]=String(m||curMonth()).split('-').map(Number);
+    if(!y||!mm)return esc(m||'—');
+    return new Date(y,mm-1,1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  }
+  function addMonthFinal(m,shift){ const [y,mm]=String(m||curMonth()).split('-').map(Number); const d=new Date(y||new Date().getFullYear(),(mm||new Date().getMonth()+1)-1+shift,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function monthlyPlanRows(){
+    normalizeFinalPlanningState();
+    const map=new Map();
+    const take=(p)=>{
+      if(p.includeInBudget===false || p.active===false)return;
+      const m=p.month||curMonth();
+      if(!map.has(m))map.set(m,{month:m,total:0,self:0,polina:0,common:0,wishlist:0,payments:0,purchases:0});
+      const r=map.get(m), a=num(p.amount); r.total+=a;
+      if(p.owner==='Полина')r.polina+=a; else if(p.owner==='Общее')r.common+=a; else r.self+=a;
+      if(finalKind(p.kind)==='Вишлист')r.wishlist+=a; else if(finalKind(p.kind)==='Обязательный платёж')r.payments+=a; else r.purchases+=a;
+    };
+    planItems().forEach(take);
+    for(let i=0;i<6;i++){const m=addMonthFinal(curMonth(),i); if(!map.has(m))map.set(m,{month:m,total:0,self:0,polina:0,common:0,wishlist:0,payments:0,purchases:0});}
+    return Array.from(map.values()).sort((a,b)=>a.month.localeCompare(b.month));
+  }
+  function monthlyForecastBlock(){
+    const rows=monthlyPlanRows();
+    return `<section class="card monthly-plan-card"><div class="card-head"><div><h3>Запланированные расходы по месяцам</h3><p class="muted small">Единая сумма: покупки, вишлист, будущие траты и обязательные платежи. У каждого пункта есть владелец.</p></div><span class="pill green">${asMoney(planTotal(curMonth()))}</span></div><div class="monthly-plan-grid">${rows.map(r=>`<div class="monthly-plan-row ${r.month===curMonth()?'current':''}"><div><strong>${monthTitleFinal(r.month)}</strong><div class="row-sub">Я: ${asMoney(r.self)} · Полина: ${asMoney(r.polina)} · Общее: ${asMoney(r.common)}</div><div class="row-sub">Вишлист: ${asMoney(r.wishlist)} · Платежи: ${asMoney(r.payments)} · Покупки/траты: ${asMoney(r.purchases)}</div></div><div class="monthly-total">${asMoney(r.total)}</div></div>`).join('')}</div></section>`;
+  }
+
+  function getUnifiedItems(){
+    normalizeFinalPlanningState();
+    const m=state.settings.planningMonth||curMonth();
+    const owner=state.settings.planningOwner||'all';
+    const kind=state.settings.planningKind||'all';
+    const items=[];
+    arr('tasks').forEach(t=>items.push({source:'task',id:t.id,title:t.title,owner:t.owner||'Я',kind:'Задача',amount:0,month:(t.due||curMonth()).slice(0,7)||curMonth(),date:t.due||'',time:t.time||'',meta:t.area||'Личное',image:t.image||'',include:true,priority:t.priority||'B'}));
+    arr('calendarEvents').forEach(e=>items.push({source:'event',id:e.id,title:e.title,owner:e.owner||'Общее',kind:'Событие',amount:0,month:(e.date||curMonth()).slice(0,7)||curMonth(),date:e.date||'',time:e.time||'',meta:e.area||'Календарь',image:e.image||'',include:true,priority:'B'}));
+    planItems().forEach(p=>items.push({source:'purchase',id:p.id,title:p.title,owner:p.owner||'Я',kind:finalKind(p.kind),amount:num(p.amount),month:p.month||curMonth(),date:p.due||'',time:'',meta:`${p.category||'Без категории'} · ${p.includeInBudget!==false?'в прогнозе':'вне прогноза'}`,image:p.image||'',link:p.link||'',include:p.includeInBudget!==false,priority:p.importance||'Важно'}));
+    return items.filter(x=>(!m || x.month===m) && (owner==='all' || x.owner===owner) && (kind==='all' || x.kind===kind));
+  }
+  function setPlanningKind(id){ state.settings.planningKind=id||'all'; save(true); render(); }
+  function planKindTabs(){ const cur=state.settings.planningKind||'all'; const tabs=[['all','Все'],['Задача','Задачи'],['Событие','Календарь'],['Вишлист','Вишлист'],['Обязательный платёж','Платежи'],['Будущая трата','Будущие траты'],['Покупка','Покупки']]; return `<div class="button-row plan-tabs subfolder-tabs">${tabs.map(([id,label])=>`<button class="tab-btn ${cur===id?'active':''}" data-action="setPlanningKind" data-id="${esc(id)}">${esc(label)}</button>`).join('')}</div>`; }
+  function rowUnifiedFinal(x){
+    const img=x.image?`<img class="unified-plan-image" src="${esc(x.image)}" loading="lazy" alt="" onerror="this.remove()">`:'';
+    const action=x.source==='task'?'editTask':x.source==='event'?'editEvent':'editPurchase';
+    const del=x.source==='purchase'?`<button class="mini-btn red" data-action="deletePurchase" data-id="${esc(x.id)}">Удалить</button>`:'';
+    const link=x.link?`<a class="mini-btn blue" href="${esc(x.link)}" target="_blank" rel="noopener">Ссылка</a>`:'';
+    const dateLine=x.date?`${esc(x.date)} ${esc(x.time||'')} · `:'';
+    return `<div class="unified-plan-item ${x.kind==='Вишлист'?'wishlist':x.kind==='Обязательный платёж'?'payment':x.source}">${img}<div class="unified-plan-main"><div class="unified-plan-top"><span class="pill ${kindTone(x.kind)}">${esc(x.kind)}</span>${ownerPillFinal(x.owner)}${x.amount?`<span class="pill green">${asMoney(x.amount)}</span>`:''}</div><div class="row-title">${esc(x.title||'Пункт')}</div><div class="row-sub">${dateLine}${esc(monthTitleFinal(x.month))} · ${esc(x.meta||'')}</div></div><div class="button-row unified-plan-actions">${link}<button class="mini-btn" data-action="${action}" data-id="${esc(x.id)}">Ред.</button>${del}</div></div>`;
+  }
+  function ownerTabsFinal(){ const cur=state.settings.planningOwner||'all'; const tabs=[['all','Все'],['Я','Я'],['Полина','Полина'],['Общее','Общее']]; return `<div class="button-row plan-tabs">${tabs.map(([id,label])=>`<button class="tab-btn ${cur===id?'active':''}" data-action="setPlanningOwner" data-id="${esc(id)}">${esc(label)}</button>`).join('')}</div>`; }
+  function setPlanningOwner(id){ state.settings.planningOwner=id||'all'; save(true); render(); }
+  function setPlanningMonth(){ const el=document.getElementById('planningMonthSelect'); state.settings.planningMonth=(el&&el.value)||curMonth(); save(true); render(); }
+  function unifiedPlanningPanelFinal(){
+    normalizeFinalPlanningState();
+    const m=state.settings.planningMonth||curMonth();
+    const items=getUnifiedItems();
+    const totalSpend=items.filter(x=>x.amount&&x.include!==false).reduce((a,b)=>a+num(b.amount),0);
+    const taskCount=items.filter(x=>x.kind==='Задача'||x.kind==='Событие').length;
+    return `<section class="grid cols-4 planning-summary"><article class="card premium-hero-card"><h3>Единое планирование</h3><div class="value sm">${items.length}</div><p class="muted small">дела, календарь, вишлист, покупки и платежи</p></article><article class="card"><h3>План расходов</h3><div class="value sm blue">${asMoney(totalSpend)}</div><p class="muted small">на ${monthTitleFinal(m)}</p></article><article class="card"><h3>Дела</h3><div class="value sm">${taskCount}</div><p class="muted small">задачи + события</p></article><article class="card"><h3>Месяц и владелец</h3><div class="field" style="margin:0"><input id="planningMonthSelect" type="month" value="${esc(m)}"></div>${ownerTabsFinal()}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><div><h3>Подпапки планирования</h3><p class="muted small">Одна папка, но внутри удобные подпапки по типам.</p></div><div class="button-row" style="margin-top:0"><button class="btn secondary" data-action="addTask">Задача</button><button class="btn secondary" data-action="addPurchase">Покупка / трата</button><button class="btn secondary" data-action="addWishlistItem">Вишлист</button><button class="btn secondary" data-action="addPaymentItem">Платёж</button></div></div>${planKindTabs()}<div class="unified-plan-list">${items.map(rowUnifiedFinal).join('')||empty('В этой подпапке пока пусто')}</div></section>`;
+  }
+
+  // Задачи: картинка с устройства.
+  function imageValue(){ return String(formVal('f_image')||'').trim(); }
+  function taskOwnerSelect(id,val='Я'){ return ownerSelectFinal(id,val); }
+  addTask=function(){openModal('Новая задача',`<div class="form-grid">${field('Задача','f_title')}${taskOwnerSelect('f_owner','Я')}${field('Сфера / подпапка','f_area','Личное')}${field('Дата','f_due',todayKey(),'date')}${field('Время','f_time','','time')}${imagePicker('f_image','')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A">Срочно и важно</option><option value="B" selected>Важно, не срочно</option><option value="C">Срочно, не важно</option><option value="D">Позже / убрать</option></select></div></div><p class="muted small">Картинка загружается с устройства и показывается средним превью в планировании.</p>${modalButtons('saveTask')}`)};
+  saveTask=function(){state.tasks.unshift({id:uid(),title:formVal('f_title')||'Новая задача',owner:formVal('f_owner')||'Я',area:formVal('f_area')||'Личное',due:formVal('f_due')||todayKey(),time:formVal('f_time'),image:imageValue(),priority:formVal('f_priority')||'B',status:'В работе'});save(true);closeModal();toast('Задача добавлена');render()};
+  editTask=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(!t)return;openModal('Редактировать задачу',`<div class="form-grid">${field('Задача','f_title',t.title)}${taskOwnerSelect('f_owner',t.owner||'Я')}${field('Сфера / подпапка','f_area',t.area)}${field('Дата','f_due',t.due,'date')}${field('Время','f_time',t.time,'time')}${imagePicker('f_image',t.image||'')}<div class="field"><label>Приоритет / Эйзенхауэр</label><select id="f_priority"><option value="A" ${t.priority==='A'?'selected':''}>Срочно и важно</option><option value="B" ${t.priority==='B'?'selected':''}>Важно, не срочно</option><option value="C" ${t.priority==='C'?'selected':''}>Срочно, не важно</option><option value="D" ${t.priority==='D'?'selected':''}>Позже / убрать</option></select></div></div><div class="actions"><button class="btn" data-action="saveEditedTask" data-id="${esc(id)}">Сохранить</button><button class="btn red" data-action="deleteTask" data-id="${esc(id)}">Удалить</button></div>`)};
+  saveEditedTask=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(t){t.title=formVal('f_title');t.owner=formVal('f_owner')||'Я';t.area=formVal('f_area');t.due=formVal('f_due');t.time=formVal('f_time');t.image=imageValue();t.priority=formVal('f_priority')}save(true);closeModal();render()};
+  rowTask=function(t){const img=t.image?`<button class="task-cover-button" data-action="editTask" data-id="${esc(t.id)}"><img class="planning-task-image" src="${esc(t.image)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`:'';return `<div class="task-card-row planning-image-card ${t.image?'has-image':''}">${img}<button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${esc(t.id)}" title="Готово"></button><button class="task-main" data-action="editTask" data-id="${esc(t.id)}"><span class="row-title">${esc(t.title)}</span><span class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</span></button><div class="task-actions">${ownerPillFinal(t.owner||'Я')}${taskPill(t)}<button class="mini-btn blue compact-action" data-action="googleTask" data-id="${esc(t.id)}">Google</button></div></div>`};
+
+  function questionOfDay(){ const q=['Что я сейчас на самом деле чувствую?','Чего я избегаю, потому что уже знаю ответ?','Что я хочу, но запрещаю себе признать?','Какой маленький шаг даст мне спокойствие сегодня?','Где я трачу энергию не туда?']; return q[new Date().getDate()%q.length]; }
+  function notebookQuote(){ const q=typeof dailyQuote==='function'?dailyQuote():{quote:'Система освобождает голову для жизни.',thought:'Я выбираю один честный шаг.'}; return q; }
+  function dailyInterviewHabit(){
+    arr('habits');
+    let h=state.habits.find(x=>String(x.systemKey||'')==='subconsciousInterview')||state.habits.find(x=>/интервью\s+с\s+подсознанием/i.test(String(x.name||'')));
+    if(!h){ h={id:'habit_subconscious_interview',systemKey:'subconsciousInterview',name:'Интервью с подсознанием',area:'Рефлексия',target:'ежедневно',marks:{}}; state.habits.unshift(h); }
+    h.systemKey='subconsciousInterview'; h.name='Интервью с подсознанием'; h.area=h.area||'Рефлексия'; h.target='ежедневно'; h.marks=h.marks||{}; return h;
+  }
+  function todayInterview(){ return arr('subconsciousDiary').find(x=>String(x.date||'')===todayKey())||null; }
+  function markInterview(date=todayKey()){ const h=dailyInterviewHabit(); h.marks=h.marks||{}; h.marks[date]=true; }
+  function noteFromInterview(e){
+    const text=[
+      'Интервью с подсознанием — ежедневная рефлексия', '',
+      `Дата: ${e.date||todayKey()}`,'',
+      `Цитата: ${e.quote||'—'}`,
+      `Вопрос дня: ${e.dayQuestion||'—'}`,
+      `Рефлексия как в блокноте: ${e.notebook||'—'}`,'',
+      `1. Что я сейчас чувствую: ${e.feeling||'—'}`,
+      `2. Чего я избегаю: ${e.avoid||'—'}`,
+      `3. Что я уже знаю, но не признаю: ${e.truth||'—'}`,
+      `4. Один маленький шаг: ${e.step||'—'}`,
+      e.extra?`Дополнительно: ${e.extra}`:''
+    ].filter(Boolean).join('\n');
+    return {id:e.noteId||uid(),title:`Интервью с подсознанием · ${e.date||todayKey()}`,text,folder:'Дневник',tags:['рефлексия','подсознание','интервью','цитата','привычка'],createdAt:e.date||todayKey(),updatedAt:new Date().toISOString(),sourceType:'dailySubconsciousInterview',sourceDate:e.date||todayKey()};
+  }
+  function interviewStreak(){ const h=dailyInterviewHabit(); let n=0; const ds=lastDays(90).reverse(); for(const d of ds){ if(h.marks&&h.marks[d])n++; else break; } return n; }
+  function dailyInterviewCard(){
+    const h=dailyInterviewHabit(); const done=!!todayInterview(); const q=notebookQuote(); const days=monthDays(new Date()); const recent=arr('subconsciousDiary').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,3);
+    return `<section class="card daily-subconscious-card notebook-card"><div class="card-head"><div><h3>Ежедневное интервью с подсознанием</h3><p class="muted small">Заполняется как привычка каждый день и сохраняется в заметки.</p></div><span class="pill ${done?'green':'violet'}">${done?'сегодня заполнено':'ждёт ответа'}</span></div><div class="daily-sub-grid"><article class="daily-sub-main"><div class="notebook-quote"><span>Цитата</span><b>“${esc(q.quote)}”</b></div><div class="notebook-question"><span>Вопрос дня</span><b>${esc(questionOfDay())}</b></div><div class="actions"><button class="btn" data-action="openDailySubconsciousInterview">Начать интервью</button><button class="btn secondary" data-life-folder="subconscious">Все записи</button></div></article><article class="daily-sub-stats"><div class="stat-row"><span>Серия</span><b>${interviewStreak()} дн.</b></div><div class="habit-month-grid compact-interview-grid">${days.map(d=>`<button class="habit-day ${h.marks&&h.marks[d]?'on':''} ${d===todayKey()?'today':''}" data-action="openDailySubconsciousInterview" title="${esc(d)}">${new Date(d).getDate()}</button>`).join('')}</div></article></div>${recent.length?`<div class="daily-sub-recent">${recent.map(e=>`<button class="mini-box daily-sub-note" data-action="editDailySubconsciousInterview" data-id="${esc(e.id)}"><strong>${esc(e.date||'')}</strong><span>${esc((e.step||e.notebook||e.truth||'Открыть запись').slice(0,90))}</span></button>`).join('')}</div>`:''}</section>`;
+  }
+  function openInterviewModal(entry){
+    const e=entry||todayInterview()||{}; const q=notebookQuote(); const dq=e.dayQuestion||questionOfDay();
+    openModal(e.id?'Интервью с подсознанием — редактирование':'Начать интервью',`<div class="daily-modal-intro notebook-modal"><b>Вопрос дня: ${esc(dq)}</b><span>Ответы сохраняются в дневник, заметки и отмечают привычку.</span></div><div class="notebook-paper"><div class="notebook-quote-line">“${esc(e.quote||q.quote)}”</div>${area('Рефлексия как в блокноте','f_notebook',e.notebook||'')}</div><div class="form-grid">${field('Дата','f_date',e.date||todayKey(),'date')}${area('1. Что я сейчас чувствую?','f_feeling',e.feeling||'')}${area('2. Чего я избегаю или откладываю?','f_avoid',e.avoid||'')}${area('3. Что я уже знаю, но не признаю?','f_truth',e.truth||'')}${area('4. Какой один маленький шаг я сделаю сегодня?','f_step',e.step||'')}${area('Дополнительно','f_extra',e.extra||'')}</div><div class="actions"><button class="btn" data-action="saveDailySubconsciousInterview" ${e.id?`data-id="${esc(e.id)}"`:''}>Сохранить в привычки и заметки</button></div>`);
+  }
+  function openDailySubconsciousInterview(){ openInterviewModal(todayInterview()); }
+  function editDailySubconsciousInterview(id){ const e=arr('subconsciousDiary').find(x=>String(x.id)===String(id)); openInterviewModal(e||todayInterview()); }
+  function saveDailySubconsciousInterview(id){
+    const date=formVal('f_date')||todayKey();
+    let e=(id&&state.subconsciousDiary.find(x=>String(x.id)===String(id))) || state.subconsciousDiary.find(x=>String(x.date||'')===String(date));
+    if(!e){ e={id:uid(),createdAt:new Date().toISOString()}; state.subconsciousDiary.unshift(e); }
+    const q=notebookQuote();
+    e.date=date; e.quote=q.quote; e.dayQuestion=questionOfDay(); e.notebook=txt(formVal('f_notebook')); e.feeling=txt(formVal('f_feeling')); e.avoid=txt(formVal('f_avoid')); e.truth=txt(formVal('f_truth')); e.step=txt(formVal('f_step')); e.extra=txt(formVal('f_extra')); e.kind='dailyHabitInterview'; e.updatedAt=new Date().toISOString();
+    const note=noteFromInterview(e); e.noteId=note.id;
+    const ni=state.notes.findIndex(n=>String(n.id)===String(note.id) || (String(n.sourceType||'')==='dailySubconsciousInterview' && String(n.sourceDate||'')===String(date)));
+    if(ni>=0)state.notes[ni]=note; else state.notes.unshift(note);
+    markInterview(date); save(true); closeModal(); toast('Интервью сохранено в привычки и заметки'); render();
+  }
+  function deleteDailySubconsciousInterview(id){ const e=state.subconsciousDiary.find(x=>String(x.id)===String(id)); if(!e)return; if(!confirm('Удалить запись интервью?'))return; state.subconsciousDiary=state.subconsciousDiary.filter(x=>String(x.id)!==String(id)); if(e.noteId)state.notes=state.notes.filter(n=>String(n.id)!==String(e.noteId)); save(true); render(); }
+  function subconsciousFolderFinal(){
+    const latest=arr('subconsciousDiary').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    return `<section class="grid cols-3"><article class="card premium-hero-card"><div class="card-head"><h3>Дневник</h3><span class="pill violet">подсознание</span></div><p class="muted">Интервью, цитаты и рефлексия как в блокноте. Каждая запись уходит в заметки.</p><button class="btn" data-action="openDailySubconsciousInterview">Начать интервью</button></article><article class="card"><h3>Записей</h3><div class="value sm">${latest.length}</div><p class="muted small">последняя: ${esc(latest[0]?.date||'—')}</p></article><article class="card"><h3>Вопрос дня</h3><p class="quote-big" style="font-size:18px">${esc(questionOfDay())}</p></article></section><section class="grid cols-2" style="margin-top:18px">${latest.map(e=>`<article class="mini-box notebook-entry"><div class="stat-row"><strong>${esc(e.date||'')}</strong><span class="pill violet">интервью</span></div><p class="small"><b>Вопрос:</b> ${esc(e.dayQuestion||questionOfDay())}</p><p class="small"><b>Блокнот:</b> ${esc(e.notebook||'—')}</p><p class="small"><b>Шаг:</b> ${esc(e.step||'—')}</p><div class="button-row"><button class="mini-btn" data-action="editDailySubconsciousInterview" data-id="${esc(e.id)}">Ред.</button><button class="mini-btn red" data-action="deleteDailySubconsciousInterview" data-id="${esc(e.id)}">Удалить</button></div></article>`).join('')||empty('Записей дневника пока нет')}</section>`;
+  }
+
+  quoteCard=function(){ const q=notebookQuote(); const last=arr('notes').filter(n=>(n.tags||[]).includes('рефлексия')).slice(0,2); return `<article class="card quote-card quote-polish notebook-card"><div class="card-head"><h3>Цитата и рефлексия</h3><span class="pill blue">блокнот</span></div><div class="quote-big">“${esc(q.quote)}”</div><div class="reflection-hint"><b>Вопрос дня:</b> ${esc(questionOfDay())}</div><textarea id="dailyReflection" placeholder="Напиши рефлексию как в блокноте: что я понял, что чувствую, какой шаг сделаю?">${esc(state.settings.dailyReflection||'')}</textarea><div class="actions"><button class="btn" data-action="saveDailyReflection">Сохранить в заметки</button><button class="btn secondary" data-action="openDailySubconsciousInterview">Начать интервью</button></div>${last.length?`<div class="note-list" style="margin-top:10px">${last.map(n=>`<div class="mini-box"><strong>${esc(n.title)}</strong><p class="small muted">${esc(n.text||'').slice(0,120)}</p></div>`).join('')}</div>`:''}</article>`; };
+  saveDailyReflection=function(){ const text=document.getElementById('dailyReflection')?.value||''; const q=notebookQuote(); if(!text.trim())return toast('Напиши рефлексию перед сохранением'); state.notes.unshift({id:uid(),title:'Цитата и рефлексия дня',text:`Цитата: ${q.quote}\nВопрос дня: ${questionOfDay()}\n\n${text}`,folder:'Рефлексия',tags:['рефлексия','цитата','блокнот'],createdAt:todayKey()}); state.settings.dailyReflection=''; save(true); toast('Рефлексия сохранена'); render(); };
+
+  function wishlistFolder(){ normalizeFinalPlanningState(); const items=wishItems(); return `<section class="grid cols-3"><article class="card premium-hero-card"><h3>Вишлист</h3><div class="value sm">${items.length}</div><p class="muted small">желания для себя, Полины или общие</p><button class="btn" data-action="addWishlistItem">Добавить</button></article><article class="card"><h3>В прогнозе</h3><div class="value sm">${asMoney(wishItems(curMonth()).filter(x=>x.includeInBudget!==false).reduce((a,b)=>a+num(b.amount),0))}</div></article><article class="card"><h3>Принцип</h3><p class="muted">У каждой хотелки есть владелец: Я, Полина или Общее.</p></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Все пункты вишлиста</h3><button class="btn secondary" data-action="addWishlistItem">Добавить</button></div><div class="unified-plan-list">${items.map(rowPurchase).join('')||empty('Вишлист пока пуст')}</div></section>`; }
+  function paymentsFolder(){ normalizeFinalPlanningState(); const items=paymentItems(); return `<section class="grid cols-3"><article class="card premium-hero-card"><h3>Обязательные платежи</h3><div class="value sm">${asMoney(items.filter(x=>x.includeInBudget!==false).reduce((a,b)=>a+num(b.amount),0))}</div><p class="muted small">все платежи в одной папке с владельцем</p><button class="btn" data-action="addPaymentItem">Добавить платёж</button></article><article class="card"><h3>В этом месяце</h3><div class="value sm">${paymentItems(curMonth()).length}</div></article><article class="card"><h3>Прогноз</h3><p class="muted">Платежи участвуют в месячном прогнозе финансов.</p></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Список платежей</h3><button class="btn secondary" data-action="addPaymentItem">Добавить</button></div><div class="unified-plan-list">${items.map(rowPurchase).join('')||empty('Платежей пока нет')}</div></section>`; }
+
+  const folderSubMap={
+    planning:['Задачи','Календарь','Вишлист','Платежи','Покупки','Будущие траты'],
+    finance:['Операции','Категории','Лимиты','Долги','Прогноз'],
+    notes:['Все заметки','Рефлексия','Цитаты','Дневник'],
+    habits:['Интервью','Трекер','Месяц','Серии'],
+    people:['Контакты','Дни рождения','Подарки','Темы'],
+    books:['Читаю','Цитаты','Идеи','Применить'],
+    personal:['Фильмы','Сериалы','События','Память'],
+    documents:['Паспорта','Договоры','Файлы','Ссылки'],
+    trips:['Идеи','Билеты','Бюджет','Документы'],
+    wishlist:['Я','Полина','Общее','В прогнозе'],
+    payments:['Я','Полина','Общее','По месяцам'],
+    subconscious:['Сегодня','Архив','Цитаты','Заметки']
+  };
+  const oldLifeFoldersFinal=lifeFolders;
+  lifeFolders=function(){
+    const base=(oldLifeFoldersFinal?oldLifeFoldersFinal():[]).filter(f=>!['polinaWishes','polinaPayments'].includes(f.id));
+    const add=[{id:'subconscious',title:'Дневник',ico:'◑'},{id:'wishlist',title:'Вишлист',ico:'✦'},{id:'payments',title:'Платежи',ico:'₽'}];
+    const seen=new Set(base.map(f=>f.id));
+    return [...base,...add.filter(f=>!seen.has(f.id))];
+  };
+  lifeFolderCount=function(id){ normalizeFinalPlanningState(); const map={people:state.people.length,notes:state.notes.length,planning:openTasks().length+upcomingEvents().length+planItems().length,habits:state.habits.length,books:state.books.length,ideas:state.ideas.length,personal:state.media.length,documents:(state.files||[]).length,trips:(state.trips||[]).length,subconscious:state.subconsciousDiary.length,wishlist:wishItems().length,payments:paymentItems().length}; return map[id]||0; };
+  function smartFolderCard(f){ const subs=folderSubMap[f.id]||[]; return `<button class="folder-card smart-folder-card" data-life-folder="${esc(f.id)}"><div class="folder-ico">${f.ico}</div><strong>${esc(f.title)}</strong><small>${lifeFolderCount(f.id)} записей</small>${subs.length?`<div class="subfolder-chips">${subs.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}</button>`; }
+  function lifeOverview(){ const folders=lifeFolders(); return `<section class="card"><div class="card-head"><div><h3>Папки и подпапки</h3><p class="muted small">Каждая сфера теперь раскрывается на понятные подпапки.</p></div><span class="pill blue">структура</span></div><div class="life-grid smart-life-grid">${folders.map(smartFolderCard).join('')}</div></section>`; }
+  window.lifeOverview=lifeOverview;
+  spheresPage=function(){ normalizeFinalPlanningState(); const folder=state.settings.lifeFolder||'overview'; let content=''; if(folder==='overview')content=lifeOverview(); else if(folder==='subconscious')content=subconsciousFolderFinal(); else if(folder==='wishlist')content=wishlistFolder(); else if(folder==='payments')content=paymentsFolder(); else if(folder==='people')content=peopleFolder(); else if(folder==='notes')content=notesFolder(); else if(folder==='planning')content=`${unifiedPlanningPanelFinal()}${monthlyForecastBlock()}`; else if(folder==='habits')content=`${dailyInterviewCard()}${habitsFolder()}`; else if(folder==='books')content=booksFolder(); else if(folder==='ideas')content=ideasFolder(); else if(folder==='documents')content=typeof documentsFolder==='function'?documentsFolder():empty('Документов нет'); else if(folder==='trips')content=typeof tripsPanel==='function'?tripsPanel():empty('Поездок нет'); else content=personalFolder(); return layout('Сферы жизни','Папки жизни с подпапками: планирование, вишлист, платежи, дневник и привычки.',`<section class="folder-list">${lifeFolders().map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</section><section style="margin-top:18px">${content}</section>`); };
+
+  habitsPage=function(){ normalizeFinalPlanningState(); return layout('Привычки','Ежедневные ритуалы, месячный трекер и интервью с подсознанием.',`${dailyInterviewCard()}${habitsFolder()}`); };
+  planningPage=function(){ normalizeFinalPlanningState(); return layout('Планирование','Одна папка для задач, календаря, вишлиста, покупок, будущих трат и платежей.',`${unifiedPlanningPanelFinal()}<section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><span class="pill blue">задачи</span></div>${eisenhowerMatrix()}</article>${monthlyForecastBlock()}</section>`); };
+  planningPageInner=function(){ return `<div>${unifiedPlanningPanelFinal()}${monthlyForecastBlock()}</div>`; };
+  financePage=function(){
+    normalizeFinalPlanningState(); const s=summary(); const diff=(s.actual||0)-(s.calcBalance||0);
+    return layout('Финансы','Фактический остаток, операции и запланированные расходы по месяцам.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${asMoney(s.actual)}</div><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${(s.toNext||0)<0?'red':'blue'}">${asMoney(s.toNext)}</div><p class="muted small">до ${fmtDate(s.nextSalary.date)} · учтено планирование</p></article><article class="card"><h3>Запланировано в месяце</h3><div class="value sm">${asMoney(planTotal(curMonth()))}</div><p class="muted small">покупки, вишлист и платежи</p></article><article class="card"><h3>Расхождение</h3><div class="value sm ${Math.abs(diff)>0?'amber':''}">${asMoney(diff)}</div><p class="muted small">факт минус расчёт</p></article></section>${monthlyForecastBlock()}<section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Категории доходов/расходов</h3><button class="btn secondary" data-action="addCategory">Категория</button></div><div class="note-list">${state.categories.map(c=>`<div class="list-row"><span class="pill ${c.type==='income'?'green':'blue'}">${c.type==='income'?'Доход':'Расход'}</span><div><div class="row-title">${esc(c.name)}</div><div class="row-sub">Лимит: ${c.limit?asMoney(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${esc(c.id)}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${esc(c.id)}">Удалить</button></div></div>`).join('')}</div></article><article class="card"><div class="card-head"><h3>Операции</h3><div class="button-row"><button class="btn secondary" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button></div></div><div class="op-list">${state.operations.slice(0,12).map(rowOperation).join('')}</div></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Долги</h3><button class="btn secondary" data-action="addDebt">Добавить долг</button></div><div class="note-list">${activeDebts().map(rowDebt).join('')||empty('Активных долгов нет')}</div></article><article class="card"><div class="card-head"><h3>Планирование расходов</h3><button class="btn secondary" data-go="planning">Открыть план</button></div><div class="unified-plan-list">${planItems().filter(p=>(p.month||curMonth())===curMonth()).slice(0,5).map(rowPurchase).join('')||empty('Запланированных расходов нет')}</div></article></section>`);
+  };
+  budgetPage=function(){
+    normalizeFinalPlanningState(); const s=summary(), items=budgetStats(), used=items.reduce((a,b)=>a+b.spent,0), limit=items.reduce((a,b)=>a+b.limit,0); const top=dailySpendSeries().sort((a,b)=>b.amount-a.amount).filter(x=>x.amount>0).slice(0,5);
+    return layout('Бюджет','Лимиты, график трат и единый план будущих расходов.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Цикл бюджета</h3><div class="value sm">10 → 9</div><p class="muted small">расчёт от основной зарплаты</p></article><article class="card"><h3>Можно тратить в день</h3>${typeof dailyLimitBlock==='function'?dailyLimitBlock(s):`<div class="value sm blue">${asMoney(s.dailyLimit)}</div>`}</article><article class="card"><h3>План расходов</h3><div class="value sm">${asMoney(planTotal(curMonth()))}</div><p class="muted small">единое планирование</p></article><article class="card"><h3>Лимиты</h3><div class="value sm">${limit?Math.round(used/limit*100):0}%</div>${progressBar(limit?used/limit*100:0,used>limit?'red':'')}</article></section>${monthlyForecastBlock()}<section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>График трат по дням</h3><span class="pill blue">пики выделены</span></div>${renderDailySpendChart()}${top.length?`<div class="drawer" style="margin-top:12px"><b>Самые дорогие дни</b>${top.map(x=>`<div class="stat-row"><span>${x.day} число</span><b>${asMoney(x.amount)}</b></div>`).join('')}</div>`:''}</article><article class="card"><div class="card-head"><h3>Лимиты по категориям</h3><button class="btn secondary" data-action="addCategory">Категория</button></div>${items.map(budgetRow).join('')||empty('Нет категорий')}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Будущие расходы, вишлист и платежи</h3><div class="button-row"><button class="btn secondary" data-action="addPurchase">Покупка</button><button class="btn secondary" data-action="addWishlistItem">Вишлист</button><button class="btn secondary" data-action="addPaymentItem">Платёж</button></div></div><div class="unified-plan-list">${planItems().filter(p=>(p.month||curMonth())===curMonth()).map(rowPurchase).join('')||empty('Запланированных расходов пока нет')}</div></section>`);
+  };
+
+  window.addPurchase=addPurchase; window.savePurchase=savePurchase; window.editPurchase=editPurchase; window.saveEditedPurchase=saveEditedPurchase; window.deletePurchase=deletePurchase; window.addWishlistItem=addWishlistItem; window.addPaymentItem=addPaymentItem; window.setPlanningOwner=setPlanningOwner; window.setPlanningMonth=setPlanningMonth; window.setPlanningKind=setPlanningKind; window.openDailySubconsciousInterview=openDailySubconsciousInterview; window.editDailySubconsciousInterview=editDailySubconsciousInterview; window.saveDailySubconsciousInterview=saveDailySubconsciousInterview; window.deleteDailySubconsciousInterview=deleteDailySubconsciousInterview; window.habitsPage=habitsPage; window.planningPage=planningPage; window.financePage=financePage; window.budgetPage=budgetPage; window.spheresPage=spheresPage; window.quoteCard=quoteCard;
+  try{Object.assign(windowActions,{clearImageField,addPurchase,savePurchase,editPurchase,saveEditedPurchase,deletePurchase,addWishlistItem,addPaymentItem,addPolinaWish,savePolinaWish,editPolinaWish,saveEditedPolinaWish,deletePolinaWish,addPolinaPayment,savePolinaPayment,editPolinaPayment,saveEditedPolinaPayment,deletePolinaPayment,setPlanningOwner,setPlanningMonth,setPlanningKind,addTask,saveTask,editTask,saveEditedTask,openDailySubconsciousInterview,editDailySubconsciousInterview,saveDailySubconsciousInterview,deleteDailySubconsciousInterview,saveDailyReflection});}catch(e){}
+  const prevRunFinal=runActionFromElement;
+  runActionFromElement=function(el,event){ const action=el&&el.dataset?el.dataset.action:''; const id=el&&el.dataset?el.dataset.id:''; const map={clearImageField,addPurchase,savePurchase,editPurchase,saveEditedPurchase,deletePurchase,addWishlistItem,addPaymentItem,addPolinaWish,savePolinaWish,editPolinaWish,saveEditedPolinaWish,deletePolinaWish,addPolinaPayment,savePolinaPayment,editPolinaPayment,saveEditedPolinaPayment,deletePolinaPayment,setPlanningOwner,setPlanningMonth,setPlanningKind,addTask,saveTask,editTask,saveEditedTask,openDailySubconsciousInterview,editDailySubconsciousInterview,saveDailySubconsciousInterview,deleteDailySubconsciousInterview,saveDailyReflection}; if(map[action]){ if(event){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();} map[action](id); return true;} return prevRunFinal?prevRunFinal(el,event):false; };
+  window.runActionFromElement=runActionFromElement;
+  document.addEventListener('change',function(ev){ if(ev.target&&ev.target.id==='planningMonthSelect')setPlanningMonth(); },true);
+  const prevRenderFinal=render;
+  render=function(){ normalizeFinalPlanningState(); const out=prevRenderFinal.apply(this,arguments); normalizeFinalPlanningState(); setTimeout(()=>{try{patchClickableButtons()}catch(e){}},0); return out; };
+  window.render=render;
+  try{normalizeFinalPlanningState(); save(false); render();}catch(e){console.error('[wishlist/payments/diary final]',e)}
 })();
 
 </script>

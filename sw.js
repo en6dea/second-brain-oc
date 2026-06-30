@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-os-unified-planning-monthly-forecast-20260630';
+const CACHE_NAME = 'second-brain-os-wishlist-payments-daily-interview-20260630';
 self.addEventListener('install', event => self.skipWaiting());
 self.addEventListener('activate', event => {
   event.waitUntil((async()=>{
