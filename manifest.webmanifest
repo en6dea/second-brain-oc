@@ -1,43 +1,16 @@
 {
   "name": "Second Brain OS",
   "short_name": "Second Brain OS",
-  "description": "Единая личная система для жизни, финансов, целей, бюджета и задач.",
-  "start_url": "/second-brain-oc/?v=v46-6-light-tech-visual-safe-20260630",
+  "description": "Единая система для жизни, финансов, задач и целей.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone",
-    "minimal-ui",
-    "browser"
-  ],
-  "background_color": "#f7f9fd",
-  "theme_color": "#2563eb",
-  "orientation": "any",
-  "lang": "ru-RU",
-  "categories": [
-    "productivity",
-    "finance",
-    "lifestyle"
-  ],
+  "background_color": "#f6f8fc",
+  "theme_color": "#f6f8fc",
+  "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "id": "/second-brain-oc/?app=second-brain-os",
-  "version": "v46-6-light-tech-visual-safe-20260630"
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},
+    {"src":"maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
 }
