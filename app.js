@@ -1,7 +1,7 @@
 /* Second Brain OS — compatibility copy. Main runtime is inline in index.html. */
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='unified-planning-monthly-forecast-20260630';
+const BUILD='folder-system-v2-diagnostics-visible-20260630';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -2648,3 +2648,53 @@ window.budgetRow = budgetRow;
   try{setupV2(); injectV2Css(); render(); console.log('[Second Brain OS]',FOLDER_V2_BUILD)}catch(e){console.error('[folder system v2 init]',e)}
 })();
 
+
+
+/* ===== Diagnostics Version Visible Fix — active Folder System V2 marker ===== */
+(function(){
+  const DIAG_BUILD='folder-system-v2-diagnostics-visible-20260630';
+  try{
+    window.SBOS_LATEST_BUILD=DIAG_BUILD;
+    localStorage.setItem('secondBrainOS.currentBuild',DIAG_BUILD);
+    localStorage.setItem('secondBrainOS.finalAddonBuild',DIAG_BUILD);
+    localStorage.setItem(META_KEY, JSON.stringify({app:APP_NAME,build:DIAG_BUILD,updatedAt:new Date().toISOString()}));
+    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta)meta.content=DIAG_BUILD;
+  }catch(e){}
+
+  function getRuntimeBuild(){
+    try{return localStorage.getItem('secondBrainOS.currentBuild')||localStorage.getItem('secondBrainOS.finalAddonBuild')||DIAG_BUILD;}catch(e){return DIAG_BUILD;}
+  }
+
+  const oldDiagnosticsPage = typeof diagnosticsPage==='function' ? diagnosticsPage : null;
+  diagnosticsPage=function(){
+    const runtime=getRuntimeBuild();
+    const meta=(()=>{try{return JSON.parse(localStorage.getItem(META_KEY)||'{}')}catch(e){return {}}})();
+    const explorer=(state.settings&&state.settings.fileExplorerV2)?'включена':'не найдена';
+    const planCount=(typeof allPlan2==='function'?allPlan2():[]).length;
+    return layout('Диагностика','Проверка активной сборки, кэша и структуры данных.',`
+      <section class="card diag-version-card">
+        <div class="card-head"><h3>Активная версия</h3><span class="pill good">Folder System V2</span></div>
+        <div class="value sm">${q(runtime)}</div>
+        <p class="muted small">Если здесь не написано <b>folder-system-v2</b>, значит открылся старый файл или кэш. Эта версия должна показывать папочную систему в Планировании и Сферах жизни.</p>
+        <div class="actions"><button class="btn secondary" data-action="clearCaches">Очистить кэш сайта</button><button class="btn" data-action="exportData">Экспорт</button></div>
+      </section>
+      <section class="grid cols-3">
+        <article class="card"><h3>Папочная система</h3><p class="muted small">Планирование: папки → подпапки → лист записей<br>Сферы жизни: папки → подпапки → лист записей<br>Статус: <b>${q(explorer)}</b></p></article>
+        <article class="card"><h3>Данные</h3><p class="muted small">Операции: ${state.operations.length}<br>Задачи: ${state.tasks.length}<br>Планирование всего: ${planCount}<br>Заметки: ${state.notes.length}<br>Привычки: ${state.habits.length}<br>Долги: ${activeDebts().length}</p></article>
+        <article class="card"><h3>Что должно измениться</h3><p class="muted small">В разделе <b>Планирование</b> сначала только папки. В разделе <b>Сферы жизни</b> сначала только папки. Записи не должны валиться на первый экран.</p></article>
+      </section>
+      <section class="card"><h3>Технически</h3><p class="muted small">Базовая сборка: ${q(BUILD)}<br>Meta build: ${q(meta.build||'—')}<br>Обновлено: ${q(meta.updatedAt||'—')}</p></section>
+    `);
+  };
+  window.diagnosticsPage=diagnosticsPage;
+  try{
+    const prev=window.SBOS_FORCE_ACTION;
+    window.SBOS_FORCE_ACTION=function(action,id,el){
+      if(action==='showBuild'){toast('Сборка: '+getRuntimeBuild()); return true;}
+      if(prev) return prev(action,id,el);
+      return false;
+    };
+  }catch(e){}
+  try{ if(page==='diagnostics') render(); }catch(e){}
+  console.log('[Second Brain OS diagnostics]',DIAG_BUILD);
+})();
