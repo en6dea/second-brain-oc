@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="v41-import-review-core-private-20260629" />
+  <meta name="second-brain-build" content="v45-analytics-budget-coach-private-20260629" />
   <title>Second Brain OS</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v41-import-review-core-private-20260629" />
+  <link rel="manifest" href="manifest.webmanifest?v=v45-analytics-budget-coach-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -178,13 +178,13 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V44 FINANCE MENTOR</div>
+  <div id="releaseBadge">V45 ANALYTICS PRO</div>
   <script>
-/* Second Brain OS — Finance Mentor Private V44 */
+/* Second Brain OS — Analytics Pro + Budget Coach Private V45 */
 'use strict';
 
-const RELEASE = 'v44-finance-mentor-private-20260629';
-const DATA_VERSION = 440;
+const RELEASE = 'v45-analytics-budget-coach-private-20260629';
+const DATA_VERSION = 450;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -3255,6 +3255,130 @@ try{
 }catch(e){ console.warn('V44 Finance Mentor failed', e); }
 try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {financeMentor:SBOS_V44, v44FinanceAnalysis, v44HealthReport}); }catch(_e){}
 
-  </script>
+
+/* V45 ANALYTICS PRO + BUDGET COACH — limits, forecasts, plain-language money system */
+const SBOS_V45 = 'v45-analytics-budget-coach-private-20260629';
+const SBOS_V45_DISPLAY = 'V45 ANALYTICS PRO';
+function v45Month(){ return (typeof v43MonthKey === 'function' ? v43MonthKey() : monthKey()); }
+function v45MonthOps(){ const m=v45Month(); return (state.operations||[]).filter(o=>String(o.date||'').slice(0,7)===m && o.excludeFromLimit!==true); }
+function v45ExpenseOps(){ return v45MonthOps().filter(o=>o.type!=='income'); }
+function v45IncomeOps(){ return v45MonthOps().filter(o=>o.type==='income'); }
+function v45DaysInMonth(m){ const [y,mo]=String(m||monthKey()).split('-').map(Number); return new Date(y||new Date().getFullYear(), mo||new Date().getMonth()+1, 0).getDate(); }
+function v45CurrentDayInMonth(m){ const now=todayKey(); return String(now).slice(0,7)===String(m||v45Month()) ? Number(now.slice(8,10)) : v45DaysInMonth(m); }
+function v45EnsureBudgetState(){
+  state.budgets = Array.isArray(state.budgets) ? state.budgets : [];
+  state.budgetReviews = Array.isArray(state.budgetReviews) ? state.budgetReviews : [];
+  state.settings = state.settings || {}; state.settings.v45 = state.settings.v45 || {enabled:true, installedAt:new Date().toISOString()};
+  if(!state.budgets.length){
+    const defaults=[['Продукты',25000,'base'],['Кафе',8000,'wants'],['Транспорт',12000,'base'],['Бензин',15000,'base'],['Здоровье',8000,'base'],['Обучение',10000,'future']];
+    state.budgets = defaults.map(([category,limit,kind])=>({id:uid(),month:'*',category,limit,kind,active:true,createdAt:new Date().toISOString(),source:'v45-default'}));
+  }
+  if(!state.dataCore) state.dataCore={}; state.dataCore.schema=Math.max(num(state.dataCore.schema),450); state.dataCore.analyticsBudgetCoach=SBOS_V45;
+  return state.budgets;
+}
+function v45BudgetRows(){
+  v45EnsureBudgetState(); const m=v45Month(); const spent={};
+  v45ExpenseOps().forEach(o=>{ const k=String(o.category||'Другое').trim()||'Другое'; spent[k]=(spent[k]||0)+num(o.amount); });
+  const rows=(state.budgets||[]).filter(b=>b.active!==false && (!b.month || b.month==='*' || b.month===m)).map(b=>{
+    const used=num(spent[b.category]); const limit=num(b.limit); const pct=limit?Math.round(used/limit*100):0; const left=limit-used;
+    return {...b,used,limit,pct,left,status:pct>=110?'over':pct>=85?'risk':'ok'};
+  });
+  Object.entries(spent).forEach(([category,used])=>{ if(!rows.some(r=>String(r.category).toLowerCase()===String(category).toLowerCase())) rows.push({id:'virtual_'+category,month:m,category,limit:0,kind:'unknown',active:true,used, pct:0,left:-used,status:'unplanned',virtual:true}); });
+  return rows.sort((a,b)=> (b.status==='over')-(a.status==='over') || (b.pct||0)-(a.pct||0) || num(b.used)-num(a.used));
+}
+function v45BudgetSummary(){
+  const income=total(v45IncomeOps()), expense=total(v45ExpenseOps()), net=income-expense;
+  const rows=v45BudgetRows(), withLimit=rows.filter(r=>r.limit>0), planned=total(withLimit.map(r=>({amount:r.limit}))), used=total(rows.map(r=>({amount:r.used}))), left=planned-used;
+  const over=withLimit.filter(r=>r.used>r.limit), risk=withLimit.filter(r=>r.pct>=85 && r.pct<100), unplanned=rows.filter(r=>r.status==='unplanned');
+  const day=v45CurrentDayInMonth(v45Month()), days=v45DaysInMonth(v45Month()), avg=day?expense/day:0, forecast=avg*days;
+  const control=typeof v43Control==='function'?v43Control():{plan:0,startBalance:0,factBalance:0}; const plan=num(control.plan);
+  const savingsRate=income?Math.round(net/income*100):0; const budgetCoverage=expense?Math.round(Math.min(100,used/Math.max(1,expense)*100)):0;
+  let score=100; if(!plan) score-=12; if(savingsRate<10) score-=18; if(over.length) score-=over.length*8; if(unplanned.length) score-=Math.min(16,unplanned.length*4); if(forecast>income && income>0) score-=14; if(risk.length) score-=Math.min(10,risk.length*3); score=clamp(score,0,100);
+  const next=[];
+  if(!plan) next.push(['editMonthControl','Задать план месяца']);
+  if(unplanned.length) next.push(['autoCreateBudget','Создать лимиты по факту']);
+  if(over.length) next.push(['openBudgetOverrunPlan','Разобрать перерасход']);
+  if(savingsRate<10) next.push(['createTenPercentTask','Отложить 10% себе']);
+  if(forecast>income && income>0) next.push(['runBudgetCheck','Проверить прогноз месяца']);
+  if(!next.length) next.push(['addBudgetReviewTask','Запланировать недельную ревизию']);
+  return {income,expense,net,rows,withLimit,planned,used,left,over,risk,unplanned,day,days,avg,forecast,control,plan,savingsRate,budgetCoverage,score,next,month:v45Month()};
+}
+function v45Tone(score){ return score>=75?'green':score>=50?'amber':'warn'; }
+function v45BudgetStatus(r){ return r.status==='over'?'Перерасход':r.status==='risk'?'Близко к лимиту':r.status==='unplanned'?'Нет лимита':'В норме'; }
+function v45BudgetKindLabel(k){ return ({base:'База',wants:'Желания',future:'Будущее',debt:'Долги',unknown:'Без плана'}[k]||'Другое'); }
+function v45BudgetBar(pct){ const w=clamp(num(pct),3,140); return `<div class="v45-budget-bar ${pct>100?'over':pct>=85?'risk':''}"><span style="width:${w}%"></span></div>`; }
+function v45StepButton(step){ const [action,label]=step; if(action==='categories') return `<button class="ghost" data-page="categories">${esc(label)}</button>`; return `<button class="ghost" data-action="${esc(action)}">${esc(label)}</button>`; }
+function v45BudgetCoachCard(){
+  const b=v45BudgetSummary(); const main=b.over[0] ? `Перерасход по категории «${b.over[0].category}»: ${money(b.over[0].used-b.over[0].limit)}.` : (b.unplanned[0] ? `Есть расходы без лимита: «${b.unplanned[0].category}».` : (b.savingsRate<10 ? 'Норма накоплений ниже 10% — сначала заплати себе.' : 'Бюджет выглядит спокойно. Продолжай вести факт.'));
+  return `<section class="card panel v45-budget-coach"><div class="section-head"><div><h3>Budget Coach</h3><p class="sub">Лимиты, прогноз и простые подсказки: что поправить до конца месяца.</p></div><span class="tag ${v45Tone(b.score)}">${b.score}/100</span></div><div class="v45-coach-main"><div><b>${esc(main)}</b><p class="sub">Прогноз расходов: ${money(b.forecast)} при текущем темпе. Факт сейчас: ${money(b.expense)}.</p></div><div class="v45-pill-score ${v45Tone(b.score)}">${b.score}</div></div><div class="v44-next-actions">${b.next.slice(0,3).map(v45StepButton).join('')}</div><button class="link-btn" data-page="budget">Открыть бюджет →</button></section>`;
+}
+function budget(){
+  const b=v45BudgetSummary(); const max=Math.max(1,...b.rows.map(r=>Math.max(num(r.limit),num(r.used))));
+  return `<div class="goals-head premium-page-head v45-head"><div><div class="page-label">Budget Coach V45</div><h1>Бюджет месяца</h1><p class="sub">Лимиты по категориям, прогноз до конца месяца и подсказки по финансовой грамотности простым языком.</p></div><div class="top-actions"><button class="primary" data-action="openBudgetLimit">＋ Лимит</button><button class="ghost" data-action="autoCreateBudget">Автолимиты</button><button class="ghost" data-action="runBudgetCheck">Проверить бюджет</button></div></div>
+  <div class="metrics v45-metrics"><article class="metric ${v45Tone(b.score)}"><b>${b.score}/100</b><span>Индекс бюджета</span><small>${b.over.length?'есть перерасход':'контроль месяца'}</small></article><article class="metric"><b>${money(b.left)}</b><span>Остаток лимитов</span><small>план ${money(b.planned)}</small></article><article class="metric"><b>${money(b.forecast)}</b><span>Прогноз расходов</span><small>${b.day}/${b.days} день месяца</small></article><article class="metric"><b>${b.savingsRate}%</b><span>Норма накоплений</span><small>ориентир 10%+</small></article></div>
+  <div class="v45-budget-layout"><section class="card panel"><div class="section-head"><div><h3>Лимиты по категориям</h3><p class="sub">Метод конвертов: каждой категории назначается потолок, перерасход видно сразу.</p></div><span class="tag blue">${b.rows.length}</span></div>${b.rows.length?b.rows.map(r=>`<div class="v45-budget-row ${r.status}"><div><b>${esc(r.category)}</b><small>${v45BudgetKindLabel(r.kind)} · ${v45BudgetStatus(r)}</small></div><div class="v45-budget-money"><b>${money(r.used)}</b><small>${r.limit?`из ${money(r.limit)}`:'лимит не задан'}</small>${v45BudgetBar(r.limit?Math.round(r.used/r.limit*100):Math.min(100,Math.round(r.used/max*100)))}</div><button class="ghost small" data-action="openBudgetLimit" data-id="${esc(r.id)}">Изм.</button></div>`).join(''):'<div class="empty">Лимитов пока нет</div>'}</section>
+  <aside class="rail"><section class="card panel">${v45BudgetCoachCard()}</section><section class="card panel"><div class="section-head"><h3>Правила месяца</h3><span class="tag green">coach</span></div><div class="v45-rules"><p><b>Заплати себе сначала.</b><br><span>Сначала отложи 10%, потом распределяй расходы.</span></p><p><b>Нулевой бюджет.</b><br><span>Каждый рубль получает задачу: база, желания, будущее, долги.</span></p><p><b>24 часа на импульс.</b><br><span>Необязательную покупку отложи на завтра.</span></p></div></section></aside></div>`;
+}
+function analyticsPro(){
+  const b=v45BudgetSummary(); const cats=b.rows.slice(0,8); const dayPct=Math.round(b.day/b.days*100); const forecastTone=b.forecast>b.income&&b.income>0?'warn':'green';
+  const base=total(cats.filter(r=>r.kind==='base').map(r=>({amount:r.used}))), wants=total(cats.filter(r=>r.kind==='wants').map(r=>({amount:r.used}))), future=total(cats.filter(r=>r.kind==='future').map(r=>({amount:r.used})));
+  const totalOut=Math.max(1,base+wants+future);
+  return `<div class="goals-head premium-page-head v45-head"><div><div class="page-label">Analytics Pro V45</div><h1>Аналитика</h1><p class="sub">Факт, план, прогноз, категории и понятное объяснение: где деньги под контролем, а где нужен шаг.</p></div><div class="top-actions"><button class="primary" data-action="runBudgetCheck">Проверить месяц</button><button class="ghost" data-page="budget">Бюджет</button><button class="ghost" data-page="mentor">Наставник</button></div></div>
+  <div class="metrics v45-metrics"><article class="metric"><b>${money(b.income)}</b><span>Доходы</span><small>${b.month}</small></article><article class="metric"><b>${money(b.expense)}</b><span>Расходы</span><small>${Math.round(b.expense/Math.max(1,b.income)*100)}% от дохода</small></article><article class="metric ${forecastTone}"><b>${money(b.forecast)}</b><span>Прогноз</span><small>${dayPct}% месяца прошло</small></article><article class="metric ${v45Tone(b.score)}"><b>${b.score}/100</b><span>Контроль</span><small>бюджет + факт</small></article></div>
+  <div class="analytics-grid"><section class="card panel"><div class="section-head"><h3>Прогноз до конца месяца</h3><span class="tag ${forecastTone}">${forecastTone==='warn'?'риск':'норма'}</span></div><div class="v45-forecast"><div><b>${money(b.expense)}</b><span>потрачено сейчас</span></div><div><b>${money(b.forecast)}</b><span>если темп сохранится</span></div><div><b>${money(Math.max(0,b.income-b.forecast))}</b><span>ожидаемый остаток</span></div></div>${v45BudgetBar(dayPct)}<p class="sub">Средний расход в день: ${money(b.avg)}. Если хочешь усилить контроль — снизь топ-категорию на 10% на этой неделе.</p></section>
+  <section class="card panel"><div class="section-head"><h3>База / желания / будущее</h3><span class="tag blue">структура</span></div><div class="v45-split"><div><b>${Math.round(base/totalOut*100)}%</b><span>База</span><small>${money(base)}</small></div><div><b>${Math.round(wants/totalOut*100)}%</b><span>Желания</span><small>${money(wants)}</small></div><div><b>${Math.round(future/totalOut*100)}%</b><span>Будущее</span><small>${money(future)}</small></div></div><p class="sub">Это не жёсткая формула, а ориентир: сначала база и безопасность, затем желания.</p></section>
+  <section class="card panel"><div class="section-head"><h3>Топ категорий</h3><button class="ghost small" data-page="categories">Категории</button></div>${cats.length?cats.map(r=>`<div class="v44-cat-row"><div><b>${esc(r.category)}</b><small>${money(r.used)}${r.limit?` / ${money(r.limit)}`:''}</small></div>${v45BudgetBar(r.limit?Math.round(r.used/r.limit*100):Math.round(r.used/Math.max(1,cats[0].used)*100))}</div>`).join(''):'<div class="empty">Нет категорий расходов</div>'}</section></div>`;
+}
+function openBudgetLimit(id){
+  v45EnsureBudgetState(); const b=(state.budgets||[]).find(x=>x.id===id) || {month:'*',category:'',limit:0,kind:'base',active:true};
+  openModal(id?'Изменить лимит':'Новый лимит', `<div class="form-grid"><label>Категория<input id="mBudgetCategory" value="${esc(b.category||'')}" placeholder="например: Продукты"></label><label>Лимит месяца<input id="mBudgetLimit" type="number" value="${num(b.limit)}" placeholder="25000"></label><label>Месяц<select id="mBudgetMonth"><option value="*" ${b.month==='*'?'selected':''}>Каждый месяц</option><option value="${esc(v45Month())}" ${b.month===v45Month()?'selected':''}>Текущий месяц</option></select></label><label>Тип<select id="mBudgetKind"><option value="base" ${b.kind==='base'?'selected':''}>База</option><option value="wants" ${b.kind==='wants'?'selected':''}>Желания</option><option value="future" ${b.kind==='future'?'selected':''}>Будущее</option><option value="debt" ${b.kind==='debt'?'selected':''}>Долги</option></select></label></div><div class="notice">Лимит — это не запрет, а раннее предупреждение. Он помогает увидеть перерасход до того, как месяц закончился.</div><div class="top-actions"><button class="primary" data-action="saveBudgetLimit" data-id="${esc(id||'')}">Сохранить</button>${id?`<button class="danger-btn" data-action="deleteBudgetLimit" data-id="${esc(id)}">Удалить</button>`:''}</div>`);
+}
+function saveBudgetLimit(id){
+  v45EnsureBudgetState(); const payload={category:val('mBudgetCategory')||'Другое',limit:num(val('mBudgetLimit')),month:val('mBudgetMonth')||'*',kind:val('mBudgetKind')||'base',active:true,updatedAt:new Date().toISOString()};
+  if(id){ const b=state.budgets.find(x=>x.id===id); if(b) Object.assign(b,payload); else state.budgets.unshift({id:uid(),createdAt:new Date().toISOString(),...payload}); }
+  else state.budgets.unshift({id:uid(),createdAt:new Date().toISOString(),...payload});
+  try{ v42LogAction('budget','Сохранён лимит бюджета',payload); }catch(_e){} save({reason:'v45-budget-limit'}); closeModal(); render(); toast('Лимит сохранён');
+}
+function deleteBudgetLimit(id){ state.budgets=(state.budgets||[]).filter(x=>x.id!==id); save({reason:'v45-budget-delete'}); closeModal(); render(); toast('Лимит удалён'); }
+function autoCreateBudget(){
+  v45EnsureBudgetState(); const rows=v45BudgetRows(); let count=0;
+  rows.filter(r=>r.virtual || !r.limit).slice(0,12).forEach(r=>{ const limit=Math.ceil(Math.max(num(r.used)*1.1, 3000)/500)*500; const category=r.category||'Другое'; if(!(state.budgets||[]).some(b=>String(b.category).toLowerCase()===String(category).toLowerCase())){ state.budgets.unshift({id:uid(),month:'*',category,limit,kind:'base',active:true,createdAt:new Date().toISOString(),source:'v45-auto'}); count++; } });
+  save({reason:'v45-auto-budget'}); render(); toast(count?`Создано лимитов: ${count}`:'Все основные лимиты уже есть');
+}
+function runBudgetCheck(){
+  const b=v45BudgetSummary();
+  const msg = `<div class="v44-modal-score"><div class="v45-pill-score ${v45Tone(b.score)} big">${b.score}</div><div><h3>Индекс бюджета: ${b.score}/100</h3><p class="sub">Это бытовая финансовая проверка: лимиты, факт, прогноз, накопления и категории.</p></div></div><h4>Что сделать дальше</h4><div class="line-stack">${b.next.slice(0,6).map((s,i)=>`<div class="line-row"><b>${i+1}. ${esc(s[1])}</b>${v45StepButton(s)}</div>`).join('')}</div><h4>Риски</h4><div class="line-stack">${[...b.over.map(r=>`Перерасход: ${r.category} на ${money(r.used-r.limit)}`),...b.unplanned.slice(0,5).map(r=>`Нет лимита: ${r.category}`),...(b.forecast>b.income&&b.income>0?[`Прогноз расходов выше дохода на ${money(b.forecast-b.income)}`]:[])].map(x=>`<div class="notice warn">${esc(x)}</div>`).join('') || '<div class="notice good">Критичных рисков не видно.</div>'}</div><div class="top-actions"><button class="primary" data-page="budget">Открыть бюджет</button><button class="ghost" data-action="addBudgetReviewTask">Задача на ревизию</button></div>`;
+  openModal('Проверка бюджета V45', msg);
+}
+function addBudgetReviewTask(){ state.tasks=Array.isArray(state.tasks)?state.tasks:[]; state.tasks.unshift({id:uid(),title:'Провести недельную ревизию бюджета',area:'Финансы',due:todayKey(),time:'19:00',priority:'Средний',status:'В работе',goalId:'',nextAction:'Проверить топ-3 категории, лимиты и прогноз месяца'}); save({reason:'v45-budget-review-task'}); closeModal(); render(); toast('Задача ревизии добавлена'); }
+function openBudgetOverrunPlan(){ const b=v45BudgetSummary(); const top=b.over[0]||b.rows[0]; openModal('План по перерасходу', `<div class="v45-rule-box"><h3>${top?esc(top.category):'Категория'}</h3><p>1. Остановить новые траты в этой категории на 48 часов.</p><p>2. Найти 1–2 покупки, которые можно не повторять.</p><p>3. Перенести лимит или компенсировать из категории «желания», а не из подушки.</p></div><div class="top-actions"><button class="primary" data-action="addBudgetReviewTask">Добавить задачу</button><button class="ghost" data-page="budget">Открыть бюджет</button></div>`); }
+function v45EnhancedDashboard(){ const base = typeof v44EnhancedDashboard === 'function' ? v44EnhancedDashboard() : (typeof dashboard === 'function'?dashboard():''); return String(base).replace('<div class="v43-dashboard-grid">', `<div class="v45-dashboard-budget">${v45BudgetCoachCard()}</div><div class="v43-dashboard-grid">`).replace('Finance Mentor V44','Analytics Pro V45'); }
+function v45PatchVisibleVersion(){ try{ if(typeof v44PatchVisibleVersion==='function') v44PatchVisibleVersion(); document.title='Second Brain OS — V45 Analytics Pro'; const rb=document.getElementById('releaseBadge'); if(rb) rb.textContent=SBOS_V45_DISPLAY; document.querySelectorAll('.sidebar-status b,.v403-status b').forEach(el=>{ el.textContent='V45'; }); document.querySelectorAll('.sidebar-status .sync-dot,.v403-status .sync-dot').forEach(el=>{ el.textContent='ANALYTICS PRO'; }); document.querySelectorAll('[data-build-version]').forEach(el=>{ el.textContent=SBOS_V45_DISPLAY; }); const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V45); }catch(_e){} }
+function v45AddNavigation(){ try{ if(typeof v44AddNavigation==='function') v44AddNavigation(); const has=id=>navGroups.some(g=>g[1].some(x=>x[0]===id)); const moneyGroup=navGroups.find(g=>g[0]==='Деньги'); if(moneyGroup){ if(!has('budget')) moneyGroup[1].splice(2,0,['budget','▤','Бюджет']); if(!has('analytics')) moneyGroup[1].splice(3,0,['analytics','▧','Аналитика']); } pageTitles.budget='Бюджет'; pageTitles.analytics='Аналитика'; }catch(e){ console.warn('V45 nav failed', e); } }
+function v45HealthReport(){ const base=typeof v44HealthReport==='function'?v44HealthReport():{}; const b=v45BudgetSummary(); return Object.assign({},base,{version:SBOS_V45_DISPLAY,v45:true,budgetScore:b.score,forecast:b.forecast,budgetLeft:b.left,overruns:b.over.map(x=>({category:x.category,over:x.used-x.limit})),unplanned:b.unplanned.map(x=>x.category),savingsRate:b.savingsRate}); }
+function injectV45Styles(){ if(document.getElementById('v45BudgetStyles')) return; const st=document.createElement('style'); st.id='v45BudgetStyles'; st.textContent=`
+.v45-dashboard-budget{margin:0 0 18px}.v45-budget-coach{background:linear-gradient(135deg,rgba(107,149,216,.12),rgba(255,255,255,.88));border-color:rgba(107,149,216,.20)}.v45-coach-main{display:flex;align-items:center;justify-content:space-between;gap:16px}.v45-pill-score{width:64px;height:64px;border-radius:22px;display:grid;place-items:center;font-weight:900;font-size:22px;background:#edf3fc;border:1px solid #dbe5f8;color:#4d6fa9;flex:0 0 auto}.v45-pill-score.big{width:84px;height:84px;border-radius:28px;font-size:28px}.v45-pill-score.green{background:rgba(111,143,114,.12);color:#4d8758}.v45-pill-score.amber{background:rgba(216,168,108,.16);color:#b7792b}.v45-pill-score.warn{background:rgba(210,105,95,.13);color:#b9554d}.v45-budget-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}.v45-budget-row{display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,1.2fr) auto;gap:14px;align-items:center;border-bottom:1px solid var(--line2);padding:14px 0}.v45-budget-row:last-child{border-bottom:none}.v45-budget-row small,.v45-budget-money small{display:block;color:var(--muted);margin-top:4px}.v45-budget-row.over b,.v45-budget-row.over small{color:var(--red)}.v45-budget-row.risk b{color:#b7792b}.v45-budget-row.unplanned{background:rgba(210,105,95,.05);margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:14px}.v45-budget-bar{height:12px;border-radius:999px;background:rgba(31,23,18,.07);overflow:hidden;margin-top:8px}.v45-budget-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6b95d8,#9db8e8)}.v45-budget-bar.risk span{background:linear-gradient(90deg,#d8a86c,#edd0a4)}.v45-budget-bar.over span{background:linear-gradient(90deg,#d2695f,#e9a29a)}.v45-rules{display:grid;gap:10px}.v45-rules p{border:1px solid var(--line2);border-radius:16px;padding:12px;background:rgba(255,255,255,.58);margin:0}.v45-rules span{color:var(--muted)}.v45-forecast{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}.v45-forecast>div,.v45-split>div{border:1px solid var(--line2);border-radius:18px;padding:14px;background:#fff}.v45-forecast b,.v45-split b{font-size:22px;display:block}.v45-forecast span,.v45-split span,.v45-split small{display:block;color:var(--muted);margin-top:4px}.v45-split{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.v45-rule-box{border:1px solid var(--line);border-radius:18px;padding:16px;background:rgba(255,255,255,.65)}.metric.warn{background:rgba(210,105,95,.10)}
+@media(max-width:980px){.v45-budget-layout{grid-template-columns:1fr}.v45-budget-row{grid-template-columns:1fr}.v45-coach-main{align-items:flex-start}.v45-forecast,.v45-split{grid-template-columns:1fr}.v45-metrics{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.v45-metrics{grid-template-columns:1fr}.v45-budget-row .ghost{width:100%}}
+`; document.head.appendChild(st); }
+try{
+  v45EnsureBudgetState(); if(typeof v43PersonalCleanup==='function') v43PersonalCleanup(); v45AddNavigation(); injectV45Styles();
+  state.settings.v45.lastSeen=new Date().toISOString();
+  const __v45_oldDashboard = typeof dashboard === 'function' ? dashboard : null; dashboard = function(){ return v45EnhancedDashboard(); };
+  const __v45_oldRoute = typeof route === 'function' ? route : null; route = function(){ if(activePage==='budget') return budget(); if(activePage==='analytics') return analyticsPro(); if(activePage==='mentor') return mentor(); const map={dashboard,today,week,goals,tasks,finance,habits,notes,people,control,sync,settings,payments,debts,import:importPage,books,birthdays,gifts,categories,diagnostics,mentor,budget,analytics:analyticsPro,operations:typeof operations==='function'?operations:undefined,reconcile:typeof reconcile==='function'?reconcile:undefined}; if(activePage==='clients') activePage='dashboard'; return (map[activePage]||dashboard)(); };
+  const __v45_oldMobileNav = typeof mobileNav === 'function' ? mobileNav : null; mobileNav = function(){ const items=[['dashboard','⌂','Главная'],['budget','▤','Бюджет'],['quick','＋',''],['analytics','▧','Аналитика'],['more','☷','Ещё']]; return `<nav class="mobile-tabbar" aria-label="Нижняя навигация">${items.map(([id,ic,label])=>id==='quick'?`<button class="mobile-tab mobile-tab-main" data-action="quickMenu" aria-label="Быстрый ввод"><span>${ic}</span></button>`:id==='more'?`<button class="mobile-tab" data-action="mobileMore"><span>${ic}</span><b>${label}</b></button>`:`<button class="mobile-tab ${activePage===id?'active':''}" data-page="${id}"><span>${ic}</span><b>${label}</b></button>`).join('')}</nav>`; };
+  const __v45_oldHandleAction = typeof handleAction === 'function' ? handleAction : null; if(__v45_oldHandleAction){ handleAction = function(a, el){ if(a==='openBudgetLimit') return openBudgetLimit(el?.dataset?.id || ''); if(a==='saveBudgetLimit') return saveBudgetLimit(el?.dataset?.id || ''); if(a==='deleteBudgetLimit') return deleteBudgetLimit(el?.dataset?.id || ''); if(a==='autoCreateBudget') return autoCreateBudget(); if(a==='runBudgetCheck') return runBudgetCheck(); if(a==='addBudgetReviewTask') return addBudgetReviewTask(); if(a==='openBudgetOverrunPlan') return openBudgetOverrunPlan(); return __v45_oldHandleAction.apply(this, arguments); }; }
+  const __v45_oldV412Dispatch = typeof v412Dispatch === 'function' ? v412Dispatch : null; if(__v45_oldV412Dispatch){ v412Dispatch = function(a, el){ if(['openBudgetLimit','saveBudgetLimit','deleteBudgetLimit','autoCreateBudget','runBudgetCheck','addBudgetReviewTask','openBudgetOverrunPlan'].includes(a)) return handleAction(a, el); return __v45_oldV412Dispatch.apply(this, arguments); }; }
+  const __v45_oldDiagnostics = typeof diagnostics === 'function' ? diagnostics : null; diagnostics = function(){ const r=v45HealthReport(); const base=__v45_oldDiagnostics?__v45_oldDiagnostics():''; return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V45</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, аналитики и видимой версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runBudgetCheck">Проверить бюджет</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V45_DISPLAY,'активна')} ${v43Kpi('Бюджет',r.budgetScore+'/100','индекс месяца',v45Tone(r.budgetScore))} ${v43Kpi('Прогноз',money(r.forecast),'расходы месяца')} ${v43Kpi('Без лимита',(r.unplanned||[]).length,'категорий')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V45</h3><span class="tag blue">analytics</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><div class="v44-hidden-base">${base}</div>`; };
+  runHealthCheck = function(){ openModal('Проверка системы V45', `<pre class="diagnostic-pre">${esc(JSON.stringify(v45HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runBudgetCheck">Проверить бюджет</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); };
+  const __v45_oldRender = typeof render === 'function' ? render : null; if(__v45_oldRender){ render = function(){ v45EnsureBudgetState(); if(typeof v43PersonalCleanup==='function') v43PersonalCleanup(); v45AddNavigation(); const r=__v45_oldRender.apply(this, arguments); injectV45Styles(); v45PatchVisibleVersion(); return r; }; }
+  const __v45_oldOpenModal = typeof openModal === 'function' ? openModal : null; if(__v45_oldOpenModal){ openModal = function(){ const r=__v45_oldOpenModal.apply(this, arguments); injectV45Styles(); v45PatchVisibleVersion(); return r; }; }
+  try{ v42LogAction('system','Установлен Budget Coach V45',{version:SBOS_V45}); }catch(_e){}
+  window.SecondBrainV45={budget,analyticsPro,v45BudgetSummary,v45HealthReport,runBudgetCheck};
+  save({reason:'v45-analytics-budget-coach'}); render(); v45PatchVisibleVersion(); setTimeout(v45PatchVisibleVersion,100); setTimeout(v45PatchVisibleVersion,600); setTimeout(v45PatchVisibleVersion,1600); setTimeout(v45PatchVisibleVersion,3200);
+}catch(e){ console.warn('V45 Analytics Budget Coach failed', e); }
+try{ window.SecondBrainBuild = Object.assign(window.SecondBrainBuild||{}, {analyticsBudgetCoach:SBOS_V45, v45BudgetSummary, v45HealthReport}); }catch(_e){}
+
+</script>
 </body>
 </html>
