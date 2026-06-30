@@ -3218,7 +3218,7 @@ function v451PatchVisibleVersion(){
     document.querySelectorAll('body *').forEach(el=>{
       if(el.children && el.children.length>0) return;
       const t=String(el.textContent||'').trim();
-      if(/^V40\.12$|^V40$|^V41$|^V42$|^V43$|^V44$|^V45$|^V41 IMPORT REVIEW CORE$|^V42 PRODUCT ENGINE$|^V43 PERSONAL OS$|^V44 FINANCE MENTOR$|^V45 ANALYTICS PRO$/i.test(t)){
+      if(/^V40\.12$|^V40$|^V41$|^V42$|^V43$|^V44$|^V45$|^V41 IMPORT REVIEW CORE$|^V42 PRODUCT ENGINE$|^V43 PERSONAL OS$|^V44 FINANCE MENTOR$|^V45 ANALYTICS PRO$|^V46$|^V46 FINANCIAL ROADMAP$/i.test(t)){
         el.textContent = /V40|V41|V42|V43|V44|V45/i.test(t) && t.length<=8 ? 'V45.1' : SBOS_V451_DISPLAY;
       }
       if(/UPDATE SAFE \+ DATA GUARD|UPDATE SAFE|DATA GUARD/i.test(t)) el.textContent='ANALYTICS PRO + VERSION LOCK';
@@ -3257,8 +3257,8 @@ try{
 
 
 /* V46 GOALS & FINANCIAL ROADMAP — emergency fund, debts, savings path */
-const SBOS_V46 = 'v46-goals-financial-roadmap-private-20260630';
-const SBOS_V46_DISPLAY = 'V46 FINANCIAL ROADMAP';
+const SBOS_V46 = 'v46-2-premium-dashboard-safe-20260630';
+const SBOS_V46_DISPLAY = 'V46.2 PREMIUM DASHBOARD';
 function v46EnsureRoadmapState(){
   try{
     if(!state.financeRoadmap || typeof state.financeRoadmap !== 'object') state.financeRoadmap = {};
@@ -3352,16 +3352,16 @@ function injectV46Styles(){ if(document.getElementById('v46RoadmapStyles')) retu
 `; document.head.appendChild(st); }
 function v46PatchVisibleVersion(){
   try{
-    document.title='Second Brain OS — V46 Financial Roadmap';
+    document.title='Second Brain OS — V46.2 Premium Dashboard';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V46);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V46_DISPLAY; rb.setAttribute('data-build-version',SBOS_V46_DISPLAY); rb.title=SBOS_V46; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='FINANCIAL ROADMAP'; } });
-    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
+    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$|^V46$|^V46 FINANCIAL ROADMAP$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
     window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V46, visible:SBOS_V46, display:SBOS_V46_DISPLAY});
     try{ localStorage.setItem('second_brain_visible_build', SBOS_V46); }catch(_e){}
   }catch(e){ console.warn('V46 version patch failed', e); }
 }
-function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46'); }catch(_e){} }
+function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46.2'); }catch(_e){} }
 try{
   v46EnsureRoadmapState();
   if(typeof v451PatchVisibleVersion==='function') v451PatchVisibleVersion = v46PatchVisibleVersion;
@@ -3379,7 +3379,7 @@ try{
   const __v46_oldDashboard = typeof dashboard==='function' ? dashboard : null;
   if(__v46_oldDashboard){ dashboard=function(){ v46EnsureRoadmapState(); const base=String(__v46_oldDashboard.apply(this, arguments)); const card=`<div class="v46-dashboard-roadmap">${v46RoadmapCard()}</div>`; if(base.includes('v45-dashboard-budget')) return base.replace('<div class="v45-dashboard-budget">', card+'<div class="v45-dashboard-budget">'); return card+base; }; }
   const __v46_oldDiagnostics = typeof diagnostics==='function' ? diagnostics : null;
-  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
+  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46.2</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
   const __v46_oldRunHealthCheck = typeof runHealthCheck==='function' ? runHealthCheck : null;
   if(__v46_oldRunHealthCheck){ runHealthCheck=function(){ openModal('Проверка системы V46', `<pre class="diagnostic-pre">${esc(JSON.stringify(v46HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }; }
   const __v46_oldHandleAction = typeof handleAction==='function' ? handleAction : null;

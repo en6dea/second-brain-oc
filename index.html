@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="v45-1-version-badge-hotfix-private-20260630" />
-  <title>Second Brain OS — V46.1 Premium Visual Safe</title>
+  <meta name="second-brain-build" content="v46-2-premium-dashboard-safe-20260630" />
+  <title>Second Brain OS — V46.2 Premium Dashboard</title>
 
-  <link rel="manifest" href="manifest.webmanifest?v=v45-analytics-budget-coach-private-20260629" />
+  <link rel="manifest" href="manifest.webmanifest?v=v46-2-premium-dashboard-safe-20260630" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -355,7 +355,79 @@ input:focus,textarea:focus,select:focus{
   .nav-btn.active{box-shadow:0 8px 22px rgba(121,84,41,.10)!important}
 }
 
-  </style>
+  
+
+/* =========================================================
+   V46.2 PREMIUM DASHBOARD SAFE — VISUAL ONLY
+   No data model changes. No new entities. Dashboard polish only.
+   ========================================================= */
+:root{
+  --v462-gold:#c99a5b;
+  --v462-ink:#221915;
+  --v462-soft:#fff8ed;
+  --v462-mint:#eef7ea;
+  --v462-line:rgba(224,199,166,.72);
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:
+    radial-gradient(circle at 22% 8%,rgba(218,178,115,.18),transparent 28%),
+    radial-gradient(circle at 78% 2%,rgba(83,122,86,.12),transparent 30%),
+    radial-gradient(circle at 56% 100%,rgba(119,150,118,.10),transparent 26%);
+}
+.view{gap:20px!important}.home-head.clean-home-head,.home-head{
+  position:relative;overflow:hidden;padding:24px 26px!important;border:1px solid rgba(230,210,184,.8)!important;
+  border-radius:32px!important;background:linear-gradient(135deg,rgba(255,253,248,.94),rgba(246,235,219,.88))!important;
+  box-shadow:0 28px 70px rgba(77,55,32,.09)!important;margin:4px 0 4px!important;
+}
+.home-head.clean-home-head::before,.home-head::before{
+  content:"";position:absolute;right:-70px;top:-96px;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,154,91,.22),rgba(201,154,91,0) 62%);
+}
+.home-head.clean-home-head::after,.home-head::after{
+  content:"Второй мозг • деньги • цели";position:absolute;right:24px;bottom:18px;
+  padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.58);border:1px solid rgba(232,213,187,.82);
+  color:#8a6b43;font-size:12px;font-weight:800;letter-spacing:.02em;
+}
+.home-head h1{font-size:42px!important;letter-spacing:-.045em!important}.home-head .sub{font-size:15px!important}
+.premium-home-grid,.home-grid{gap:20px!important}.home-main{gap:20px!important}.top-grid,.mid-grid{gap:16px!important}
+.card{
+  position:relative;border-color:rgba(226,207,181,.78)!important;
+  background:linear-gradient(180deg,rgba(255,253,249,.95),rgba(255,250,243,.86))!important;
+  box-shadow:0 24px 60px rgba(74,52,29,.075)!important;
+}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);pointer-events:none}
+.hero-card,.v46-roadmap-card,.v45-budget-coach,.finance-hero{
+  border-radius:30px!important;box-shadow:0 30px 80px rgba(71,50,29,.10)!important;
+}
+.hero-card.day-card{background:linear-gradient(145deg,#fffdf7,#f3e5cf)!important}
+.hero-card.day-card .big{color:#6b4a20!important;text-shadow:0 10px 34px rgba(108,74,32,.11)}
+.finance-hero{background:linear-gradient(145deg,#f8fcf4,#eef7ea)!important}
+.finance-hero .big{color:#355f39!important}.attention-card{background:linear-gradient(145deg,#fffdf8,#fff6e8)!important}
+.v46-dashboard-roadmap{margin-bottom:18px!important}.v46-roadmap-card{
+  background:linear-gradient(135deg,rgba(38,59,41,.96),rgba(75,112,78,.92))!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important;
+  overflow:hidden!important;
+}
+.v46-roadmap-card::after{content:"";position:absolute;right:-60px;bottom:-100px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 64%)}
+.v46-roadmap-card .sub,.v46-roadmap-card small,.v46-roadmap-card span{color:rgba(255,255,255,.78)!important}.v46-roadmap-card h3,.v46-roadmap-card b{color:#fff!important}
+.v46-roadmap-card .tag{background:rgba(255,255,255,.14)!important;border-color:rgba(255,255,255,.18)!important;color:#fff!important}.v46-roadmap-card .progress{background:rgba(255,255,255,.16)!important}.v46-roadmap-card .progress>span{background:linear-gradient(90deg,#f7d49a,#fff4d9)!important}
+.v45-dashboard-budget{margin-bottom:18px!important}.v45-budget-coach{background:linear-gradient(135deg,#fffdf8,#eef4fc)!important}.v45-pill-score{box-shadow:inset 0 0 0 1px rgba(255,255,255,.74),0 18px 38px rgba(74,93,126,.10)!important}
+.metrics.premium-metrics .metric,.premium-metrics .metric,.mission-kpis>div,.rpg-stats>div{
+  background:rgba(255,255,255,.72)!important;border-color:rgba(232,214,190,.78)!important;border-radius:22px!important;
+  box-shadow:0 14px 34px rgba(69,48,25,.045)!important;
+}
+.metric b{font-size:22px!important;letter-spacing:-.025em!important}.chart-box,.table-wrap,.focus-box,.v45-rule-box,.v45-forecast>div,.v45-split>div{
+  border-color:rgba(232,214,190,.82)!important;background:rgba(255,255,255,.68)!important;border-radius:22px!important;
+}
+.attention-row{padding:10px 12px!important;border:1px solid rgba(232,214,190,.62)!important;border-radius:16px!important;background:rgba(255,255,255,.55)!important}
+.task-line,.habit-line,.line-row{border-bottom-color:rgba(232,214,190,.66)!important}.progress{height:10px!important;background:rgba(214,196,170,.36)!important}.progress>span{box-shadow:0 0 0 1px rgba(255,255,255,.45) inset!important}
+.mobile-tabbar{border-color:rgba(225,205,176,.85)!important;background:rgba(255,253,248,.86)!important;box-shadow:0 -18px 55px rgba(71,50,29,.10)!important}.mobile-tab-main{background:linear-gradient(135deg,#527a55,#3f6844)!important;color:#fff!important;box-shadow:0 16px 38px rgba(70,112,76,.25)!important}
+#releaseBadge{background:rgba(33,25,18,.84)!important;border:1px solid rgba(255,255,255,.14)!important;backdrop-filter:blur(12px)!important}
+@media (max-width:900px){
+  body{min-width:0!important}.home-head.clean-home-head,.home-head{padding:20px!important;border-radius:26px!important}.home-head h1{font-size:31px!important}.home-head::after{position:static;display:inline-flex;margin-top:12px}.card{border-radius:24px!important;padding:17px!important}.metric b{font-size:19px!important}.v46-roadmap-card{border-radius:26px!important}.top-grid,.mid-grid,.premium-metrics{grid-template-columns:1fr!important}.mini-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}
+}
+
+</style>
 </head>
 <body>
   <div id="app"></div>
@@ -3584,7 +3656,7 @@ function v451PatchVisibleVersion(){
     document.querySelectorAll('body *').forEach(el=>{
       if(el.children && el.children.length>0) return;
       const t=String(el.textContent||'').trim();
-      if(/^V40\.12$|^V40$|^V41$|^V42$|^V43$|^V44$|^V45$|^V41 IMPORT REVIEW CORE$|^V42 PRODUCT ENGINE$|^V43 PERSONAL OS$|^V44 FINANCE MENTOR$|^V45 ANALYTICS PRO$/i.test(t)){
+      if(/^V40\.12$|^V40$|^V41$|^V42$|^V43$|^V44$|^V45$|^V41 IMPORT REVIEW CORE$|^V42 PRODUCT ENGINE$|^V43 PERSONAL OS$|^V44 FINANCE MENTOR$|^V45 ANALYTICS PRO$|^V46$|^V46 FINANCIAL ROADMAP$/i.test(t)){
         el.textContent = /V40|V41|V42|V43|V44|V45/i.test(t) && t.length<=8 ? 'V45.1' : SBOS_V451_DISPLAY;
       }
       if(/UPDATE SAFE \+ DATA GUARD|UPDATE SAFE|DATA GUARD/i.test(t)) el.textContent='ANALYTICS PRO + VERSION LOCK';
@@ -3623,8 +3695,8 @@ try{
 
 
 /* V46 GOALS & FINANCIAL ROADMAP — emergency fund, debts, savings path */
-const SBOS_V46 = 'v46-goals-financial-roadmap-private-20260630';
-const SBOS_V46_DISPLAY = 'V46 FINANCIAL ROADMAP';
+const SBOS_V46 = 'v46-2-premium-dashboard-safe-20260630';
+const SBOS_V46_DISPLAY = 'V46.2 PREMIUM DASHBOARD';
 function v46EnsureRoadmapState(){
   try{
     if(!state.financeRoadmap || typeof state.financeRoadmap !== 'object') state.financeRoadmap = {};
@@ -3718,16 +3790,16 @@ function injectV46Styles(){ if(document.getElementById('v46RoadmapStyles')) retu
 `; document.head.appendChild(st); }
 function v46PatchVisibleVersion(){
   try{
-    document.title='Second Brain OS — V46 Financial Roadmap';
+    document.title='Second Brain OS — V46.2 Premium Dashboard';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V46);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V46_DISPLAY; rb.setAttribute('data-build-version',SBOS_V46_DISPLAY); rb.title=SBOS_V46; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='FINANCIAL ROADMAP'; } });
-    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
+    document.querySelectorAll('body *').forEach(el=>{ if(el.children && el.children.length>0) return; const t=String(el.textContent||'').trim(); if(/^V40\.?12$|^V41$|^V42$|^V43$|^V44$|^V45$|^V45\.1$|^V45\.1 VERSION LOCK$|^V45 ANALYTICS PRO$|^V46$|^V46 FINANCIAL ROADMAP$/i.test(t)){ el.textContent=SBOS_V46_DISPLAY; } });
     window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V46, visible:SBOS_V46, display:SBOS_V46_DISPLAY});
     try{ localStorage.setItem('second_brain_visible_build', SBOS_V46); }catch(_e){}
   }catch(e){ console.warn('V46 version patch failed', e); }
 }
-function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46'); }catch(_e){} }
+function forceVersionBadgeRepair(){ v46PatchVisibleVersion(); try{ toast('Версия обновлена: V46.2'); }catch(_e){} }
 try{
   v46EnsureRoadmapState();
   if(typeof v451PatchVisibleVersion==='function') v451PatchVisibleVersion = v46PatchVisibleVersion;
@@ -3745,7 +3817,7 @@ try{
   const __v46_oldDashboard = typeof dashboard==='function' ? dashboard : null;
   if(__v46_oldDashboard){ dashboard=function(){ v46EnsureRoadmapState(); const base=String(__v46_oldDashboard.apply(this, arguments)); const card=`<div class="v46-dashboard-roadmap">${v46RoadmapCard()}</div>`; if(base.includes('v45-dashboard-budget')) return base.replace('<div class="v45-dashboard-budget">', card+'<div class="v45-dashboard-budget">'); return card+base; }; }
   const __v46_oldDiagnostics = typeof diagnostics==='function' ? diagnostics : null;
-  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
+  if(__v46_oldDiagnostics){ diagnostics=function(){ const r=v46HealthReport(); const base=String(__v46_oldDiagnostics.apply(this, arguments)); return `<div class="goals-head premium-page-head"><div><div class="page-label">System Health V46</div><h1>Диагностика</h1><p class="sub">Проверка приложения, бюджета, дорожной карты и версии.</p></div><div class="top-actions"><button class="primary" data-action="runHealthCheck">Проверить систему</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div></div><div class="metrics">${v43Kpi('Версия',SBOS_V46_DISPLAY,'активна')} ${v43Kpi('Карта',r.roadmapScore+'/100','индекс пути',v46Tone(r.roadmapScore))} ${v43Kpi('Подушка',r.emergencyPct+'%','готовность')} ${v43Kpi('Долги',money(r.debtTotal),'активно')}</div><section class="card panel"><div class="section-head"><h3>Отчёт V46</h3><span class="tag green">roadmap</span></div><pre class="diagnostic-pre">${esc(JSON.stringify(r,null,2))}</pre></section><section class="card panel"><div class="section-head"><div><h3>Версия интерфейса</h3><p class="sub">V46 принудительно перекрывает старые плашки V45.1 и ниже.</p></div><span class="tag green">V46.2</span></div><div class="top-actions"><button class="primary" data-action="forceVersionBadgeRepair">Исправить плашку версии</button><button class="ghost" data-action="resetCaches">Сбросить кэш</button></div></section><div class="v44-hidden-base">${base}</div>`; }; }
   const __v46_oldRunHealthCheck = typeof runHealthCheck==='function' ? runHealthCheck : null;
   if(__v46_oldRunHealthCheck){ runHealthCheck=function(){ openModal('Проверка системы V46', `<pre class="diagnostic-pre">${esc(JSON.stringify(v46HealthReport(),null,2))}</pre><div class="top-actions"><button class="primary" data-action="closeModal">ОК</button><button class="ghost" data-action="runRoadmapCheck">Проверить путь</button><button class="ghost" data-action="repairHealth">Починить автоматически</button></div>`); }; }
   const __v46_oldHandleAction = typeof handleAction==='function' ? handleAction : null;
