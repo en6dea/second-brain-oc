@@ -354,3 +354,133 @@ function render(){renderNav();const map={dashboard,finance:financePage,budget:bu
 Object.assign(windowActions,{editSafetyFund,saveSafetyFund,saveDailyReflection,addTask,saveTask,editTask,saveEditedTask,addFileNote,saveFileNote,debtsPage,habitsPage,tripsPage});
 
 try{state=normalizeState(state);save();render()}catch(e){console.error(e)}
+
+
+/* ===== TIMELINE FOCUS UI2 — final visual + logic patch ===== */
+try{ localStorage.setItem('secondBrainOS.currentBuild','timeline-focus-ui2-20260630'); }catch(e){}
+
+try{
+  const desiredNav=[
+    ['dashboard','⌂','Обзор'],
+    ['finance','◔','Финансы'],
+    ['debts','▣','Долги'],
+    ['budget','◉','Бюджет'],
+    ['goals','◎','Цели SMART'],
+    ['planning','☷','Планирование'],
+    ['spheres','✣','Сферы жизни'],
+    ['habits','◷','Привычки'],
+    ['trips','✈','Путешествия'],
+    ['import','⇣','Импорт'],
+    ['diagnostics','⚙','Диагностика']
+  ];
+  navItems.splice(0,navItems.length,...desiredNav);
+}catch(e){}
+
+function safeActualBalance(){
+  const rawA=String(state.settings.currentBalance??'').trim();
+  const rawB=String(state.settings.importActualBalance??'').trim();
+  if(rawB!=='' || rawA!=='') return num(rawB!==''?rawB:rawA);
+  return null;
+}
+function hasActualBalance(){return safeActualBalance()!==null;}
+function activeDebts(){
+  const explicit=Array.isArray(state.debts)?state.debts:[];
+  const normalized=explicit.filter(d=>String(d.status||'Активен')!=='Закрыт').map(d=>({direction:d.direction||'owe',...d}));
+  const debtOps=(state.operations||[]).filter(o=>/долг|за[её]м|займ|вернуть|одолж|кредит|ипотек/i.test(`${o.category||''} ${o.note||''}`)).map(o=>({id:'op_'+o.id,direction:o.type==='income'?'owed_to_me':'owe',person:o.note||o.category||'Долг из операции',amount:num(o.amount),due:o.date,status:'Активен',note:'Определено по операции'}));
+  const map=new Map();
+  [...normalized,...debtOps].forEach(d=>{const k=[d.person,d.amount,d.due,d.direction].join('|'); if(!map.has(k))map.set(k,d)});
+  return Array.from(map.values());
+}
+function activeOwe(){return activeDebts().filter(d=>String(d.direction||'owe')==='owe')}
+function activeOwed(){return activeDebts().filter(d=>String(d.direction||'owe')==='owed_to_me')}
+function summary(){
+  const income=total(monthOps('income'));
+  const expenses=total(monthOps('expense'));
+  const cycleIncome=total(cycleOps('income'));
+  const cycleExpenses=total(cycleOps('expense'));
+  const planned=total(plannedInMonth());
+  const debtDue=total(activeOwe().filter(d=>String(d.due||'').startsWith(state.settings.currentMonth)));
+  const calcBalance=income-expenses;
+  const actualFromUser=safeActualBalance();
+  const actual=actualFromUser===null?calcBalance:actualFromUser;
+  const plan=num(state.settings.monthlyPlan)||Math.max(income,1);
+  const next=nextSalaryDate();
+  const days=Math.max(1,Math.ceil((new Date(next.date)-new Date(todayKey()))/86400000));
+  const obligations=dueUntil(next.date);
+  const availableUntilSalary=actual-obligations;
+  const dayByFact=Math.floor(Math.max(0,availableUntilSalary)/days);
+  const daysToCycleEnd=Math.max(1,Math.ceil((new Date(currentCycle().end)-new Date(todayKey()))/86400000));
+  const budgetLeft=Math.max(0,plan-expenses-planned-debtDue);
+  const dayByBudget=Math.floor(budgetLeft/daysToCycleEnd);
+  const dailyLimit=actualFromUser===null?dayByBudget:dayByFact;
+  const dailyLimitReason=actualFromUser===null?'расчёт по плану месяца, пока фактический остаток не внесён':(dayByFact===0?'свободного остатка до зарплаты нет: проверь долги, плановые покупки или фактический остаток':'расчёт от фактического остатка до ближайшей зарплаты');
+  const topCats=Object.entries(monthOps('expense').reduce((m,o)=>{m[o.category||'Без категории']=(m[o.category||'Без категории']||0)+num(o.amount);return m},{})).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  return {income,expenses,cycleIncome,cycleExpenses,planned,debtDue,calcBalance,actual,plan,progress:clamp(Math.round(income/plan*100)),nextSalary:next,daysToSalary:days,obligations,toNext:availableUntilSalary,dailyLimit,dailyLimitReason,dayByFact,dayByBudget,topCats,budgetLeft,daysToCycleEnd};
+}
+function dueUntil(date){
+  const p=state.plannedPurchases.filter(x=>x.includeInBudget!==false&&(!x.due||x.due<=date)&&(!x.month||x.month<=monthKey(new Date(date)))).reduce((a,b)=>a+num(b.amount),0);
+  const d=activeOwe().filter(x=>x.due&&x.due<=date).reduce((a,b)=>a+num(b.amount),0);
+  return p+d;
+}
+function debtAmountTotal(list){return list.reduce((s,d)=>s+num(d.amount),0)}
+
+function rowTask(t){
+  const img=t.image?`<img class="task-thumb" src="${esc(t.image)}" alt="">`:'';
+  const google=`<button class="mini-btn blue compact-action" data-action="googleTask" data-id="${t.id}">Google</button>`;
+  return `<div class="task-card-row">
+    <button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${t.id}" title="Готово"></button>
+    ${img}
+    <button class="task-main" data-action="editTask" data-id="${t.id}">
+      <span class="row-title">${esc(t.title)}</span>
+      <span class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</span>
+    </button>
+    <div class="task-actions">${taskPill(t)}${google}</div>
+  </div>`;
+}
+function rowDebt(d){
+  const overdue=d.due&&d.due<todayKey();
+  const incoming=String(d.direction||'owe')==='owed_to_me';
+  return `<div class="debt-row ${overdue?'danger':''}">
+    <div class="debt-icon ${incoming?'green':'red'}">${incoming?'↙':'↗'}</div>
+    <div class="debt-main"><div class="row-title">${esc(d.person||'Долг')} · ${money(d.amount)}</div><div class="row-sub">${incoming?'мне должны':'я должен'} · срок ${esc(d.due||'—')} · ${esc(d.note||'')}</div></div>
+    <div class="debt-actions"><button class="mini-btn blue" data-action="debtTask" data-id="${d.id}">Напомнить</button><button class="mini-btn" data-action="editDebt" data-id="${d.id}">Ред.</button><button class="mini-btn green" data-action="closeDebt" data-id="${d.id}">Закрыт</button></div>
+  </div>`;
+}
+function addDebt(direction='owe'){
+  openModal(direction==='owed_to_me'?'Мне должны':'Долг',`<div class="form-grid"><div class="field"><label>Тип</label><select id="f_direction"><option value="owe" ${direction==='owe'?'selected':''}>Я должен</option><option value="owed_to_me" ${direction==='owed_to_me'?'selected':''}>Мне должны</option></select></div>${field('Кто / кому','f_person')}${field('Сумма','f_amount','','number')}${field('Дата возврата','f_due',todayKey(),'date')}<div class="field"><label>Статус</label><select id="f_status"><option>Активен</option><option>Ожидаю</option><option>Закрыт</option></select></div>${area('Комментарий','f_note')}</div>${modalButtons('saveDebt')}`)
+}
+function saveDebt(){state.debts.unshift({id:uid(),direction:formVal('f_direction')||'owe',person:formVal('f_person')||'Долг',amount:num(formVal('f_amount')),due:formVal('f_due'),status:formVal('f_status')||'Активен',note:formVal('f_note')});save(true);closeModal();toast('Долг добавлен');render()}
+function editDebt(id){const d=state.debts.find(x=>x.id===id);if(!d)return;openModal('Редактировать долг',`<div class="form-grid"><div class="field"><label>Тип</label><select id="f_direction"><option value="owe" ${(d.direction||'owe')==='owe'?'selected':''}>Я должен</option><option value="owed_to_me" ${d.direction==='owed_to_me'?'selected':''}>Мне должны</option></select></div>${field('Кто / кому','f_person',d.person)}${field('Сумма','f_amount',d.amount,'number')}${field('Дата возврата','f_due',d.due,'date')}<div class="field"><label>Статус</label><select id="f_status"><option ${d.status==='Активен'?'selected':''}>Активен</option><option ${d.status==='Ожидаю'?'selected':''}>Ожидаю</option><option ${d.status==='Закрыт'?'selected':''}>Закрыт</option></select></div>${area('Комментарий','f_note',d.note)}</div><div class="actions"><button class="btn" data-action="saveEditedDebt" data-id="${id}">Сохранить</button><button class="btn secondary" data-action="debtTask" data-id="${id}">Создать напоминание</button><button class="mini-btn red" data-action="deleteDebt" data-id="${id}">Удалить</button></div>`)}
+function saveEditedDebt(id){const d=state.debts.find(x=>x.id===id);if(d){d.direction=formVal('f_direction');d.person=formVal('f_person');d.amount=num(formVal('f_amount'));d.due=formVal('f_due');d.status=formVal('f_status');d.note=formVal('f_note')}save(true);closeModal();render()}
+function deleteDebt(id){state.debts=state.debts.filter(x=>x.id!==id);save(true);closeModal();render()}
+
+function addGoal(){openModal('Цель SMART',`<div class="form-grid">${field('Название','f_title')}${field('Сфера','f_area','Личное')}${field('Картинка / URL','f_image')}${field('Цель, ₽/число','f_target')}${field('Сейчас','f_current')}${field('Срок','f_deadline','','date')}${field('Шаг недели','f_week52')}${area('S — конкретика','f_specific')}${area('M — измерение','f_measurable')}${area('A — достижимость','f_achievable')}${area('R — зачем это важно','f_relevant')}${area('T — срок','f_timebound')}</div>${modalButtons('saveGoal')}`)}
+function saveGoal(){state.goals.unshift({id:uid(),title:formVal('f_title')||'Цель',area:formVal('f_area'),image:formVal('f_image'),targetValue:num(formVal('f_target')),currentValue:num(formVal('f_current')),deadline:formVal('f_deadline'),specific:formVal('f_specific'),measurable:formVal('f_measurable'),achievable:formVal('f_achievable'),relevant:formVal('f_relevant'),timebound:formVal('f_timebound'),week52:formVal('f_week52'),nextAction:formVal('f_week52'),status:'Активна'});save(true);closeModal();render()}
+function editGoal(id){const g=state.goals.find(x=>x.id===id);if(!g)return;openModal('Редактировать цель SMART',`<div class="form-grid">${field('Название','f_title',g.title)}${field('Сфера','f_area',g.area)}${field('Картинка / URL','f_image',g.image||'')}${field('Цель, ₽/число','f_target',g.targetValue)}${field('Сейчас','f_current',g.currentValue)}${field('Срок','f_deadline',g.deadline,'date')}${field('Шаг недели','f_week52',g.week52||g.nextAction)}${area('S — конкретика','f_specific',g.specific)}${area('M — измерение','f_measurable',g.measurable)}${area('A — достижимость','f_achievable',g.achievable)}${area('R — зачем это важно','f_relevant',g.relevant)}${area('T — срок','f_timebound',g.timebound)}</div><div class="actions"><button class="btn" data-action="saveEditedGoal" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedGoal(id){const g=state.goals.find(x=>x.id===id);if(g){g.title=formVal('f_title');g.area=formVal('f_area');g.image=formVal('f_image');g.targetValue=num(formVal('f_target'));g.currentValue=num(formVal('f_current'));g.deadline=formVal('f_deadline');g.week52=formVal('f_week52');g.nextAction=g.week52;g.specific=formVal('f_specific');g.measurable=formVal('f_measurable');g.achievable=formVal('f_achievable');g.relevant=formVal('f_relevant');g.timebound=formVal('f_timebound')}save(true);closeModal();render()}
+function goalCard(g){return `<article class="card goal-card-ui">${g.image?`<img class="goal-image" src="${esc(g.image)}" alt="">`:''}<div class="card-head"><h3>${esc(g.title)}</h3><span class="pill blue">${goalProgress(g)}%</span></div>${progressBar(goalProgress(g))}<div class="grid cols-2" style="margin-top:12px"><div class="mini-box"><b>S</b><p class="small muted">${esc(g.specific||'что именно?')}</p></div><div class="mini-box"><b>M</b><p class="small muted">${esc(g.measurable||money(g.targetValue))}</p></div><div class="mini-box"><b>A</b><p class="small muted">${esc(g.achievable||'реалистично')}</p></div><div class="mini-box"><b>R/T</b><p class="small muted">${esc(g.relevant||'важно')} · ${esc(g.timebound||g.deadline||'срок')}</p></div></div><div class="alert" style="margin-top:12px">Шаг недели: ${esc(g.week52||g.nextAction||'назначить следующий шаг')}</div><div class="button-row"><button class="mini-btn" data-action="editGoal" data-id="${g.id}">Редактировать</button><button class="mini-btn red" data-action="deleteGoal" data-id="${g.id}">Удалить</button></div></article>`}
+
+function monthDays(d=new Date()){const y=d.getFullYear(),m=d.getMonth();return Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>iso(new Date(y,m,i+1)))}
+function habitsFolder(){
+  const days=monthDays(new Date()); const avg=state.habits.length?Math.round(state.habits.reduce((a,h)=>a+habitMonthPct(h,days),0)/state.habits.length):0;
+  return `<section class="habit-hero-grid"><article class="card premium-hero-card habit-hero"><h3>Ритм привычек</h3><div class="value">${avg}%</div><p class="muted small">текущий месяц · ${new Date().toLocaleDateString('ru-RU',{month:'long'})}</p>${progressBar(avg)}</article><article class="card habit-calendar-card"><div class="card-head"><h3>Календарь месяца</h3><button class="btn secondary" data-action="addHabit">Добавить</button></div>${habitMonthLegend(days)}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Привычки</h3><span class="pill blue">яркий трекер</span></div><div class="habit-cards-grid">${state.habits.map(h=>habitCard(h,days)).join('')||empty('Нет привычек')}</div></section>`
+}
+function habitMonthPct(h,days){return Math.round(days.filter(d=>h.marks&&h.marks[d]).length/Math.max(1,days.length)*100)}
+function habitMonthLegend(days){return `<div class="habit-month-head">${days.map(d=>`<span class="${d===todayKey()?'today':''}">${new Date(d).getDate()}</span>`).join('')}</div>`}
+function habitCard(h,days=monthDays(new Date())){const p=habitMonthPct(h,days);return `<div class="habit-card"><div class="habit-title"><div class="habit-badge">${habitIcon(h)}</div><div><strong>${esc(h.name)}</strong><p class="small muted">${esc(h.area||'Личное')} · ${esc(h.target||'ежедневно')}</p></div><span class="pill blue">${p}%</span></div><div class="habit-month-grid">${days.map(d=>`<button class="habit-day ${h.marks&&h.marks[d]?'on':''} ${d===todayKey()?'today':''}" data-action="toggleHabitDate" data-id="${h.id}" data-date="${d}" title="${d}">${new Date(d).getDate()}</button>`).join('')}</div><div class="button-row"><button class="mini-btn" data-action="editHabit" data-id="${h.id}">Ред.</button><button class="mini-btn red" data-action="deleteHabit" data-id="${h.id}">Удалить</button></div></div>`}
+function habitIcon(h){const s=(h.name+' '+(h.area||'')).toLowerCase(); if(/трен|спорт|зал/.test(s))return '🏃'; if(/чтен|книг/.test(s))return '📘'; if(/вода/.test(s))return '💧'; if(/сон|подъ/.test(s))return '☀️'; if(/медит/.test(s))return '🧘'; return '✓'}
+
+function dailyLimitBlock(s){
+  if(s.dailyLimit>0) return `<div class="value sm">${money(s.dailyLimit)}</div><p class="muted small">${esc(s.dailyLimitReason)}</p>`;
+  return `<div class="value sm amber">0 ₽</div><p class="muted small">${esc(s.dailyLimitReason)}</p><div class="alert" style="margin-top:10px">Чтобы появилась сумма: проверь фактический остаток, долги до зарплаты и плановые покупки.</div>`;
+}
+function budgetPage(){const s=summary(), items=budgetStats(), used=items.reduce((a,b)=>a+b.spent,0), limit=items.reduce((a,b)=>a+b.limit,0); const top=dailySpendSeries().sort((a,b)=>b.amount-a.amount).filter(x=>x.amount>0).slice(0,5); return layout('Бюджет','Расчёт по зарплатному циклу от 10 числа: лимиты, дни и плановые покупки.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Цикл бюджета</h3><div class="value sm">10 → 9</div><p class="muted small">расчёт от основной зарплаты</p></article><article class="card"><h3>Можно тратить в день</h3>${dailyLimitBlock(s)}</article><article class="card"><h3>Плановые покупки</h3><div class="value sm">${money(total(plannedInMonth()))}</div><p class="muted small">включены в бюджет</p></article><article class="card"><h3>Лимиты</h3><div class="value sm">${limit?Math.round(used/limit*100):0}%</div>${progressBar(limit?used/limit*100:0,used>limit?'red':'')}</article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>График трат по дням</h3><span class="pill blue">пики выделены</span></div>${renderDailySpendChart()}${top.length?`<div class="drawer" style="margin-top:12px"><b>Самые дорогие дни</b>${top.map(x=>`<div class="stat-row"><span>${x.day} число</span><b>${money(x.amount)}</b></div>`).join('')}</div>`:''}</article><article class="card"><div class="card-head"><h3>Лимиты по категориям</h3><button class="btn secondary" data-action="addCategory">Категория</button></div>${items.map(budgetRow).join('')||empty('Нет категорий')}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Плановые покупки</h3><button class="btn secondary" data-action="addPurchase">Добавить покупку</button></div><div class="note-list">${state.plannedPurchases.map(rowPurchase).join('')||empty('Покупок нет')}</div></section>`)}
+
+function financePage(){const s=summary(); const diff=s.actual-s.calcBalance; return layout('Финансы','Фактический остаток — главный. Долги подняты рядом с финансами.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${hasActualBalance()?money(s.actual):'Не внесён'}</div><p class="muted small">Основной показатель. Вносится вручную после импорта банка.</p><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${s.toNext<0?'red':'blue'}">${money(s.toNext)}</div><p class="muted small">до ${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</p></article><article class="card"><h3>Должен я</h3><div class="value sm red">${money(debtAmountTotal(activeOwe()))}</div><button class="link" data-go="debts">Открыть долги →</button></article><article class="card"><h3>Мне должны</h3><div class="value sm green">${money(debtAmountTotal(activeOwed()))}</div><button class="link" data-go="debts">Открыть →</button></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Расхождение</h3><button class="mini-btn" data-action="editActualBalance">Изменить факт</button></div><div class="value sm ${Math.abs(diff)>0?'amber':'green'}">${money(diff)}</div>${discrepancyDetails()}</article>${safetyFundCard()}</section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Долги</h3><button class="btn secondary" data-action="addDebt">Добавить долг</button></div><div class="note-list">${activeDebts().map(rowDebt).join('')||empty('Активных долгов нет')}</div></article><article class="card"><div class="card-head"><h3>Категории доходов/расходов</h3><button class="btn secondary" data-action="addCategory">Категория</button></div><div class="note-list">${state.categories.map(c=>`<div class="list-row category-row"><span class="pill ${c.type==='income'?'green':'blue'}">${c.type==='income'?'Доход':'Расход'}</span><div><div class="row-title">${esc(c.name)}</div><div class="row-sub">Лимит: ${c.limit?money(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${c.id}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${c.id}">Удалить</button></div></div>`).join('')}</div></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Операции</h3><div class="button-row"><button class="btn secondary" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button></div></div><div class="op-list">${state.operations.slice(0,12).map(rowOperation).join('')}</div></article><article class="card"><div class="card-head"><h3>Финансовые принципы</h3><span class="pill blue">без перегруза</span></div>${financePrinciples()}</article></section>`)}
+function debtsPage(){return layout('Долги','Суммы, сроки возврата и напоминания. Раздел поднят рядом с финансами.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Я должен</h3><div class="value sm red">${money(debtAmountTotal(activeOwe()))}</div><button class="btn" data-action="addDebt">Добавить</button></article><article class="card"><h3>Мне должны</h3><div class="value sm green">${money(debtAmountTotal(activeOwed()))}</div><button class="btn secondary" data-action="addDebt" data-id="owed_to_me">Добавить</button></article><article class="card"><h3>Ближайший срок</h3>${activeDebts().sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,1).map(d=>`<div class="value sm">${esc(d.due||'—')}</div><p class="muted small">${esc(d.person)} · ${money(d.amount)}</p>`).join('')||empty('Сроков нет')}</article><article class="card"><h3>Напоминания</h3><p class="muted small">Создавай задачу по каждому долгу в один клик.</p></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Кому я должен</h3><button class="btn secondary" data-action="addDebt">Добавить</button></div>${activeOwe().map(rowDebt).join('')||empty('Активных долгов нет')}</article><article class="card"><div class="card-head"><h3>Кто должен мне</h3><button class="btn secondary" data-action="addDebt" data-id="owed_to_me">Добавить</button></div>${activeOwed().map(rowDebt).join('')||empty('Тебе пока никто не должен')}</article></section>`)}
+function quoteCard(){const q=dailyQuote();return `<article class="card quote-polish"><div class="card-head"><h3>Цитата дня</h3><span class="pill violet">рефлексия</span></div><div class="quote-big">“${esc(q.quote)}”</div><div class="reflection-hint"><b>Что я думаю:</b> ${esc(q.thought)}</div><textarea id="dailyReflection" placeholder="Напиши свою мысль — сохраню в заметки с тегом рефлексия"></textarea><button class="btn secondary" data-action="saveDailyReflection">Сохранить в заметки</button></article>`}
+
+function dashboard(){const s=summary();return layout('Обзор','Timeline Focus: день, деньги и фокус — на одной чистой линии.',`<section class="timeline-strip"><div><b>Сегодня</b><span>${new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})}</span></div><div><b>Зарплата</b><span>${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</span></div><div><b>Факт</b><span>${money(s.actual)}</span></div><div><b>План</b><span>${openTasks().filter(t=>t.due===todayKey()).length} задач сегодня</span></div></section><section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${money(s.actual)}</div><p class="muted small">до зарплаты ${s.daysToSalary} дн.</p>${financeSpark()}</article><article class="card"><h3>Бюджет на день</h3>${dailyLimitBlock(s)}${renderDailySpendChart().replace('day-chart','day-chart compact')}</article><article class="card"><h3>Цели SMART</h3><div class="ring" style="--p:${Math.min(100,s.progress)}"><span>${Math.min(100,s.progress)}%</span></div><p class="muted small">до плана месяца</p></article><article class="card"><h3>План на сегодня</h3><div class="task-list">${openTasks().filter(t=>t.due===todayKey()).slice(0,3).map(rowTask).join('')||empty('Нет задач')}</div><button class="link" data-go="planning">Все задачи →</button></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Планирование</h3><button class="link" data-go="planning">Открыть →</button></div>${taskScopeButtons()}<div class="task-list">${tasksByScope().slice(0,4).map(rowTask).join('')||empty('Нет задач')}</div></article><article class="card"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><button class="link" data-go="planning">Редактировать →</button></div>${eisenhowerMatrix()}</article></section><section class="grid bottom" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Сферы жизни</h3><button class="link" data-go="spheres">Все →</button></div><div class="life-grid">${lifeFolders().slice(0,9).map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</div></article><article class="card"><div class="card-head"><h3>Привычки</h3><button class="link" data-go="habits">Все →</button></div>${habitsFolder().replace(/<section class="habit-hero-grid">[\s\S]*?<\/section><section class="card" style="margin-top:18px">/,'<div>').replace(/<\/section>$/,'</div>')}</article><article class="card"><div class="card-head"><h3>Долги</h3><button class="link" data-go="debts">Все →</button></div>${activeDebts().slice(0,4).map(rowDebt).join('')||empty('Активных долгов нет')}</article></section><section class="grid cols-3" style="margin-top:18px">${quoteCard()}<article class="card"><div class="card-head"><h3>Люди</h3><button class="link" data-life-folder="people">Открыть →</button></div>${state.people.slice(0,3).map(p=>`<div class="person-top" style="margin-bottom:10px"><div class="person-avatar">${p.photo?`<img src="${esc(p.photo)}">`:esc((p.name||'?')[0])}</div><div><strong>${esc(p.name)}</strong><p class="small muted">${p.birthday?`ДР: ${esc(p.birthday)}`:'добавь дату рождения'}</p></div></div>`).join('')||empty('Добавь людей')}</article><article class="card"><div class="card-head"><h3>Книги</h3><button class="link" data-life-folder="books">Открыть →</button></div>${state.books.slice(0,2).map(b=>`<div class="mini-box"><strong>${esc(b.title)}</strong><p class="small muted">${esc((b.quotes||[])[0]||b.insight||'Цитата, которая запомнилась')}</p></div>`).join('')||empty('Добавь книгу')}</article></section>`)}
+
+Object.assign(windowActions,{addDebt,saveDebt,editDebt,saveEditedDebt,deleteDebt,addGoal,saveGoal,editGoal,saveEditedGoal,addCategory,editCategory,saveEditedCategory,deleteCategory});
+try{render()}catch(e){console.error(e)}
