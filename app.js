@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='timeline-focus-ui2-buttons-nuclear-fix-20260630';
+const BUILD='timeline-focus-ui2-buttons-wire-final-20260630-2';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -574,3 +574,155 @@ function dashboard(){const s=summary();return layout('Обзор','Timeline Focu
 
 Object.assign(windowActions,{addDebt,saveDebt,editDebt,saveEditedDebt,deleteDebt,addGoal,saveGoal,editGoal,saveEditedGoal,addCategory,editCategory,saveEditedCategory,deleteCategory});
 try{render()}catch(e){console.error(e)}
+
+
+/* ===== BUTTONS WIRE FINAL FIX — hard inline + capture + cache-safe ===== */
+(function(){
+  const BUILD_FINAL='buttons-wire-final-20260630-2';
+  try{localStorage.setItem('secondBrainOS.currentBuild', BUILD_FINAL);}catch(e){}
+
+  function safeToast(msg){
+    try{ if(typeof toast==='function') toast(msg); else console.log('[SBOS]', msg); }catch(e){ console.log('[SBOS]', msg); }
+  }
+  function safeSaveRender(){
+    try{ if(typeof save==='function') save(true); }catch(e){}
+    try{ if(typeof render==='function') render(); }catch(e){ console.error(e); }
+  }
+  function getId(el){ return el && el.dataset ? (el.dataset.id || el.getAttribute('data-id') || '') : ''; }
+  function getAction(el){ return el && el.dataset ? (el.dataset.action || el.getAttribute('data-action') || '') : ''; }
+
+  window.SBOS_FORCE_ACTION = function(action, id, el){
+    try{
+      action = action || getAction(el);
+      id = id || getId(el);
+      if(!action) return false;
+      // categories — direct state-level fallback, no dependency on old router
+      if(action==='deleteCategory'){
+        const c=(state.categories||[]).find(x=>String(x.id)===String(id));
+        if(!c){ safeToast('Категория не найдена'); return true; }
+        const used=(state.operations||[]).filter(o=>String(o.category||'')===String(c.name||'')).length + (state.plannedPurchases||[]).filter(p=>String(p.category||'')===String(c.name||'')).length;
+        if(!confirm(`Удалить категорию «${c.name}»?${used?`\nСвязанные записи будут переведены в «Без категории».`:''}`)) return true;
+        state.settings = state.settings || {};
+        state.settings.deletedCategories = Array.isArray(state.settings.deletedCategories) ? state.settings.deletedCategories : [];
+        const key=String(c.name||'').trim().toLowerCase()+'|'+String(c.type||'expense');
+        if(!state.settings.deletedCategories.includes(key)) state.settings.deletedCategories.push(key);
+        (state.operations||[]).forEach(o=>{ if(String(o.category||'')===String(c.name||'')) o.category='Без категории'; });
+        (state.plannedPurchases||[]).forEach(p=>{ if(String(p.category||'')===String(c.name||'')) p.category='Без категории'; });
+        state.categories=(state.categories||[]).filter(x=>String(x.id)!==String(id));
+        safeSaveRender();
+        safeToast('Категория удалена');
+        return true;
+      }
+      if(action==='editCategory'){
+        const c=(state.categories||[]).find(x=>String(x.id)===String(id));
+        if(!c){ safeToast('Категория не найдена'); return true; }
+        if(typeof openModal==='function'){
+          openModal('Редактировать категорию',`<div class="form-grid">${field('Название','f_name',c.name)}<div class="field"><label>Тип</label><select id="f_type"><option value="expense" ${c.type==='expense'?'selected':''}>Расход</option><option value="income" ${c.type==='income'?'selected':''}>Доход</option></select></div>${field('Лимит в месяц','f_limit',c.limit)}</div><div class="actions"><button type="button" class="btn" data-action="saveEditedCategory" data-id="${id}" onclick="return window.SBOS_FORCE_ACTION('saveEditedCategory','${id}',this),false">Сохранить</button></div>`);
+          return true;
+        }
+      }
+      if(action==='saveEditedCategory'){
+        const c=(state.categories||[]).find(x=>String(x.id)===String(id));
+        if(!c){ safeToast('Категория не найдена'); return true; }
+        const old=c.name;
+        const newName=(document.getElementById('f_name')||{}).value || c.name;
+        c.name=newName;
+        c.type=(document.getElementById('f_type')||{}).value || c.type || 'expense';
+        c.limit=num((document.getElementById('f_limit')||{}).value || 0);
+        (state.operations||[]).forEach(o=>{ if(String(o.category||'')===String(old||'')) o.category=newName; });
+        (state.plannedPurchases||[]).forEach(p=>{ if(String(p.category||'')===String(old||'')) p.category=newName; });
+        try{ closeModal(); }catch(e){}
+        safeSaveRender();
+        safeToast('Категория сохранена');
+        return true;
+      }
+
+      // debts — direct state-level fallback
+      if(action==='closeDebt'){
+        const d=(state.debts||[]).find(x=>String(x.id)===String(id));
+        if(!d){ safeToast('Долг не найден'); return true; }
+        d.status='Закрыт';
+        safeSaveRender();
+        safeToast('Долг закрыт');
+        return true;
+      }
+      if(action==='debtTask'){
+        const d=(state.debts||[]).find(x=>String(x.id)===String(id));
+        if(!d){ safeToast('Долг не найден'); return true; }
+        state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+        state.tasks.unshift({id:uid(),title:`Напоминание по долгу: ${d.person} — ${money(d.amount)}`,area:'Финансы',due:d.due||todayKey(),time:'10:00',priority:'A',status:'В работе'});
+        d.reminder=true;
+        safeSaveRender();
+        safeToast('Напоминание создано в задачах');
+        return true;
+      }
+      if(action==='editDebt'){
+        if(typeof editDebt==='function'){ editDebt(id); return true; }
+      }
+      if(action==='deleteDebt'){
+        if(!confirm('Удалить долг?')) return true;
+        state.debts=(state.debts||[]).filter(x=>String(x.id)!==String(id));
+        safeSaveRender();
+        safeToast('Долг удалён');
+        return true;
+      }
+
+      // generic fallback to app function/router
+      const fn = (typeof windowActions!=='undefined' && windowActions[action]) || window[action];
+      if(typeof fn==='function'){
+        if(action==='setTaskScope') fn.call(el, el?.dataset?.scope || id || 'today');
+        else if(action==='toggleHabitDate') fn.call(el, id, el?.dataset?.date);
+        else if(action==='filterDayOps') fn.call(el, el?.dataset?.day || id);
+        else fn.call(el, id);
+        return true;
+      }
+      safeToast('Кнопка не подключена: '+action);
+      return true;
+    }catch(err){
+      console.error('[SBOS_FORCE_ACTION]', action, id, err);
+      safeToast('Ошибка кнопки: '+(err&&err.message?err.message:action));
+      return true;
+    }
+  };
+
+  function wireButtons(){
+    try{
+      document.querySelectorAll('[data-action]').forEach(btn=>{
+        btn.setAttribute('type','button');
+        if(btn.__sbosWireFinal) return;
+        btn.__sbosWireFinal=true;
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+          return window.SBOS_FORCE_ACTION(getAction(this), getId(this), this), false;
+        }, true);
+        const a=getAction(btn), id=getId(btn);
+        if(['deleteCategory','editCategory','saveEditedCategory','closeDebt','debtTask','editDebt','deleteDebt'].includes(a)){
+          btn.setAttribute('onclick', `return window.SBOS_FORCE_ACTION('${a.replace(/'/g,'')}', '${String(id).replace(/'/g,'\\\'')}', this), false`);
+        }
+      });
+    }catch(e){console.error('[SBOS wireButtons]',e)}
+  }
+
+  // Patch render so every newly rendered card receives real button listeners.
+  try{
+    const oldRender=window.render || render;
+    window.render=function(){
+      const out=oldRender.apply(this,arguments);
+      setTimeout(wireButtons,0);
+      setTimeout(wireButtons,80);
+      return out;
+    };
+    if(typeof render==='function') render=window.render;
+  }catch(e){}
+  document.addEventListener('click', function(ev){
+    const btn=ev.target && ev.target.closest ? ev.target.closest('[data-action]') : null;
+    if(!btn) return;
+    const a=getAction(btn);
+    if(['deleteCategory','editCategory','saveEditedCategory','closeDebt','debtTask','editDebt','deleteDebt'].includes(a)){
+      ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+      window.SBOS_FORCE_ACTION(a,getId(btn),btn);
+    }
+  }, true);
+  setTimeout(wireButtons,0);
+  setInterval(wireButtons,1200);
+})();
