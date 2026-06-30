@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS V40.12",
+  "name": "Second Brain OS V48",
   "short_name": "Second Brain",
-  "description": "Личная Life RPG система с защитой данных, безопасными обновлениями, импортом банка и фиксацией фактического остатка по картам.",
-  "start_url": "/second-brain-oc/?v=v40-11-update-safe-private-20260629",
+  "description": "Личная операционная система: финансы, бюджет, дорожная карта, категории жизни, задачи, цели и второй мозг.",
+  "start_url": "/second-brain-oc/?v=v48-clean-baseline-private-20260630",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -22,22 +22,22 @@
   ],
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "icons/maskable-512.png",
+      "src": "maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "id": "/second-brain-oc/?app=second-brain-private-v40-11",
-  "version": "v40-12-buttons-hardwired-private-20260629"
+  "id": "/second-brain-oc/?app=second-brain-v48-clean-baseline-private-20260630",
+  "version": "v48-clean-baseline-private-20260630"
 }

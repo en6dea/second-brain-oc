@@ -1,8 +1,8 @@
-/* Second Brain OS — Life Load Hotfix Private V47.1 */
+/* Second Brain OS — Clean Baseline Private V48 */
 'use strict';
 
-const RELEASE = 'v47-1-life-load-hotfix-private-20260630';
-const DATA_VERSION = 470;
+const RELEASE = 'v48-clean-baseline-private-20260630';
+const DATA_VERSION = 480;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
 const SNAPSHOT_KEY = 'secondBrainOS.dataSnapshots.v1';
@@ -3395,9 +3395,9 @@ try{
 }catch(e){ console.warn('V46 Financial Roadmap failed', e); }
 
 
-/* V47.1 LIFE LOAD HOTFIX — personal second brain areas, universal entries, simple links */
-const SBOS_V47 = 'v47-1-life-load-hotfix-private-20260630';
-const SBOS_V47_DISPLAY = 'V47.1 LIFE LOAD HOTFIX';
+/* V47 LIFE CATEGORIES CORE — personal second brain areas, universal entries, simple links */
+const SBOS_V47 = 'v47-life-categories-core-private-20260630';
+const SBOS_V47_DISPLAY = 'V47 LIFE CATEGORIES CORE';
 function v47LifeAreas(){
   return [
     {id:'finance', icon:'◔', title:'Финансы', desc:'Бюджет, долги, подушка, расходы', tone:'green', keywords:'деньги доход расход бюджет долг кредит подушка накопить оплатить счёт счет платеж платежи'},
@@ -3495,7 +3495,7 @@ function v47AreaCard(a){ const s=v47AreaStats(a.id); const attention=s.due>0?`${
 function v47EntryRow(x){ const a=v47AreaById(x.area); const amount=num(x.amount); const linked=x.operationId?' · связано с деньгами':''; return `<div class="v47-entry-row ${x.status==='done'?'done':''}"><div><span class="v47-entry-icon">${a.icon}</span><b>${esc(x.title||'Запись')}</b><p class="sub">${esc(a.title)} · ${esc(v47LifeTypeLabel(x.type))}${x.date?' · '+esc(x.date):''}${amount?' · '+money(amount):''}${linked}</p>${x.note?`<p class="sub">${esc(x.note)}</p>`:''}</div><div class="v47-entry-actions"><button class="ghost small" data-action="editLifeEntry" data-id="${x.id}">Открыть</button><button class="${x.status==='done'?'ghost':'primary'} small" data-action="toggleLifeEntry" data-id="${x.id}">${x.status==='done'?'Вернуть':'Готово'}</button></div></div>`; }
 function life(){
   v47EnsureLifeCoreState(); const sum=v47LifeSummary(); const filter=localStorage.getItem('secondBrainOS.v47.lifeFilter')||''; const areas=v47LifeAreas(); const entries=v47LifeEntries(filter).slice(0,30);
-  return `<div class="goals-head premium-page-head v47-head"><div><div class="page-label">Life Load Hotfix V47.1</div><h1>Жизнь</h1><p class="sub">Единый второй мозг: здоровье, дом, машина, документы, поездки, идеи, привычки и деньги в одной системе.</p></div><div class="top-actions"><button class="primary" data-action="addLifeEntry">＋ Запись</button><button class="ghost" data-action="quickMenu">Быстрый ввод</button><button class="ghost" data-action="runLifeCheck">Проверить жизнь</button></div></div>
+  return `<div class="goals-head premium-page-head v47-head"><div><div class="page-label">Life Categories Core V47</div><h1>Жизнь</h1><p class="sub">Единый второй мозг: здоровье, дом, машина, документы, поездки, идеи, привычки и деньги в одной системе.</p></div><div class="top-actions"><button class="primary" data-action="addLifeEntry">＋ Запись</button><button class="ghost" data-action="quickMenu">Быстрый ввод</button><button class="ghost" data-action="runLifeCheck">Проверить жизнь</button></div></div>
   <div class="metrics premium-metrics v47-metrics"><article class="metric focus"><b>${sum.open}</b><span>открытых записей</span></article><article class="metric"><b>${sum.due}</b><span>требует внимания</span></article><article class="metric"><b>${sum.docs}</b><span>документы</span></article><article class="metric"><b>${sum.linkedOps}</b><span>связано с финансами</span></article></div>
   <section class="v47-life-grid">${areas.map(v47AreaCard).join('')}</section>
   <section class="card panel"><div class="section-head"><div><h3>${filter?'Записи: '+esc(v47AreaById(filter).title):'Последние записи'}</h3><p class="sub">Любая запись может стать задачей, расходом, целью, документом, привычкой или идеей.</p></div><div class="top-actions"><button class="ghost small" data-action="filterLifeArea" data-area="">Все</button><button class="primary small" data-action="addLifeEntry" data-area="${esc(filter)}">＋ Добавить</button></div></div><div class="v47-entry-list">${entries.length?entries.map(v47EntryRow).join(''):'<div class="empty">Пока нет записей в этой сфере</div>'}</div></section>`;
@@ -3549,7 +3549,7 @@ function injectV47Styles(){ if(document.getElementById('v47LifeStyles')) return;
 `; document.head.appendChild(st); }
 function v47PatchVisibleVersion(){
   try{
-    document.title='Second Brain OS — V47.1 Life Load Hotfix';
+    document.title='Second Brain OS — V47 Life Categories Core';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V47);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V47_DISPLAY; rb.setAttribute('data-build-version',SBOS_V47_DISPLAY); rb.title=SBOS_V47; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V47_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V47'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|V4[0-7]/i.test(String(s.textContent||''))){ s.textContent='LIFE CATEGORIES CORE'; } });
@@ -3588,44 +3588,74 @@ try{
   const __v47_oldOpenModal = typeof openModal==='function' ? openModal : null;
   if(__v47_oldOpenModal){ openModal=function(){ const r=__v47_oldOpenModal.apply(this, arguments); injectV47Styles(); v47PatchVisibleVersion(); return r; }; }
   window.SecondBrainV47={version:SBOS_V47,display:SBOS_V47_DISPLAY,life,summary:v47LifeSummary,health:v47HealthReport};
-  try{ v42LogAction('system','Установлена Life Load Hotfix V47.1',{version:SBOS_V47}); }catch(_e){}
+  try{ v42LogAction('system','Установлена Life Categories Core V47',{version:SBOS_V47}); }catch(_e){}
   injectV47Styles(); v47PatchVisibleVersion();
   setTimeout(v47PatchVisibleVersion,50); setTimeout(v47PatchVisibleVersion,250); setTimeout(v47PatchVisibleVersion,1000); setTimeout(v47PatchVisibleVersion,3000);
-}catch(e){ console.warn('V47.1 Life Load Hotfix failed', e); }
+}catch(e){ console.warn('V47 Life Categories Core failed', e); }
 
-
-/* V47.1 LOAD & VERSION HOTFIX — final visible build repair */
+/* V48 CLEAN BASELINE — version guardian + repository cleanup marker */
 (function(){
-  const BUILD='v47-1-life-load-hotfix-private-20260630';
-  const DISPLAY='V47.1 LIFE LOAD HOTFIX';
-  function patch(){
-    try{
-      document.title='Second Brain OS — V47.1 Life Load Hotfix';
-      let meta=document.querySelector('meta[name="second-brain-build"]');
-      if(!meta){ meta=document.createElement('meta'); meta.setAttribute('name','second-brain-build'); document.head.appendChild(meta); }
-      meta.setAttribute('content', BUILD);
-      const rb=document.getElementById('releaseBadge');
-      if(rb){ rb.textContent=DISPLAY; rb.setAttribute('data-build-version',DISPLAY); rb.title=BUILD; }
-      document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(function(box){
-        box.setAttribute('data-build-version',DISPLAY);
-        const b=box.matches && box.matches('b') ? box : box.querySelector && box.querySelector('b');
-        if(b) b.textContent='V47.1';
-        const s=box.querySelector && box.querySelector('span,small');
-        if(s && /V4[0-7]|UPDATE SAFE|DATA GUARD|FINANCE MENTOR|ANALYTICS|ROADMAP|LIFE/i.test(String(s.textContent||''))) s.textContent='LIFE LOAD HOTFIX';
-      });
-      window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:BUILD, visible:BUILD, display:DISPLAY});
-      localStorage.setItem('second_brain_visible_build', BUILD);
-      localStorage.setItem('second_brain_last_good_build', BUILD);
-    }catch(e){ console.warn('V47.1 patch failed', e); }
+  'use strict';
+  const SBOS_V48 = 'v48-clean-baseline-private-20260630';
+  const SBOS_V48_DISPLAY = 'V48 CLEAN BASELINE';
+  let __v48Patching = false;
+  function ensureMeta(name, content){
+    let m = document.querySelector(`meta[name="${name}"]`);
+    if(!m){ m = document.createElement('meta'); m.setAttribute('name', name); document.head && document.head.appendChild(m); }
+    m.setAttribute('content', content);
   }
-  window.forceVersionBadgeRepair=function(){ patch(); try{ toast('Версия обновлена: V47.1'); }catch(e){} };
-  window.sbosV471Flush=function(){
+  function setTextSafe(el, text){ if(el && String(el.textContent||'').trim() !== text) el.textContent = text; }
+  function patchVersionBadge(){
+    if(__v48Patching) return;
+    __v48Patching = true;
     try{
-      Promise.all([
-        ('serviceWorker' in navigator) ? navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))) : Promise.resolve(),
-        ('caches' in window) ? caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))) : Promise.resolve()
-      ]).then(()=>{ location.href=location.pathname+'?v='+BUILD+'&harddone=1'; });
-    }catch(e){ location.href=location.pathname+'?v='+BUILD+'&harddone=1'; }
-  };
-  patch(); setTimeout(patch,50); setTimeout(patch,300); setTimeout(patch,1000); setTimeout(patch,3000); setInterval(patch,5000);
+      window.__SECOND_BRAIN_CURRENT_BUILD__ = SBOS_V48;
+      window.SecondBrainCurrentBuild = {version:SBOS_V48, display:SBOS_V48_DISPLAY, generation:'clean-baseline'};
+      document.title = 'Second Brain OS — V48 Clean Baseline';
+      ensureMeta('second-brain-build', SBOS_V48);
+      ensureMeta('second-brain-display-version', SBOS_V48_DISPLAY);
+      document.documentElement.setAttribute('data-sbos-build', SBOS_V48);
+      document.documentElement.removeAttribute('data-sbos-booting');
+      const badges = Array.from(document.querySelectorAll('#releaseBadge, [data-build-version], .release-badge, .version-badge, .build-badge'));
+      badges.forEach(el=>{
+        el.textContent = SBOS_V48_DISPLAY;
+        el.setAttribute('data-build-version', SBOS_V48);
+        el.style.visibility = 'visible';
+      });
+      const release = document.getElementById('releaseBadge');
+      if(release){
+        release.textContent = SBOS_V48_DISPLAY;
+        release.setAttribute('title', SBOS_V48);
+        release.style.visibility = 'visible';
+      }
+      document.querySelectorAll('.sidebar-status').forEach(status=>{
+        status.style.visibility = 'visible';
+        const smalls = status.querySelectorAll('small');
+        if(smalls[0]) smalls[0].textContent = 'PRIVATE APP';
+        const b = status.querySelector('b');
+        if(b) b.textContent = SBOS_V48_DISPLAY;
+        const dot = status.querySelector('.sync-dot');
+        if(dot) dot.textContent = 'CLEAN BASELINE + LIFE CORE';
+      });
+      // Clean visible stale text inside common status containers only, not inside old README or hidden docs.
+      document.querySelectorAll('.sidebar-status, #releaseBadge, .topbar, .app-header, .diagnostic-pre').forEach(el=>{
+        if(!el || !el.textContent) return;
+        if(/V4[0-7](?:\.\d+)?\s+[A-ZА-Я0-9 _+.-]+/.test(el.textContent) && (el.id==='releaseBadge' || el.classList.contains('sidebar-status'))){
+          if(el.id==='releaseBadge') el.textContent = SBOS_V48_DISPLAY;
+        }
+      });
+    }catch(e){ console.warn('V48 version guardian failed', e); }
+    finally{ __v48Patching = false; }
+  }
+  window.SecondBrainV48 = {version:SBOS_V48, display:SBOS_V48_DISPLAY, patchVersionBadge};
+  window.forceVersionBadgeRepair = patchVersionBadge;
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', patchVersionBadge, {once:true});
+  patchVersionBadge();
+  [0,25,80,150,300,600,1000,1600,2600,4000,7000,10000].forEach(ms=>setTimeout(patchVersionBadge, ms));
+  try{
+    const mo = new MutationObserver(()=>patchVersionBadge());
+    mo.observe(document.documentElement, {childList:true, subtree:true, characterData:true});
+    setTimeout(()=>mo.disconnect(), 15000);
+  }catch(_e){}
 })();
+
