@@ -8,8 +8,29 @@
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="v47-life-categories-core-private-20260630">
-  <title>Second Brain OS — V47 Life Categories Core</title>
+  <meta name="second-brain-build" content="v47-1-life-load-hotfix-private-20260630">
+  
+  <script id="sbos-v471-early-cache-flush">
+  (function(){
+    try{
+      var q=new URLSearchParams(location.search);
+      if(q.get('hard')==='1' && !sessionStorage.getItem('sbos_v471_hard_done')){
+        sessionStorage.setItem('sbos_v471_hard_done','1');
+        Promise.all([
+          ('serviceWorker' in navigator) ? navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); }) : Promise.resolve(),
+          ('caches' in window) ? caches.keys().then(function(keys){ return Promise.all(keys.map(function(k){ return caches.delete(k); })); }) : Promise.resolve()
+        ]).then(function(){
+          var url=new URL(location.href);
+          url.searchParams.set('v','v47-1-life-load-hotfix-private-20260630');
+          url.searchParams.set('harddone','1');
+          url.searchParams.delete('hard');
+          location.replace(url.toString());
+        }).catch(function(){ sessionStorage.setItem('sbos_v471_hard_error','1'); });
+      }
+    }catch(e){}
+  })();
+  </script>
+  <title>Second Brain OS — V47.1 Life Load Hotfix</title>
 
   <link rel="manifest" href="manifest.webmanifest?v=v45-analytics-budget-coach-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -178,12 +199,12 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
   <div id="app"></div>
   <div id="modalRoot"></div>
   <div id="toast"></div>
-  <div id="releaseBadge">V47 LIFE CATEGORIES CORE</div>
+  <div id="releaseBadge">V47.1 LIFE LOAD HOTFIX</div>
   <script>
-/* Second Brain OS — Life Categories Core Private V47 */
+/* Second Brain OS — Life Load Hotfix Private V47.1 */
 'use strict';
 
-const RELEASE = 'v47-life-categories-core-private-20260630';
+const RELEASE = 'v47-1-life-load-hotfix-private-20260630';
 const DATA_VERSION = 470;
 const STORE_KEY = 'secondBrainOS.v1';
 const META_KEY = 'secondBrainOS.meta.v1';
@@ -3580,3 +3601,40 @@ try{
 </script>
 </body>
 </html>
+
+
+/* V47.1 LOAD & VERSION HOTFIX — final visible build repair */
+(function(){
+  const BUILD='v47-1-life-load-hotfix-private-20260630';
+  const DISPLAY='V47.1 LIFE LOAD HOTFIX';
+  function patch(){
+    try{
+      document.title='Second Brain OS — V47.1 Life Load Hotfix';
+      let meta=document.querySelector('meta[name="second-brain-build"]');
+      if(!meta){ meta=document.createElement('meta'); meta.setAttribute('name','second-brain-build'); document.head.appendChild(meta); }
+      meta.setAttribute('content', BUILD);
+      const rb=document.getElementById('releaseBadge');
+      if(rb){ rb.textContent=DISPLAY; rb.setAttribute('data-build-version',DISPLAY); rb.title=BUILD; }
+      document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(function(box){
+        box.setAttribute('data-build-version',DISPLAY);
+        const b=box.matches && box.matches('b') ? box : box.querySelector && box.querySelector('b');
+        if(b) b.textContent='V47.1';
+        const s=box.querySelector && box.querySelector('span,small');
+        if(s && /V4[0-7]|UPDATE SAFE|DATA GUARD|FINANCE MENTOR|ANALYTICS|ROADMAP|LIFE/i.test(String(s.textContent||''))) s.textContent='LIFE LOAD HOTFIX';
+      });
+      window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:BUILD, visible:BUILD, display:DISPLAY});
+      localStorage.setItem('second_brain_visible_build', BUILD);
+      localStorage.setItem('second_brain_last_good_build', BUILD);
+    }catch(e){ console.warn('V47.1 patch failed', e); }
+  }
+  window.forceVersionBadgeRepair=function(){ patch(); try{ toast('Версия обновлена: V47.1'); }catch(e){} };
+  window.sbosV471Flush=function(){
+    try{
+      Promise.all([
+        ('serviceWorker' in navigator) ? navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))) : Promise.resolve(),
+        ('caches' in window) ? caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))) : Promise.resolve()
+      ]).then(()=>{ location.href=location.pathname+'?v='+BUILD+'&harddone=1'; });
+    }catch(e){ location.href=location.pathname+'?v='+BUILD+'&harddone=1'; }
+  };
+  patch(); setTimeout(patch,50); setTimeout(patch,300); setTimeout(patch,1000); setTimeout(patch,3000); setInterval(patch,5000);
+})();
