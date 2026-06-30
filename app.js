@@ -3257,8 +3257,8 @@ try{
 
 
 /* V46 GOALS & FINANCIAL ROADMAP — emergency fund, debts, savings path */
-const SBOS_V46 = 'v46-4-budget-coach-ui-safe-20260630';
-const SBOS_V46_DISPLAY = 'V46.4 BUDGET COACH UI';
+const SBOS_V46 = 'v46-5-import-master-polish-safe-20260630';
+const SBOS_V46_DISPLAY = 'V46.5 IMPORT MASTER POLISH';
 function v46EnsureRoadmapState(){
   try{
     if(!state.financeRoadmap || typeof state.financeRoadmap !== 'object') state.financeRoadmap = {};
@@ -3352,7 +3352,7 @@ function injectV46Styles(){ if(document.getElementById('v46RoadmapStyles')) retu
 `; document.head.appendChild(st); }
 function v46PatchVisibleVersion(){
   try{
-    document.title='Second Brain OS — V46.4 Budget Coach UI';
+    document.title='Second Brain OS — V46.5 Import Master Polish';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V46);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V46_DISPLAY; rb.setAttribute('data-build-version',SBOS_V46_DISPLAY); rb.title=SBOS_V46; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V46_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|V4[0-6]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
@@ -3396,8 +3396,8 @@ try{
 
 
 /* === Second Brain OS V46.4 — Budget Coach UI Safe Layer === */
-const SBOS_V463 = 'v46-4-budget-coach-ui-safe-20260630';
-const SBOS_V463_DISPLAY = 'V46.4 BUDGET COACH UI';
+const SBOS_V463 = 'v46-5-import-master-polish-safe-20260630';
+const SBOS_V463_DISPLAY = 'V46.5 IMPORT MASTER POLISH';
 function v463MonthOpsSafe(){ try{ const m=state.settings?.currentMonth || monthKey(); return (state.operations||[]).filter(o=>String(o.date||'').startsWith(m) && !o.excludeFromLimit); }catch(e){ return []; } }
 function v463UncategorizedCount(){ return v463MonthOpsSafe().filter(o=>!o.category || /другое|без категории|разбор/i.test(String(o.category||''))).length; }
 function v463TopCategory(){ const cats=typeof categoryTotals==='function'?categoryTotals():[]; return cats && cats.length ? {name:cats[0][0], amount:num(cats[0][1])} : null; }
@@ -3449,7 +3449,7 @@ html:not(.sbos-version-ready) .sidebar-status,html:not(.sbos-version-ready) #rel
 function v463PatchVisibleVersion(){
   try{
     document.documentElement.classList.add('sbos-version-ready');
-    document.title='Second Brain OS — V46.4 Budget Coach UI';
+    document.title='Second Brain OS — V46.5 Import Master Polish';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V463);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V463_DISPLAY; rb.setAttribute('data-build-version',SBOS_V463_DISPLAY); rb.title=SBOS_V463; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V463_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
@@ -3477,8 +3477,8 @@ try{
 
 
 /* === Second Brain OS V46.4 — Budget Coach UI Safe Layer === */
-const SBOS_V464 = 'v46-4-budget-coach-ui-safe-20260630';
-const SBOS_V464_DISPLAY = 'V46.4 BUDGET COACH UI';
+const SBOS_V464 = 'v46-5-import-master-polish-safe-20260630';
+const SBOS_V464_DISPLAY = 'V46.5 IMPORT MASTER POLISH';
 function v464DaysLeft(b){ return Math.max(1, num(b.days)-num(b.day)); }
 function v464DailyLeft(b){ return Math.floor(num(b.left)/v464DaysLeft(b)); }
 function v464BudgetMainMessage(b){
@@ -3528,7 +3528,7 @@ html:not(.sbos-version-ready) .sidebar-status,html:not(.sbos-version-ready) #rel
 function v464PatchVisibleVersion(){
   try{
     document.documentElement.classList.add('sbos-version-ready');
-    document.title='Second Brain OS — V46.4 Budget Coach UI';
+    document.title='Second Brain OS — V46.5 Import Master Polish';
     const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V464);
     const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V464_DISPLAY; rb.setAttribute('data-build-version',SBOS_V464_DISPLAY); rb.title=SBOS_V464; }
     document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V464_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.4'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|FINANCE UI POLISH|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='BUDGET COACH UI'; } });
@@ -3552,3 +3552,265 @@ try{
   if(document.body) window.__sbosV464Observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   [40,120,300,700,1400,2600,5000].forEach(t=>setTimeout(v464PatchVisibleVersion,t));
 }catch(e){ console.warn('V46.4 Budget Coach UI failed', e); }
+
+
+/* === Second Brain OS V46.5 — Import Master Polish Safe Layer === */
+const SBOS_V465 = 'v46-5-import-master-polish-safe-20260630';
+const SBOS_V465_DISPLAY = 'V46.5 IMPORT MASTER POLISH';
+function v465MonthOps(){ try{ const m=state.settings?.currentMonth || monthKey(); return (state.operations||[]).filter(o=>String(o.date||'').startsWith(m)); }catch(e){ return []; } }
+function v465ImportMonthSummary(){
+  const rows=v465MonthOps();
+  const bank=rows.filter(o=>String(o.source||'').includes('bank') || String(o.sourceId||'').startsWith('bank_'));
+  const manual=rows.length-bank.length;
+  const unc=rows.filter(o=>!o.category || /другое|без категории|разбор|импорт/i.test(String(o.category||''))).length;
+  const expenses=rows.filter(o=>o.type==='expense'&&!o.excludeFromLimit).reduce((s,o)=>s+num(o.amount),0);
+  const income=rows.filter(o=>o.type==='income'&&!o.excludeFromLimit).reduce((s,o)=>s+num(o.amount),0);
+  return {rows,bank,manual,unc,expenses,income,count:rows.length};
+}
+function v465ImportLogs(){ return (state.importLogs||state.activityLog||[]).slice(0,5); }
+function v465ImportStep(n,title,note,active){ return `<article class="v465-step ${active?'active':''}"><span>${n}</span><b>${esc(title)}</b><small>${esc(note)}</small></article>`; }
+function v465ImportHero(){
+  const s=v465ImportMonthSummary();
+  const r=typeof currentMonthRange==='function'?currentMonthRange():{from:(state.settings.currentMonth||monthKey())+'-01',to:''};
+  return `<section class="card panel v465-import-hero"><div class="v465-import-orb"></div><div><div class="page-label">Import Master Safe</div><h2>Спокойная загрузка операций</h2><p>Сначала бэкап, потом файл, затем предпросмотр: дубли, категории, период и финальное подтверждение. Данные сохраняются только после твоего решения.</p><div class="v465-import-actions"><button class="primary" data-action="pickCsv">Загрузить CSV</button><button class="ghost" data-action="backup">Скачать бэкап</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button></div></div><div class="v465-import-stats"><article><span>Операций месяца</span><b>${s.count}</b></article><article><span>Из банка</span><b>${s.bank.length}</b></article><article><span>На разбор</span><b>${s.unc}</b></article><article><span>Период</span><b>${esc(r.from||'—').slice(5)}–${esc(r.to||'—').slice(5)}</b></article></div></section>`;
+}
+function v465ImportRules(){
+  return `<section class="card panel v465-import-rules"><div class="section-head"><div><h3>Как пройти импорт без ошибок</h3><p class="sub">Короткий сценарий, чтобы не получить дубли и не испортить бюджет.</p></div><span class="tag green">safe flow</span></div><div class="v465-rule-list"><p><b>1. Бэкап</b><span>Скачай резервную копию перед большой загрузкой месяца.</span></p><p><b>2. CSV</b><span>Загрузи файл банка. Приложение покажет период, доходы, расходы и дубли.</span></p><p><b>3. Категории</b><span>После импорта проверь операции “На разбор”, чтобы бюджет стал честным.</span></p><p><b>4. Замена периода</b><span>Если банк выгружает месяц целиком, используй “заменить период”, а не повторный импорт.</span></p></div></section>`;
+}
+function v465ImportQualityCard(){
+  const s=v465ImportMonthSummary();
+  const tone=s.unc?'warn':'green';
+  const pct=s.count?Math.round((s.count-s.unc)/s.count*100):100;
+  return `<section class="card panel v465-quality-card"><div class="section-head"><div><h3>Качество данных</h3><p class="sub">Чем меньше операций без категории, тем точнее бюджет и наставник.</p></div><span class="tag ${tone}">${pct}%</span></div><div class="v465-quality-meter"><i style="width:${Math.max(8,Math.min(100,pct))}%"></i></div><div class="v465-quality-grid"><article><span>Расходы</span><b>${money(s.expenses)}</b></article><article><span>Доходы</span><b>${money(s.income)}</b></article><article><span>Ручные</span><b>${s.manual}</b></article><article><span>На разбор</span><b>${s.unc}</b></article></div><div class="top-actions"><button class="ghost small" data-page="finance">Операции</button><button class="ghost small" data-page="categories">Категории</button><button class="primary small" data-action="pickCsv">Новый импорт</button></div></section>`;
+}
+function v465LastImportsCard(){
+  const logs=v465ImportLogs();
+  return `<section class="card panel"><div class="section-head"><div><h3>Последние загрузки</h3><p class="sub">История импортов и действий с данными.</p></div><button class="ghost small" data-page="sync">Данные</button></div>${logs.length?logs.map(l=>`<div class="v465-log-row"><div><b>${esc(l.fileName||l.title||l.mode||'Импорт / действие')}</b><p class="sub">${esc(String(l.createdAt||l.date||'').slice(0,16).replace('T',' '))} · ${num(l.count||0)} строк</p></div><span class="tag green">OK</span></div>`).join(''):'<div class="empty">История импортов пока пустая</div>'}</section>`;
+}
+function v465ImportPage(){
+  return `<div class="goals-head premium-page-head v465-head"><div><div class="page-label">V46.5 Import Master</div><h1>Импорт и сверка</h1><p class="sub">Красивый безопасный мастер: файл, предпросмотр, дубли, категории и сохранение.</p></div><div class="top-actions"><button class="primary" data-action="pickCsv">＋ Загрузить файл</button><button class="ghost" data-action="openOperationsCleanup">Очистить период</button><button class="ghost" data-page="sync">Бэкап</button></div></div>${v465ImportHero()}<section class="card panel v465-steps-card"><div class="section-head"><div><h3>5 шагов импорта</h3><p class="sub">Так данные попадают в приложение без дублей и хаоса.</p></div><span class="tag blue">master</span></div><div class="v465-steps">${v465ImportStep(1,'Бэкап','сохранить копию',true)}${v465ImportStep(2,'Файл','CSV банка',false)}${v465ImportStep(3,'Предпросмотр','дубли и период',false)}${v465ImportStep(4,'Категории','что на разбор',false)}${v465ImportStep(5,'Сохранение','только после подтверждения',false)}</div><input id="csvFile" class="hidden-file" type="file" accept=".csv,text/csv,text/plain"></section><div class="v465-import-grid"><div>${v465ImportQualityCard()}${v465ImportRules()}</div><aside class="rail">${v465LastImportsCard()}<section class="card panel"><div class="section-head"><h3>Режимы</h3><span class="tag amber">важно</span></div><div class="v465-mode-list"><p><b>Только новые</b><span>Для ежедневной выгрузки. Дубли пропускаются.</span></p><p><b>Заменить период</b><span>Для полной выгрузки месяца. Перед заменой делается снимок.</span></p><p><b>Очистить вручную</b><span>Если нужно удалить операции за конкретный период.</span></p></div></section></aside></div>`;
+}
+function v465PreviewRow(r){
+  const st=r.duplicate?['muted','дубль']:(r.excludeFromLimit?['blue','не в лимит']:(r.pending?['amber','в обработке']:(!r.category||/другое|импорт/i.test(String(r.category||''))?['warn','на разбор']:['green','новая'])));
+  return `<tr class="${r.duplicate?'muted-line':''}"><td><b>${esc(r.date||'—')}</b></td><td><span class="tag ${r.type==='income'?'green':'warn'}">${r.type==='income'?'Доход':'Расход'}</span></td><td><b>${esc(r.category||'На разбор')}</b><br><small>${esc(r.note||'')}</small></td><td><b class="${r.type==='income'?'green-text':'red-text'}">${money(r.amount)}</b></td><td><span class="tag ${st[0]}">${st[1]}</span></td></tr>`;
+}
+function v465PreviewBankImport(rows, fileName='bank.csv'){
+  pendingBankImport=rows.filter(x=>!x.duplicate);
+  pendingBankImportAll=rows.slice ? rows.slice() : rows;
+  pendingBankImportMeta=rows.meta || {kind:'unknown', totalRows:rows.length, skipped:0};
+  const st=typeof importPreviewStats==='function'?importPreviewStats(rows):{income:0,expenses:0,duplicates:0,pending:0,excludedCount:0,excluded:0};
+  const range=typeof rowsDateRange==='function'?rowsDateRange(rows):{from:'',to:''};
+  const existingInPeriod=(typeof operationCleanupSummary==='function' && range.from && range.to)?operationCleanupSummary(range.from,range.to,'all'):{count:0};
+  const review=rows.filter(r=>!r.duplicate && (!r.category || /другое|импорт|разбор/i.test(String(r.category||'')))).length;
+  const sample=rows.slice(0,60).map(v465PreviewRow).join('');
+  openModal('Мастер импорта: предпросмотр', `<div class="v465-preview-head"><div><div class="page-label">Import Preview</div><h2>${esc(fileName)}</h2><p class="sub">Проверь сводку перед сохранением. До нажатия финальной кнопки данные не меняются.</p></div><span class="tag green">V46.5</span></div><div class="bank-import-summary v465-preview-summary"><article class="metric"><b>${pendingBankImport.length}</b><span>новых</span></article><article class="metric"><b>${money(st.expenses)}</b><span>расходы</span></article><article class="metric"><b>${money(st.income)}</b><span>доходы</span></article><article class="metric"><b>${st.duplicates||0}</b><span>дубли</span></article><article class="metric"><b>${review}</b><span>на разбор</span></article></div><div class="import-note v465-import-note"><b>Период: ${esc(range.from||'—')} — ${esc(range.to||'—')}</b><p class="sub">Формат: ${esc(pendingBankImportMeta.kind)}. Строк в файле: ${pendingBankImportMeta.totalRows || rows.length}. Уже есть операций в этом периоде: ${existingInPeriod.count||0}. Не входит в лимит: ${money(st.excluded||0)}.</p></div><div class="table-wrap import-preview-table v465-preview-table"><table class="table"><thead><tr><th>Дата</th><th>Тип</th><th>Категория / описание</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>${sample || '<tr><td colspan="5"><div class="empty">Новых операций нет</div></td></tr>'}</tbody></table></div><div class="top-actions v465-modal-actions"><button class="primary" data-action="confirmBankImport">Импортировать только новые</button>${typeof confirmBankReplaceImport==='function'?'<button class="danger-btn" data-action="confirmBankReplaceImport">Заменить период этим CSV</button>':''}<button class="ghost" data-action="openOperationsCleanup" data-from="${esc(range.from||'')}" data-to="${esc(range.to||'')}">Очистить период</button><button class="ghost" data-page="categories">Категории</button><button class="ghost" data-action="pickCsv">Другой файл</button></div>`);
+}
+function injectV465Styles(){ if(document.getElementById('v465ImportStyles')) return; const st=document.createElement('style'); st.id='v465ImportStyles'; st.textContent=`
+.v465-import-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:center;background:linear-gradient(135deg,rgba(255,253,248,.96),rgba(235,224,207,.86));border:1px solid rgba(118,83,49,.14);box-shadow:0 24px 72px rgba(54,38,22,.10);margin-bottom:18px}.v465-import-orb{position:absolute;right:-120px;top:-120px;width:320px;height:320px;border-radius:999px;background:radial-gradient(circle,rgba(132,151,111,.25),transparent 67%)}.v465-import-hero h2{font-size:36px;letter-spacing:-.05em;margin:4px 0 8px;color:#251b13}.v465-import-hero p{max-width:760px;color:var(--muted);font-size:15px}.v465-import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.v465-import-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative}.v465-import-stats article,.v465-quality-grid article{padding:14px;border-radius:18px;background:rgba(255,255,255,.72);border:1px solid var(--line)}.v465-import-stats span,.v465-quality-grid span{display:block;color:var(--muted);font-size:12px}.v465-import-stats b,.v465-quality-grid b{display:block;font-size:23px;margin-top:5px}.v465-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.v465-step{padding:13px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.68);display:grid;gap:5px}.v465-step span{width:32px;height:32px;border-radius:13px;display:grid;place-items:center;background:#f1e3cf;font-weight:900}.v465-step.active{border-color:rgba(111,143,114,.26);background:rgba(111,143,114,.08)}.v465-step small{color:var(--muted)}.v465-import-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}.v465-quality-meter{height:12px;border-radius:999px;background:rgba(31,23,18,.07);overflow:hidden;margin:14px 0}.v465-quality-meter i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6f8f72,#d3c08f)}.v465-quality-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.v465-rule-list,.v465-mode-list{display:grid;gap:10px}.v465-rule-list p,.v465-mode-list p{padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.64);margin:0}.v465-rule-list span,.v465-mode-list span{display:block;color:var(--muted);font-size:13px;margin-top:3px}.v465-log-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.62);margin-top:10px}.v465-preview-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.v465-preview-head h2{font-size:26px;letter-spacing:-.04em;margin:3px 0}.v465-preview-summary{grid-template-columns:repeat(5,minmax(0,1fr))}.v465-import-note{background:linear-gradient(135deg,rgba(111,143,114,.10),rgba(255,255,255,.75));border-color:rgba(111,143,114,.18)}.v465-preview-table .table td{vertical-align:top}.v465-modal-actions{position:sticky;bottom:-18px;background:rgba(255,253,248,.92);backdrop-filter:blur(14px);padding-top:12px}@media(max-width:1100px){.v465-import-hero,.v465-import-grid{grid-template-columns:1fr}.v465-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.v465-quality-grid,.v465-preview-summary{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v465-import-hero h2{font-size:28px}.v465-import-stats,.v465-quality-grid,.v465-preview-summary{grid-template-columns:1fr}.v465-steps{grid-template-columns:1fr}.v465-import-actions .primary,.v465-import-actions .ghost,.v465-modal-actions button{width:100%}.v465-preview-head{display:block}.v465-log-row{align-items:flex-start;display:grid}}
+`; document.head.appendChild(st); }
+function v465PatchVisibleVersion(){
+  try{
+    document.documentElement.classList.add('sbos-version-ready');
+    document.title='Second Brain OS — V46.5 Import Master Polish';
+    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta) meta.setAttribute('content',SBOS_V465);
+    const rb=document.getElementById('releaseBadge'); if(rb){ rb.textContent=SBOS_V465_DISPLAY; rb.setAttribute('data-build-version',SBOS_V465_DISPLAY); rb.title=SBOS_V465; }
+    document.querySelectorAll('.sidebar-status,.v403-status,.app-version,.version-badge,[data-version],[data-build-version]').forEach(box=>{ box.setAttribute('data-build-version',SBOS_V465_DISPLAY); const b=box.matches('b')?box:box.querySelector('b'); if(b) b.textContent='V46.5'; const s=box.querySelector('.sync-dot, small:nth-child(1), span'); if(s && /UPDATE SAFE|DATA GUARD|PRODUCT ENGINE|PERSONAL OS|FINANCE MENTOR|ANALYTICS PRO|VERSION LOCK|FINANCIAL ROADMAP|PREMIUM DASHBOARD|FINANCE UI POLISH|BUDGET COACH|V4[0-8]/i.test(String(s.textContent||''))){ s.textContent='IMPORT MASTER'; } });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V465, visible:SBOS_V465, display:SBOS_V465_DISPLAY});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V465); }catch(_e){}
+  }catch(e){ console.warn('V46.5 version patch failed', e); }
+}
+function forceVersionBadgeRepair(){ v465PatchVisibleVersion(); try{ toast('Версия обновлена: V46.5'); }catch(_e){} }
+try{
+  injectV465Styles();
+  const __v465_oldImportPage = typeof importPage==='function' ? importPage : null;
+  if(__v465_oldImportPage){ importPage=function(){ try{ return v465ImportPage(); }catch(e){ console.warn('V46.5 import render failed', e); return __v465_oldImportPage.apply(this, arguments); } }; }
+  const __v465_oldPreviewBankImport = typeof previewBankImport==='function' ? previewBankImport : null;
+  if(__v465_oldPreviewBankImport){ previewBankImport=function(rows,fileName){ try{ return v465PreviewBankImport(rows,fileName); }catch(e){ console.warn('V46.5 preview failed', e); return __v465_oldPreviewBankImport.apply(this, arguments); } }; }
+  const __v465_oldRender = typeof render==='function' ? render : null;
+  if(__v465_oldRender){ render=function(){ const r=__v465_oldRender.apply(this, arguments); injectV465Styles(); v465PatchVisibleVersion(); return r; }; }
+  const __v465_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v465_oldOpenModal){ openModal=function(){ const r=__v465_oldOpenModal.apply(this, arguments); injectV465Styles(); v465PatchVisibleVersion(); return r; }; }
+  window.SecondBrainV465={version:SBOS_V465,display:SBOS_V465_DISPLAY,importPage:v465ImportPage};
+  v465PatchVisibleVersion();
+  if(window.__sbosV465Observer){ try{ window.__sbosV465Observer.disconnect(); }catch(_e){} }
+  let __v465Tick=null; window.__sbosV465Observer=new MutationObserver(()=>{ clearTimeout(__v465Tick); __v465Tick=setTimeout(v465PatchVisibleVersion,40); });
+  if(document.body) window.__sbosV465Observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  [40,120,300,700,1400,2600,5000].forEach(t=>setTimeout(v465PatchVisibleVersion,t));
+}catch(e){ console.warn('V46.5 Import Master Polish failed', e); }
+
+
+
+/* === Second Brain OS V46.6 — Light Tech UI Safe Layer === */
+const SBOS_V466 = 'v46-6-light-tech-visual-safe-20260630';
+const SBOS_V466_DISPLAY = 'V46.6 LIGHT TECH UI';
+function v466InjectLightTechStyles(){
+  if(document.getElementById('v466LightTechStyles')) return;
+  const st=document.createElement('style');
+  st.id='v466LightTechStyles';
+  st.textContent = `
+
+/* =========================================================
+   Second Brain OS V46.6 — LIGHT TECH UI SAFE
+   Visual-only layer based on selected Option 2: clean light tech.
+   No data model changes. Stable app name: Second Brain OS.
+   ========================================================= */
+:root{
+  --sb-blue:#2563eb;
+  --sb-blue-2:#3b82f6;
+  --sb-blue-soft:#eff6ff;
+  --sb-blue-soft-2:#dbeafe;
+  --sb-green:#10b981;
+  --sb-red:#ef4444;
+  --sb-amber:#f59e0b;
+  --sb-ink:#0f172a;
+  --sb-text:#172033;
+  --sb-muted:#64748b;
+  --sb-bg:#f7f9fd;
+  --sb-panel:#ffffff;
+  --sb-line:#e6ebf2;
+  --sb-line-2:#edf2f7;
+  --sb-shadow:0 18px 50px rgba(15,23,42,.065);
+  --sb-shadow-soft:0 8px 24px rgba(15,23,42,.055);
+  --sb-radius:24px;
+  --bg:var(--sb-bg)!important;
+  --paper:var(--sb-panel)!important;
+  --card:var(--sb-panel)!important;
+  --line:var(--sb-line)!important;
+  --line2:var(--sb-line-2)!important;
+  --text:var(--sb-text)!important;
+  --muted:var(--sb-muted)!important;
+  --green:var(--sb-green)!important;
+  --green-soft:#ecfdf5!important;
+  --blue:var(--sb-blue)!important;
+  --amber:var(--sb-amber)!important;
+  --red:var(--sb-red)!important;
+  --shadow:var(--sb-shadow-soft)!important;
+  --radius:var(--sb-radius)!important;
+}
+html,body{
+  background:
+    radial-gradient(circle at 16% -10%, rgba(37,99,235,.11), transparent 34%),
+    radial-gradient(circle at 88% 4%, rgba(59,130,246,.08), transparent 32%),
+    linear-gradient(180deg,#fbfdff 0%,#f6f8fc 48%,#f3f6fb 100%)!important;
+  color:var(--sb-text)!important;
+}
+body::before{display:none!important}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:
+    linear-gradient(90deg,rgba(37,99,235,.025) 1px,transparent 1px),
+    linear-gradient(180deg,rgba(37,99,235,.025) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.8),transparent 72%);
+}
+.app.shell-premium,.app{grid-template-columns:246px 1fr!important;min-height:100vh!important}
+.sidebar{
+  background:rgba(255,255,255,.78)!important;
+  border-right:1px solid rgba(226,232,240,.82)!important;
+  box-shadow:14px 0 40px rgba(15,23,42,.035)!important;
+  backdrop-filter:blur(22px)!important;
+  padding:18px 14px!important;
+}
+.brand{border-bottom:1px solid var(--sb-line)!important;padding:8px 8px 18px!important;gap:12px!important}
+.brand-mark{
+  width:38px!important;height:38px!important;border-radius:15px!important;
+  background:linear-gradient(135deg,var(--sb-blue),#60a5fa)!important;
+  color:#fff!important;box-shadow:0 12px 26px rgba(37,99,235,.24)!important;
+}
+.brand-mark::before{content:"✦";font-size:16px;font-weight:900}.brand-mark{font-size:0!important}
+.brand b{font-size:15px!important;color:var(--sb-ink)!important;letter-spacing:-.015em!important}.brand span{font-size:12px!important;color:var(--sb-muted)!important}.brand span::before{content:"Life · Finance · Goals"}.brand span{font-size:0!important}.brand span::before{font-size:12px!important}
+.nav{gap:8px!important}.nav-title{color:#94a3b8!important;letter-spacing:.08em!important}
+.nav-btn{border-radius:14px!important;color:#334155!important;padding:11px 13px!important;transition:.18s ease!important}.nav-btn:hover{background:#f8fbff!important}.nav-btn .nav-ic{color:#64748b!important}.nav-btn b{font-size:14px!important;font-weight:650!important}.nav-btn.active{background:var(--sb-blue-soft)!important;color:var(--sb-blue)!important;box-shadow:inset 0 0 0 1px var(--sb-blue-soft-2),0 10px 24px rgba(37,99,235,.08)!important}.nav-btn.active .nav-ic{color:var(--sb-blue)!important}
+.quick-input{
+  background:#fff!important;border:1px solid var(--sb-line)!important;border-radius:18px!important;
+  box-shadow:var(--sb-shadow-soft)!important;color:#334155!important;
+}
+.quick-input span{color:var(--sb-blue)!important}.quick-input small{color:#94a3b8!important}
+.sidebar-status,.v403-status{
+  background:linear-gradient(180deg,#fff,#f8fbff)!important;border:1px solid var(--sb-line)!important;
+  border-radius:20px!important;box-shadow:var(--sb-shadow-soft)!important;color:var(--sb-muted)!important;
+}
+.sidebar-status small:first-child,.v403-status small:first-child{font-size:0!important}.sidebar-status small:first-child::before,.v403-status small:first-child::before{content:"Second Brain OS";font-size:11px!important;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}
+.sidebar-status b,.v403-status b{font-size:17px!important;letter-spacing:-.03em!important;color:var(--sb-ink)!important}.sync-dot{color:var(--sb-blue)!important;font-weight:800!important}
+.main{padding:18px 28px 28px!important}.topbar.premium-topbar,.topbar{margin-bottom:16px!important}.topbar-tools{gap:12px!important}.search-box{width:min(460px,42vw)!important;background:rgba(255,255,255,.86)!important;border:1px solid var(--sb-line)!important;border-radius:999px!important;box-shadow:var(--sb-shadow-soft)!important;padding:11px 16px!important}.search-box span{color:#94a3b8!important}.search::placeholder{color:#94a3b8!important}.icon-btn,.avatar-btn,.ghost,.primary,.link-btn,.tab{box-shadow:none!important}.icon-btn,.avatar-btn{border:1px solid var(--sb-line)!important;background:#fff!important;color:#334155!important}.bell-btn i{background:var(--sb-red)!important}.avatar-btn{background:linear-gradient(135deg,#eff6ff,#fff)!important;color:var(--sb-blue)!important}
+.primary{background:linear-gradient(135deg,var(--sb-blue),var(--sb-blue-2))!important;border-color:transparent!important;color:#fff!important;border-radius:14px!important;box-shadow:0 12px 28px rgba(37,99,235,.18)!important}.ghost{background:#fff!important;border:1px solid var(--sb-line)!important;color:#334155!important;border-radius:14px!important}.ghost:hover,.icon-btn:hover,.quick-input:hover{background:#f8fbff!important;border-color:#dbeafe!important}.tab{background:#f8fafc!important;border-radius:999px!important;color:#64748b!important;padding:7px 12px!important}.tab.active{background:var(--sb-blue-soft)!important;color:var(--sb-blue)!important;font-weight:800!important}
+.view{gap:18px!important}.home-head.clean-home-head,.home-head,.goals-head.premium-page-head,.premium-page-head{
+  background:transparent!important;border:none!important;box-shadow:none!important;padding:2px 0 4px!important;margin:4px 0 2px!important;border-radius:0!important;
+}
+.home-head::before,.home-head::after,.home-head.clean-home-head::before,.home-head.clean-home-head::after{display:none!important}
+h1{font-size:38px!important;line-height:1.02!important;letter-spacing:-.055em!important;color:var(--sb-ink)!important}h2{letter-spacing:-.045em!important;color:var(--sb-ink)!important}h3{letter-spacing:-.025em!important;color:var(--sb-ink)!important}.page-label{color:var(--sb-blue)!important;letter-spacing:.045em!important;text-transform:uppercase!important;font-size:12px!important}.sub{color:var(--sb-muted)!important}.big{color:var(--sb-ink)!important;letter-spacing:-.06em!important;text-shadow:none!important}
+.card,.panel,.hero-card,.finance-hero,.attention-card,.v46-roadmap-card,.v45-budget-coach,.v464-budget-hero,.v465-import-hero{
+  background:#fff!important;border:1px solid var(--sb-line)!important;border-radius:24px!important;
+  box-shadow:var(--sb-shadow)!important;color:var(--sb-text)!important;
+}
+.card::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent)!important}.card:hover{box-shadow:0 22px 60px rgba(15,23,42,.085)!important;transform:translateY(-1px)}
+.hero-card.day-card,.finance-hero{background:linear-gradient(180deg,#fff,#fbfdff)!important}.attention-card,.insight-card{background:linear-gradient(180deg,#fff,#f8fbff)!important}.v46-roadmap-card{background:linear-gradient(135deg,#1d4ed8,#3b82f6)!important;color:#fff!important;border-color:rgba(255,255,255,.16)!important}.v46-roadmap-card h3,.v46-roadmap-card b{color:#fff!important}.v46-roadmap-card .sub,.v46-roadmap-card span,.v46-roadmap-card small{color:rgba(255,255,255,.82)!important}.v46-roadmap-card .tag{background:rgba(255,255,255,.16)!important;border-color:rgba(255,255,255,.22)!important;color:#fff!important}.v46-roadmap-card .progress{background:rgba(255,255,255,.18)!important}.v46-roadmap-card .progress>span{background:#fff!important}.v46-roadmap-card::after{background:radial-gradient(circle,rgba(255,255,255,.20),transparent 64%)!important}
+.top-grid,.mid-grid,.premium-metrics,.v45-hero-grid,.v464-budget-grid,.v465-import-grid{gap:16px!important}.home-grid,.premium-home-grid{gap:18px!important}.home-main,.right-rail,.rail{gap:18px!important}
+.metric,.metrics.premium-metrics .metric,.premium-metrics .metric,.mission-kpis>div,.rpg-stats>div,.v464-import-stats article,.v465-import-stats article,.v465-quality-grid article,.v464-hero-metrics article,.v464-kind-grid article{
+  background:#fff!important;border:1px solid var(--sb-line)!important;border-radius:20px!important;box-shadow:var(--sb-shadow-soft)!important;color:var(--sb-text)!important;
+}
+.metric b{font-size:23px!important;color:var(--sb-ink)!important}.metric span{color:var(--sb-muted)!important}.mini-grid{border-top:1px solid var(--sb-line)!important}
+.progress,.v464-envelope-bar,.v465-quality-meter{height:10px!important;background:#eef2f7!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.035)!important}.progress>span,.v464-envelope-bar span,.v465-quality-meter i{background:linear-gradient(90deg,var(--sb-blue),#60a5fa)!important;box-shadow:0 0 18px rgba(37,99,235,.20)!important}
+.tag{background:#f8fafc!important;border:1px solid var(--sb-line)!important;color:#475569!important}.tag.blue{background:var(--sb-blue-soft)!important;border-color:var(--sb-blue-soft-2)!important;color:var(--sb-blue)!important}.tag.green{background:#ecfdf5!important;border-color:#d1fae5!important;color:#059669!important}.tag.warn,.tag.amber{background:#fff7ed!important;border-color:#fed7aa!important;color:#c2410c!important}.red-text{color:var(--sb-red)!important}.green-text{color:var(--sb-green)!important}
+.attention-row,.task-line,.habit-line,.line-row,.focus-box,.chart-box,.table-wrap,.v45-rule-box,.v45-forecast>div,.v45-split>div,.v464-guide-row,.v464-rules p,.v465-rule-list p,.v465-mode-list p,.v465-log-row{
+  background:#fff!important;border-color:var(--sb-line)!important;border-radius:16px!important;color:var(--sb-text)!important;
+}
+.task-line,.habit-line,.line-row{padding:11px 2px!important;border-bottom:1px solid var(--sb-line-2)!important;border-radius:0!important;background:transparent!important}.check,.round-check{border-color:#cbd5e1!important;background:#fff!important}.check.done,.quest-row.done .round-check{background:var(--sb-blue)!important;border-color:var(--sb-blue)!important;color:#fff!important}
+.table th{color:#64748b!important;background:#f8fafc!important}.table td,.table th{border-color:var(--sb-line-2)!important}.table-wrap{overflow:hidden!important;background:#fff!important}.modal{background:#fff!important;border:1px solid var(--sb-line)!important;box-shadow:0 28px 90px rgba(15,23,42,.18)!important;border-radius:28px!important}input,textarea,select{background:#fff!important;border-color:#dbe3ee!important;color:var(--sb-text)!important;border-radius:14px!important}input:focus,textarea:focus,select:focus{outline:3px solid rgba(37,99,235,.12)!important;border-color:#93c5fd!important}
+.v464-budget-hero,.v465-import-hero{background:linear-gradient(135deg,#fff,#f8fbff)!important}.v464-budget-hero:before,.v465-import-orb{background:radial-gradient(circle,rgba(37,99,235,.13),transparent 68%)!important}.v464-budget-hero h2,.v465-import-hero h2{color:var(--sb-ink)!important}.v464-hero-score{background:linear-gradient(135deg,#eff6ff,#dbeafe)!important;color:var(--sb-blue)!important;box-shadow:none!important}.v464-envelope{background:#fff!important;border:1px solid var(--sb-line)!important;border-radius:20px!important}.v464-envelope-icon{background:#eff6ff!important;color:var(--sb-blue)!important;border-color:#dbeafe!important}.v464-envelope.over{background:#fff7f7!important;border-color:#fecaca!important}.v464-envelope.risk{background:#fffaf0!important;border-color:#fde68a!important}.v464-envelope.unplanned{background:#f8fbff!important;border-style:dashed!important}
+#releaseBadge{
+  background:rgba(15,23,42,.84)!important;color:#fff!important;border:1px solid rgba(255,255,255,.12)!important;
+  backdrop-filter:blur(16px)!important;border-radius:999px!important;font-size:11px!important;letter-spacing:.02em!important;
+  padding:7px 11px!important;box-shadow:0 12px 26px rgba(15,23,42,.16)!important;
+}
+.mobile-page-title{color:var(--sb-ink)!important}.mobile-tabbar{background:rgba(255,255,255,.92)!important;border-top:1px solid var(--sb-line)!important;box-shadow:0 -18px 50px rgba(15,23,42,.08)!important;backdrop-filter:blur(22px)!important}.mobile-tab{color:#64748b!important}.mobile-tab.active{color:var(--sb-blue)!important}.mobile-tab-main{background:linear-gradient(135deg,var(--sb-blue),#60a5fa)!important;color:#fff!important;box-shadow:0 14px 34px rgba(37,99,235,.24)!important}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px;border:2px solid #f1f5f9}::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+@media(max-width:900px){body{min-width:0!important;background:#f7f9fd!important}.app.shell-premium,.app{display:block!important}.main{padding:14px 14px 96px!important}.sidebar{display:none!important}.topbar{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.88)!important;backdrop-filter:blur(18px)!important;padding:8px 0!important}.search-box{width:100%!important}.top-grid,.mid-grid,.premium-metrics,.v45-hero-grid,.v464-budget-grid,.v465-import-grid,.v464-envelope-grid{grid-template-columns:1fr!important}.home-head h1,h1{font-size:30px!important}.card,.panel{border-radius:22px!important;padding:17px!important}.big{font-size:42px!important}.mini-grid{grid-template-columns:repeat(2,1fr)!important}.v464-import-stats,.v465-import-stats,.v465-quality-grid,.v465-preview-summary{grid-template-columns:1fr 1fr!important}.v465-steps{grid-template-columns:1fr!important}.v465-import-actions .primary,.v465-import-actions .ghost{width:100%!important}}
+@media(max-width:560px){.v464-import-stats,.v465-import-stats,.v465-quality-grid,.v465-preview-summary{grid-template-columns:1fr!important}.home-head,.premium-page-head{display:block!important}.top-actions{margin-top:12px;display:grid!important;grid-template-columns:1fr!important}.primary,.ghost{width:100%}.mobile-tabbar{left:10px!important;right:10px!important;bottom:10px!important;border-radius:24px!important}}
+`;
+  document.head.appendChild(st);
+}
+function v466StableAppName(){
+  try{
+    document.documentElement.classList.add('sbos-version-ready');
+    document.title='Second Brain OS';
+    const buildMeta=document.querySelector('meta[name="second-brain-build"]'); if(buildMeta) buildMeta.setAttribute('content',SBOS_V466);
+    const appMeta=document.querySelector('meta[name="application-name"]'); if(appMeta) appMeta.setAttribute('content','Second Brain OS');
+    const appleMeta=document.querySelector('meta[name="apple-mobile-web-app-title"]'); if(appleMeta) appleMeta.setAttribute('content','Second Brain OS');
+    const rb=document.getElementById('releaseBadge');
+    if(rb){ rb.textContent='Second Brain OS · сборка V46.6'; rb.setAttribute('data-build-version',SBOS_V466_DISPLAY); rb.title=SBOS_V466_DISPLAY; }
+    document.querySelectorAll('.sidebar-status,.v403-status').forEach(box=>{
+      box.setAttribute('data-build-version',SBOS_V466_DISPLAY);
+      const smalls=box.querySelectorAll('small');
+      if(smalls[0]) smalls[0].textContent='Second Brain OS';
+      const b=box.querySelector('b'); if(b) b.textContent='Сборка V46.6';
+      const dot=box.querySelector('.sync-dot'); if(dot) dot.textContent='LIGHT TECH UI';
+    });
+    document.querySelectorAll('[data-build-version]').forEach(el=>{ el.setAttribute('data-build-version', SBOS_V466_DISPLAY); });
+    window.SecondBrainBuild=Object.assign(window.SecondBrainBuild||{}, {version:SBOS_V466, visible:SBOS_V466, display:SBOS_V466_DISPLAY, appName:'Second Brain OS'});
+    try{ localStorage.setItem('second_brain_visible_build', SBOS_V466); }catch(_e){}
+  }catch(e){ console.warn('V46.6 stable name patch failed', e); }
+}
+function v466PatchBrandingText(){
+  try{
+    document.querySelectorAll('.brand b').forEach(b=>{ if(/Second Brain/i.test(b.textContent||'')) b.textContent='Second Brain OS'; });
+    document.querySelectorAll('.brand span').forEach(s=>{ if(/Life|RPG|Private|Goals|Finance/i.test(s.textContent||'')) s.textContent='Life · Finance · Goals'; });
+  }catch(_e){}
+}
+function forceVersionBadgeRepair(){ v466StableAppName(); try{ toast('Название закреплено: Second Brain OS · V46.6'); }catch(_e){} }
+try{
+  v466InjectLightTechStyles();
+  v466StableAppName();
+  v466PatchBrandingText();
+  const __v466_oldRender = typeof render==='function' ? render : null;
+  if(__v466_oldRender){
+    render=function(){ const r=__v466_oldRender.apply(this, arguments); v466InjectLightTechStyles(); v466StableAppName(); v466PatchBrandingText(); return r; };
+  }
+  const __v466_oldOpenModal = typeof openModal==='function' ? openModal : null;
+  if(__v466_oldOpenModal){
+    openModal=function(){ const r=__v466_oldOpenModal.apply(this, arguments); v466InjectLightTechStyles(); v466StableAppName(); v466PatchBrandingText(); return r; };
+  }
+  window.SecondBrainV466={version:SBOS_V466,display:SBOS_V466_DISPLAY,theme:'clean-light-tech'};
+  ['__sbosV465Observer','__sbosV464Observer','__sbosV463Observer','__sbosV462Observer','__sbosV46Observer','__sbosV451Observer'].forEach(k=>{ try{ if(window[k]){ window[k].disconnect(); window[k]=null; } }catch(_e){} });
+  [20,60,120,300,700,1400,2600,5000].forEach(t=>setTimeout(()=>{v466StableAppName();v466PatchBrandingText();},t));
+}catch(e){ console.warn('V46.6 Light Tech UI failed', e); }

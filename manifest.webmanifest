@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS V48",
-  "short_name": "Second Brain",
-  "description": "Личная операционная система: финансы, бюджет, дорожная карта, категории жизни, задачи, цели и второй мозг.",
-  "start_url": "/second-brain-oc/?v=v48-clean-baseline-private-20260630",
+  "name": "Second Brain OS",
+  "short_name": "Second Brain OS",
+  "description": "Единая личная система для жизни, финансов, целей, бюджета и задач.",
+  "start_url": "/second-brain-oc/?v=v46-6-light-tech-visual-safe-20260630",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -11,8 +11,8 @@
     "minimal-ui",
     "browser"
   ],
-  "background_color": "#f8f4ed",
-  "theme_color": "#f5efe7",
+  "background_color": "#f7f9fd",
+  "theme_color": "#2563eb",
   "orientation": "any",
   "lang": "ru-RU",
   "categories": [
@@ -38,6 +38,6 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/second-brain-oc/?app=second-brain-v48-clean-baseline-private-20260630",
-  "version": "v48-clean-baseline-private-20260630"
+  "id": "/second-brain-oc/?app=second-brain-os",
+  "version": "v46-6-light-tech-visual-safe-20260630"
 }
