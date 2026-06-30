@@ -1022,6 +1022,38 @@ try{render()}catch(e){console.error(e)}
 })();
 
 
+
+/* ===== BUDGET OPEN FIX — missing category budget row renderer ===== */
+function budgetRow(b){
+  const pct = Number.isFinite(+b.pct) ? +b.pct : 0;
+  const tone = pct > 100 ? 'red' : pct > 80 ? 'amber' : 'blue';
+  const leftText = (Number(b.limit||0) > 0) ? `Осталось: ${money(Number(b.left||0))}` : 'Лимит не задан';
+  return `<div class="list-row category-row budget-row" data-cat-name="${esc(b.name||'')}" data-cat-type="${esc(b.type||'expense')}">
+    <span class="pill ${tone}">${pct}%</span>
+    <div>
+      <div class="row-title">${esc(b.name||'Категория')}</div>
+      <div class="row-sub">${money(Number(b.spent||0))} из ${Number(b.limit||0)?money(Number(b.limit||0)):'—'} · ${leftText}</div>
+      ${progressBar(pct, pct>100?'red':pct>80?'amber':'green')}
+    </div>
+    <div class="button-row">
+      <button type="button" class="mini-btn" data-action="editCategory" data-id="${esc(b.id||'')}" data-name="${esc(b.name||'')}">Ред.</button>
+      <button type="button" class="mini-btn red" data-action="deleteCategory" data-id="${esc(b.id||'')}" data-name="${esc(b.name||'')}">Удалить</button>
+    </div>
+  </div>`;
+}
+window.budgetRow = budgetRow;
+(function(){
+  const oldRender = window.render || render;
+  window.SBOS_BUDGET_FIX_BUILD = 'budget-open-fix-20260630';
+  function hardGoBudget(){ try{ page='budget'; location.hash='budget'; oldRender(); }catch(e){ console.error('[budget open fix]',e); try{toast('Ошибка бюджета: '+(e.message||e))}catch(_){alert('Ошибка бюджета: '+(e.message||e))} } }
+  document.addEventListener('click', function(ev){
+    const btn = ev.target.closest && ev.target.closest('[data-go="budget"], .nav-btn[data-go="budget"], #bottomNav button[data-go="budget"]');
+    if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    hardGoBudget();
+  }, true);
+})();
+
 /* ===== CATEGORY DELETE FINAL FIX — name-based persistent deletion ===== */
 (function(){
   const BUILD_CAT_FINAL = 'category-delete-final-fix-20260630-1';
