@@ -1,7 +1,7 @@
 /* Second Brain OS — compatibility copy. Main runtime is inline in index.html. */
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='timeline-focus-ui2-buttons-wire-final-20260630-2';
+const BUILD='planning-images-polina-budget-visible-20260630';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -728,6 +728,7 @@ try{render()}catch(e){console.error(e)}
   setInterval(wireButtons,1200);
 })();
 
+  
 
 /* ===== DEBT + CATEGORY REAL FIX — operation-derived debts + persistent category delete ===== */
 (function(){
@@ -1194,3 +1195,232 @@ window.budgetRow = budgetRow;
   hardPersistAndRender();
   setInterval(wireCategoryButtons,1000);
 })();
+
+
+/* Life Addons: subconscious diary + Polina planning + hidden archive. */
+(function(){
+  const ADDON_BUILD='life-addons-subconscious-polina-20260630';
+  try{localStorage.setItem('secondBrainOS.addonBuild',ADDON_BUILD)}catch(e){}
+  const safeArr = k => { if(!Array.isArray(state[k])) state[k]=[]; return state[k]; };
+  function ensureLifeAddons(){
+    if(!state.settings) state.settings={};
+    safeArr('subconsciousDiary');
+    safeArr('polinaWishes');
+    safeArr('polinaPayments');
+    safeArr('archive');
+    if(!state.polinaWishes.length){
+      state.polinaWishes.push({id:uid(),title:'Подарок Полине',amount:7000,category:'Подарки',priority:'Важно',month:state.settings.currentMonth||monthKey(),includeInBudget:true,link:'',note:'Пример хотелки. Можно удалить или заменить.'});
+    }
+    if(!state.polinaPayments.length){
+      state.polinaPayments.push({id:uid(),title:'Обязательный платёж Полины',amount:0,category:'Обязательные платежи',dueDay:10,month:state.settings.currentMonth||monthKey(),active:true,note:'Добавь реальные платежи Полины для прогноза.'});
+    }
+    state.settings.lifeFolder = state.settings.lifeFolder || 'overview';
+  }
+  function addonMoney(v){ try{return money(v)}catch(e){return `${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`;} }
+  function currentMonth(){return (state.settings&&state.settings.currentMonth)||monthKey()}
+  function polinaWishesInMonth(m=currentMonth()){return safeArr('polinaWishes').filter(x=>(x.month||m)===m && x.includeInBudget!==false)}
+  function polinaPaymentsInMonth(m=currentMonth()){return safeArr('polinaPayments').filter(x=>(x.month||m)===m && x.active!==false)}
+  function polinaForecastMonth(m=currentMonth()){return polinaWishesInMonth(m).reduce((a,b)=>a+num(b.amount),0)+polinaPaymentsInMonth(m).reduce((a,b)=>a+num(b.amount),0)}
+  function polinaDueUntil(date){
+    const target = new Date(date); if(String(target)==='Invalid Date') return 0;
+    return polinaPaymentsInMonth(monthKey(target)).filter(p=>{
+      const day=Math.max(1,Math.min(31,num(p.dueDay)||1));
+      const due=new Date(target.getFullYear(),target.getMonth(),day);
+      return due<=target;
+    }).reduce((a,b)=>a+num(b.amount),0) + polinaWishesInMonth(monthKey(target)).reduce((a,b)=>a+num(b.amount),0);
+  }
+
+  try{
+    const oldDueUntil=dueUntil;
+    dueUntil=function(date){return (oldDueUntil?oldDueUntil(date):0)+polinaDueUntil(date)};
+    window.dueUntil=dueUntil;
+  }catch(e){}
+
+  try{
+    const oldSummary=summary;
+    summary=function(){
+      const s=oldSummary();
+      const extra=polinaForecastMonth();
+      s.polinaForecast=extra;
+      s.toNext=(s.toNext||0)-polinaDueUntil(s.nextSalary&&s.nextSalary.date? s.nextSalary.date : todayKey());
+      s.dailyLimit=Math.max(0,Math.floor((s.toNext||0)/Math.max(1,s.daysToSalary||1)));
+      return s;
+    };
+    window.summary=summary;
+  }catch(e){}
+
+  function noteFromDiary(entry){
+    const text = [
+      `Самочувствие: ${entry.feeling||'—'}`,
+      `Чего избегаю: ${entry.avoid||'—'}`,
+      `Что уже знаю: ${entry.truth||'—'}`,
+      `Один шаг: ${entry.step||'—'}`,
+      entry.extra?`Дополнительно: ${entry.extra}`:''
+    ].filter(Boolean).join('\n');
+    return {id:entry.noteId||uid(),title:`Интервью с подсознанием · ${entry.date||todayKey()}`,text,folder:'Дневник',tags:['рефлексия','подсознание','интервью'],createdAt:entry.date||todayKey()};
+  }
+  function diaryCard(e){return `<article class="mini-box"><div class="stat-row"><strong>${esc(e.date||'')}</strong><span class="pill violet">подсознание</span></div><p class="small"><b>Чувствую:</b> ${esc(e.feeling||'—')}</p><p class="small"><b>Избегаю:</b> ${esc(e.avoid||'—')}</p><p class="small"><b>Знаю:</b> ${esc(e.truth||'—')}</p><p class="small"><b>Шаг:</b> ${esc(e.step||'—')}</p><div class="button-row"><button class="mini-btn" data-action="editSubconsciousEntry" data-id="${esc(e.id)}">Ред.</button><button class="mini-btn red" data-action="deleteSubconsciousEntry" data-id="${esc(e.id)}">Удалить</button></div></article>`}
+  function subconsciousFolder(){ensureLifeAddons(); const latest=safeArr('subconsciousDiary').slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))); return `<section class="grid cols-3"><article class="card premium-hero-card"><div class="card-head"><h3>Интервью с подсознанием</h3><span class="pill violet">дневник</span></div><p class="muted">4 вопроса помогают достать честный ответ и превратить мысль в действие. Ответы сохраняются в заметки с тегом «подсознание».</p><button class="btn" data-action="addSubconsciousEntry">Начать интервью</button></article><article class="card"><h3>Записей</h3><div class="value sm">${latest.length}</div><p class="muted small">последняя: ${esc(latest[0]?.date||'—')}</p></article><article class="card"><h3>Вопрос дня</h3><p class="quote-big" style="font-size:18px">Что я уже знаю, но пока не хочу признать?</p></article></section><section class="grid cols-2" style="margin-top:18px">${latest.map(diaryCard).join('')||empty('Записей дневника пока нет')}</section>`}
+  function openSubconsciousModal(e={}){openModal(e.id?'Редактировать интервью':'Интервью с подсознанием',`<div class="form-grid">${field('Дата','f_date',e.date||todayKey(),'date')}${area('1. Что я сейчас чувствую?','f_feeling',e.feeling||'')}${area('2. Чего я избегаю или откладываю?','f_avoid',e.avoid||'')}${area('3. Что я уже знаю, но не признаю?','f_truth',e.truth||'')}${area('4. Какой один маленький шаг я сделаю?','f_step',e.step||'')}${area('Дополнительно','f_extra',e.extra||'')}</div><div class="actions"><button class="btn" data-action="${e.id?'saveEditedSubconsciousEntry':'saveSubconsciousEntry'}" ${e.id?`data-id="${esc(e.id)}"`:''}>Сохранить в дневник и заметки</button></div>`)}
+  function addSubconsciousEntry(){openSubconsciousModal()}
+  function saveSubconsciousEntry(){const entry={id:uid(),date:formVal('f_date')||todayKey(),feeling:formVal('f_feeling'),avoid:formVal('f_avoid'),truth:formVal('f_truth'),step:formVal('f_step'),extra:formVal('f_extra')}; const note=noteFromDiary(entry); entry.noteId=note.id; state.subconsciousDiary.unshift(entry); state.notes.unshift(note); save(true); closeModal(); toast('Интервью сохранено в дневник и заметки'); render()}
+  function editSubconsciousEntry(id){const e=state.subconsciousDiary.find(x=>String(x.id)===String(id)); if(e)openSubconsciousModal(e)}
+  function saveEditedSubconsciousEntry(id){const e=state.subconsciousDiary.find(x=>String(x.id)===String(id)); if(!e)return; e.date=formVal('f_date')||todayKey(); e.feeling=formVal('f_feeling'); e.avoid=formVal('f_avoid'); e.truth=formVal('f_truth'); e.step=formVal('f_step'); e.extra=formVal('f_extra'); const note=noteFromDiary(e); const idx=state.notes.findIndex(n=>String(n.id)===String(e.noteId)); if(idx>=0) state.notes[idx]=note; else state.notes.unshift(note); save(true); closeModal(); render()}
+  function deleteSubconsciousEntry(id){const e=state.subconsciousDiary.find(x=>String(x.id)===String(id)); if(!e)return; if(!confirm('Удалить запись дневника? Заметка тоже будет удалена.'))return; state.subconsciousDiary=state.subconsciousDiary.filter(x=>String(x.id)!==String(id)); if(e.noteId) state.notes=state.notes.filter(n=>String(n.id)!==String(e.noteId)); save(true); render()}
+
+  function polinaWishRow(w){return `<div class="list-row"><span class="pill ${w.priority==='Очень важно'?'red':w.priority==='Важно'?'amber':'blue'}">${esc(w.priority||'Важно')}</span><div><div class="row-title">${esc(w.title)} · ${addonMoney(w.amount)}</div><div class="row-sub">${esc(w.category||'Без категории')} · ${esc(w.month||currentMonth())} · ${w.includeInBudget!==false?'в прогнозе':'вне прогноза'}</div></div><div class="button-row">${w.link?`<a class="mini-btn blue" href="${esc(w.link)}" target="_blank">Ссылка</a>`:''}<button class="mini-btn" data-action="editPolinaWish" data-id="${esc(w.id)}">Ред.</button><button class="mini-btn red" data-action="deletePolinaWish" data-id="${esc(w.id)}">Удалить</button></div></div>`}
+  function polinaPaymentRow(p){return `<div class="list-row"><span class="pill ${p.active===false?'':'blue'}">${p.active===false?'пауза':'платёж'}</span><div><div class="row-title">${esc(p.title)} · ${addonMoney(p.amount)}</div><div class="row-sub">${esc(p.category||'Обязательные')} · день ${esc(p.dueDay||'—')} · ${esc(p.month||currentMonth())}</div></div><div class="button-row"><button class="mini-btn" data-action="editPolinaPayment" data-id="${esc(p.id)}">Ред.</button><button class="mini-btn red" data-action="deletePolinaPayment" data-id="${esc(p.id)}">Удалить</button></div></div>`}
+  function polinaWishesFolder(){ensureLifeAddons(); const sum=polinaWishesInMonth().reduce((a,b)=>a+num(b.amount),0); return `<section class="grid cols-3"><article class="card premium-hero-card"><h3>Хотелки Полины</h3><div class="value sm">${addonMoney(sum)}</div><p class="muted small">учитываются в прогнозе, если включены в бюджет</p><button class="btn" data-action="addPolinaWish">Добавить хотелку</button></article><article class="card"><h3>Приоритет</h3><p class="muted">Отмечай «Очень важно», чтобы не потерять главное и не перегрузить месяц.</p></article><article class="card"><h3>Прогноз</h3><p class="muted">Сумма попадает в расчёт «до зарплаты» и помогает заранее видеть расход.</p></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Список хотелок</h3><button class="btn secondary" data-action="addPolinaWish">Добавить</button></div><div class="note-list">${safeArr('polinaWishes').map(polinaWishRow).join('')||empty('Пока пусто')}</div></section>`}
+  function polinaPaymentsFolder(){ensureLifeAddons(); const sum=polinaPaymentsInMonth().reduce((a,b)=>a+num(b.amount),0); return `<section class="grid cols-3"><article class="card premium-hero-card"><h3>Обязательные платежи Полины</h3><div class="value sm">${addonMoney(sum)}</div><p class="muted small">ежемесячный прогноз расходов</p><button class="btn" data-action="addPolinaPayment">Добавить платёж</button></article><article class="card"><h3>Ближайшие</h3><p class="muted">Платежи с датой до зарплаты уменьшают дневной лимит.</p></article><article class="card"><h3>Совет</h3><p class="muted">Лучше заносить регулярные платежи один раз и корректировать сумму при изменении.</p></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Список платежей</h3><button class="btn secondary" data-action="addPolinaPayment">Добавить</button></div><div class="note-list">${safeArr('polinaPayments').map(polinaPaymentRow).join('')||empty('Пока пусто')}</div></section>`}
+  function openPolinaWishModal(w={}){openModal(w.id?'Редактировать хотелку Полины':'Хотелка Полины',`<div class="form-grid">${field('Что хочет / нужно','f_title',w.title||'')}${field('Сумма','f_amount',w.amount||'', 'number')}${field('Категория','f_category',w.category||'Подарки')}${field('Месяц','f_month',w.month||currentMonth())}<div class="field"><label>Важность</label><select id="f_priority"><option ${w.priority==='Очень важно'?'selected':''}>Очень важно</option><option ${w.priority==='Важно'?'selected':''}>Важно</option><option ${w.priority==='Можно позже'?'selected':''}>Можно позже</option></select></div><div class="field"><label>Включать в прогноз</label><select id="f_include"><option value="yes" ${w.includeInBudget!==false?'selected':''}>Да</option><option value="no" ${w.includeInBudget===false?'selected':''}>Нет</option></select></div>${field('Ссылка','f_link',w.link||'')}${area('Комментарий','f_note',w.note||'')}</div><div class="actions"><button class="btn" data-action="${w.id?'saveEditedPolinaWish':'savePolinaWish'}" ${w.id?`data-id="${esc(w.id)}"`:''}>Сохранить</button></div>`)}
+  function addPolinaWish(){openPolinaWishModal()}
+  function savePolinaWish(){state.polinaWishes.unshift({id:uid(),title:formVal('f_title')||'Хотелка Полины',amount:num(formVal('f_amount')),category:formVal('f_category')||'Подарки',month:formVal('f_month')||currentMonth(),priority:formVal('f_priority')||'Важно',includeInBudget:formVal('f_include')!=='no',link:formVal('f_link'),note:formVal('f_note')}); save(true); closeModal(); render()}
+  function editPolinaWish(id){const w=state.polinaWishes.find(x=>String(x.id)===String(id)); if(w)openPolinaWishModal(w)}
+  function saveEditedPolinaWish(id){const w=state.polinaWishes.find(x=>String(x.id)===String(id)); if(!w)return; w.title=formVal('f_title'); w.amount=num(formVal('f_amount')); w.category=formVal('f_category'); w.month=formVal('f_month')||currentMonth(); w.priority=formVal('f_priority'); w.includeInBudget=formVal('f_include')!=='no'; w.link=formVal('f_link'); w.note=formVal('f_note'); save(true); closeModal(); render()}
+  function deletePolinaWish(id){state.polinaWishes=state.polinaWishes.filter(x=>String(x.id)!==String(id)); save(true); render()}
+  function openPolinaPaymentModal(p={}){openModal(p.id?'Редактировать платёж Полины':'Обязательный платёж Полины',`<div class="form-grid">${field('Название','f_title',p.title||'')}${field('Сумма','f_amount',p.amount||'', 'number')}${field('Категория','f_category',p.category||'Обязательные платежи')}${field('День месяца','f_dueDay',p.dueDay||10,'number')}${field('Месяц','f_month',p.month||currentMonth())}<div class="field"><label>Статус</label><select id="f_active"><option value="yes" ${p.active!==false?'selected':''}>Активен</option><option value="no" ${p.active===false?'selected':''}>Пауза</option></select></div>${area('Комментарий','f_note',p.note||'')}</div><div class="actions"><button class="btn" data-action="${p.id?'saveEditedPolinaPayment':'savePolinaPayment'}" ${p.id?`data-id="${esc(p.id)}"`:''}>Сохранить</button></div>`)}
+  function addPolinaPayment(){openPolinaPaymentModal()}
+  function savePolinaPayment(){state.polinaPayments.unshift({id:uid(),title:formVal('f_title')||'Платёж Полины',amount:num(formVal('f_amount')),category:formVal('f_category')||'Обязательные платежи',dueDay:num(formVal('f_dueDay'))||10,month:formVal('f_month')||currentMonth(),active:formVal('f_active')!=='no',note:formVal('f_note')}); save(true); closeModal(); render()}
+  function editPolinaPayment(id){const p=state.polinaPayments.find(x=>String(x.id)===String(id)); if(p)openPolinaPaymentModal(p)}
+  function saveEditedPolinaPayment(id){const p=state.polinaPayments.find(x=>String(x.id)===String(id)); if(!p)return; p.title=formVal('f_title'); p.amount=num(formVal('f_amount')); p.category=formVal('f_category'); p.dueDay=num(formVal('f_dueDay'))||10; p.month=formVal('f_month')||currentMonth(); p.active=formVal('f_active')!=='no'; p.note=formVal('f_note'); save(true); closeModal(); render()}
+  function deletePolinaPayment(id){state.polinaPayments=state.polinaPayments.filter(x=>String(x.id)!==String(id)); save(true); render()}
+
+  function archivePage(){ensureLifeAddons(); return layout('Архив','Скрытое место для закрытых задач, долгов и старых записей. Не перегружает основной экран.',`<section class="grid cols-3"><article class="card premium-hero-card"><h3>Архив</h3><div class="value sm">${safeArr('archive').length}</div><p class="muted small">ручные архивные записи</p></article><article class="card"><h3>Закрытые задачи</h3><div class="value sm">${state.tasks.filter(t=>t.status==='Готово').length}</div></article><article class="card"><h3>Закрытые долги</h3><div class="value sm">${state.debts.filter(d=>d.status==='Закрыт').length}</div></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Архивные записи</h3><span class="pill blue">скрытый раздел</span></div><div class="note-list">${safeArr('archive').map(a=>`<div class="list-row"><span class="pill blue">архив</span><div><div class="row-title">${esc(a.title||'Запись')}</div><div class="row-sub">${esc(a.note||'')} · ${esc(a.date||'')}</div></div></div>`).join('')||empty('Архив пока пуст')}</div></section>`)}
+
+  const oldLifeFolders = lifeFolders;
+  lifeFolders=function(){
+    const base=(oldLifeFolders?oldLifeFolders():[]).filter(f=>!['subconscious','polinaWishes','polinaPayments'].includes(f.id));
+    const insert=[{id:'subconscious',title:'Дневник',ico:'◑'},{id:'polinaWishes',title:'Хотелки Полины',ico:'♡'},{id:'polinaPayments',title:'Платежи Полины',ico:'₽'}];
+    const existing=new Set(base.map(f=>f.id));
+    return [...base,...insert.filter(f=>!existing.has(f.id))];
+  };
+  window.lifeFolders=lifeFolders;
+  const oldLifeFolderCount=lifeFolderCount;
+  lifeFolderCount=function(id){ensureLifeAddons(); if(id==='subconscious')return state.subconsciousDiary.length; if(id==='polinaWishes')return state.polinaWishes.length; if(id==='polinaPayments')return state.polinaPayments.length; return oldLifeFolderCount?oldLifeFolderCount(id):0};
+  window.lifeFolderCount=lifeFolderCount;
+  const oldSpheresPage=spheresPage;
+  spheresPage=function(){ensureLifeAddons(); const folder=state.settings.lifeFolder||'overview'; let content=''; if(folder==='subconscious')content=subconsciousFolder(); else if(folder==='polinaWishes')content=polinaWishesFolder(); else if(folder==='polinaPayments')content=polinaPaymentsFolder(); else return oldSpheresPage(); return layout('Сферы жизни','Папки жизни, память, отношения и прогноз расходов.',`<section class="folder-list">${lifeFolders().map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</section><section style="margin-top:18px">${content}</section>`)};
+  window.spheresPage=spheresPage;
+
+  const oldBudgetPage=budgetPage;
+  budgetPage=function(){ensureLifeAddons(); let html=oldBudgetPage(); const extra=`<section class="card" style="margin-top:18px"><div class="card-head"><h3>Прогноз Полины</h3><span class="pill violet">${addonMoney(polinaForecastMonth())}</span></div><div class="grid cols-2"><div>${polinaWishesInMonth().slice(0,4).map(polinaWishRow).join('')||empty('Хотелок нет')}</div><div>${polinaPaymentsInMonth().slice(0,4).map(polinaPaymentRow).join('')||empty('Обязательных платежей нет')}</div></div><div class="actions"><button class="btn secondary" data-life-folder="polinaWishes">Хотелки</button><button class="btn secondary" data-life-folder="polinaPayments">Платежи</button></div></section>`; const idx=html.lastIndexOf('</div>'); return idx>0?html.slice(0,idx)+extra+html.slice(idx):html+extra};
+  window.budgetPage=budgetPage;
+
+  const oldDiagnostics=diagnosticsPage;
+  diagnosticsPage=function(){let html=oldDiagnostics(); const extra=`<section class="card" style="margin-top:18px"><div class="card-head"><h3>Скрытые разделы</h3><span class="pill blue">не перегружают меню</span></div><div class="actions"><button class="btn secondary" data-go="archive">Архив</button><button class="btn secondary" data-life-folder="subconscious">Дневник подсознания</button><button class="btn secondary" data-life-folder="polinaWishes">Хотелки Полины</button><button class="btn secondary" data-life-folder="polinaPayments">Платежи Полины</button></div></section>`; const idx=html.lastIndexOf('</div>'); return idx>0?html.slice(0,idx)+extra+html.slice(idx):html+extra};
+  window.diagnosticsPage=diagnosticsPage;
+  const prevRender=render;
+  render=function(){ensureLifeAddons(); if(page==='archive'){renderNav(); $('#view').innerHTML=archivePage(); setTimeout(patchClickableButtons,0); return;} return prevRender.apply(this,arguments)};
+  window.render=render;
+
+  const oldRun=runActionFromElement;
+  runActionFromElement=function(el,event){
+    const action=el&&el.dataset?el.dataset.action:''; const id=el&&el.dataset?el.dataset.id:'';
+    const map={addSubconsciousEntry,saveSubconsciousEntry,editSubconsciousEntry,saveEditedSubconsciousEntry,deleteSubconsciousEntry,addPolinaWish,savePolinaWish,editPolinaWish,saveEditedPolinaWish,deletePolinaWish,addPolinaPayment,savePolinaPayment,editPolinaPayment,saveEditedPolinaPayment,deletePolinaPayment};
+    if(map[action]){if(event){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();} map[action](id); return true;}
+    return oldRun?oldRun(el,event):false;
+  };
+  window.runActionFromElement=runActionFromElement;
+  if(window.SBOS_FORCE_ACTION){const prev=window.SBOS_FORCE_ACTION; window.SBOS_FORCE_ACTION=function(action,id,el){const map={addSubconsciousEntry,saveSubconsciousEntry,editSubconsciousEntry,saveEditedSubconsciousEntry,deleteSubconsciousEntry,addPolinaWish,savePolinaWish,editPolinaWish,saveEditedPolinaWish,deletePolinaWish,addPolinaPayment,savePolinaPayment,editPolinaPayment,saveEditedPolinaPayment,deletePolinaPayment}; if(map[action]){map[action](id); return true;} return prev(action,id,el);};}
+  ensureLifeAddons();
+  try{save()}catch(e){}
+  try{render()}catch(e){}
+})();
+
+/* ===== PLANNING IMAGE + POLINA BUDGET VISIBLE FIX ===== */
+(function(){
+  const FIX_BUILD='planning-images-polina-budget-visible-20260630';
+  try{localStorage.setItem('secondBrainOS.currentBuild',FIX_BUILD);}catch(e){}
+  function polinaMonth(){return (state.settings&&state.settings.currentMonth)||monthKey();}
+  function ensurePolinaBudgetState(){
+    state.polinaWishes=Array.isArray(state.polinaWishes)?state.polinaWishes:[];
+    state.polinaPayments=Array.isArray(state.polinaPayments)?state.polinaPayments:[];
+    state.settings=state.settings||{};
+    if(!Array.isArray(state.settings.hiddenArchiveIds)) state.settings.hiddenArchiveIds=[];
+  }
+  function polinaWishesForBudget(m=polinaMonth()){ensurePolinaBudgetState();return state.polinaWishes.filter(x=>(x.month||m)===m && x.includeInBudget!==false);}
+  function polinaPaymentsForBudget(m=polinaMonth()){ensurePolinaBudgetState();return state.polinaPayments.filter(x=>(x.month||m)===m && x.active!==false);}
+  function polinaWishesTotal(m=polinaMonth()){return polinaWishesForBudget(m).reduce((a,b)=>a+num(b.amount),0);}
+  function polinaPaymentsTotal(m=polinaMonth()){return polinaPaymentsForBudget(m).reduce((a,b)=>a+num(b.amount),0);}
+  function polinaBudgetTotal(m=polinaMonth()){return polinaWishesTotal(m)+polinaPaymentsTotal(m);}
+  function polinaDueUntilDate(date){
+    ensurePolinaBudgetState();
+    const target=new Date(date||todayKey());
+    const m=monthKey(target);
+    const day=target.getDate();
+    const payments=polinaPaymentsForBudget(m).filter(p=>!p.dueDay || num(p.dueDay)<=day).reduce((a,b)=>a+num(b.amount),0);
+    const wishes=polinaWishesForBudget(m).reduce((a,b)=>a+num(b.amount),0);
+    return payments+wishes;
+  }
+  function rowPolinaWishBudget(w){
+    const tone=w.priority==='Очень важно'?'red':w.priority==='Важно'?'amber':'violet';
+    return `<div class="list-row polina-budget-row"><span class="pill ${tone}">${esc(w.priority||'Важно')}</span><div><div class="row-title">${esc(w.title||'Хотелка Полины')} · ${money(w.amount)}</div><div class="row-sub">${esc(w.category||'Без категории')} · ${esc(w.month||polinaMonth())}</div></div><div class="button-row">${w.link?`<a class="mini-btn blue" href="${esc(w.link)}" target="_blank" rel="noopener">Ссылка</a>`:''}<button class="mini-btn" data-action="editPolinaWish" data-id="${esc(w.id)}">Ред.</button></div></div>`;
+  }
+  function rowPolinaPaymentBudget(p){
+    return `<div class="list-row polina-budget-row"><span class="pill blue">${p.active===false?'пауза':'платёж'}</span><div><div class="row-title">${esc(p.title||'Платёж Полины')} · ${money(p.amount)}</div><div class="row-sub">${esc(p.category||'Обязательные')} · день ${esc(p.dueDay||'—')} · ${esc(p.month||polinaMonth())}</div></div><div class="button-row"><button class="mini-btn" data-action="editPolinaPayment" data-id="${esc(p.id)}">Ред.</button></div></div>`;
+  }
+  function goPolinaWishes(){ensurePolinaBudgetState();state.settings.lifeFolder='polinaWishes';save();go('spheres');}
+  function goPolinaPayments(){ensurePolinaBudgetState();state.settings.lifeFolder='polinaPayments';save();go('spheres');}
+  window.goPolinaWishes=goPolinaWishes;
+  window.goPolinaPayments=goPolinaPayments;
+  try{Object.assign(windowActions,{goPolinaWishes,goPolinaPayments});}catch(e){}
+
+  // If the previous Polina forecast patch did not touch the financial summary, add it once.
+  try{
+    const probe=summary();
+    const alreadyPatched=Object.prototype.hasOwnProperty.call(probe,'polinaForecast');
+    if(!alreadyPatched && !window.SBOS_POLINA_DUE_PATCHED){
+      const prevDue=dueUntil;
+      dueUntil=function(date){return prevDue(date)+polinaDueUntilDate(date);};
+      window.SBOS_POLINA_DUE_PATCHED=true;
+      const prevSummary=summary;
+      summary=function(){const s=prevSummary();s.polinaForecast=polinaBudgetTotal();return s;};
+    }else{
+      const prevSummary=summary;
+      summary=function(){const s=prevSummary();s.polinaForecast=polinaBudgetTotal();return s;};
+    }
+  }catch(e){}
+
+  function polinaBudgetPanel(){
+    ensurePolinaBudgetState();
+    const wishes=polinaWishesForBudget();
+    const payments=polinaPaymentsForBudget();
+    const wSum=polinaWishesTotal();
+    const pSum=polinaPaymentsTotal();
+    const total=wSum+pSum;
+    return `<section class="card polina-budget-visible"><div class="card-head"><div><h3>Полина в бюджете</h3><p class="muted small">хотелки и обязательные платежи, которые влияют на прогноз расхода</p></div><span class="pill violet">${money(total)}</span></div><div class="grid cols-3 polina-budget-summary"><div class="mini-box"><strong>Хотелки</strong><div class="value sm">${money(wSum)}</div><p class="small muted">включены в прогноз месяца</p></div><div class="mini-box"><strong>Обязательные платежи</strong><div class="value sm">${money(pSum)}</div><p class="small muted">учитываются по дню месяца</p></div><div class="mini-box"><strong>Итого Полина</strong><div class="value sm">${money(total)}</div><p class="small muted">эта сумма видна отдельно</p></div></div><div class="grid cols-2" style="margin-top:14px"><div><div class="stat-row"><b>Хотелки Полины</b><button class="mini-btn blue" data-action="goPolinaWishes">Открыть</button></div><div class="note-list">${wishes.slice(0,4).map(rowPolinaWishBudget).join('')||empty('Хотелок в этом месяце пока нет')}</div></div><div><div class="stat-row"><b>Платежи Полины</b><button class="mini-btn blue" data-action="goPolinaPayments">Открыть</button></div><div class="note-list">${payments.slice(0,4).map(rowPolinaPaymentBudget).join('')||empty('Платежей в этом месяце пока нет')}</div></div></div><div class="actions"><button class="btn secondary" data-action="addPolinaWish">Добавить хотелку</button><button class="btn secondary" data-action="addPolinaPayment">Добавить платёж</button></div></section>`;
+  }
+  window.polinaBudgetPanel=polinaBudgetPanel;
+
+  budgetPage=function(){
+    ensurePolinaBudgetState();
+    const s=summary();
+    const items=budgetStats();
+    const used=items.reduce((a,b)=>a+b.spent,0);
+    const limit=items.reduce((a,b)=>a+b.limit,0);
+    const top=dailySpendSeries().sort((a,b)=>b.amount-a.amount).filter(x=>x.amount>0).slice(0,5);
+    const polTotal=polinaBudgetTotal();
+    return layout('Бюджет','Расчёт по зарплатному циклу от 10 числа: лимиты, плановые покупки и прогноз Полины.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Цикл бюджета</h3><div class="value sm">10 → 9</div><p class="muted small">расчёт от основной зарплаты</p></article><article class="card"><h3>Можно тратить в день</h3>${dailyLimitBlock(s)}</article><article class="card polina-top-budget"><h3>Полина</h3><div class="value sm">${money(polTotal)}</div><p class="muted small">хотелки + платежи в прогнозе</p><button class="link" data-action="goPolinaWishes">Открыть →</button></article><article class="card"><h3>Плановые покупки</h3><div class="value sm">${money(total(plannedInMonth()))}</div><p class="muted small">включены в бюджет</p></article><article class="card"><h3>Лимиты</h3><div class="value sm">${limit?Math.round(used/limit*100):0}%</div>${progressBar(limit?used/limit*100:0,used>limit?'red':'')}</article></section>${polinaBudgetPanel()}<section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>График трат по дням</h3><span class="pill blue">пики выделены</span></div>${renderDailySpendChart()}${top.length?`<div class="drawer" style="margin-top:12px"><b>Самые дорогие дни</b>${top.map(x=>`<div class="stat-row"><span>${x.day} число</span><b>${money(x.amount)}</b></div>`).join('')}</div>`:''}</article><article class="card"><div class="card-head"><h3>Лимиты по категориям</h3><button class="btn secondary" data-action="addCategory">Категория</button></div>${items.map(budgetRow).join('')||empty('Нет категорий')}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Плановые покупки</h3><button class="btn secondary" data-action="addPurchase">Добавить покупку</button></div>${typeof purchaseAdvice==='function'?purchaseAdvice():''}<div class="note-list" style="margin-top:10px">${state.plannedPurchases.map(rowPurchase).join('')||empty('Покупок нет')}</div></section>`);
+  };
+  window.budgetPage=budgetPage;
+
+  function imageUrlValue(){return String(formVal('f_image')||'').trim();}
+  const addTaskImageFix=function(){openModal('Новая задача',`<div class="form-grid">${field('Задача','f_title')}${field('Сфера','f_area','Личное')}${field('Дата','f_due',todayKey(),'date')}${field('Время','f_time','','time')}${field('URL картинки из интернета','f_image','')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A">Срочно и важно</option><option value="B" selected>Важно, не срочно</option><option value="C">Срочно, не важно</option><option value="D">Позже / убрать</option></select></div></div><p class="muted small">Картинка будет показана в планировании средним красивым превью.</p>${modalButtons('saveTask')}`)}
+  const saveTaskImageFix=function(){state.tasks.unshift({id:uid(),title:formVal('f_title')||'Новая задача',area:formVal('f_area')||'Личное',due:formVal('f_due')||todayKey(),time:formVal('f_time'),image:imageUrlValue(),priority:formVal('f_priority')||'B',status:'В работе'});save(true);closeModal();toast('Задача добавлена');render()}
+  const editTaskImageFix=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(!t)return;openModal('Редактировать задачу',`<div class="form-grid">${field('Задача','f_title',t.title)}${field('Сфера','f_area',t.area)}${field('Дата','f_due',t.due,'date')}${field('Время','f_time',t.time,'time')}${field('URL картинки из интернета','f_image',t.image||'')}<div class="field"><label>Приоритет / Эйзенхауэр</label><select id="f_priority"><option value="A" ${t.priority==='A'?'selected':''}>Срочно и важно</option><option value="B" ${t.priority==='B'?'selected':''}>Важно, не срочно</option><option value="C" ${t.priority==='C'?'selected':''}>Срочно, не важно</option><option value="D" ${t.priority==='D'?'selected':''}>Позже / убрать</option></select></div></div>${t.image?`<img class="modal-image-preview" src="${esc(t.image)}" alt="" onerror="this.remove()">`:''}<div class="actions"><button class="btn" data-action="saveEditedTask" data-id="${esc(id)}">Сохранить</button><button class="btn red" data-action="deleteTask" data-id="${esc(id)}">Удалить</button></div>`)}
+  const saveEditedTaskImageFix=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(t){t.title=formVal('f_title');t.area=formVal('f_area');t.due=formVal('f_due');t.time=formVal('f_time');t.image=imageUrlValue();t.priority=formVal('f_priority')}save(true);closeModal();render()}
+  const rowTaskImageFix=function(t){
+    const hasImg=String(t.image||'').trim();
+    const img=hasImg?`<button class="task-cover-button" data-action="editTask" data-id="${esc(t.id)}"><img class="planning-task-image" src="${esc(t.image)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`:'';
+    return `<div class="task-card-row planning-image-card ${hasImg?'has-image':''}">${img}<button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${esc(t.id)}" title="Готово"></button><button class="task-main" data-action="editTask" data-id="${esc(t.id)}"><span class="row-title">${esc(t.title)}</span><span class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</span></button><div class="task-actions">${taskPill(t)}<button class="mini-btn blue compact-action" data-action="googleTask" data-id="${esc(t.id)}">Google</button></div></div>`;
+  };
+  addTask=addTaskImageFix; saveTask=saveTaskImageFix; editTask=editTaskImageFix; saveEditedTask=saveEditedTaskImageFix; rowTask=rowTaskImageFix;
+  window.addTask=addTask; window.saveTask=saveTask; window.editTask=editTask; window.saveEditedTask=saveEditedTask; window.rowTask=rowTask;
+  try{Object.assign(windowActions,{addTask,saveTask,editTask,saveEditedTask,goPolinaWishes,goPolinaPayments});}catch(e){}
+
+  const previousRender=render;
+  render=function(){ensurePolinaBudgetState(); const out=previousRender.apply(this,arguments); setTimeout(()=>{try{patchClickableButtons()}catch(e){}},0); return out;};
+  window.render=render;
+  try{save(false);render();}catch(e){console.error('[planning images / polina budget visible fix]',e)}
+})();
+
