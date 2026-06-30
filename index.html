@@ -10,7 +10,7 @@
   <meta name="description" content="Second Brain OS — личная система для финансов, задач, целей, привычек и сфер жизни." />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="category-delete-final-fix-20260630" />
+  <meta name="second-brain-build" content="unified-planning-monthly-forecast-20260630" />
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -54,6 +54,16 @@
     .task-cover-button{grid-area:cover;border:0;background:transparent;padding:0;margin:0;width:100%;cursor:pointer;display:block;text-align:left}.planning-task-image{width:100%;height:156px;object-fit:cover;border-radius:20px;border:1px solid #dceaff;box-shadow:0 14px 30px rgba(31,111,255,.10);display:block}.planning-image-card .check{grid-area:check}.planning-image-card .task-main{grid-area:main}.planning-image-card .task-actions{grid-area:actions}.modal-image-preview{width:100%;max-height:260px;object-fit:cover;border-radius:22px;margin:12px 0;border:1px solid #e4edf8;box-shadow:0 14px 30px rgba(31,111,255,.08)}
     @media(max-width:760px){.planning-task-image{height:128px}.polina-budget-visible .grid.cols-2,.polina-budget-visible .grid.cols-3{grid-template-columns:1fr}}
 
+  
+    /* Unified planning + monthly forecast */
+    .planning-summary .field input{height:42px;border-radius:14px}
+    .plan-tabs{margin-top:10px}.plan-tabs .tab-btn{padding:8px 10px}
+    .unified-plan-list{display:grid;gap:12px}.unified-plan-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:linear-gradient(135deg,#ffffff,#f8fbff);border:1px solid #e6edf7;border-radius:22px;padding:12px;box-shadow:0 10px 28px rgba(15,23,42,.045)}
+    .unified-plan-item.polinaWish,.unified-plan-item.polinaPayment{background:linear-gradient(135deg,#fff,#fbf8ff);border-color:#ede9fe}.unified-plan-item.purchase{background:linear-gradient(135deg,#fff,#f8fffb);border-color:#dcfce7}
+    .unified-plan-main{min-width:0}.unified-plan-top{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}.unified-plan-actions{margin-top:0;justify-content:flex-end}.unified-plan-image{width:118px;height:76px;object-fit:cover;border-radius:18px;border:1px solid #e6edf7;box-shadow:0 10px 20px rgba(15,23,42,.06)}
+    .monthly-plan-card{margin-top:0}.monthly-plan-grid{display:grid;gap:10px}.monthly-plan-row{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #e6edf7;background:#f8fbff;border-radius:18px;padding:12px}.monthly-plan-row.current{background:linear-gradient(135deg,#eef5ff,#fff);border-color:#bfdbfe}.monthly-total{font-weight:900;color:#0f172a;white-space:nowrap}.monthly-plan-card-inner .card-head{display:none}
+    @media(max-width:760px){.unified-plan-item{grid-template-columns:1fr}.unified-plan-image{width:100%;height:150px}.unified-plan-actions{justify-content:flex-start}.monthly-plan-row{align-items:flex-start;flex-direction:column}.monthly-total{font-size:18px}}
+
   </style>
 </head>
 <body>
@@ -77,7 +87,7 @@
 /* Second Brain OS — compatibility copy. Main runtime is inline in index.html. */
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='planning-images-polina-budget-visible-20260630';
+const BUILD='unified-planning-monthly-forecast-20260630';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -1500,6 +1510,182 @@ window.budgetRow = budgetRow;
   try{save(false);render();}catch(e){console.error('[planning images / polina budget visible fix]',e)}
 })();
 
+
+/* ===== UNIFIED PLANNING + MONTHLY FORECAST — tasks, future spends, wishes, Polina ===== */
+(function(){
+  const UNIFIED_BUILD='unified-planning-monthly-forecast-20260630';
+  try{localStorage.setItem('secondBrainOS.currentBuild',UNIFIED_BUILD);}catch(e){}
+
+  function ensureUnifiedState(){
+    state.settings = state.settings || {};
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    state.calendarEvents = Array.isArray(state.calendarEvents) ? state.calendarEvents : [];
+    state.plannedPurchases = Array.isArray(state.plannedPurchases) ? state.plannedPurchases : [];
+    state.polinaWishes = Array.isArray(state.polinaWishes) ? state.polinaWishes : [];
+    state.polinaPayments = Array.isArray(state.polinaPayments) ? state.polinaPayments : [];
+    state.settings.planningOwner = state.settings.planningOwner || 'all';
+    state.settings.planningMonth = state.settings.planningMonth || state.settings.currentMonth || monthKey();
+    state.plannedPurchases.forEach(p=>{
+      if(!p.owner) p.owner='Я';
+      if(!p.kind) p.kind='Покупка';
+      if(!p.month) p.month=state.settings.currentMonth||monthKey();
+    });
+    state.polinaWishes.forEach(w=>{w.owner='Полина'; if(!w.month) w.month=state.settings.currentMonth||monthKey();});
+    state.polinaPayments.forEach(p=>{p.owner='Полина'; if(!p.month) p.month=state.settings.currentMonth||monthKey();});
+  }
+  function monthNow(){return state.settings.currentMonth || monthKey();}
+  function monthTitle(m){
+    const [y,mm]=String(m||monthNow()).split('-').map(Number);
+    if(!y||!mm)return esc(m||'—');
+    return new Date(y,mm-1,1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  }
+  function addMonth(m,n){
+    const [y,mm]=String(m||monthNow()).split('-').map(Number);
+    const d=new Date(y||new Date().getFullYear(),(mm||new Date().getMonth()+1)-1+n,1);
+    return monthKey(d);
+  }
+  function monthInput(id,val){return `<div class="field"><label>Месяц</label><input id="${id}" type="month" value="${esc(val||monthNow())}"></div>`;}
+  function ownerSelect(id,val='Я'){
+    const owners=['Я','Полина','Общее'];
+    return `<div class="field"><label>Кому</label><select id="${id}">${owners.map(o=>`<option value="${esc(o)}" ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  }
+  function ownerPill(owner){
+    owner=owner||'Я';
+    const cls=owner==='Полина'?'violet':owner==='Общее'?'green':'blue';
+    return `<span class="pill ${cls}">${esc(owner)}</span>`;
+  }
+  function includeText(x){return x.includeInBudget===false?'вне прогноза':'в прогнозе';}
+  function planningOwnerFilter(){return state.settings.planningOwner||'all';}
+  function planningMonthFilter(){return state.settings.planningMonth||monthNow();}
+  function setPlanningOwner(owner){state.settings.planningOwner=owner||'all';save(false);render();}
+  function setPlanningMonth(){const v=formVal('planningMonthSelect')||monthNow(); state.settings.planningMonth=v; save(false); render();}
+  function planOwnerButtons(){
+    const cur=planningOwnerFilter();
+    return `<div class="button-row plan-tabs"><button class="tab-btn ${cur==='all'?'active':''}" data-action="setPlanningOwner" data-id="all">Все</button><button class="tab-btn ${cur==='Я'?'active':''}" data-action="setPlanningOwner" data-id="Я">Я</button><button class="tab-btn ${cur==='Полина'?'active':''}" data-action="setPlanningOwner" data-id="Полина">Полина</button><button class="tab-btn ${cur==='Общее'?'active':''}" data-action="setPlanningOwner" data-id="Общее">Общее</button></div>`;
+  }
+  function plannedUnifiedItems(month=planningMonthFilter(), owner=planningOwnerFilter()){
+    ensureUnifiedState();
+    const items=[];
+    state.tasks.filter(t=>!month || String(t.due||'').startsWith(month)).forEach(t=>items.push({source:'task',id:t.id,title:t.title,owner:t.owner||'Я',amount:0,month:String(t.due||'').slice(0,7)||monthNow(),date:t.due,sort:t.due||'9999-99-99',meta:`${t.area||'Личное'} · ${t.time||''}`,kind:'Задача',priority:t.priority||'B',image:t.image||'',include:true}));
+    state.calendarEvents.filter(e=>!month || String(e.date||'').startsWith(month)).forEach(e=>items.push({source:'event',id:e.id,title:e.title,owner:e.owner||'Я',amount:0,month:String(e.date||'').slice(0,7)||monthNow(),date:e.date,sort:e.date||'9999-99-99',meta:`${e.area||'Личное'} · ${e.time||''}`,kind:'Событие',priority:'B',include:true}));
+    state.plannedPurchases.filter(p=>!month || (p.month||monthNow())===month).forEach(p=>items.push({source:'purchase',id:p.id,title:p.title,owner:p.owner||'Я',amount:num(p.amount),month:p.month||monthNow(),date:p.due||'',sort:p.due||`${p.month||monthNow()}-28`,meta:`${p.category||'Покупки'} · ${includeText(p)}`,kind:p.kind||'Покупка',priority:p.importance||p.priority||'Важно',link:p.link||'',image:p.image||'',include:p.includeInBudget!==false}));
+    state.polinaWishes.filter(w=>!month || (w.month||monthNow())===month).forEach(w=>items.push({source:'polinaWish',id:w.id,title:w.title,owner:'Полина',amount:num(w.amount),month:w.month||monthNow(),date:'',sort:`${w.month||monthNow()}-27`,meta:`${w.category||'Хотелка'} · ${includeText(w)}`,kind:'Хотелка',priority:w.priority||'Важно',link:w.link||'',image:w.image||'',include:w.includeInBudget!==false}));
+    state.polinaPayments.filter(p=>!month || (p.month||monthNow())===month).forEach(p=>items.push({source:'polinaPayment',id:p.id,title:p.title,owner:'Полина',amount:num(p.amount),month:p.month||monthNow(),date:`${p.month||monthNow()}-${String(num(p.dueDay)||1).padStart(2,'0')}`,sort:`${p.month||monthNow()}-${String(num(p.dueDay)||1).padStart(2,'0')}`,meta:`${p.category||'Обязательный платёж'} · день ${p.dueDay||'—'} · ${p.active===false?'пауза':'активен'}`,kind:'Обязательный платёж',priority:p.active===false?'Пауза':'Важно',include:p.active!==false}));
+    return items.filter(x=>owner==='all'||x.owner===owner).sort((a,b)=>String(a.sort).localeCompare(String(b.sort))||String(a.owner).localeCompare(String(b.owner),'ru'));
+  }
+  function plannedMonthlyTotals(){
+    ensureUnifiedState();
+    const map=new Map();
+    function take(month,owner,amount,type,include=true){
+      if(!include || !month) return;
+      const row=map.get(month)||{month,total:0,self:0,polina:0,common:0,purchases:0,wishes:0,payments:0};
+      const a=num(amount); row.total+=a;
+      if(owner==='Полина') row.polina+=a; else if(owner==='Общее') row.common+=a; else row.self+=a;
+      if(type==='payment') row.payments+=a; else if(type==='wish') row.wishes+=a; else row.purchases+=a;
+      map.set(month,row);
+    }
+    (state.plannedPurchases||[]).forEach(p=>take(p.month||monthNow(),p.owner||'Я',p.amount,'purchase',p.includeInBudget!==false));
+    (state.polinaWishes||[]).forEach(w=>take(w.month||monthNow(),'Полина',w.amount,'wish',w.includeInBudget!==false));
+    (state.polinaPayments||[]).forEach(p=>take(p.month||monthNow(),'Полина',p.amount,'payment',p.active!==false));
+    // Show current + next 5 months even if empty, then add any manual future months.
+    for(let i=0;i<6;i++){const m=addMonth(monthNow(),i); if(!map.has(m))map.set(m,{month:m,total:0,self:0,polina:0,common:0,purchases:0,wishes:0,payments:0});}
+    return Array.from(map.values()).sort((a,b)=>String(a.month).localeCompare(String(b.month)));
+  }
+  function plannedAmountForMonth(m=monthNow()){const row=plannedMonthlyTotals().find(x=>x.month===m); return row?row.total:0;}
+  function plannedMonthlyForecastBlock(){
+    const rows=plannedMonthlyTotals().slice(0,9);
+    return `<section class="card monthly-plan-card"><div class="card-head"><div><h3>Запланированные расходы по месяцам</h3><p class="muted small">Покупки, будущие траты, личные хотелки, хотелки и платежи Полины.</p></div><span class="pill blue">прогноз</span></div><div class="monthly-plan-grid">${rows.map(r=>`<div class="monthly-plan-row ${r.month===monthNow()?'current':''}"><div><strong>${monthTitle(r.month)}</strong><div class="row-sub">Я: ${money(r.self)} · Полина: ${money(r.polina)} · Общее: ${money(r.common)}</div></div><div class="monthly-total">${money(r.total)}</div></div>`).join('')}</div></section>`;
+  }
+  function sourceTone(source,priority){
+    if(source==='polinaPayment') return 'violet';
+    if(source==='polinaWish') return 'violet';
+    if(priority==='Очень важно'||priority==='A') return 'red';
+    if(priority==='Важно'||priority==='B') return 'amber';
+    return 'blue';
+  }
+  function rowUnifiedPlanItem(x){
+    const img=x.image?`<img class="unified-plan-image" src="${esc(x.image)}" loading="lazy" alt="" onerror="this.remove()">`:'';
+    const action=x.source==='task'?'editTask':x.source==='event'?'editEvent':x.source==='purchase'?'editPurchase':x.source==='polinaWish'?'editPolinaWish':'editPolinaPayment';
+    const dateLine=x.date?`${esc(x.date)} · `:'';
+    const link=x.link?`<a class="mini-btn blue" href="${esc(x.link)}" target="_blank" rel="noopener">Ссылка</a>`:'';
+    return `<div class="unified-plan-item ${x.source}">${img}<div class="unified-plan-main"><div class="unified-plan-top"><span class="pill ${sourceTone(x.source,x.priority)}">${esc(x.kind)}</span>${ownerPill(x.owner)}${x.amount?`<span class="pill green">${money(x.amount)}</span>`:''}</div><div class="row-title">${esc(x.title||'Пункт плана')}</div><div class="row-sub">${dateLine}${esc(monthTitle(x.month))} · ${esc(x.meta||'')}</div></div><div class="button-row unified-plan-actions">${link}<button class="mini-btn" data-action="${action}" data-id="${esc(x.id)}">Ред.</button></div></div>`;
+  }
+  function unifiedPlanningPanel(){
+    ensureUnifiedState();
+    const m=planningMonthFilter();
+    const owner=planningOwnerFilter();
+    const items=plannedUnifiedItems(m,owner);
+    const moneyTotal=items.reduce((a,b)=>a+(b.include?num(b.amount):0),0);
+    const taskCount=items.filter(x=>x.source==='task'||x.source==='event').length;
+    return `<section class="grid cols-4 planning-summary"><article class="card premium-hero-card"><h3>Единая папка планирования</h3><div class="value sm">${items.length}</div><p class="muted small">задачи, события, покупки, хотелки и платежи</p></article><article class="card"><h3>План расходов</h3><div class="value sm blue">${money(moneyTotal)}</div><p class="muted small">на ${monthTitle(m)}</p></article><article class="card"><h3>Дела</h3><div class="value sm">${taskCount}</div><p class="muted small">задачи + календарь</p></article><article class="card"><h3>Фильтр</h3><div class="field" style="margin:0"><input id="planningMonthSelect" type="month" value="${esc(m)}" data-action="setPlanningMonth"></div>${planOwnerButtons()}</article></section><section class="card" style="margin-top:18px"><div class="card-head"><div><h3>Все запланированное</h3><p class="muted small">У каждого пункта есть пометка, кому он относится: Я, Полина или Общее.</p></div><div class="button-row" style="margin-top:0"><button class="btn secondary" data-action="addTask">Задача</button><button class="btn secondary" data-action="addPurchase">Покупка / трата</button><button class="btn secondary" data-action="addPolinaWish">Хотелка Полины</button><button class="btn secondary" data-action="addPolinaPayment">Платёж Полины</button></div></div><div class="unified-plan-list">${items.map(rowUnifiedPlanItem).join('')||empty('На этот месяц ничего не запланировано')}</div></section>`;
+  }
+
+  // Purchases now carry owner + optional link/image and stay compatible with the old budget section.
+  addPurchase=function(){openModal('Плановая покупка / будущая трата',`<div class="form-grid">${field('Что купить / оплатить','f_title')}${ownerSelect('f_owner','Я')}${field('Категория','f_category','Покупки')}${field('Сумма','f_amount','','number')}${monthInput('f_month',monthNow())}<div class="field"><label>Тип</label><select id="f_kind"><option>Покупка</option><option>Хотелка</option><option>Будущая трата</option><option>Обязательный платёж</option></select></div><div class="field"><label>Важность</label><select id="f_importance"><option>Очень важно</option><option selected>Важно</option><option>Можно позже</option></select></div><div class="field"><label>Учитывать в прогнозе</label><select id="f_include"><option value="true">Да</option><option value="false">Нет</option></select></div>${field('Ссылка','f_link','')}${field('URL картинки','f_image','')}${area('Комментарий','f_note')}</div>${modalButtons('savePurchase')}`)};
+  savePurchase=function(){
+    const owner=formVal('f_owner')||'Я';
+    if(owner==='Полина' && formVal('f_kind')==='Хотелка'){
+      state.polinaWishes.unshift({id:uid(),title:formVal('f_title')||'Хотелка Полины',amount:num(formVal('f_amount')),category:formVal('f_category')||'Подарки',month:formVal('f_month')||monthNow(),priority:formVal('f_importance')||'Важно',includeInBudget:formVal('f_include')!=='false',link:formVal('f_link'),image:formVal('f_image'),note:formVal('f_note'),owner:'Полина'});
+    }else{
+      state.plannedPurchases.unshift({id:uid(),title:formVal('f_title')||'Покупка',owner,kind:formVal('f_kind')||'Покупка',category:formVal('f_category')||'Покупки',amount:num(formVal('f_amount')),month:formVal('f_month')||monthNow(),importance:formVal('f_importance')||'Важно',includeInBudget:formVal('f_include')!=='false',link:formVal('f_link'),image:formVal('f_image'),note:formVal('f_note')});
+    }
+    save(true);closeModal();toast('Пункт добавлен в планирование');render();
+  };
+  editPurchase=function(id){const p=state.plannedPurchases.find(x=>String(x.id)===String(id));if(!p)return;openModal('Редактировать покупку / будущую трату',`<div class="form-grid">${field('Что купить / оплатить','f_title',p.title)}${ownerSelect('f_owner',p.owner||'Я')}${field('Категория','f_category',p.category)}${field('Сумма','f_amount',p.amount,'number')}${monthInput('f_month',p.month||monthNow())}<div class="field"><label>Тип</label><select id="f_kind"><option ${p.kind==='Покупка'?'selected':''}>Покупка</option><option ${p.kind==='Хотелка'?'selected':''}>Хотелка</option><option ${p.kind==='Будущая трата'?'selected':''}>Будущая трата</option><option ${p.kind==='Обязательный платёж'?'selected':''}>Обязательный платёж</option></select></div><div class="field"><label>Важность</label><select id="f_importance"><option ${p.importance==='Очень важно'?'selected':''}>Очень важно</option><option ${p.importance==='Важно'?'selected':''}>Важно</option><option ${p.importance==='Можно позже'?'selected':''}>Можно позже</option></select></div><div class="field"><label>Учитывать в прогнозе</label><select id="f_include"><option value="true" ${p.includeInBudget!==false?'selected':''}>Да</option><option value="false" ${p.includeInBudget===false?'selected':''}>Нет</option></select></div>${field('Ссылка','f_link',p.link||'')}${field('URL картинки','f_image',p.image||'')}${area('Комментарий','f_note',p.note||'')}</div>${p.image?`<img class="modal-image-preview" src="${esc(p.image)}" alt="" onerror="this.remove()">`:''}<div class="actions"><button class="btn" data-action="saveEditedPurchase" data-id="${esc(id)}">Сохранить</button><button class="btn red" data-action="deletePurchase" data-id="${esc(id)}">Удалить</button></div>`)};
+  saveEditedPurchase=function(id){const p=state.plannedPurchases.find(x=>String(x.id)===String(id));if(p){p.title=formVal('f_title');p.owner=formVal('f_owner')||'Я';p.kind=formVal('f_kind')||'Покупка';p.category=formVal('f_category');p.amount=num(formVal('f_amount'));p.month=formVal('f_month')||monthNow();p.importance=formVal('f_importance');p.includeInBudget=formVal('f_include')!=='false';p.link=formVal('f_link');p.image=formVal('f_image');p.note=formVal('f_note')}save(true);closeModal();render()};
+  rowPurchase=function(p){return `<div class="list-row"><span class="pill ${p.importance==='Очень важно'?'red':p.importance==='Важно'?'amber':'blue'}">${esc(p.importance||'Важно')}</span>${ownerPill(p.owner||'Я')}<div><div class="row-title">${esc(p.title)} · ${money(p.amount)}</div><div class="row-sub">${esc(p.kind||'Покупка')} · ${esc(p.category)} · ${esc(p.month)} · ${p.includeInBudget!==false?'в прогнозе':'вне прогноза'}</div></div><div class="button-row">${p.link?`<a class="mini-btn blue" href="${esc(p.link)}" target="_blank" rel="noopener">Ссылка</a>`:''}<button class="mini-btn" data-action="editPurchase" data-id="${esc(p.id)}">Ред.</button><button class="mini-btn red" data-action="deletePurchase" data-id="${esc(p.id)}">Удалить</button></div></div>`};
+
+  const oldAddPolinaWish = typeof addPolinaWish==='function' ? addPolinaWish : null;
+  // Keep existing Polina modal, but add a tiny guarantee that new wishes have owner.
+  const oldSavePolinaWish = typeof savePolinaWish==='function' ? savePolinaWish : null;
+  if(oldSavePolinaWish){
+    savePolinaWish=function(){oldSavePolinaWish(); try{(state.polinaWishes||[])[0].owner='Полина'; save(false);}catch(e){}};
+  }
+
+  planningPage=function(){ensureUnifiedState();return layout('Планирование','Единая папка: дела, календарь, будущие траты, желания и обязательные платежи с пометкой кому.',`${unifiedPlanningPanel()}<section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><span class="pill blue">задачи</span></div>${eisenhowerMatrix()}</article>${plannedMonthlyForecastBlock()}</section>`)};
+  planningPageInner=function(){ensureUnifiedState(); return `<div>${unifiedPlanningPanel()}${plannedMonthlyForecastBlock()}</div>`;};
+
+  const previousFinancePage = financePage;
+  financePage=function(){ensureUnifiedState(); let html=previousFinancePage(); const block=plannedMonthlyForecastBlock(); const idx=html.lastIndexOf('</div>'); return idx>0?html.slice(0,idx)+block+html.slice(idx):html+block;};
+
+  const previousBudgetPage = budgetPage;
+  budgetPage=function(){ensureUnifiedState(); let html=previousBudgetPage(); const block=`<section class="card" style="margin-top:18px"><div class="card-head"><div><h3>План расходов месяца</h3><p class="muted small">Единая сумма из планирования: личные покупки, хотелки, траты, Полина и общие пункты.</p></div><span class="pill green">${money(plannedAmountForMonth(monthNow()))}</span></div>${plannedMonthlyForecastBlock().replace('<section class="card monthly-plan-card">','<div class="monthly-plan-card-inner">').replace('</section>','</div>')}</section>`; const idx=html.lastIndexOf('</div>'); return idx>0?html.slice(0,idx)+block+html.slice(idx):html+block;};
+
+  window.setPlanningOwner=setPlanningOwner; window.setPlanningMonth=setPlanningMonth; window.addPurchase=addPurchase; window.savePurchase=savePurchase; window.editPurchase=editPurchase; window.saveEditedPurchase=saveEditedPurchase; window.rowPurchase=rowPurchase; window.planningPage=planningPage; window.planningPageInner=planningPageInner; window.financePage=financePage; window.budgetPage=budgetPage;
+  try{Object.assign(windowActions,{setPlanningOwner,setPlanningMonth,addPurchase,savePurchase,editPurchase,saveEditedPurchase});}catch(e){}
+  if(window.SBOS_FORCE_ACTION){
+    const prevForce=window.SBOS_FORCE_ACTION;
+    window.SBOS_FORCE_ACTION=function(action,id,el){
+      if(action==='setPlanningOwner'){setPlanningOwner(id || el?.dataset?.id || 'all');return true;}
+      if(action==='setPlanningMonth'){setPlanningMonth();return true;}
+      return prevForce(action,id,el);
+    };
+  }
+  document.addEventListener('change',function(ev){const el=ev.target;if(el&&el.id==='planningMonthSelect')setPlanningMonth();},true);
+  try{ensureUnifiedState();save(false);render();}catch(e){console.error('[unified planning forecast]',e)}
+})();
+
+/* ===== UNIFIED PLANNING OWNER MARKERS FOR TASKS ===== */
+(function(){
+  function ownerSelectTask(id,val='Я'){
+    const owners=['Я','Полина','Общее'];
+    return `<div class="field"><label>Кому</label><select id="${id}">${owners.map(o=>`<option value="${esc(o)}" ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  }
+  function ownerPillTask(owner){owner=owner||'Я'; const cls=owner==='Полина'?'violet':owner==='Общее'?'green':'blue'; return `<span class="pill ${cls}">${esc(owner)}</span>`;}
+  function imageUrlValueTask(){return String(formVal('f_image')||'').trim();}
+  addTask=function(){openModal('Новая задача',`<div class="form-grid">${field('Задача','f_title')}${ownerSelectTask('f_owner','Я')}${field('Сфера','f_area','Личное')}${field('Дата','f_due',todayKey(),'date')}${field('Время','f_time','','time')}${field('URL картинки из интернета','f_image','')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A">Срочно и важно</option><option value="B" selected>Важно, не срочно</option><option value="C">Срочно, не важно</option><option value="D">Позже / убрать</option></select></div></div><p class="muted small">Картинка будет показана в планировании средним красивым превью.</p>${modalButtons('saveTask')}`)};
+  saveTask=function(){state.tasks.unshift({id:uid(),title:formVal('f_title')||'Новая задача',owner:formVal('f_owner')||'Я',area:formVal('f_area')||'Личное',due:formVal('f_due')||todayKey(),time:formVal('f_time'),image:imageUrlValueTask(),priority:formVal('f_priority')||'B',status:'В работе'});save(true);closeModal();toast('Задача добавлена');render()};
+  editTask=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(!t)return;openModal('Редактировать задачу',`<div class="form-grid">${field('Задача','f_title',t.title)}${ownerSelectTask('f_owner',t.owner||'Я')}${field('Сфера','f_area',t.area)}${field('Дата','f_due',t.due,'date')}${field('Время','f_time',t.time,'time')}${field('URL картинки из интернета','f_image',t.image||'')}<div class="field"><label>Приоритет / Эйзенхауэр</label><select id="f_priority"><option value="A" ${t.priority==='A'?'selected':''}>Срочно и важно</option><option value="B" ${t.priority==='B'?'selected':''}>Важно, не срочно</option><option value="C" ${t.priority==='C'?'selected':''}>Срочно, не важно</option><option value="D" ${t.priority==='D'?'selected':''}>Позже / убрать</option></select></div></div>${t.image?`<img class="modal-image-preview" src="${esc(t.image)}" alt="" onerror="this.remove()">`:''}<div class="actions"><button class="btn" data-action="saveEditedTask" data-id="${esc(id)}">Сохранить</button><button class="btn red" data-action="deleteTask" data-id="${esc(id)}">Удалить</button></div>`)};
+  saveEditedTask=function(id){const t=state.tasks.find(x=>String(x.id)===String(id));if(t){t.title=formVal('f_title');t.owner=formVal('f_owner')||'Я';t.area=formVal('f_area');t.due=formVal('f_due');t.time=formVal('f_time');t.image=imageUrlValueTask();t.priority=formVal('f_priority')}save(true);closeModal();render()};
+  rowTask=function(t){
+    const hasImg=String(t.image||'').trim();
+    const img=hasImg?`<button class="task-cover-button" data-action="editTask" data-id="${esc(t.id)}"><img class="planning-task-image" src="${esc(t.image)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></button>`:'';
+    return `<div class="task-card-row planning-image-card ${hasImg?'has-image':''}">${img}<button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${esc(t.id)}" title="Готово"></button><button class="task-main" data-action="editTask" data-id="${esc(t.id)}"><span class="row-title">${esc(t.title)}</span><span class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</span></button><div class="task-actions">${ownerPillTask(t.owner||'Я')}${taskPill(t)}<button class="mini-btn blue compact-action" data-action="googleTask" data-id="${esc(t.id)}">Google</button></div></div>`;
+  };
+  window.addTask=addTask; window.saveTask=saveTask; window.editTask=editTask; window.saveEditedTask=saveEditedTask; window.rowTask=rowTask;
+  try{Object.assign(windowActions,{addTask,saveTask,editTask,saveEditedTask});}catch(e){}
+  try{render();}catch(e){}
+})();
 
 </script>
 </body>
