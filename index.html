@@ -2055,6 +2055,206 @@ window.budgetRow = budgetRow;
   try{normalizeFinalPlanningState(); save(false); render();}catch(e){console.error('[wishlist/payments/diary final]',e)}
 })();
 
+/* ===== Folder Subpages Final — папка → подпапки → отдельная страница ===== */
+(function(){
+  const BUILD='folder-subpages-final-20260630';
+  function q(v){try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}catch(e){return String(v??'')}}
+  function arr2(k){ if(!state[k] || !Array.isArray(state[k])) state[k]=[]; return state[k]; }
+  function n(v){ return Number(String(v??0).replace(/[^0-9,.-]/g,'').replace(',','.'))||0; }
+  function rub(v){ try{return typeof money==='function'?money(v):`${Math.round(n(v)).toLocaleString('ru-RU')} ₽`}catch(e){return `${Math.round(n(v)).toLocaleString('ru-RU')} ₽`;}}
+  function monthNow(){ try{return (state.settings&&state.settings.currentMonth)||monthKey()}catch(e){return new Date().toISOString().slice(0,7)} }
+  function today(){ try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)} }
+  function em(t){ try{return empty(t)}catch(e){return `<div class="mini-box muted">${q(t)}</div>`} }
+  function saveSoft(){try{save(true)}catch(e){try{save()}catch(_){}}}
+  function titleMonth(m){ try{return new Date(String(m||monthNow())+'-01T12:00:00').toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}catch(e){return m||monthNow()} }
+  function kindName(v){ v=String(v||'').trim(); if(/хотел|wish|виш/i.test(v))return 'Вишлист'; if(/обяз|плат/i.test(v))return 'Обязательный платёж'; if(/будущ/i.test(v))return 'Будущая трата'; if(/покуп/i.test(v))return 'Покупка'; return v||'Покупка'; }
+  function typeIdFromKind(v){ const k=kindName(v); if(k==='Вишлист')return 'wishlist'; if(k==='Обязательный платёж')return 'payments'; if(k==='Будущая трата')return 'future'; if(k==='Покупка')return 'purchases'; return 'purchases'; }
+  function ensureFolderState(){
+    state.settings=state.settings||{};
+    if(!state.settings.planningFolder) state.settings.planningFolder='overview';
+    if(!state.settings.planningOwner) state.settings.planningOwner='all';
+    if(!state.settings.planningMonth) state.settings.planningMonth=monthNow();
+    if(!state.settings.lifeFolder) state.settings.lifeFolder='overview';
+    if(state.settings.lifeSubfolder===undefined) state.settings.lifeSubfolder='';
+    arr2('plannedPurchases'); arr2('tasks'); arr2('calendarEvents'); arr2('notes'); arr2('people'); arr2('habits'); arr2('books'); arr2('ideas'); arr2('media'); arr2('files'); arr2('trips'); arr2('subconsciousDiary');
+    migrateOldPolinaToUnified();
+  }
+  function oldPolinaKey(x,kind){return [kind,x.title||x.name||'',x.amount||'',x.month||x.due||'',x.day||''].join('|').toLowerCase()}
+  function migrateOldPolinaToUnified(){
+    if(state.settings.__polinaUnifiedMergedFinal) return;
+    const existing=new Set(arr2('plannedPurchases').map(x=>oldPolinaKey(x,kindName(x.kind))));
+    arr2('polinaWishes').forEach(w=>{const item={id:w.id||uid(),title:w.title||w.name||'Вишлист Полины',amount:n(w.amount),category:w.category||'Вишлист',month:w.month||monthNow(),kind:'Вишлист',owner:'Полина',importance:w.importance||'Важно',link:w.link||'',image:w.image||'',note:w.note||'',includeInBudget:w.includeInBudget!==false}; const key=oldPolinaKey(item,'Вишлист'); if(!existing.has(key)){state.plannedPurchases.unshift(item); existing.add(key)}});
+    arr2('polinaPayments').forEach(p=>{const item={id:p.id||uid(),title:p.title||p.name||'Платёж Полины',amount:n(p.amount),category:p.category||'Обязательные платежи',month:p.month||monthNow(),kind:'Обязательный платёж',owner:'Полина',day:p.day||p.dueDay||'',importance:'Обязательно',note:p.note||'',includeInBudget:p.active!==false,active:p.active!==false}; const key=oldPolinaKey(item,'Обязательный платёж'); if(!existing.has(key)){state.plannedPurchases.unshift(item); existing.add(key)}});
+    state.settings.__polinaUnifiedMergedFinal=true;
+  }
+
+  function allUnifiedItems(){
+    ensureFolderState();
+    const out=[];
+    arr2('tasks').forEach(t=>out.push({source:'task',id:t.id,title:t.title||'Задача',owner:t.owner||'Я',kind:'Задача',amount:0,month:String(t.due||monthNow()).slice(0,7)||monthNow(),date:t.due||'',time:t.time||'',meta:t.area||'Личное',image:t.image||'',include:true,priority:t.priority||'B'}));
+    arr2('calendarEvents').forEach(e=>out.push({source:'event',id:e.id,title:e.title||'Событие',owner:e.owner||'Общее',kind:'Календарь',amount:0,month:String(e.date||monthNow()).slice(0,7)||monthNow(),date:e.date||'',time:e.time||'',meta:e.area||'Календарь',image:e.image||'',include:true,priority:'B'}));
+    arr2('plannedPurchases').forEach(p=>out.push({source:'purchase',id:p.id,title:p.title||'Пункт',owner:p.owner||'Я',kind:kindName(p.kind),amount:n(p.amount),month:p.month||monthNow(),date:p.due||'',time:'',meta:`${p.category||'Без категории'} · ${p.includeInBudget!==false?'в прогнозе':'вне прогноза'}`,image:p.image||'',link:p.link||'',include:p.includeInBudget!==false && p.active!==false,priority:p.importance||'Важно'}));
+    return out;
+  }
+  function currentPlanItems(){
+    const m=state.settings.planningMonth||monthNow(); const owner=state.settings.planningOwner||'all';
+    return allUnifiedItems().filter(x=>(!m || x.month===m) && (owner==='all' || x.owner===owner));
+  }
+  function itemsForPlanningFolder(id){
+    const items=currentPlanItems();
+    if(id==='tasks')return items.filter(x=>x.kind==='Задача');
+    if(id==='calendar')return items.filter(x=>x.kind==='Календарь');
+    if(id==='wishlist')return items.filter(x=>x.kind==='Вишлист');
+    if(id==='payments')return items.filter(x=>x.kind==='Обязательный платёж');
+    if(id==='future')return items.filter(x=>x.kind==='Будущая трата');
+    if(id==='purchases')return items.filter(x=>x.kind==='Покупка');
+    return items;
+  }
+  function countPlanFolder(id){ return itemsForPlanningFolder(id).length; }
+  function sumPlanFolder(id){ return itemsForPlanningFolder(id).filter(x=>x.include!==false).reduce((a,b)=>a+n(b.amount),0); }
+  const planFolders=[
+    {id:'tasks',ico:'✓',title:'Задачи',desc:'дела, личные и рабочие шаги',add:'addTask'},
+    {id:'calendar',ico:'◷',title:'Календарь',desc:'события и даты',add:'addEvent'},
+    {id:'wishlist',ico:'✦',title:'Вишлист',desc:'желания: Я, Полина, Общее',add:'addWishlistItem'},
+    {id:'payments',ico:'₽',title:'Платежи',desc:'регулярные обязательства',add:'addPaymentItem'},
+    {id:'future',ico:'↗',title:'Будущие траты',desc:'то, что предстоит оплатить',add:'addPurchase'},
+    {id:'purchases',ico:'◇',title:'Покупки',desc:'покупки с суммой и картинкой',add:'addPurchase'},
+    {id:'all',ico:'☷',title:'Все пункты',desc:'единая лента без перегруза',add:'addPurchase'}
+  ];
+  function planFolderById(id){return planFolders.find(f=>f.id===id)||planFolders[0]}
+  function ownerPill(owner){ const cls=owner==='Полина'?'violet':owner==='Общее'?'green':'blue'; return `<span class="pill ${cls}">${q(owner||'Я')}</span>`; }
+  function kindTone(k){ if(k==='Вишлист')return 'violet'; if(k==='Обязательный платёж')return 'red'; if(k==='Будущая трата')return 'amber'; if(k==='Календарь')return 'green'; return 'blue'; }
+  function monthOwnerControls(){
+    const m=state.settings.planningMonth||monthNow(); const owner=state.settings.planningOwner||'all';
+    const tabs=[['all','Все'],['Я','Я'],['Полина','Полина'],['Общее','Общее']];
+    return `<div class="folder-filter-card"><div class="field" style="margin:0"><label>Месяц</label><input id="folderPlanningMonth" type="month" value="${q(m)}"></div><div class="button-row plan-tabs">${tabs.map(([id,label])=>`<button class="tab-btn ${owner===id?'active':''}" data-action="setPlanningOwnerFolder" data-id="${q(id)}">${q(label)}</button>`).join('')}</div></div>`;
+  }
+  function setPlanningOwnerFolder(id){ state.settings.planningOwner=id||'all'; saveSoft(); render(); }
+  function setPlanningMonthFolder(){ const el=document.getElementById('folderPlanningMonth'); state.settings.planningMonth=(el&&el.value)||monthNow(); saveSoft(); render(); }
+  function setPlanningFolder(id){ ensureFolderState(); state.settings.planningFolder=id||'overview'; saveSoft(); render(); }
+  function planFolderCard(f){ const total=sumPlanFolder(f.id); return `<button class="folder-card subpage-folder-card" data-action="setPlanningFolder" data-id="${q(f.id)}"><div class="folder-ico color-${q(f.id)}">${q(f.ico)}</div><strong>${q(f.title)}</strong><small>${countPlanFolder(f.id)} пунктов${total?` · ${rub(total)}`:''}</small><p>${q(f.desc)}</p><span class="pill blue">Открыть</span></button>`; }
+  function rowUnifiedSub(x){
+    const img=x.image?`<img class="unified-plan-image" src="${q(x.image)}" loading="lazy" alt="" onerror="this.remove()">`:'';
+    const action=x.source==='task'?'editTask':x.source==='event'?'editEvent':'editPurchase';
+    const del=x.source==='purchase'?`<button class="mini-btn red" data-action="deletePurchase" data-id="${q(x.id)}">Удалить</button>`:'';
+    const link=x.link?`<a class="mini-btn blue" href="${q(x.link)}" target="_blank" rel="noopener">Ссылка</a>`:'';
+    const dateLine=x.date?`${q(x.date)} ${q(x.time||'')} · `:'';
+    return `<div class="unified-plan-item clean-folder-row ${typeIdFromKind(x.kind)}">${img}<div class="unified-plan-main"><div class="unified-plan-top"><span class="pill ${kindTone(x.kind)}">${q(x.kind)}</span>${ownerPill(x.owner)}${x.amount?`<span class="pill green">${rub(x.amount)}</span>`:''}</div><div class="row-title">${q(x.title)}</div><div class="row-sub">${dateLine}${q(titleMonth(x.month))} · ${q(x.meta||'')}</div></div><div class="button-row unified-plan-actions">${link}<button class="mini-btn" data-action="${action}" data-id="${q(x.id)}">Ред.</button>${del}</div></div>`;
+  }
+  function planningLanding(){
+    const total=currentPlanItems().filter(x=>x.amount&&x.include!==false).reduce((a,b)=>a+n(b.amount),0);
+    return `<section class="grid cols-4 planning-summary"><article class="card premium-hero-card"><h3>Папка планирования</h3><div class="value sm">${currentPlanItems().length}</div><p class="muted small">все пункты разнесены по подпапкам</p></article><article class="card"><h3>План расходов</h3><div class="value sm blue">${rub(total)}</div><p class="muted small">${q(titleMonth(state.settings.planningMonth||monthNow()))}</p></article><article class="card"><h3>Дела</h3><div class="value sm">${countPlanFolder('tasks')+countPlanFolder('calendar')}</div><p class="muted small">задачи + календарь</p></article>${monthOwnerControls()}</section><section class="card folder-home-section" style="margin-top:18px"><div class="card-head"><div><h3>Подпапки планирования</h3><p class="muted small">Открываешь папку — внутри только нужная категория, без длинной перегруженной страницы.</p></div><span class="pill blue">папка → подпапки</span></div><div class="folder-list smart-subfolder-grid">${planFolders.map(planFolderCard).join('')}</div></section>${typeof monthlyForecastBlock==='function'?monthlyForecastBlock():''}`;
+  }
+  function planningSubpage(id){
+    const f=planFolderById(id); const items=itemsForPlanningFolder(id); const total=items.filter(x=>x.amount&&x.include!==false).reduce((a,b)=>a+n(b.amount),0);
+    return `<section class="subpage-head card"><div><button class="mini-btn" data-action="setPlanningFolder" data-id="overview">← Все подпапки</button><h3>${q(f.title)}</h3><p class="muted small">${q(f.desc)} · ${q(titleMonth(state.settings.planningMonth||monthNow()))}</p></div><div class="button-row"><button class="btn secondary" data-action="${q(f.add)}">Добавить</button></div></section><section class="grid cols-3" style="margin-top:14px"><article class="card"><h3>Пунктов</h3><div class="value sm">${items.length}</div></article><article class="card"><h3>Сумма</h3><div class="value sm blue">${rub(total)}</div></article>${monthOwnerControls()}</section><section class="card" style="margin-top:18px"><div class="card-head"><h3>${q(f.title)}</h3><span class="pill ${kindTone(f.title)}">${items.length}</span></div><div class="unified-plan-list">${items.map(rowUnifiedSub).join('')||em('В этой подпапке пока пусто')}</div></section>`;
+  }
+  planningPage=function(){ ensureFolderState(); const id=state.settings.planningFolder||'overview'; return layout('Планирование','Открываешь основную папку — внутри подпапки: задачи, календарь, вишлист, платежи, будущие траты и покупки.', id==='overview'?planningLanding():planningSubpage(id)); };
+  planningPageInner=function(){ ensureFolderState(); return state.settings.planningFolder==='overview'?planningLanding():planningSubpage(state.settings.planningFolder); };
+
+  // Сферы жизни: папка → подпапки → отдельное содержимое.
+  function baseLifeFolders(){return [
+    {id:'people',title:'Люди',ico:'◌'},{id:'notes',title:'Заметки',ico:'✎'},{id:'planning',title:'Планирование',ico:'☷'},{id:'habits',title:'Привычки',ico:'◷'},
+    {id:'subconscious',title:'Дневник',ico:'◑'},{id:'wishlist',title:'Вишлист',ico:'✦'},{id:'payments',title:'Платежи',ico:'₽'},
+    {id:'books',title:'Книги',ico:'◧'},{id:'ideas',title:'Идеи',ico:'✦'},{id:'personal',title:'Личная жизнь',ico:'♡'},{id:'documents',title:'Документы',ico:'▣'},{id:'trips',title:'Путешествия',ico:'✈'}
+  ]}
+  lifeFolders=function(){ return baseLifeFolders(); };
+  function wishListItems(owner){ return arr2('plannedPurchases').filter(p=>kindName(p.kind)==='Вишлист' && (!owner || p.owner===owner)); }
+  function payListItems(owner){ return arr2('plannedPurchases').filter(p=>kindName(p.kind)==='Обязательный платёж' && (!owner || p.owner===owner)); }
+  lifeFolderCount=function(id){ ensureFolderState(); const map={people:arr2('people').length,notes:arr2('notes').length,planning:allUnifiedItems().length,habits:arr2('habits').length,subconscious:arr2('subconsciousDiary').length,wishlist:wishListItems().length,payments:payListItems().length,books:arr2('books').length,ideas:arr2('ideas').length,personal:arr2('media').length,documents:arr2('files').length,trips:arr2('trips').length}; return map[id]||0; };
+  const lifeSubMap={
+    people:[['all','Все люди','контакты и отношения'],['birthdays','Дни рождения','кого поздравить'],['gifts','Подарки','идеи подарков'],['talks','Темы разговора','о чём поговорить']],
+    notes:[['all','Все заметки','общая база'],['diary','Дневник','личные записи'],['reflection','Рефлексия','ответы и выводы'],['links','Ссылки/идеи','что сохранить']],
+    planning:[['tasks','Задачи','дела'],['calendar','Календарь','события'],['wishlist','Вишлист','желания'],['payments','Платежи','обязательства'],['future','Будущие траты','расходы впереди'],['purchases','Покупки','что купить']],
+    habits:[['tracker','Трекер привычек','месячный ритм'],['interview','Интервью с подсознанием','ежедневная привычка'],['month','Календарь месяца','отметки по дням']],
+    subconscious:[['today','Начать интервью','вопрос дня + цитата'],['entries','Все записи','архив дневника'],['reflection','Рефлексия','мысли и шаги']],
+    wishlist:[['all','Весь вишлист','Я, Полина, Общее'],['Я','Мои хотелки','только мои'],['Полина','Вишлист Полины','что хочет Полина'],['Общее','Общие желания','для нас']],
+    payments:[['all','Все платежи','все владельцы'],['Я','Мои платежи','личные'],['Полина','Платежи Полины','её обязательства'],['Общее','Общие платежи','общие расходы']],
+    books:[['all','Все книги','список чтения'],['quotes','Цитаты','что зацепило'],['insights','Выводы','что применить']],
+    ideas:[['all','Все идеи','входящие мысли'],['projects','Проекты','что можно развить'],['quick','Быстрые мысли','короткие заметки']],
+    personal:[['watch','Фильмы и сериалы','что посмотреть'],['relations','Отношения','личная жизнь'],['memory','Память','важные моменты']],
+    documents:[['all','Все документы','файлы и ссылки'],['contracts','Договоры','важные бумаги'],['personal','Личные','паспорт/страховки']],
+    trips:[['all','Все поездки','планы'],['budget','Бюджет поездок','расходы'],['ideas','Идеи маршрутов','куда поехать']]
+  };
+  function setLifeFolderFinal(id){ ensureFolderState(); state.settings.lifeFolder=id||'overview'; state.settings.lifeSubfolder=''; saveSoft(); render(); }
+  setLifeFolder=setLifeFolderFinal;
+  function setLifeSubfolder(id){ ensureFolderState(); state.settings.lifeSubfolder=id||''; saveSoft(); render(); }
+  function lifeCard(f){ const subs=lifeSubMap[f.id]||[]; return `<button class="folder-card subpage-folder-card" data-action="setLifeFolderFinal" data-id="${q(f.id)}"><div class="folder-ico">${q(f.ico)}</div><strong>${q(f.title)}</strong><small>${lifeFolderCount(f.id)} записей</small>${subs.length?`<div class="subfolder-chips">${subs.slice(0,4).map(s=>`<span>${q(s[1])}</span>`).join('')}</div>`:''}<span class="pill blue">Открыть</span></button>`; }
+  function lifeHome(){ return `<section class="card folder-home-section"><div class="card-head"><div><h3>Основные папки</h3><p class="muted small">Теперь каждая папка открывается отдельно, а внутри лежат подпапки-категории.</p></div><span class="pill blue">не перегружено</span></div><div class="folder-list smart-subfolder-grid">${lifeFolders().map(lifeCard).join('')}</div></section>`; }
+  function subCard(folder,s){ const count=countLifeSub(folder,s[0]); return `<button class="folder-card subpage-folder-card" data-action="setLifeSubfolder" data-id="${q(s[0])}"><div class="folder-ico">${q((s[1]||'?').slice(0,1))}</div><strong>${q(s[1])}</strong><small>${count} записей</small><p>${q(s[2]||'')}</p><span class="pill blue">Открыть</span></button>`; }
+  function lifeFolderLanding(folder){ const f=lifeFolders().find(x=>x.id===folder)||lifeFolders()[0]; const subs=lifeSubMap[folder]||[['all','Все записи','содержимое папки']]; return `<section class="subpage-head card"><div><button class="mini-btn" data-action="setLifeFolderFinal" data-id="overview">← Все сферы</button><h3>${q(f.title)}</h3><p class="muted small">Выбери подпапку — на странице останется только нужная категория.</p></div></section><section class="folder-list smart-subfolder-grid" style="margin-top:18px">${subs.map(s=>subCard(folder,s)).join('')}</section>`; }
+  function countLifeSub(folder,sub){
+    if(folder==='planning') return itemsForPlanningFolder(sub).length;
+    if(folder==='wishlist') return sub==='all'?wishListItems().length:wishListItems(sub).length;
+    if(folder==='payments') return sub==='all'?payListItems().length:payListItems(sub).length;
+    if(folder==='subconscious') return sub==='today'?1:arr2('subconsciousDiary').length;
+    if(folder==='notes'){ const notes=arr2('notes'); if(sub==='reflection')return notes.filter(x=>(x.tags||[]).includes('рефлексия')).length; if(sub==='diary')return notes.filter(x=>/дневник|подсознан|интервью/i.test([x.folder,x.title,(x.tags||[]).join(' ')].join(' '))).length; return notes.length; }
+    if(folder==='people'){ if(sub==='birthdays')return arr2('people').filter(p=>p.birthday).length; if(sub==='gifts')return arr2('people').filter(p=>p.gifts).length; if(sub==='talks')return arr2('people').filter(p=>p.talkIdeas).length; return arr2('people').length; }
+    return lifeFolderCount(folder);
+  }
+  function lifeSubHeader(folder,sub,title){ const f=lifeFolders().find(x=>x.id===folder)||{}; return `<section class="subpage-head card"><div><button class="mini-btn" data-action="setLifeSubfolder" data-id="">← Подпапки</button><h3>${q(f.title||'Папка')} · ${q(title||sub||'Все')}</h3><p class="muted small">Отдельная страница подпапки, без общей перегрузки.</p></div></section>`; }
+  function genericList(title,rows,addAction){ return `<section class="card" style="margin-top:18px"><div class="card-head"><h3>${q(title)}</h3>${addAction?`<button class="btn secondary" data-action="${q(addAction)}">Добавить</button>`:''}</div><div class="note-list">${rows.join('')||em('Пока пусто')}</div></section>`; }
+  function simpleRow(label,title,sub,action,id){ return `<div class="list-row"><span class="pill blue">${q(label)}</span><div><div class="row-title">${q(title)}</div><div class="row-sub">${q(sub||'')}</div></div>${action?`<div class="button-row"><button class="mini-btn" data-action="${q(action)}" data-id="${q(id)}">Ред.</button></div>`:''}</div>`; }
+  function renderPlanSubAsLife(sub){ const old=state.settings.planningFolder; state.settings.planningFolder=sub; const html=planningSubpage(sub); state.settings.planningFolder=old; return html; }
+  function renderWishlistOwner(owner){ const rows=(owner==='all'?wishListItems():wishListItems(owner)).map(p=>rowUnifiedSub({source:'purchase',id:p.id,title:p.title||'Вишлист',owner:p.owner||'Я',kind:'Вишлист',amount:n(p.amount),month:p.month||monthNow(),meta:p.category||'Вишлист',image:p.image||'',link:p.link||'',include:p.includeInBudget!==false})); return `<section class="card" style="margin-top:18px"><div class="card-head"><h3>${owner==='all'?'Весь вишлист':'Вишлист · '+owner}</h3><button class="btn secondary" data-action="addWishlistItem">Добавить</button></div><div class="unified-plan-list">${rows.join('')||em('Вишлист пока пуст')}</div></section>`; }
+  function renderPaymentsOwner(owner){ const rows=(owner==='all'?payListItems():payListItems(owner)).map(p=>rowUnifiedSub({source:'purchase',id:p.id,title:p.title||'Платёж',owner:p.owner||'Я',kind:'Обязательный платёж',amount:n(p.amount),month:p.month||monthNow(),meta:p.category||'Платежи',image:p.image||'',link:p.link||'',include:p.includeInBudget!==false})); return `<section class="card" style="margin-top:18px"><div class="card-head"><h3>${owner==='all'?'Все платежи':'Платежи · '+owner}</h3><button class="btn secondary" data-action="addPaymentItem">Добавить</button></div><div class="unified-plan-list">${rows.join('')||em('Платежей пока нет')}</div></section>`; }
+  function renderLifeSubContent(folder,sub){
+    const title=(lifeSubMap[folder]||[]).find(x=>x[0]===sub)?.[1]||'Все';
+    let body='';
+    if(folder==='planning') body=renderPlanSubAsLife(sub||'all');
+    else if(folder==='wishlist') body=renderWishlistOwner(sub||'all');
+    else if(folder==='payments') body=renderPaymentsOwner(sub||'all');
+    else if(folder==='habits'){ if(sub==='interview') body=typeof dailyInterviewCard==='function'?dailyInterviewCard():em('Интервью не найдено'); else body=typeof habitsFolder==='function'?habitsFolder():em('Привычек нет'); }
+    else if(folder==='subconscious'){ if(sub==='today') body=typeof dailyInterviewCard==='function'?dailyInterviewCard():em('Интервью не найдено'); else body=typeof subconsciousFolderFinal==='function'?subconsciousFolderFinal():(typeof subconsciousFolder==='function'?subconsciousFolder():em('Записей нет')); }
+    else if(folder==='people'){
+      const people=arr2('people');
+      let rows=[]; if(sub==='birthdays') rows=people.filter(p=>p.birthday).map(p=>simpleRow('ДР',p.name,p.birthday,'editPerson',p.id)); else if(sub==='gifts') rows=people.filter(p=>p.gifts).map(p=>simpleRow('Подарки',p.name,p.gifts,'editPerson',p.id)); else if(sub==='talks') rows=people.filter(p=>p.talkIdeas).map(p=>simpleRow('Разговор',p.name,p.talkIdeas,'editPerson',p.id)); else { body=typeof peopleFolder==='function'?peopleFolder():em('Люди не найдены'); }
+      if(!body) body=genericList(title,rows,'addPerson');
+    }
+    else if(folder==='notes'){
+      const notes=arr2('notes'); let list=notes;
+      if(sub==='reflection') list=notes.filter(x=>(x.tags||[]).includes('рефлексия'));
+      if(sub==='diary') list=notes.filter(x=>/дневник|подсознан|интервью/i.test([x.folder,x.title,(x.tags||[]).join(' ')].join(' ')));
+      const rows=list.map(x=>simpleRow((x.tags||[])[0]||'Заметка',x.title,x.text,'editNote',x.id)); body=genericList(title,rows,'addNote');
+    }
+    else if(folder==='books'){
+      if(sub==='quotes'){ const rows=arr2('books').flatMap(b=>(b.quotes||[]).map(x=>simpleRow('Цитата',b.title,x,'editBook',b.id))); body=genericList('Цитаты из книг',rows,'addBook'); }
+      else if(sub==='insights'){ const rows=arr2('books').filter(b=>b.insight).map(b=>simpleRow('Вывод',b.title,b.insight,'editBook',b.id)); body=genericList('Выводы из книг',rows,'addBook'); }
+      else body=typeof booksFolder==='function'?booksFolder():em('Книг нет');
+    }
+    else if(folder==='ideas') body=typeof ideasFolder==='function'?ideasFolder():em('Идей нет');
+    else if(folder==='personal') body=typeof personalFolder==='function'?personalFolder():em('Список пуст');
+    else if(folder==='documents') body=typeof documentsFolder==='function'?documentsFolder():em('Документов нет');
+    else if(folder==='trips') body=typeof tripsPanel==='function'?tripsPanel():em('Поездок нет');
+    return lifeSubHeader(folder,sub,title)+body;
+  }
+  spheresPage=function(){ ensureFolderState(); const folder=state.settings.lifeFolder||'overview'; const sub=state.settings.lifeSubfolder||''; let content= folder==='overview'?lifeHome():(!sub?lifeFolderLanding(folder):renderLifeSubContent(folder,sub)); return layout('Сферы жизни','Папка → подпапки → отдельная страница. Ничего лишнего на одном экране.',content); };
+
+  // Финансы и бюджет оставляем рабочими, но ссылку на план отправляем в подпапки.
+  const oldFinanceFolderFinal=financePage;
+  financePage=function(){ ensureFolderState(); try{return oldFinanceFolderFinal()}catch(e){return layout('Финансы','Деньги и прогноз.',`${typeof monthlyForecastBlock==='function'?monthlyForecastBlock():''}`)} };
+  const oldBudgetFolderFinal=budgetPage;
+  budgetPage=function(){ ensureFolderState(); try{return oldBudgetFolderFinal()}catch(e){return layout('Бюджет','Лимиты и план расходов.',`${typeof monthlyForecastBlock==='function'?monthlyForecastBlock():''}`)} };
+
+  function injectFolderCss(){ if(document.getElementById('folderSubpagesFinalCss'))return; const st=document.createElement('style'); st.id='folderSubpagesFinalCss'; st.textContent=`
+    .smart-subfolder-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.subpage-folder-card{align-items:flex-start;text-align:left;min-height:154px;padding:18px;position:relative;overflow:hidden}.subpage-folder-card p{margin:8px 0 0;color:#6f7f99;font-size:13px;line-height:1.35}.subpage-folder-card:after{content:'';position:absolute;right:-18px;bottom:-28px;width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,rgba(45,128,255,.13),rgba(48,209,255,.08));pointer-events:none}.subfolder-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.subfolder-chips span{font-size:11px;border:1px solid #dce9ff;background:#f4f8ff;color:#2d6bce;border-radius:999px;padding:5px 8px}.folder-home-section{background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(240,247,255,.82))}.subpage-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.subpage-head h3{font-size:24px;margin:10px 0 4px}.folder-filter-card{padding:16px;border:1px solid #dce8f7;border-radius:22px;background:rgba(255,255,255,.72)}.clean-folder-row{border-radius:20px}.color-wishlist{background:#f3e8ff!important;color:#7c3aed!important}.color-payments{background:#ffe7eb!important;color:#e11d48!important}.color-future{background:#fff4d8!important;color:#d97706!important}.color-calendar{background:#dcfce7!important;color:#059669!important}.unified-plan-image{width:156px;height:92px;object-fit:cover;border-radius:16px;border:1px solid #deebfb;background:#eef6ff}@media(max-width:760px){.subpage-head{align-items:flex-start;flex-direction:column}.smart-subfolder-grid{grid-template-columns:1fr}.unified-plan-image{width:100%;height:150px}.folder-filter-card{width:100%}}
+  `; document.head.appendChild(st); }
+  window.setPlanningFolder=setPlanningFolder;
+  window.setPlanningOwnerFolder=setPlanningOwnerFolder;
+  window.setPlanningMonthFolder=setPlanningMonthFolder;
+  window.setLifeFolderFinal=setLifeFolderFinal;
+  window.setLifeSubfolder=setLifeSubfolder;
+  try{Object.assign(windowActions||{}, {setPlanningFolder,setPlanningOwnerFolder,setPlanningMonthFolder,setLifeFolderFinal,setLifeSubfolder});}catch(e){}
+  const prevRun=runActionFromElement;
+  runActionFromElement=function(el,event){ const a=el&&el.dataset?el.dataset.action:''; const id=el&&el.dataset?el.dataset.id:''; const map={setPlanningFolder,setPlanningOwnerFolder,setPlanningMonthFolder,setLifeFolderFinal,setLifeSubfolder}; if(map[a]){ if(event){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();} map[a](id); return true;} return prevRun?prevRun(el,event):false; };
+  window.runActionFromElement=runActionFromElement;
+  document.addEventListener('change',function(ev){ if(ev.target&&ev.target.id==='folderPlanningMonth')setPlanningMonthFolder(); },true);
+  const prevRender=render;
+  render=function(){ ensureFolderState(); const out=prevRender.apply(this,arguments); setTimeout(()=>{try{injectFolderCss(); patchClickableButtons&&patchClickableButtons()}catch(e){}},0); return out; };
+  window.render=render;
+  try{ensureFolderState(); save(false); injectFolderCss(); render(); console.log('[Second Brain OS]',BUILD);}catch(e){console.error('[folder subpages final]',e)}
+})();
+
 </script>
 </body>
 </html>
