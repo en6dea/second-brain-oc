@@ -1,3 +1,4 @@
+/* Second Brain OS — compatibility copy. Main runtime is inline in index.html. */
 'use strict';
 const APP_NAME='Second Brain OS';
 const BUILD='timeline-focus-ui2-buttons-wire-final-20260630-2';
