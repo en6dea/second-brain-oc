@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5efe7" />
+  <meta name="theme-color" content="#f6efe6" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Second Brain" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <meta name="second-brain-build" content="v45-1-version-badge-hotfix-private-20260630" />
-  <title>Second Brain OS — V46 Financial Roadmap</title>
+  <title>Second Brain OS — V46.1 Premium Visual Safe</title>
 
   <link rel="manifest" href="manifest.webmanifest?v=v45-analytics-budget-coach-private-20260629" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -171,6 +171,189 @@ pre{white-space:pre-wrap;word-break:break-word;padding:16px;border:1px solid var
 .bank-rules-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.bank-rules-grid>div{padding:14px;border:1px solid var(--line2);border-radius:16px;background:rgba(255,255,255,.68)}.bank-rules-grid b{display:block;margin-bottom:5px}.bank-rules-grid span{color:var(--muted);font-size:13px;line-height:1.35}
 .bank-import-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.bank-import-summary .metric{min-height:110px}.import-note{border:1px solid var(--line2);border-radius:18px;background:#fffdf8;padding:14px;margin-bottom:14px}.import-note p{margin:5px 0 0}.import-preview-table{max-height:420px;overflow:auto}.import-preview-table .table{min-width:760px}.tag.amber{background:#fff4de;color:#9a661e;border-color:#f0d5a7}
 @media (max-width:760px){.bank-rules-grid,.bank-import-summary{grid-template-columns:1fr 1fr}.bank-drop{min-height:150px}.bank-drop b{font-size:18px}.import-preview-table{max-height:360px}}
+
+
+/* =========================================================
+   V46.1 PREMIUM VISUAL SAFE — CSS ONLY
+   Safe rule: no app logic, no data model, no new entities.
+   This layer only polishes the existing stable V46 interface.
+   ========================================================= */
+:root{
+  --bg:#f6efe6!important;
+  --paper:#fffdf9!important;
+  --card:#fffdf9!important;
+  --line:#eadac6!important;
+  --line2:#f0e5d6!important;
+  --text:#211b15!important;
+  --muted:#86776a!important;
+  --green:#527a55!important;
+  --green-soft:#edf6ea!important;
+  --blue:#617fa8!important;
+  --amber:#c89150!important;
+  --red:#c8645d!important;
+  --shadow:0 22px 60px rgba(75,55,34,.095)!important;
+  --radius:26px!important;
+  --radius-sm:17px!important;
+}
+html,body{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(231,205,166,.32), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(119,150,118,.16), transparent 32%),
+    linear-gradient(180deg,#fbf7f0 0%,#f5eee4 46%,#f2eadf 100%)!important;
+}
+.main::before{display:none!important}
+.sidebar{
+  background:rgba(255,253,248,.72)!important;
+  border-right:1px solid rgba(225,207,181,.72)!important;
+  box-shadow:18px 0 55px rgba(85,64,42,.055)!important;
+  backdrop-filter:blur(22px)!important;
+}
+.brand{border-bottom-color:rgba(232,217,196,.8)!important}
+.brand-mark{
+  background:linear-gradient(145deg,#f5e6cf,#d9bd8e)!important;
+  color:#6b4a20!important;
+  box-shadow:0 14px 28px rgba(144,99,43,.18)!important;
+}
+.nav-btn{
+  border:1px solid transparent!important;
+  transition:background .18s ease, transform .18s ease, box-shadow .18s ease, border-color .18s ease!important;
+}
+.nav-btn:hover{
+  background:rgba(255,255,255,.62)!important;
+  border-color:rgba(234,218,198,.82)!important;
+  transform:translateY(-1px)!important;
+}
+.nav-btn.active{
+  background:linear-gradient(135deg,#fff9ef,#f1e4d1)!important;
+  border-color:#ead6b8!important;
+  box-shadow:0 12px 32px rgba(121,84,41,.10), inset 0 1px 0 rgba(255,255,255,.8)!important;
+}
+.sidebar-status{
+  background:linear-gradient(180deg,#fffdf8,#f6ecdc)!important;
+  box-shadow:0 16px 38px rgba(86,62,35,.08)!important;
+}
+.quick-input{
+  background:linear-gradient(135deg,#fffdf8,#f4eadc)!important;
+  box-shadow:0 16px 36px rgba(86,62,35,.08)!important;
+}
+.topbar{
+  padding-top:2px!important;
+}
+.search-box,.icon-btn,.avatar-btn,.ghost,.link-btn,.tab,.primary{
+  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease!important;
+}
+.search-box{
+  background:rgba(255,253,249,.76)!important;
+  border-color:rgba(232,214,190,.95)!important;
+  box-shadow:0 10px 28px rgba(73,52,28,.045)!important;
+}
+.icon-btn,.avatar-btn,.ghost,.link-btn{
+  background:rgba(255,253,249,.88)!important;
+  border-color:rgba(232,214,190,.95)!important;
+}
+.icon-btn:hover,.avatar-btn:hover,.ghost:hover,.link-btn:hover,.primary:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:0 16px 36px rgba(80,57,31,.105)!important;
+}
+.primary{
+  background:linear-gradient(135deg,#587f5b,#3f6844)!important;
+  border-color:#3f6844!important;
+  box-shadow:0 14px 34px rgba(63,104,68,.20)!important;
+}
+.card{
+  position:relative!important;
+  background:linear-gradient(180deg,rgba(255,254,251,.96),rgba(255,250,244,.985))!important;
+  border:1px solid rgba(232,216,194,.96)!important;
+  box-shadow:0 24px 70px rgba(75,55,34,.088)!important;
+  overflow:hidden!important;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto 0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  pointer-events:none;
+}
+.card:hover{box-shadow:0 28px 78px rgba(75,55,34,.105)!important}
+.hero-card,.finance-hero{
+  background:
+    radial-gradient(circle at 88% 8%, rgba(236,214,182,.55), transparent 28%),
+    linear-gradient(180deg,#fffefa,#f7f2e9)!important;
+}
+.insight-card,.attention-card{
+  background:
+    radial-gradient(circle at 92% 8%, rgba(201,224,197,.30), transparent 28%),
+    linear-gradient(180deg,#fffdf8,#fbf2e4)!important;
+}
+h1{
+  letter-spacing:-.045em!important;
+  color:#1f1a15!important;
+}
+h2,h3{letter-spacing:-.025em!important}
+.page-label{
+  color:#9a7542!important;
+  letter-spacing:.075em!important;
+}
+.sub{color:#7f7165!important}
+.big{
+  color:#2f5f39!important;
+  letter-spacing:-.055em!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.78)!important;
+}
+.metric,.focus-box,.gift-block,.money-list p,.task-line,.habit-line,.line-row{
+  border-color:rgba(235,222,203,.9)!important;
+}
+.metric{
+  background:linear-gradient(180deg,#fffefb,#fbf5ec)!important;
+  box-shadow:0 12px 28px rgba(75,55,34,.04)!important;
+}
+.tag{
+  background:rgba(247,239,227,.86)!important;
+  border-color:rgba(229,211,186,.96)!important;
+}
+.tag.green{background:#eef8ec!important;border-color:#d8ecd5!important;color:#47764d!important}
+.tag.warn,.tag.amber{background:#fff4e2!important;border-color:#edd7b6!important;color:#ac6d1d!important}
+.tag.blue{background:#eef4fb!important;border-color:#d7e3f2!important;color:#59769f!important}
+.progress{
+  background:#eee2d1!important;
+  box-shadow:inset 0 1px 2px rgba(72,54,34,.08)!important;
+}
+.progress>span{
+  background:linear-gradient(90deg,#4c7752,#82ad79)!important;
+  box-shadow:0 0 18px rgba(82,122,85,.25)!important;
+}
+.modal{
+  border:1px solid rgba(230,214,191,.96)!important;
+  box-shadow:0 34px 100px rgba(39,28,18,.24)!important;
+}
+input,textarea,select{
+  border-color:rgba(226,208,183,.96)!important;
+  background:#fffdf9!important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:2px solid rgba(82,122,85,.16)!important;
+  border-color:rgba(82,122,85,.42)!important;
+}
+.table-wrap,table,.import-preview-table{
+  border-color:rgba(232,216,194,.96)!important;
+}
+@media (max-width:760px){
+  html,body{background:linear-gradient(180deg,#fbf7ef,#f3eadf)!important}
+  .topbar{
+    background:rgba(248,241,231,.9)!important;
+    backdrop-filter:blur(18px)!important;
+  }
+  .mobile-tabbar,.sidebar{
+    background:rgba(255,253,249,.92)!important;
+    border-top-color:rgba(226,208,183,.96)!important;
+    box-shadow:0 -16px 44px rgba(70,50,28,.10)!important;
+  }
+  .card{border-radius:24px!important;padding:17px!important}
+  h1{font-size:29px!important;letter-spacing:-.04em!important}
+  .big{font-size:44px!important}
+  .nav-btn.active{box-shadow:0 8px 22px rgba(121,84,41,.10)!important}
+}
 
   </style>
 </head>
