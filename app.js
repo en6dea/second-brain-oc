@@ -727,3 +727,226 @@ try{render()}catch(e){console.error(e)}
   setTimeout(wireButtons,0);
   setInterval(wireButtons,1200);
 })();
+
+
+/* ===== DEBT + CATEGORY REAL FIX — operation-derived debts + persistent category delete ===== */
+(function(){
+  const BUILD='debt-category-real-fix-20260630-1';
+  try{localStorage.setItem('secondBrainOS.currentBuild', BUILD);}catch(e){}
+
+  function sbosMsg(msg){ try{toast(msg)}catch(e){ console.log('[SBOS]', msg); } }
+  function ensureArrays(){
+    state.settings = state.settings || {};
+    state.debts = Array.isArray(state.debts) ? state.debts : [];
+    state.operations = Array.isArray(state.operations) ? state.operations : [];
+    state.categories = Array.isArray(state.categories) ? state.categories : [];
+    state.plannedPurchases = Array.isArray(state.plannedPurchases) ? state.plannedPurchases : [];
+    state.tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    state.settings.deletedCategories = Array.isArray(state.settings.deletedCategories) ? state.settings.deletedCategories : [];
+    state.settings.hiddenDebtIds = Array.isArray(state.settings.hiddenDebtIds) ? state.settings.hiddenDebtIds : [];
+    state.debts.forEach(d=>{ if(!d.id) d.id=uid(); if(!d.status) d.status='Активен'; if(!d.direction) d.direction='owe'; });
+    state.categories.forEach(c=>{ if(!c.id) c.id=uid(); if(!c.type) c.type='expense'; });
+  }
+  function catKey(name,type){ return String(name||'').trim().toLowerCase()+'|'+String(type||'expense'); }
+  function isDeletedCategory(name,type){ ensureArrays(); return state.settings.deletedCategories.includes(catKey(name,type)); }
+  function removeDeletedCategoryMarker(name,type){ ensureArrays(); const k=catKey(name,type); state.settings.deletedCategories=state.settings.deletedCategories.filter(x=>x!==k); }
+  function hideDebtId(id){ ensureArrays(); id=String(id||''); if(id && !state.settings.hiddenDebtIds.includes(id)) state.settings.hiddenDebtIds.push(id); }
+  function debtHidden(id){ ensureArrays(); return state.settings.hiddenDebtIds.includes(String(id||'')); }
+  function derivedDebtFromOperation(o){
+    const text=`${o.category||''} ${o.note||''}`;
+    if(!/долг|за[её]м|займ|вернуть|вернул|вернули|одолж|кредит|ипотек/i.test(text)) return null;
+    const incoming = String(o.type||'expense')==='income';
+    return {
+      id:'op_'+(o.id||uid()),
+      source:'operation',
+      operationId:o.id,
+      direction: incoming ? 'owed_to_me' : 'owe',
+      person: o.note || o.category || 'Долг из операции',
+      amount: num(o.amount),
+      due: o.date || todayKey(),
+      status:'Активен',
+      note:'Определено по операции'
+    };
+  }
+  function findDebtAny(id){
+    ensureArrays(); id=String(id||'');
+    let d=state.debts.find(x=>String(x.id)===id);
+    if(d) return {debt:d, explicit:true};
+    for(const o of state.operations){
+      const dd=derivedDebtFromOperation(o);
+      if(dd && String(dd.id)===id) return {debt:dd, explicit:false, operation:o};
+    }
+    return {debt:null, explicit:false};
+  }
+
+  // Prevent removed categories from reappearing after save/normalize from operations or old budgets.
+  try{
+    const __oldDeriveCategories = deriveCategories;
+    deriveCategories = function(s){
+      const arr = __oldDeriveCategories(s)||[];
+      const deleted = new Set(((state&&state.settings&&state.settings.deletedCategories)||[]).map(String));
+      return arr.filter(c=>!deleted.has(catKey(c.name,c.type)));
+    };
+  }catch(e){}
+  try{
+    const __oldDedupeCategories = dedupeCategories;
+    dedupeCategories = function(arr){
+      const deleted = new Set(((state&&state.settings&&state.settings.deletedCategories)||[]).map(String));
+      return (__oldDedupeCategories(arr)||[]).filter(c=>!deleted.has(catKey(c.name,c.type)));
+    };
+  }catch(e){}
+
+  // Replace activeDebts so generated debts from bank operations can be reminded/edited/closed too.
+  activeDebts = function(){
+    ensureArrays();
+    const rows=[];
+    state.debts.forEach(d=>{
+      if(String(d.status||'Активен')==='Закрыт') return;
+      if(debtHidden(d.id)) return;
+      rows.push({direction:d.direction||'owe',...d});
+    });
+    state.operations.forEach(o=>{
+      const d=derivedDebtFromOperation(o);
+      if(!d || debtHidden(d.id)) return;
+      rows.push(d);
+    });
+    const map=new Map();
+    rows.forEach(d=>{
+      const key = d.id && String(d.id).startsWith('op_') ? d.id : [d.person,d.amount,d.due,d.direction].join('|');
+      if(!map.has(key)) map.set(key,d);
+    });
+    return Array.from(map.values());
+  };
+  activeOwe = function(){ return activeDebts().filter(d=>String(d.direction||'owe')==='owe'); };
+  activeOwed = function(){ return activeDebts().filter(d=>String(d.direction||'owe')==='owed_to_me'); };
+
+  function saveAndRender(message){
+    ensureArrays();
+    try{ save(true); }catch(e){ try{localStorage.setItem(STORE_KEY,JSON.stringify({state}))}catch(_){} }
+    try{ render(); }catch(e){ console.error(e); }
+    if(message) sbosMsg(message);
+  }
+
+  function editDebtAny(id){
+    const found=findDebtAny(id); const d=found.debt;
+    if(!d){ sbosMsg('Долг не найден'); return true; }
+    openModal(found.explicit?'Редактировать долг':'Долг из операции',`<div class="form-grid"><div class="field"><label>Тип</label><select id="f_direction"><option value="owe" ${(d.direction||'owe')==='owe'?'selected':''}>Я должен</option><option value="owed_to_me" ${d.direction==='owed_to_me'?'selected':''}>Мне должны</option></select></div>${field('Кто / кому','f_person',d.person)}${field('Сумма','f_amount',d.amount,'number')}${field('Дата возврата','f_due',d.due,'date')}<div class="field"><label>Статус</label><select id="f_status"><option ${d.status==='Активен'?'selected':''}>Активен</option><option ${d.status==='Ожидаю'?'selected':''}>Ожидаю</option><option ${d.status==='Закрыт'?'selected':''}>Закрыт</option></select></div>${area('Комментарий','f_note',d.note||'')}</div><div class="actions"><button type="button" class="btn" data-action="saveDebtAny" data-id="${esc(id)}">Сохранить</button><button type="button" class="mini-btn red" data-action="deleteDebt" data-id="${esc(id)}">Удалить</button></div>`);
+    return true;
+  }
+  function saveDebtAny(id){
+    const found=findDebtAny(id); const d=found.debt;
+    if(!d){ sbosMsg('Долг не найден'); return true; }
+    if(found.explicit){
+      d.direction=formVal('f_direction')||'owe'; d.person=formVal('f_person')||'Долг'; d.amount=num(formVal('f_amount')); d.due=formVal('f_due'); d.status=formVal('f_status')||'Активен'; d.note=formVal('f_note');
+    }else{
+      hideDebtId(id);
+      state.debts.unshift({id:uid(),direction:formVal('f_direction')||d.direction||'owe',person:formVal('f_person')||d.person||'Долг',amount:num(formVal('f_amount')||d.amount),due:formVal('f_due')||d.due,status:formVal('f_status')||'Активен',note:formVal('f_note')||'Создано из банковской операции'});
+    }
+    try{closeModal()}catch(e){}
+    saveAndRender('Долг сохранён');
+    return true;
+  }
+  function closeDebtAny(id){
+    const found=findDebtAny(id); const d=found.debt;
+    if(!d){ sbosMsg('Долг не найден'); return true; }
+    if(found.explicit) d.status='Закрыт'; else hideDebtId(id);
+    saveAndRender('Долг закрыт');
+    return true;
+  }
+  function deleteDebtAny(id){
+    const found=findDebtAny(id); const d=found.debt;
+    if(!d){ sbosMsg('Долг не найден'); return true; }
+    if(!confirm('Удалить этот долг из списка?')) return true;
+    if(found.explicit) state.debts=state.debts.filter(x=>String(x.id)!==String(id)); else hideDebtId(id);
+    saveAndRender('Долг удалён из списка');
+    return true;
+  }
+  function debtTaskAny(id){
+    const found=findDebtAny(id); const d=found.debt;
+    if(!d){ sbosMsg('Долг не найден'); return true; }
+    state.tasks.unshift({id:uid(),title:`Напоминание по долгу: ${d.person} — ${money(d.amount)}`,area:'Финансы',due:d.due||todayKey(),time:'10:00',priority:'A',status:'В работе',note:d.note||''});
+    if(found.explicit) d.reminder=true;
+    saveAndRender('Напоминание создано в задачах');
+    return true;
+  }
+  function deleteCategoryAny(id){
+    ensureArrays();
+    const c=state.categories.find(x=>String(x.id)===String(id));
+    if(!c){ sbosMsg('Категория не найдена'); return true; }
+    const used=(state.operations||[]).filter(o=>String(o.category||'')===String(c.name||'')).length + (state.plannedPurchases||[]).filter(p=>String(p.category||'')===String(c.name||'')).length;
+    if(!confirm(`Удалить категорию «${c.name}»?${used?`\nСвязанные записи будут переведены в «Без категории».`:''}`)) return true;
+    const k=catKey(c.name,c.type);
+    if(!state.settings.deletedCategories.includes(k)) state.settings.deletedCategories.push(k);
+    state.operations.forEach(o=>{ if(String(o.category||'')===String(c.name||'')) o.category='Без категории'; });
+    state.plannedPurchases.forEach(p=>{ if(String(p.category||'')===String(c.name||'')) p.category='Без категории'; });
+    state.categories=state.categories.filter(x=>String(x.id)!==String(id) && catKey(x.name,x.type)!==k);
+    saveAndRender('Категория удалена');
+    return true;
+  }
+  function saveCategoryAny(){
+    ensureArrays();
+    const name=formVal('f_name')||'Категория'; const type=formVal('f_type')||'expense';
+    removeDeletedCategoryMarker(name,type);
+    state.categories.push({id:uid(),name,type,limit:num(formVal('f_limit'))});
+    try{closeModal()}catch(e){}
+    saveAndRender('Категория добавлена');
+    return true;
+  }
+  function saveEditedCategoryAny(id){
+    ensureArrays();
+    const c=state.categories.find(x=>String(x.id)===String(id));
+    if(!c){ sbosMsg('Категория не найдена'); return true; }
+    const oldName=c.name, oldType=c.type;
+    const newName=formVal('f_name')||c.name, newType=formVal('f_type')||c.type||'expense';
+    removeDeletedCategoryMarker(newName,newType);
+    c.name=newName; c.type=newType; c.limit=num(formVal('f_limit'));
+    state.operations.forEach(o=>{ if(String(o.category||'')===String(oldName||'')) o.category=newName; });
+    state.plannedPurchases.forEach(p=>{ if(String(p.category||'')===String(oldName||'')) p.category=newName; });
+    const oldKey=catKey(oldName,oldType); state.settings.deletedCategories=state.settings.deletedCategories.filter(x=>x!==oldKey);
+    try{closeModal()}catch(e){}
+    saveAndRender('Категория сохранена');
+    return true;
+  }
+
+  const previousForce = window.SBOS_FORCE_ACTION;
+  window.SBOS_FORCE_ACTION=function(action,id,el){
+    try{
+      action=action || (el&&el.dataset&&el.dataset.action) || '';
+      id=id || (el&&el.dataset&&el.dataset.id) || '';
+      if(action==='closeDebt') return closeDebtAny(id);
+      if(action==='debtTask') return debtTaskAny(id);
+      if(action==='editDebt') return editDebtAny(id);
+      if(action==='saveDebtAny') return saveDebtAny(id);
+      if(action==='deleteDebt') return deleteDebtAny(id);
+      if(action==='deleteCategory') return deleteCategoryAny(id);
+      if(action==='saveCategory') return saveCategoryAny();
+      if(action==='saveEditedCategory') return saveEditedCategoryAny(id);
+      if(action==='addDebt') return addDebt(id==='owed_to_me'?'owed_to_me':'owe'), true;
+      return previousForce ? previousForce(action,id,el) : false;
+    }catch(err){ console.error('[SBOS data-actions-real-fix]', action,id,err); sbosMsg('Ошибка кнопки: '+(err.message||action)); return true; }
+  };
+
+  // Strong click wire after the old handlers: old handlers call the current window.SBOS_FORCE_ACTION too.
+  function wireRealButtons(){
+    document.querySelectorAll('[data-action]').forEach(btn=>{
+      btn.setAttribute('type','button');
+      const a=btn.dataset.action||'';
+      if(!/Debt|Category|saveDebtAny/.test(a)) return;
+      if(btn.__sbosRealFix) return;
+      btn.__sbosRealFix=true;
+      btn.addEventListener('click',function(ev){
+        ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+        window.SBOS_FORCE_ACTION(this.dataset.action,this.dataset.id,this);
+        return false;
+      },true);
+    });
+  }
+  try{
+    const previousRender=render;
+    render=function(){ const out=previousRender.apply(this,arguments); setTimeout(wireRealButtons,0); setTimeout(wireRealButtons,100); return out; };
+    window.render=render;
+  }catch(e){}
+  ensureArrays();
+  save(false);
+  setTimeout(()=>{try{render(); wireRealButtons();}catch(e){console.error(e)}},0);
+})();
