@@ -354,3 +354,313 @@ function render(){renderNav();const map={dashboard,finance:financePage,budget:bu
 Object.assign(windowActions,{editSafetyFund,saveSafetyFund,saveDailyReflection,addTask,saveTask,editTask,saveEditedTask,addFileNote,saveFileNote,debtsPage,habitsPage,tripsPage});
 
 try{state=normalizeState(state);save();render()}catch(e){console.error(e)}
+
+
+/* ===== Planning folders overhaul: left folder pane, purchases/wishes/wants, profile tools ===== */
+(function(){
+  function injectPlanningStyles(){
+    if(document.getElementById('planning-folders-styles')) return;
+    const st=document.createElement('style');
+    st.id='planning-folders-styles';
+    st.textContent=`
+      .planning-shell{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;margin-top:18px}
+      .planning-side{background:rgba(255,255,255,.9);border:1px solid rgba(226,232,240,.96);border-radius:26px;padding:16px;box-shadow:var(--shadow-sm);align-self:start;position:sticky;top:12px}
+      .planning-folders-list{display:grid;gap:10px;margin-top:12px}
+      .planning-folder-btn{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) auto auto;gap:10px;align-items:center;border:1px solid #e6edf7;background:#fff;padding:12px;border-radius:18px;font-weight:800;color:#334155;text-align:left}
+      .planning-folder-btn:hover{background:#f8fbff;border-color:#dbeafe}
+      .planning-folder-btn.active{background:linear-gradient(135deg,#eef5ff,#f8fbff);border-color:#bfdbfe;color:var(--blue)}
+      .planning-folder-btn .ico{width:38px;height:38px;border-radius:14px;background:#eef5ff;display:grid;place-items:center;color:var(--blue);font-size:16px}
+      .planning-folder-btn small{display:block;color:var(--muted);font-weight:700;margin-top:2px}
+      .planning-folder-btn .count{min-width:28px;height:28px;border-radius:999px;background:#f8fafc;border:1px solid #e6edf7;display:grid;place-items:center;font-size:12px;font-weight:900;color:#64748b;padding:0 8px}
+      .planning-rename{border:0;background:transparent;color:#94a3b8;font-size:16px;padding:4px 6px;border-radius:10px}
+      .planning-rename:hover{background:#eef5ff;color:var(--blue)}
+      .planning-main{display:flex;flex-direction:column;gap:18px}
+      .planning-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.9);border:1px solid rgba(226,232,240,.96);border-radius:26px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+      .planning-toolbar h2{margin:0;font-size:18px;letter-spacing:-.03em}
+      .planning-toolbar p{margin:4px 0 0;color:var(--muted);font-size:13px;font-weight:600}
+      .planning-toolbar-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+      .planning-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+      .planning-summary .mini-box{min-height:120px}
+      .planning-columns{display:grid;grid-template-columns:1.2fr .95fr;gap:18px}
+      .planning-area-grid,.planning-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+      .planning-section-title{font-size:13px;color:#64748b;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}
+      .planning-item-card{background:#fbfdff;border:1px solid #eaf0f8;border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:10px}
+      .planning-item-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+      .planning-thumb{width:72px;height:72px;object-fit:cover;border-radius:16px;border:1px solid #e6edf7;background:#f8fbff;flex-shrink:0}
+      .planning-meta{display:flex;flex-wrap:wrap;gap:8px}
+      .planning-side-note{margin-top:12px;padding:12px;border:1px dashed #dbe7f6;border-radius:18px;color:var(--muted);font-size:12px;font-weight:700;background:#f8fbff}
+      .planning-kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .planning-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+      .planning-list{display:grid;gap:10px}
+      .planning-empty{padding:16px;border:1px dashed #dbe7f6;background:#f8fbff;border-radius:18px;color:var(--muted);font-weight:700}
+      .planning-hstack{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+      .planning-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e6edf7;font-size:12px;font-weight:800;color:#475569}
+      .planning-debt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) 320px;gap:18px}
+      .planning-small-list{display:grid;gap:10px}
+      .planning-small-list .mini-box{padding:12px}
+      .planning-inline-form{display:flex;flex-wrap:wrap;gap:8px}
+      .planning-folder-title{display:flex;align-items:center;gap:10px}
+      .planning-folder-title .folder-badge{width:42px;height:42px;border-radius:16px;background:#eef5ff;color:var(--blue);display:grid;place-items:center;font-size:18px;font-weight:900}
+      .profile-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .profile-tool{border:1px solid #e6edf7;background:#fbfdff;border-radius:18px;padding:14px;text-align:left;font-weight:800;color:#334155}
+      .profile-tool:hover{border-color:#bfdbfe;background:#f8fbff}
+      .profile-tool small{display:block;color:#64748b;font-weight:600;margin-top:4px}
+      @media(max-width:1180px){.planning-shell,.planning-columns,.planning-two-col,.planning-debt-grid{grid-template-columns:1fr}.planning-summary,.planning-area-grid,.planning-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.planning-side{position:static}}
+      @media(max-width:760px){.planning-summary,.planning-area-grid,.planning-card-grid,.planning-kpi,.planning-two-col,.planning-debt-grid{grid-template-columns:1fr}.planning-toolbar{flex-direction:column;align-items:stretch}.planning-toolbar-actions{justify-content:flex-start}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function planningFolderDefaults(){
+    return [
+      {id:'focus',name:'Фокус дня',icon:'◷',kind:'focus'},
+      {id:'areas',name:'Папки сфер',icon:'◫',kind:'areas'},
+      {id:'priorities',name:'Приоритеты',icon:'⚑',kind:'priorities'},
+      {id:'deadlines',name:'Сроки',icon:'◷',kind:'deadlines'},
+      {id:'debts_folder',name:'Долги',icon:'₽',kind:'debts'},
+      {id:'purchases',name:'Покупки',icon:'◉',kind:'purchases'},
+      {id:'wishes',name:'Желания',icon:'✦',kind:'wishes'},
+      {id:'wants',name:'Хотелки',icon:'♡',kind:'wants'}
+    ];
+  }
+  function ensurePlanningState(){
+    injectPlanningStyles();
+    if(!state.settings) state.settings={};
+    if(!state.settings.planningFolder) state.settings.planningFolder='focus';
+    if(!Array.isArray(state.planningFolders)) state.planningFolders=[];
+    const current=new Map((state.planningFolders||[]).map(x=>[x.id,x]));
+    state.planningFolders=planningFolderDefaults().map(d=>({description:'',...d,...(current.get(d.id)||{})}));
+    const custom=(state.planningFoldersCustom||[]).filter(Boolean);
+    state.planningFolders=[...state.planningFolders,...custom];
+    if(!Array.isArray(state.wishes)) state.wishes=[{id:uid(),title:'Отпуск у моря',area:'Личное',category:'Отдых',amount:80000,date:monthKey()+'-20',url:'',image:'',importance:'Важно',includeInBudget:false,note:'Продумать маршрут и накопления'}];
+    if(!Array.isArray(state.wants)) state.wants=[{id:uid(),title:'Новый плед',area:'Дом',category:'Уют',amount:3500,date:monthKey()+'-15',url:'',image:'',importance:'Можно позже',includeInBudget:false,note:'Приятная мелочь для дома'}];
+    state.plannedPurchases=(state.plannedPurchases||[]).map(x=>({area:x.area||'Личное',category:x.category||'Без категории',date:x.date||((x.month||state.settings.currentMonth)+'-15'),url:x.url||'',image:x.image||'',...x}));
+    state.debts=(state.debts||[]).map(x=>({direction:x.direction||'outgoing',reminder:Boolean(x.reminder),status:x.status||'Активен',...x}));
+    if(!state.settings.currentMonth) state.settings.currentMonth=monthKey();
+  }
+  function folderCount(id){
+    ensurePlanningState();
+    const open=openTasks();
+    if(id==='focus') return open.filter(t=>t.due===todayKey()).length;
+    if(id==='areas') return new Set([...(open.map(t=>t.area||'Личное')),...(state.plannedPurchases.map(x=>x.area||'Личное')),...(state.wishes.map(x=>x.area||'Личное')),...(state.wants.map(x=>x.area||'Личное'))]).size;
+    if(id==='priorities') return open.length;
+    if(id==='deadlines') return open.filter(t=>t.due).length + upcomingEvents().length;
+    if(id==='debts_folder') return activeDebts().length;
+    if(id==='purchases') return state.plannedPurchases.length;
+    if(id==='wishes') return state.wishes.length;
+    if(id==='wants') return state.wants.length;
+    const f=(state.planningFolders||[]).find(x=>x.id===id); return Number(f?.itemsCount||0);
+  }
+  function folderKind(id){ return (state.planningFolders||[]).find(x=>x.id===id)?.kind || id; }
+  function setPlanningFolder(id){ ensurePlanningState(); state.settings.planningFolder=id||'focus'; save(); render(); }
+  function planningFolderById(id){ ensurePlanningState(); return (state.planningFolders||[]).find(x=>x.id===id) || planningFolderDefaults()[0]; }
+  function priorityLabel(p){return ({A:'Срочно / важно',B:'Важно',C:'Срочно',D:'Позже'})[p||'B']||'Важно'}
+  function priorityPill(p){return `<span class="pill ${(p==='A')?'red':(p==='B')?'blue':(p==='C')?'amber':'green'}">${priorityLabel(p)}</span>`}
+  function moneyOptional(v){ return num(v)?money(v):'Без суммы'; }
+  function formatPlanDate(d){ return d?new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'Без даты'; }
+  function itemMetaChips(it){
+    return `<div class="planning-meta"><span class="planning-chip">${esc(it.area||it.category||'Личное')}</span>${it.date?`<span class="planning-chip">${esc(formatPlanDate(it.date))}</span>`:''}${it.includeInBudget!==undefined?`<span class="planning-chip">${it.includeInBudget?'в бюджет':'вне бюджета'}</span>`:''}${it.url?`<a class="planning-chip" href="${esc(it.url)}" target="_blank">URL</a>`:''}</div>`;
+  }
+  function planningPurchaseCard(it,type){
+    const kindName=type==='wish'?'Желание':type==='want'?'Хотелка':'Покупка';
+    const editAction=type==='wish'?'editWish':type==='want'?'editWant':'editPurchase';
+    const deleteAction=type==='wish'?'deleteWish':type==='want'?'deleteWant':'deletePurchase';
+    return `<article class="planning-item-card"><div class="planning-item-top"><div style="display:flex;gap:12px;min-width:0">${it.image?`<img class="planning-thumb" src="${esc(it.image)}" alt="">`:''}<div style="min-width:0"><strong>${esc(it.title)}</strong><div class="small muted">${kindName} · ${esc(it.category||'Без категории')}</div><div class="value sm" style="margin:6px 0 0">${moneyOptional(it.amount)}</div></div></div>${(it.importance?`<span class="pill ${it.importance==='Очень важно'?'red':it.importance==='Важно'?'amber':'blue'}">${esc(it.importance)}</span>`:'')}</div>${itemMetaChips(it)}${it.note?`<div class="small muted">${esc(it.note)}</div>`:''}<div class="button-row"><button class="mini-btn" data-action="${editAction}" data-id="${it.id}">Ред.</button><button class="mini-btn red" data-action="${deleteAction}" data-id="${it.id}">Удалить</button>${it.url?`<a class="mini-btn blue" href="${esc(it.url)}" target="_blank">Открыть</a>`:''}</div></article>`;
+  }
+  function planningDebtCard(d){
+    const isOutgoing=(d.direction||'outgoing')==='outgoing';
+    return `<article class="planning-item-card"><div class="planning-item-top"><div><strong>${esc(d.person||'Долг')}</strong><div class="small muted">${isOutgoing?'Я должен':'Мне должны'} · до ${esc(d.due||'—')}</div><div class="value sm ${isOutgoing?'red':'green'}" style="margin-top:6px">${money(d.amount)}</div></div><span class="pill ${d.due&&d.due<todayKey()?'red':d.due&&d.due<=iso(addDays(new Date(),7))?'amber':'blue'}">${d.due&&d.due<todayKey()?'Просрочено':d.due&&d.due<=iso(addDays(new Date(),7))?'Скоро':'Не срочно'}</span></div>${d.note?`<div class="small muted">${esc(d.note)}</div>`:''}<div class="button-row"><button class="mini-btn blue" data-action="debtTask" data-id="${d.id}">Напомнить</button><button class="mini-btn" data-action="editDebt" data-id="${d.id}">Ред.</button><button class="mini-btn green" data-action="closeDebt" data-id="${d.id}">Закрыть</button></div></article>`;
+  }
+  function nearestPlanItems(limit=5){
+    const arr=[];
+    openTasks().forEach(t=>arr.push({type:'task',date:t.due||'',title:t.title,area:t.area,priority:t.priority,id:t.id}));
+    upcomingEvents().forEach(e=>arr.push({type:'event',date:e.date||'',title:e.title,area:e.area,time:e.time,id:e.id}));
+    state.plannedPurchases.forEach(p=>arr.push({type:'purchase',date:p.date||'',title:p.title,area:p.area,amount:p.amount,id:p.id}));
+    return arr.filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,limit);
+  }
+  function focusPage(){
+    const todayTasks=openTasks().filter(t=>t.due===todayKey());
+    const weekTasks=openTasks().filter(t=>t.due&&t.due<=iso(addDays(new Date(),7)));
+    const reminders=activeDebts().filter(d=>d.due&&d.due<=iso(addDays(new Date(),7)));
+    const todayPurchases=state.plannedPurchases.filter(x=>x.date===todayKey());
+    return `
+      <section class="planning-summary">
+        <div class="mini-box"><div class="small muted">Сегодня</div><div class="value sm">${todayTasks.length}</div><div class="small muted">задач на день</div></div>
+        <div class="mini-box"><div class="small muted">Неделя</div><div class="value sm">${weekTasks.length}</div><div class="small muted">ближайших задач</div></div>
+        <div class="mini-box"><div class="small muted">Дедлайны</div><div class="value sm">${nearestPlanItems(20).length}</div><div class="small muted">задачи, события и покупки</div></div>
+        <div class="mini-box"><div class="small muted">Напоминания</div><div class="value sm">${reminders.length}</div><div class="small muted">по долгам на 7 дней</div></div>
+      </section>
+      <section class="planning-columns">
+        <article class="card"><div class="card-head"><h3>Лента на сегодня</h3><div class="planning-hstack"><button class="btn secondary" data-action="addTask">Новая задача</button><button class="btn secondary" data-action="addEvent">Событие</button></div></div><div class="planning-list">${todayTasks.map(rowTask).join('') || '<div class="planning-empty">На сегодня задач нет</div>'}${todayPurchases.length?`<div class="planning-section-title" style="margin-top:10px">Покупки на сегодня</div>${todayPurchases.map(x=>planningPurchaseCard(x,'purchase')).join('')}`:''}</div></article>
+        <div style="display:grid;gap:18px"><article class="card"><div class="card-head"><h3>Ближайшие сроки</h3><span class="pill blue">по папкам</span></div><div class="planning-small-list">${nearestPlanItems().map(x=>`<div class="mini-box"><div class="stat-row"><strong>${esc(x.title)}</strong><span class="planning-chip">${esc(formatPlanDate(x.date))}</span></div><div class="small muted">${x.type==='task'?'Задача':x.type==='event'?'Событие':'Покупка'} · ${esc(x.area||'')}</div></div>`).join('') || '<div class="planning-empty">Пока нет дат</div>'}</div></article><article class="card"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><button class="link" data-action="setPlanningFolder" data-folder="priorities">Открыть →</button></div>${eisenhowerMatrix()}</article></div>
+      </section>`;
+  }
+  function areasPage(){
+    const byArea={};
+    const add=(area,kind,html)=>{if(!byArea[area]) byArea[area]=[]; byArea[area].push({kind,html});};
+    openTasks().forEach(t=>add(t.area||'Личное','task',rowTask(t)));
+    state.plannedPurchases.forEach(x=>add(x.area||'Личное','purchase',planningPurchaseCard(x,'purchase')));
+    state.wishes.forEach(x=>add(x.area||'Личное','wish',planningPurchaseCard(x,'wish')));
+    state.wants.forEach(x=>add(x.area||'Личное','want',planningPurchaseCard(x,'want')));
+    const areas=Object.keys(byArea).sort((a,b)=>a.localeCompare(b,'ru'));
+    return `<section class="planning-card-grid">${areas.map(area=>`<article class="card"><div class="card-head"><div><h3>${esc(area)}</h3><p class="small muted">всё из планирования по этой сфере</p></div><button class="mini-btn blue" data-action="addTask">Добавить</button></div><div class="planning-list">${byArea[area].slice(0,4).map(x=>x.html).join('')}${byArea[area].length>4?`<div class="planning-empty">И ещё ${byArea[area].length-4} записей</div>`:''}</div></article>`).join('') || '<div class="planning-empty">Сферы пока не наполнены</div>'}</section>`;
+  }
+  function prioritiesPage(){
+    const buckets={A:[],B:[],C:[],D:[]}; openTasks().forEach(t=>buckets[t.priority||'B'].push(t));
+    const labels={A:'Важно / Срочно',B:'Важно / Не срочно',C:'Не важно / Срочно',D:'Не важно / Не срочно'};
+    return `<section class="planning-card-grid">${Object.keys(labels).map(k=>`<article class="card"><div class="card-head"><h3>${labels[k]}</h3><span class="pill ${k==='A'?'red':k==='B'?'green':k==='C'?'amber':'blue'}">${buckets[k].length}</span></div><div class="planning-list">${buckets[k].map(rowTask).join('') || '<div class="planning-empty">Пусто</div>'}<button class="btn secondary" data-action="addTask">Добавить задачу</button></div></article>`).join('')}</section>`;
+  }
+  function deadlinesPage(){
+    const today=todayKey(), weekEnd=iso(addDays(new Date(),7));
+    const groups={today:[],week:[],later:[],nodate:[]};
+    openTasks().forEach(t=>{ if(!t.due) groups.nodate.push(t); else if(t.due===today) groups.today.push(t); else if(t.due<=weekEnd) groups.week.push(t); else groups.later.push(t); });
+    const titles={today:'Сегодня',week:'На неделе',later:'Позже',nodate:'Без срока'};
+    return `<section class="planning-two-col"><article class="card"><div class="card-head"><h3>Сроки задач</h3><button class="btn secondary" data-action="addTask">Задача</button></div>${Object.keys(titles).map(k=>`<div class="planning-section-title">${titles[k]}</div><div class="planning-list" style="margin-bottom:12px">${groups[k].map(rowTask).join('') || '<div class="planning-empty">Нет записей</div>'}</div>`).join('')}</article><article class="card"><div class="card-head"><h3>Календарь и покупки</h3><button class="btn secondary" data-action="addPurchase">Покупка</button></div><div class="planning-list">${upcomingEvents().slice(0,8).map(rowEvent).join('') || '<div class="planning-empty">Событий нет</div>'}${state.plannedPurchases.filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,6).map(x=>planningPurchaseCard(x,'purchase')).join('')}</div></article></section>`;
+  }
+  function debtsFolderPage(){
+    const outgoing=activeDebts().filter(d=>(d.direction||'outgoing')==='outgoing');
+    const incoming=activeDebts().filter(d=>(d.direction||'outgoing')==='incoming');
+    const dueSoon=activeDebts().filter(d=>d.due).sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,6);
+    const outTotal=total(outgoing), inTotal=total(incoming);
+    return `<section class="planning-summary"><div class="mini-box"><div class="small muted">Я должен</div><div class="value sm red">${money(outTotal)}</div><div class="small muted">${outgoing.length} записей</div></div><div class="mini-box"><div class="small muted">Мне должны</div><div class="value sm green">${money(inTotal)}</div><div class="small muted">${incoming.length} записей</div></div><div class="mini-box"><div class="small muted">Просрочено</div><div class="value sm">${activeDebts().filter(d=>d.due&&d.due<todayKey()).length}</div><div class="small muted">нужен контроль</div></div><div class="mini-box"><div class="small muted">Напоминания</div><div class="value sm">${dueSoon.length}</div><div class="small muted">ближайшие сроки</div></div></section><section class="planning-debt-grid"><article class="card"><div class="card-head"><h3>Я должен</h3><button class="btn secondary" data-action="addDebt">Добавить долг</button></div><div class="planning-list">${outgoing.map(planningDebtCard).join('') || '<div class="planning-empty">Пока пусто</div>'}</div></article><article class="card"><div class="card-head"><h3>Мне должны</h3><button class="btn secondary" data-action="addDebtIncoming">Добавить долг</button></div><div class="planning-list">${incoming.map(planningDebtCard).join('') || '<div class="planning-empty">Пока пусто</div>'}</div></article><div style="display:grid;gap:18px"><article class="card"><div class="card-head"><h3>Ближайшие сроки</h3><span class="pill blue">контроль</span></div><div class="planning-small-list">${dueSoon.map(d=>`<div class="mini-box"><div class="stat-row"><strong>${esc(d.person)}</strong><span class="planning-chip">${esc(formatPlanDate(d.due))}</span></div><div class="small ${((d.direction||'outgoing')==='outgoing')?'red':'green'}">${((d.direction||'outgoing')==='outgoing')?'Я должен':'Мне должны'} · ${money(d.amount)}</div></div>`).join('') || '<div class="planning-empty">Нет сроков</div>'}</div></article><article class="card"><div class="card-head"><h3>Связанные задачи</h3><button class="link" data-action="setPlanningFolder" data-folder="deadlines">Сроки →</button></div><div class="planning-small-list">${state.tasks.filter(t=>/долг|вернут|оплат|напом/i.test((t.title||'')+' '+(t.area||''))).slice(0,6).map(rowTask).join('') || '<div class="planning-empty">Задач по долгам нет</div>'}</div></article></div></section>`;
+  }
+  function purchasesPage(){
+    const totalBudget=state.plannedPurchases.reduce((s,x)=>s+(x.includeInBudget!==false?num(x.amount):0),0);
+    return `<section class="planning-summary"><div class="mini-box"><div class="small muted">Покупки</div><div class="value sm">${state.plannedPurchases.length}</div><div class="small muted">запланировано</div></div><div class="mini-box"><div class="small muted">В бюджете</div><div class="value sm">${money(totalBudget)}</div><div class="small muted">учтено в плане</div></div><div class="mini-box"><div class="small muted">На месяц</div><div class="value sm">${state.plannedPurchases.filter(x=>String(x.date||'').startsWith(state.settings.currentMonth)).length}</div><div class="small muted">до конца месяца</div></div><div class="mini-box"><div class="small muted">С URL</div><div class="value sm">${state.plannedPurchases.filter(x=>x.url||x.image).length}</div><div class="small muted">со ссылкой или картинкой</div></div></section><article class="card"><div class="card-head"><div><h3>Планирование покупок</h3><p class="small muted">Можно указать конкретный день, URL, картинку и учитывать ли это в бюджете.</p></div><button class="btn" data-action="addPurchase">Добавить покупку</button></div><div class="planning-card-grid">${state.plannedPurchases.map(x=>planningPurchaseCard(x,'purchase')).join('') || '<div class="planning-empty">Покупок пока нет</div>'}</div></article>`;
+  }
+  function wishesPage(){
+    return `<section class="planning-summary"><div class="mini-box"><div class="small muted">Желания</div><div class="value sm">${state.wishes.length}</div><div class="small muted">список желаемого</div></div><div class="mini-box"><div class="small muted">В бюджете</div><div class="value sm">${money(state.wishes.filter(x=>x.includeInBudget!==false).reduce((s,x)=>s+num(x.amount),0))}</div><div class="small muted">если включать в план</div></div><div class="mini-box"><div class="small muted">С идеей даты</div><div class="value sm">${state.wishes.filter(x=>x.date).length}</div><div class="small muted">можно ставить день месяца</div></div><div class="mini-box"><div class="small muted">Со ссылкой</div><div class="value sm">${state.wishes.filter(x=>x.url||x.image).length}</div><div class="small muted">на покупку / подборку</div></div></section><article class="card"><div class="card-head"><div><h3>Желания</h3><p class="small muted">Более осознанные вещи и цели, которые можно включать или не включать в бюджет.</p></div><button class="btn" data-action="addWish">Добавить желание</button></div><div class="planning-card-grid">${state.wishes.map(x=>planningPurchaseCard(x,'wish')).join('') || '<div class="planning-empty">Желаний пока нет</div>'}</div></article>`;
+  }
+  function wantsPage(){
+    return `<section class="planning-summary"><div class="mini-box"><div class="small muted">Хотелки</div><div class="value sm">${state.wants.length}</div><div class="small muted">быстрые идеи</div></div><div class="mini-box"><div class="small muted">С бюджетом</div><div class="value sm">${money(state.wants.filter(x=>x.includeInBudget!==false).reduce((s,x)=>s+num(x.amount),0))}</div><div class="small muted">если захочешь включить</div></div><div class="mini-box"><div class="small muted">Можно позже</div><div class="value sm">${state.wants.filter(x=>(x.importance||'')==='Можно позже').length}</div><div class="small muted">без давления</div></div><div class="mini-box"><div class="small muted">С картинкой</div><div class="value sm">${state.wants.filter(x=>x.image).length}</div><div class="small muted">для наглядности</div></div></section><article class="card"><div class="card-head"><div><h3>Хотелки</h3><p class="small muted">Небольшие приятные идеи. Работают по тому же принципу, что и покупки.</p></div><button class="btn" data-action="addWant">Добавить хотелку</button></div><div class="planning-card-grid">${state.wants.map(x=>planningPurchaseCard(x,'want')).join('') || '<div class="planning-empty">Хотелок пока нет</div>'}</div></article>`;
+  }
+  function customFolderPage(folder){
+    return `<article class="card"><div class="card-head"><div><h3>${esc(folder.name)}</h3><p class="small muted">Пользовательская папка. Название можно менять, а позже мы сможем отдельно наполнить её логикой.</p></div><button class="btn secondary" data-action="editPlanningFolder" data-id="${folder.id}">Переименовать</button></div><div class="planning-empty">Эта папка создана как отдельный раздел. Пока внутри пусто — можно использовать как заготовку под новый блок.</div></article>`;
+  }
+  function renderPlanningFolderPage(id){
+    const kind=folderKind(id);
+    if(kind==='focus') return focusPage();
+    if(kind==='areas') return areasPage();
+    if(kind==='priorities') return prioritiesPage();
+    if(kind==='deadlines') return deadlinesPage();
+    if(kind==='debts') return debtsFolderPage();
+    if(kind==='purchases') return purchasesPage();
+    if(kind==='wishes') return wishesPage();
+    if(kind==='wants') return wantsPage();
+    return customFolderPage(planningFolderById(id));
+  }
+  function folderToolbarButtons(id){
+    const kind=folderKind(id);
+    if(kind==='focus'||kind==='areas'||kind==='priorities'||kind==='deadlines') return `<button class="btn" data-action="addTask">Новая задача</button><button class="btn secondary" data-action="addEvent">Событие</button>`;
+    if(kind==='debts') return `<button class="btn" data-action="addDebt">Я должен</button><button class="btn secondary" data-action="addDebtIncoming">Мне должны</button>`;
+    if(kind==='purchases') return `<button class="btn" data-action="addPurchase">Новая покупка</button>`;
+    if(kind==='wishes') return `<button class="btn" data-action="addWish">Новое желание</button>`;
+    if(kind==='wants') return `<button class="btn" data-action="addWant">Новая хотелка</button>`;
+    return `<button class="btn secondary" data-action="editPlanningFolder" data-id="${id}">Редактировать папку</button>`;
+  }
+  function planningPage(){
+    ensurePlanningState();
+    const current=planningFolderById(state.settings.planningFolder||'focus');
+    return layout('Планирование','Папки слева. Каждая папка — отдельная страница со своим сценарием.',`
+      <section class="planning-shell">
+        <aside class="planning-side">
+          <div class="card-head" style="margin-bottom:8px"><h3>Папки планирования</h3><button class="btn secondary" data-action="addPlanningFolder">Новая папка</button></div>
+          <div class="planning-folders-list">${state.planningFolders.map(f=>`<button class="planning-folder-btn ${(state.settings.planningFolder===f.id)?'active':''}" data-action="setPlanningFolder" data-folder="${f.id}"><span class="ico">${esc(f.icon||'•')}</span><span><strong>${esc(f.name)}</strong><small>${folderCount(f.id)} записей</small></span><span class="count">${folderCount(f.id)}</span><span class="planning-rename" data-action="editPlanningFolder" data-id="${f.id}">✎</span></button>`).join('')}</div>
+          <div class="planning-side-note">Папки можно переименовывать. Покупки, желания и хотелки поддерживают дату, URL, картинку и флаг «в бюджет / вне бюджета».</div>
+        </aside>
+        <div class="planning-main">
+          <div class="planning-toolbar">
+            <div class="planning-folder-title"><div class="folder-badge">${esc(current.icon||'•')}</div><div><h2>${esc(current.name)}</h2><p>${esc(current.description||'Отдельный экран для этой папки')}</p></div></div>
+            <div class="planning-toolbar-actions">${folderToolbarButtons(current.id)}</div>
+          </div>
+          ${renderPlanningFolderPage(current.id)}
+        </div>
+      </section>`);
+  }
+
+  function planningPageInner(){ return `<div>${planningPage().replace(/^<div class="page">|<\/div>$/g,'')}</div>`; }
+
+  function normalizeWishLike(item){ return {id:item.id||uid(),title:item.title||'Новая запись',area:item.area||'Личное',category:item.category||'Без категории',amount:num(item.amount),date:item.date||'',importance:item.importance||'Важно',includeInBudget:item.includeInBudget!==false,url:item.url||'',image:item.image||'',note:item.note||''}; }
+  function openWishLikeModal(kind,item,id){
+    const title=kind==='wish'?'Желание':kind==='want'?'Хотелка':'Плановая покупка';
+    const saveAction=item?(kind==='wish'?'saveEditedWish':kind==='want'?'saveEditedWant':'saveEditedPurchase'):(kind==='wish'?'saveWish':kind==='want'?'saveWant':'savePurchase');
+    const obj=normalizeWishLike(item||{});
+    openModal(title,`<div class="form-grid">${field('Название','f_title',obj.title)}${field('Папка / сфера','f_area',obj.area)}${field('Категория','f_category',obj.category)}${field('Сумма','f_amount',obj.amount||'')}${field('Дата / день месяца','f_date',obj.date||todayKey(),'date')}<div class="field"><label>Важность</label><select id="f_importance"><option ${obj.importance==='Очень важно'?'selected':''}>Очень важно</option><option ${obj.importance==='Важно'?'selected':''}>Важно</option><option ${obj.importance==='Можно позже'?'selected':''}>Можно позже</option></select></div><div class="field"><label>Учитывать в бюджете</label><select id="f_include"><option value="true" ${obj.includeInBudget!==false?'selected':''}>Да</option><option value="false" ${obj.includeInBudget===false?'selected':''}>Нет</option></select></div>${field('URL ссылки','f_url',obj.url)}${field('URL картинки','f_image',obj.image)}${area('Комментарий','f_note',obj.note)}</div><div class="actions"><button class="btn" data-action="${saveAction}" ${id?`data-id="${id}"`:''}>Сохранить</button>${item?`<button class="btn secondary" data-action="${kind==='wish'?'deleteWish':kind==='want'?'deleteWant':'deletePurchase'}" data-id="${id}">Удалить</button>`:''}</div>`);
+  }
+  function collectWishLike(){ return normalizeWishLike({title:formVal('f_title'),area:formVal('f_area'),category:formVal('f_category'),amount:formVal('f_amount'),date:formVal('f_date'),importance:formVal('f_importance'),includeInBudget:formVal('f_include')!=='false',url:formVal('f_url'),image:formVal('f_image'),note:formVal('f_note')}); }
+  function addPurchase(){ openWishLikeModal('purchase'); }
+  function savePurchase(){ const p=collectWishLike(); p.month=(p.date||todayKey()).slice(0,7); state.plannedPurchases.unshift(p); save(true); closeModal(); render(); }
+  function editPurchase(id){ const p=state.plannedPurchases.find(x=>x.id===id); if(p) openWishLikeModal('purchase',p,id); }
+  function saveEditedPurchase(id){ const p=state.plannedPurchases.find(x=>x.id===id); if(p){ Object.assign(p,collectWishLike()); p.month=(p.date||todayKey()).slice(0,7); } save(true); closeModal(); render(); }
+  function deletePurchase(id){ state.plannedPurchases=state.plannedPurchases.filter(x=>x.id!==id); save(true); closeModal(); render(); }
+
+  function addWish(){ openWishLikeModal('wish'); }
+  function saveWish(){ state.wishes.unshift(collectWishLike()); save(true); closeModal(); render(); }
+  function editWish(id){ const p=state.wishes.find(x=>x.id===id); if(p) openWishLikeModal('wish',p,id); }
+  function saveEditedWish(id){ const p=state.wishes.find(x=>x.id===id); if(p) Object.assign(p,collectWishLike()); save(true); closeModal(); render(); }
+  function deleteWish(id){ state.wishes=state.wishes.filter(x=>x.id!==id); save(true); closeModal(); render(); }
+
+  function addWant(){ openWishLikeModal('want'); }
+  function saveWant(){ state.wants.unshift(collectWishLike()); save(true); closeModal(); render(); }
+  function editWant(id){ const p=state.wants.find(x=>x.id===id); if(p) openWishLikeModal('want',p,id); }
+  function saveEditedWant(id){ const p=state.wants.find(x=>x.id===id); if(p) Object.assign(p,collectWishLike()); save(true); closeModal(); render(); }
+  function deleteWant(id){ state.wants=state.wants.filter(x=>x.id!==id); save(true); closeModal(); render(); }
+
+  function addDebtIncoming(){ openModal('Мне должны',`<div class="form-grid">${field('Кто должен','f_person')}${field('Сумма','f_amount')}${field('Дата возврата','f_due',todayKey(),'date')}${field('Комментарий','f_note')}</div><div class="actions"><button class="btn" data-action="saveDebtIncoming">Сохранить</button></div>`); }
+  function saveDebtIncoming(){ state.debts.unshift({id:uid(),person:formVal('f_person')||'Новый долг',amount:num(formVal('f_amount')),due:formVal('f_due')||todayKey(),note:formVal('f_note'),direction:'incoming',status:'Активен'}); save(true); closeModal(); render(); }
+  function addDebt(){ openModal('Я должен',`<div class="form-grid">${field('Кому / что','f_person')}${field('Сумма','f_amount')}${field('Когда отдать','f_due',todayKey(),'date')}${field('Комментарий','f_note')}</div><div class="actions"><button class="btn" data-action="saveDebt">Сохранить</button></div>`); }
+  function saveDebt(){ state.debts.unshift({id:uid(),person:formVal('f_person')||'Новый долг',amount:num(formVal('f_amount')),due:formVal('f_due')||todayKey(),note:formVal('f_note'),direction:'outgoing',status:'Активен'}); save(true); closeModal(); render(); }
+  function editDebt(id){ const d=state.debts.find(x=>x.id===id); if(!d) return; openModal('Редактировать долг',`<div class="form-grid">${field('Кто / что','f_person',d.person)}${field('Сумма','f_amount',d.amount)}${field('Дата','f_due',d.due,'date')}<div class="field"><label>Направление</label><select id="f_direction"><option value="outgoing" ${(d.direction||'outgoing')==='outgoing'?'selected':''}>Я должен</option><option value="incoming" ${(d.direction||'outgoing')==='incoming'?'selected':''}>Мне должны</option></select></div>${area('Комментарий','f_note',d.note||'')}</div><div class="actions"><button class="btn" data-action="saveEditedDebt" data-id="${id}">Сохранить</button></div>`); }
+  function saveEditedDebt(id){ const d=state.debts.find(x=>x.id===id); if(d){ d.person=formVal('f_person'); d.amount=num(formVal('f_amount')); d.due=formVal('f_due'); d.direction=formVal('f_direction')||'outgoing'; d.note=formVal('f_note'); } save(true); closeModal(); render(); }
+  function closeDebt(id){ const d=state.debts.find(x=>x.id===id); if(d) d.status='Закрыт'; save(true); render(); }
+
+  function debtTask(id){ const d=state.debts.find(x=>x.id===id); if(!d) return; state.tasks.unshift({id:uid(),title:`${(d.direction||'outgoing')==='outgoing'?'Оплатить':'Напомнить о возврате'}: ${d.person} — ${money(d.amount)}`,area:'Финансы',due:d.due||todayKey(),time:'10:00',priority:d.due&&d.due<todayKey()?'A':'B',status:'В работе'}); save(true); render(); toast('Напоминание добавлено в планирование'); }
+
+  function addPlanningFolder(){ openModal('Новая папка планирования',`<div class="form-grid">${field('Название папки','f_name')}${field('Иконка / символ','f_icon','✦')}${area('Короткое описание','f_note')}</div><div class="actions"><button class="btn" data-action="savePlanningFolder">Создать</button></div>`); }
+  function savePlanningFolder(){ const item={id:uid(),name:formVal('f_name')||'Новая папка',icon:formVal('f_icon')||'✦',kind:'custom',description:formVal('f_note')||''}; if(!Array.isArray(state.planningFoldersCustom)) state.planningFoldersCustom=[]; state.planningFoldersCustom.push(item); state.settings.planningFolder=item.id; save(true); closeModal(); render(); }
+  function editPlanningFolder(id){ const f=planningFolderById(id); if(!f) return; const isCustom=!planningFolderDefaults().some(x=>x.id===id); openModal('Папка планирования',`<div class="form-grid">${field('Название папки','f_name',f.name)}${field('Иконка / символ','f_icon',f.icon||'✦')}${area('Описание','f_note',f.description||'')}</div><div class="actions"><button class="btn" data-action="saveEditedPlanningFolder" data-id="${id}">Сохранить</button>${isCustom?`<button class="btn secondary" data-action="deletePlanningFolder" data-id="${id}">Удалить</button>`:''}</div>`); }
+  function saveEditedPlanningFolder(id){ ensurePlanningState(); const found=(state.planningFoldersCustom||[]).find(x=>x.id===id) || (state.planningFolders||[]).find(x=>x.id===id); if(found){ found.name=formVal('f_name'); found.icon=formVal('f_icon')||found.icon; found.description=formVal('f_note'); } if(Array.isArray(state.planningFoldersCustom)) state.planningFoldersCustom=state.planningFoldersCustom.map(x=>x.id===id?found||x:x); save(true); closeModal(); render(); }
+  function deletePlanningFolder(id){ state.planningFoldersCustom=(state.planningFoldersCustom||[]).filter(x=>x.id!==id); if(state.settings.planningFolder===id) state.settings.planningFolder='focus'; save(true); closeModal(); render(); }
+  function setPlanningFolderAction(){ setPlanningFolder(this.dataset.folder); }
+
+  function goPlanningFolder(folder){ page='planning'; location.hash='planning'; state.settings.planningFolder=folder; save(); render(); }
+
+  function openProfileTools(){
+    openModal('Профиль и сервисные инструменты',`<div class="profile-tools-grid"><button class="profile-tool" data-go="import">Импорт банка<small>Скрыт из бокового меню, но доступен здесь</small></button><button class="profile-tool" data-go="diagnostics">Диагностика<small>Техническая информация и резервные действия</small></button><button class="profile-tool" data-action="exportData">Экспорт данных<small>Скачать резервную копию</small></button><button class="profile-tool" data-action="snapshot">Снимок<small>Сохранить текущее состояние</small></button><button class="profile-tool" data-action="clearCaches">Очистить кэш<small>Использовать только если нужно обновление</small></button><button class="profile-tool" data-action="closeModal">Закрыть<small>Вернуться в приложение</small></button></div>`);
+  }
+
+  function financePage(){
+    ensurePlanningState();
+    const s=summary(); const diff=s.actual-s.calcBalance;
+    const outgoing=activeDebts().filter(d=>(d.direction||'outgoing')==='outgoing');
+    const incoming=activeDebts().filter(d=>(d.direction||'outgoing')==='incoming');
+    return layout('Финансы','Факт, категории, операции и долги. Импорт и диагностика спрятаны в профиле.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${hasActualBalance()?money(s.actual):'Не внесён'}</div><p class="muted small">Основной показатель. Вносится вручную после импорта банка.</p><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${s.toNext<0?'red':'blue'}">${money(s.toNext)}</div><p class="muted small">до ${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</p></article><article class="card"><h3>Расхождение</h3><div class="value sm ${Math.abs(diff)>0?'amber':'green'}">${money(diff)}</div><p class="muted small">факт минус расчёт</p>${discrepancyDetails()}</article>${safetyFundCard()}</section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Долги как папка</h3><button class="btn secondary" data-action="openPlanningDebts">Открыть папку</button></div><div class="planning-kpi"><div class="mini-box"><div class="small muted">Я должен</div><div class="value sm red">${money(total(outgoing))}</div></div><div class="mini-box"><div class="small muted">Мне должны</div><div class="value sm green">${money(total(incoming))}</div></div></div><div class="actions"><button class="mini-btn blue" data-action="addDebt">Добавить мой долг</button><button class="mini-btn blue" data-action="addDebtIncoming">Добавить входящий</button></div></article><article class="card"><div class="card-head"><h3>Категории доходов/расходов</h3><button class="btn secondary" data-action="addCategory">Категория</button></div><div class="note-list">${state.categories.map(c=>`<div class="list-row"><span class="pill ${c.type==='income'?'green':'blue'}">${c.type==='income'?'Доход':'Расход'}</span><div><div class="row-title">${esc(c.name)}</div><div class="row-sub">Лимит: ${c.limit?money(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${c.id}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${c.id}">Удалить</button></div></div>`).join('')}</div></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Операции</h3><div class="button-row"><button class="btn secondary" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button></div></div><div class="op-list">${state.operations.slice(0,12).map(rowOperation).join('')}</div></article><article class="card"><div class="card-head"><h3>Финансовые принципы</h3><span class="pill blue">без перегруза</span></div>${financePrinciples()}</article></section>`);
+  }
+
+  function renderNav(){
+    const safeNav=navItems.filter(x=>!['import','diagnostics'].includes(x[0]));
+    $('#sidebarNav').innerHTML=`<div class="nav-label">Навигация</div>`+safeNav.map(([id,ico,label])=>`<button class="nav-btn ${page===id?'active':''}" data-go="${id}"><span class="nav-ico">${ico}</span>${label}</button>`).join('');
+    $('#bottomNav').innerHTML=mobileItems.map(([id,ico,label])=>`<button class="${page===id?'active':''}" data-go="${id}"><i>${ico}</i>${label}</button>`).join('');
+    const settingsBtn=document.querySelector('.top-actions .icon-btn:last-of-type');
+    if(settingsBtn){ settingsBtn.removeAttribute('data-go'); settingsBtn.setAttribute('data-action','openProfileTools'); }
+  }
+
+  function openPlanningDebts(){ goPlanningFolder('debts_folder'); }
+
+  const prevRender=render;
+  render=function(){ ensurePlanningState(); renderNav(); const map={dashboard,finance:financePage,budget:budgetPage,goals:goalsPage,planning:planningPage,spheres:spheresPage,habits:habitsPage,debts:debtsPage,trips:tripsPage,import:importPage,diagnostics:diagnosticsPage}; $('#view').innerHTML=(map[page]||dashboard)(); };
+
+  Object.assign(windowActions,{planningPage,planningPageInner,addPurchase,savePurchase,editPurchase,saveEditedPurchase,deletePurchase,addWish,saveWish,editWish,saveEditedWish,deleteWish,addWant,saveWant,editWant,saveEditedWant,deleteWant,addDebt,saveDebt,editDebt,saveEditedDebt,closeDebt,debtTask,addDebtIncoming,saveDebtIncoming,addPlanningFolder,savePlanningFolder,editPlanningFolder,saveEditedPlanningFolder,deletePlanningFolder,setPlanningFolder:setPlanningFolderAction,openProfileTools,openPlanningDebts});
+
+  try{ ensurePlanningState(); save(); render(); }catch(e){ console.error(e); }
+})();
+
+/* ===== Minor routing helpers for profile tools ===== */
+(function(){
+  function goImportPage(){ closeModal(); go('import'); }
+  function goDiagnosticsPage(){ closeModal(); go('diagnostics'); }
+  function openProfileTools(){
+    openModal('Профиль и сервисные инструменты',`<div class="profile-tools-grid"><button class="profile-tool" data-action="goImportPage">Импорт банка<small>Скрыт из бокового меню, но доступен здесь</small></button><button class="profile-tool" data-action="goDiagnosticsPage">Диагностика<small>Техническая информация и резервные действия</small></button><button class="profile-tool" data-action="exportData">Экспорт данных<small>Скачать резервную копию</small></button><button class="profile-tool" data-action="snapshot">Снимок<small>Сохранить текущее состояние</small></button><button class="profile-tool" data-action="clearCaches">Очистить кэш<small>Использовать только если нужно обновление</small></button><button class="profile-tool" data-action="closeModal">Закрыть<small>Вернуться в приложение</small></button></div>`);
+  }
+  Object.assign(windowActions,{goImportPage,goDiagnosticsPage,openProfileTools});
+})();
