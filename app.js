@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v29-calendar-force-update-20260701';
+const BUILD='second-brain-space-v30-buttons-router-fix-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -191,8 +191,59 @@ function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'
 function restoreSections(){state.settings.hiddenSections=[];save();closeModal();render()}
 async function clearCache(){try{if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}if('caches'in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}toast('Кэш очищен')}catch(e){toast('Не удалось очистить кэш')}}
 function render(){state=normalize(state);save();const map={dashboard,finance:financePage,debts:debtsPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,archive:archivePage};renderShell((map[page]||dashboard)())}
-window.addEventListener('click',e=>{const goEl=e.target.closest('[data-go]');const act=e.target.closest('[data-action]');if(act){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();const actions={closeModal:()=>closeModal(),openQuick:()=>openQuick(),openRecordForm:()=>openRecordForm(act.dataset.type,act.dataset.id),editRecord:()=>openRecordForm(act.dataset.type,act.dataset.id),saveRecord:()=>saveRecord(act),deleteRecord:()=>deleteRecord(act),openDebtOut:()=>openDebtOut(),openDebtIn:()=>openDebtIn(),closeDebt:()=>closeDebt(act),debtReminder:()=>debtReminder(act),toggleHabitDay:()=>toggleHabitDay(act),setHabitRange:()=>setHabitRange(act),setPlanningFolder:()=>setPlanningFolder(act),setFinancePeriod:()=>setFinancePeriod(act),setActualBalance:()=>setActualBalance(),saveActualBalance:()=>saveActualBalance(),googleTask:()=>googleTask(act),createTaskReminder:()=>createTaskReminder(act),createGoalWeeklyTask:()=>createGoalWeeklyTask(act),addFinancialGoal:()=>addFinancialGoal(),dedupePurchases:()=>dedupePurchases(),importBankCsv:()=>importBankCsv(),capture:()=>capture(act),renameSection:()=>renameSection(act),saveSectionName:()=>saveSectionName(act),hideSection:()=>hideSection(act),openAddFolder:()=>openAddFolder(),openProfileTools:()=>openProfileTools(),exportData:()=>exportData(),restoreSections:()=>restoreSections(),clearCache:()=>clearCache()};if(actions[act.dataset.action])return actions[act.dataset.action]();}
- if(goEl){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return go(goEl.dataset.go)}
+/* V30: stable click router. It handles known buttons and lets later module routers handle their own actions. */
+window.addEventListener('click',e=>{
+ const goEl=e.target.closest('[data-go]');
+ const act=e.target.closest('[data-action]');
+ if(act){
+   const actions={
+    closeModal:()=>closeModal(),
+    openQuick:()=>openQuick(),
+    openRecordForm:()=>openRecordForm(act.dataset.type,act.dataset.id),
+    editRecord:()=>openRecordForm(act.dataset.type,act.dataset.id),
+    saveRecord:()=>saveRecord(act),
+    deleteRecord:()=>deleteRecord(act),
+    openDebtOut:()=>openDebtOut(),
+    openDebtIn:()=>openDebtIn(),
+    closeDebt:()=>closeDebt(act),
+    debtReminder:()=>debtReminder(act),
+    toggleHabitDay:()=>toggleHabitDay(act),
+    setHabitRange:()=>setHabitRange(act),
+    setPlanningFolder:()=>setPlanningFolder(act),
+    setFinancePeriod:()=>setFinancePeriod(act),
+    setActualBalance:()=>setActualBalance(),
+    saveActualBalance:()=>saveActualBalance(),
+    googleTask:()=>googleTask(act),
+    createTaskReminder:()=>createTaskReminder(act),
+    createGoalWeeklyTask:()=>createGoalWeeklyTask(act),
+    addFinancialGoal:()=>addFinancialGoal(),
+    dedupePurchases:()=>dedupePurchases(),
+    importBankCsv:()=>importBankCsv(),
+    capture:()=>capture(act),
+    renameSection:()=>renameSection(act),
+    saveSectionName:()=>saveSectionName(act),
+    hideSection:()=>hideSection(act),
+    openAddFolder:()=>openAddFolder(),
+    openProfileTools:()=>openProfileTools(),
+    exportData:()=>exportData(),
+    restoreSections:()=>restoreSections(),
+    clearCache:()=>clearCache()
+   };
+   const fn=actions[act.dataset.action];
+   if(fn){
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    try{return fn()}catch(err){console.error(err);toast('Ошибка кнопки: '+(err.message||err));return}
+   }
+   // Unknown module action: do not block it. Calendar/Polina/module-specific routers handle it below.
+ }
+ if(goEl){
+   e.preventDefault();
+   e.stopPropagation();
+   e.stopImmediatePropagation();
+   return go(goEl.dataset.go);
+ }
 },true);
 
 try{document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',BUILD);render()}catch(e){document.body.innerHTML='<pre style="padding:24px">Ошибка Second Brain OS\n'+String(e.stack||e)+'</pre>';throw e}
@@ -717,7 +768,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 /* ===== V28 Space Calendar: events, reminders, load, Google Calendar ===== */
 (function(){
-  const V28_BUILD='second-brain-space-v29-calendar-force-update-20260701';
+  const V28_BUILD='second-brain-space-v30-buttons-router-fix-20260701';
   try{ localStorage.setItem('secondBrainOS.currentBuild',V28_BUILD); }catch(e){}
 
   function ensureCalendarV28(){
@@ -936,7 +987,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     save();
     const map={dashboard,finance:financePage,debts:debtsPage,calendar:calendarPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
     renderShell((map[page]||dashboard)());
-    const v=document.querySelector('.version'); if(v) v.textContent='V29 · КАЛЕНДАРЬ · FORCE UPDATE';
+    const v=document.querySelector('.version'); if(v) v.textContent='V30 · КНОПКИ РАБОТАЮТ';
   };
 
   window.addEventListener('click',e=>{
