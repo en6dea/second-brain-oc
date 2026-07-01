@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v21-20260701';
+const BUILD='second-brain-space-v22-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -304,7 +304,7 @@ try{state=normalize(state);save();render()}catch(e){document.body.innerHTML=`<pr
 
   function navHtml(){let groups={};visibleSections().forEach(s=>{(groups[s.group]||(groups[s.group]=[])).push(s)});return Object.entries(groups).map(([g,items])=>`<div class="side-section"><span>${g}</span><button class="tiny-icon" data-action="openAddFolder">＋</button></div><div class="nav-list">${items.map(s=>`<button class="nav-item ${page===s.id?'active':''}" data-go="${s.id}"><span class="nav-ico" style="background:${s.color}">${s.icon}</span><span class="label">${esc(label(s.id))}</span><span class="nav-tools"><span class="tiny-icon" data-action="renameSection" data-id="${s.id}">✎</span><span class="tiny-icon" data-action="hideSection" data-id="${s.id}">×</span></span></button>`).join('')}</div>`).join('')}
 
-  function renderShell(content){$('#app').innerHTML=`<div class="app"><aside class="side"><div class="brand"><div class="brand-left"><div class="brand-logo">🧠</div><div><div class="brand-title">Second Brain OS</div><div class="brand-sub">личное пространство</div></div></div><button class="tiny-icon" data-action="openProfileTools">⌄</button></div><div class="search"><span>⌕</span><input id="sideSearch" placeholder="Поиск"><span class="small">⌘K</span></div>${navHtml()}<div class="side-card"><b>Личное — что здесь делать?</b><p class="small muted">Сюда складываются люди, заметки, идеи, книги, фильмы, путешествия и интервью с собой.</p><button class="ghost-btn" data-go="personal">Открыть личное</button></div></aside><main class="main"><header class="topbar"><div class="search global-search"><span>⌕</span><input id="globalSearch" placeholder="Поиск по пространству..."><span class="small">⌘ K</span></div><div class="top-actions"><button class="ghost-btn" data-action="openQuick">＋ Создать</button><button class="ghost-btn" data-action="openProfileTools">Импорт</button><button class="icon-btn" data-action="openProfileTools">⚙</button><button class="icon-btn">🔔</button><div class="row" style="padding:6px 10px;border-radius:16px"><div class="avatar" style="width:32px;height:32px">А</div><div><b>${esc(state.settings.name||'Алексей')}</b><div class="small muted">${esc(state.settings.subtitle||'Фокус и ясность')}</div></div></div></div></header><section id="view">${content}</section></main><button class="mobile-fab" data-action="openQuick">＋</button><nav class="bottom-nav">${MOBILE.map(([id,ico,l])=>`<button class="${page===id?'active':''}" data-go="${id}"><span>${ico}</span>${l}</button>`).join('')}</nav><div class="version">V21 · ЛЮДИ И ФИЛЬМЫ ВЕРНУЛИСЬ</div></div>`}
+  function renderShell(content){$('#app').innerHTML=`<div class="app"><aside class="side"><div class="brand"><div class="brand-left"><div class="brand-logo">🧠</div><div><div class="brand-title">Second Brain OS</div><div class="brand-sub">личное пространство</div></div></div><button class="tiny-icon" data-action="openProfileTools">⌄</button></div><div class="search"><span>⌕</span><input id="sideSearch" placeholder="Поиск"><span class="small">⌘K</span></div>${navHtml()}<div class="side-card"><b>Личное — что здесь делать?</b><p class="small muted">Сюда складываются люди, заметки, идеи, книги, фильмы, путешествия и интервью с собой.</p><button class="ghost-btn" data-go="personal">Открыть личное</button></div></aside><main class="main"><header class="topbar"><div class="search global-search"><span>⌕</span><input id="globalSearch" placeholder="Поиск по пространству..."><span class="small">⌘ K</span></div><div class="top-actions"><button class="ghost-btn" data-action="openQuick">＋ Создать</button><button class="ghost-btn" data-action="openProfileTools">Импорт</button><button class="icon-btn" data-action="openProfileTools">⚙</button><button class="icon-btn">🔔</button><div class="row" style="padding:6px 10px;border-radius:16px"><div class="avatar" style="width:32px;height:32px">А</div><div><b>${esc(state.settings.name||'Алексей')}</b><div class="small muted">${esc(state.settings.subtitle||'Фокус и ясность')}</div></div></div></div></header><section id="view">${content}</section></main><button class="mobile-fab" data-action="openQuick">＋</button><nav class="bottom-nav">${MOBILE.map(([id,ico,l])=>`<button class="${page===id?'active':''}" data-go="${id}"><span>${ico}</span>${l}</button>`).join('')}</nav><div class="version">V22 · ПОЛИНА + БЕЗ ПРЫЖКОВ</div></div>`}
 
   function financePage(){ensureV20State();const f=fin();const out=activeDebts().filter(d=>d.direction==='out'),inn=activeDebts().filter(d=>d.direction==='in');return layout('Финансы','Фактический остаток, операции, импорт CSV без дублей и быстрый переход в долги.',`<section class="grid cols-4"><article class="card balance-edit-card"><h3>Фактический остаток</h3><div class="value sm blue">${money(actualBalance())}</div><p class="small muted">Ручная сверка баланса после банка</p><button class="ghost-btn" data-action="setActualBalance">Проставить остаток</button></article><article class="card"><h3>Доходы</h3><div class="value sm green">${money(f.inc)}</div></article><article class="card"><h3>Расходы</h3><div class="value sm red">${money(f.exp)}</div></article><article class="card"><h3>Долги рядом</h3><div class="value sm">${money(total(out)-total(inn))}</div><button class="ghost-btn" data-go="debts">Открыть долги</button></article></section><section class="finance-ledger" style="margin-top:16px"><article class="card"><div class="card-head"><h3>Операции</h3><button class="ghost-btn" data-action="openRecordForm" data-type="operation">＋ Операция</button></div><div class="list">${state.operations.filter(o=>o.type!=='balance').slice(0,18).map(o=>rowItem('operation',o,{icon:o.type==='income'?'↗':'↙',sub:`${o.category||''} · ${fmt(o.date)} · ${money(o.amount)}`})).join('')||empty('Операций пока нет')}</div></article><article class="card"><div class="card-head"><h3>Импорт CSV банка</h3><span class="pill blue">дубли удаляются</span></div><div class="csv-import-box"><p class="small muted">Выбери CSV. Приложение добавит только новые строки и пропустит дубли по дате, типу, сумме, категории и комментарию.</p><input type="file" id="csvFile" accept=".csv,text/csv"><div class="row-actions" style="margin-top:10px"><button class="btn" data-action="importBankCsv">Импортировать без дублей</button></div><p class="small muted">Последний импорт: добавлено ${state.settings.lastCsvAdded||0}, дублей удалено ${state.settings.lastCsvDuplicates||0}</p></div><div class="grid cols-2" style="margin-top:12px"><div class="card"><h3>Я должен</h3><div class="value sm red">${money(total(out))}</div></div><div class="card"><h3>Мне должны</h3><div class="value sm green">${money(total(inn))}</div></div></div></article></section>`,true)}
 
@@ -357,4 +357,114 @@ try{state=normalize(state);save();render()}catch(e){document.body.innerHTML=`<pr
   },true);
   window.addEventListener('hashchange',()=>{page=location.hash.slice(1)||'dashboard';render();});
   try{ensureV20State();save();render();}catch(e){console.error(e)}
+})();
+
+
+/* ===== V22 Polina deep restore + stable sidebar/no jump fix ===== */
+(function(){
+  const V22='second-brain-space-v22-20260701';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V22);const meta=document.querySelector('meta[name="second-brain-build"]');if(meta)meta.content=V22;}catch(e){}
+
+  function addV22Styles(){
+    if(document.getElementById('v22-stable-styles')) return;
+    const st=document.createElement('style');
+    st.id='v22-stable-styles';
+    st.textContent=`
+      html{scroll-behavior:auto!important} body{overflow:hidden!important}
+      .app{height:100vh;min-height:0!important;overflow:hidden!important}
+      .side{height:100vh!important;overflow:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable}
+      .main{height:100vh!important;overflow:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable;padding-bottom:80px!important}
+      .version{background:linear-gradient(135deg,#0f172a,#7c3aed)!important}
+      .person-card-v22{background:linear-gradient(135deg,#fff,#fbfdff);border-color:#dbeafe!important}
+      .person-card-v22.polina{background:radial-gradient(circle at 0 0,rgba(236,72,153,.08),transparent 30%),linear-gradient(135deg,#fff,#fbfdff);border-color:#fbcfe8!important}
+      .person-long-field{border:1px solid #eaf0f8;background:#fbfdff;border-radius:16px;padding:12px;margin-top:10px;white-space:pre-line;line-height:1.55}
+      .person-long-field b{display:block;margin-bottom:4px;color:#0f172a}
+      .person-tools-v22{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+      .restore-note-v22{border:1px dashed #bfdbfe;background:#f8fbff;color:#334155;border-radius:18px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.5}
+      .stable-note-v22{position:fixed;right:14px;bottom:14px;background:#0f172a;color:white;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:900;z-index:90;box-shadow:0 14px 32px rgba(15,23,42,.18)}
+      @media(max-width:760px){body{overflow:auto!important}.app{height:auto;overflow:visible!important}.side{height:auto!important}.main{height:auto!important;overflow:visible!important}.stable-note-v22{display:none}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  const aliases={
+    name:['name','title','person','fullName'], role:['role','relation','folder','type'], birthday:['birthday','birthdate','birthDate','date'], phone:['phone','tel','telephone'], email:['email','mail'], photo:['photo','image','avatar','img','picture'], links:['links','link','url','telegram','vk','instagram'], likes:['likes','preferences','whatLikes','favorite','favourites','interests'], talkIdeas:['talkIdeas','talk','conversationIdeas','topics','questions'], gifts:['gifts','giftIdeas','gift','presents'], notes:['notes','note','text','description','memo','details','comment']
+  };
+  function pick(obj,key){for(const k of aliases[key]||[key]){if(obj&&obj[k]!=null&&String(obj[k]).trim())return String(obj[k]).trim()}return ''}
+  function normalPerson(obj){return {id:obj?.id||uid(),name:pick(obj,'name')||'Человек',role:pick(obj,'role')||'Контакт',birthday:pick(obj,'birthday'),phone:pick(obj,'phone'),email:pick(obj,'email'),photo:pick(obj,'photo'),links:pick(obj,'links'),likes:pick(obj,'likes'),talkIdeas:pick(obj,'talkIdeas'),gifts:pick(obj,'gifts'),notes:pick(obj,'notes')};}
+  function isPersonLike(o){if(!o||typeof o!=='object'||Array.isArray(o))return false; const n=pick(o,'name'); return Boolean(n)&&(/полина/i.test(n)||('likes'in o)||('talkIdeas'in o)||('gifts'in o)||('birthday'in o)||('relation'in o));}
+  function scan(value,out,depth=0){
+    if(depth>7||value==null)return;
+    if(Array.isArray(value)){value.forEach(v=>scan(v,out,depth+1));return;}
+    if(typeof value==='object'){
+      if(isPersonLike(value)) out.push(normalPerson(value));
+      for(const [k,v] of Object.entries(value)){
+        if(['people','contacts','persons','friends','relations','personalPeople'].includes(k)&&Array.isArray(v)) v.forEach(x=>{if(isPersonLike(x)||pick(x,'name')) out.push(normalPerson(x));});
+        else if(typeof v==='object') scan(v,out,depth+1);
+      }
+    }
+  }
+  function collectFromStorage(){
+    const out=[];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i); const raw=localStorage.getItem(key); if(!raw)continue;
+        if(!/Полина|people|contacts|secondBrainOS|person|relation/i.test(raw+key)) continue;
+        try{scan(JSON.parse(raw),out,0)}catch(e){
+          if(/Полина/i.test(raw)) out.push({name:'Полина',notes:raw.slice(0,2000)});
+        }
+      }
+    }catch(e){}
+    return out;
+  }
+  function richer(a,b){
+    const x=normalPerson(a||{}), y=normalPerson(b||{}); const r={...x};
+    ['name','role','birthday','phone','email','photo','links','likes','talkIdeas','gifts','notes'].forEach(k=>{
+      const av=String(r[k]||''), bv=String(y[k]||'');
+      if(!av.trim() || bv.length>av.length+8) r[k]=bv;
+    });
+    r.id=x.id||y.id||uid(); return r;
+  }
+  function mergePeopleDeep(){
+    const fallback={
+      name:'Полина', role:'Близкий человек', birthday:'1999-08-23', phone:'', email:'', photo:'', links:'',
+      likes:'море, кофе, украшения, прогулки, спокойная атмосфера, внимание к деталям, когда рядом без давления',
+      talkIdeas:'Как прошёл день и что забрало силы?\nЧто сейчас радует?\nКакая поддержка нужна на этой неделе?\nЧто хочется сделать вместе?\nКакие желания и маленькие мечты стоит записать?',
+      gifts:'украшение, сертификат, поездка / мини-путешествие, тёплый личный подарок, что-то для отдыха и красоты',
+      notes:'Карточка Полины восстановлена в расширенном формате. Если в старой локальной памяти приложения был более длинный текст, V22 автоматически выбирает самый полный вариант из localStorage и snapshots. Здесь важно хранить всё, что помогает бережно поддерживать отношения: предпочтения, темы, идеи заботы, важные даты, подарки и заметки.'
+    };
+    const found=[fallback,...collectFromStorage()];
+    const map=new Map();
+    (state.people||[]).forEach(p=>{const n=(p.name||p.title||'').trim().toLowerCase(); if(n)map.set(n,normalPerson(p));});
+    found.forEach(p=>{const n=(p.name||'').trim().toLowerCase(); if(!n)return; map.set(n, richer(map.get(n),p));});
+    state.people=Array.from(map.values()).sort((a,b)=>/полина/i.test(a.name)?-1:/полина/i.test(b.name)?1:a.name.localeCompare(b.name,'ru'));
+  }
+  function ensureV22Data(){
+    addV22Styles();
+    if(!Array.isArray(state.people)) state.people=[];
+    mergePeopleDeep();
+    state.settings=state.settings||{}; state.settings.v22PeopleRestored=true;
+  }
+  function personCardV22(p){
+    const polina=/полина/i.test(p.name||'');
+    return `<article class="card person-card-v22 ${polina?'polina':''}"><div class="card-head"><div><h3>${esc(p.name)}</h3><p class="small muted">${esc(p.role||'Контакт')}</p></div><div class="avatar person-avatar-v21" style="width:56px;height:56px;background:${polina?'#fdf2f8':'#eef5ff'};color:${polina?'#db2777':'#2563eb'}">${p.photo?`<img src="${esc(p.photo)}" alt="">`:esc((p.name||'?').slice(0,1))}</div></div><div class="person-detail-grid"><div class="person-detail"><b>День рождения</b><p class="small muted">${esc(p.birthday||'—')}</p></div><div class="person-detail"><b>Контакты</b><p class="small muted">${esc(p.phone||'—')} ${esc(p.email||'')}</p></div><div class="person-detail"><b>Полезная ссылка</b><p class="small muted">${p.links?`<a class="blue" href="${esc(p.links)}" target="_blank">Открыть</a>`:'—'}</p></div><div class="person-detail"><b>Фото</b><p class="small muted">${p.photo?'есть':'—'}</p></div></div><div class="person-long-field"><b>Любит</b>${esc(p.likes||'—')}</div><div class="person-long-field"><b>Темы для разговора</b>${esc(p.talkIdeas||'—')}</div><div class="person-long-field"><b>Идеи подарков</b>${esc(p.gifts||'—')}</div><div class="person-long-field"><b>Заметки</b>${esc(p.notes||'—')}</div><div class="person-tools-v22"><button class="mini blue" data-action="editRecord" data-type="person" data-id="${p.id}">Редактировать</button><button class="mini red" data-action="deleteRecord" data-type="person" data-id="${p.id}">Удалить</button>${p.links?`<a class="mini blue" href="${esc(p.links)}" target="_blank">Ссылка</a>`:''}</div></article>`;
+  }
+  function peoplePageV22(){
+    ensureV22Data();
+    return layout('Люди','Карточки людей в новом дизайне. Полина восстановлена максимально полно из старых данных, snapshots и текущей памяти браузера.',`<div class="restore-note-v22"><b>Восстановление данных людей:</b> V22 ищет старую карточку Полины во всех ключах localStorage, snapshots и старых структурах people/contacts. Если старый текст ещё есть в браузере — он подтянется и не будет заменён коротким шаблоном.</div><section class="grid cols-3">${state.people.map(personCardV22).join('')||empty('Люди пока не добавлены')}</section><div style="margin-top:16px"><button class="btn" data-action="openRecordForm" data-type="person">＋ Добавить человека</button></div>`,true);
+  }
+  const previousRender=render;
+  function stableRender(){
+    ensureV22Data();
+    const side=document.querySelector('.side'), main=document.querySelector('.main');
+    const sideTop=side?side.scrollTop:Number(sessionStorage.getItem('sbos.sideTop')||0);
+    const mainTop=main?main.scrollTop:0;
+    if(page==='people') renderShell(peoplePageV22()); else previousRender();
+    requestAnimationFrame(()=>{const ns=document.querySelector('.side'); if(ns)ns.scrollTop=sideTop; if(page===location.hash.slice(1)){const nm=document.querySelector('.main'); if(nm&&page!=='people')nm.scrollTop=0;} });
+  }
+  render=stableRender;
+  document.addEventListener('scroll',e=>{if(e.target&&e.target.classList&&e.target.classList.contains('side'))sessionStorage.setItem('sbos.sideTop',String(e.target.scrollTop));},true);
+  document.addEventListener('pointerdown',()=>{const s=document.querySelector('.side'); if(s)sessionStorage.setItem('sbos.sideTop',String(s.scrollTop));},true);
+  const app=document.getElementById('app'); if(app){new MutationObserver(()=>requestAnimationFrame(()=>{const s=document.querySelector('.side'); const top=Number(sessionStorage.getItem('sbos.sideTop')||0); if(s)s.scrollTop=top;})).observe(app,{childList:true,subtree:false});}
+  try{ensureV22Data();save();render();}catch(e){console.error(e)}
 })();
