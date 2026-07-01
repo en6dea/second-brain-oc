@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v26-polina-cycle-calendar-20260701';
+const BUILD='second-brain-space-v29-calendar-force-update-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -717,7 +717,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 /* ===== V28 Space Calendar: events, reminders, load, Google Calendar ===== */
 (function(){
-  const V28_BUILD='second-brain-space-v28-calendar-events-20260701';
+  const V28_BUILD='second-brain-space-v29-calendar-force-update-20260701';
   try{ localStorage.setItem('secondBrainOS.currentBuild',V28_BUILD); }catch(e){}
 
   function ensureCalendarV28(){
@@ -887,7 +887,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   function calendarPage(){
     ensureCalendarV28(); ensureCalendarStylesV28();
     const selected=state.settings.calendarDate||today();
-    return layout('Календарь','События, напоминания, задачи и нагрузка по дням. Можно добавить запись в Google Calendar.',`
+    return layout('Календарь','События, напоминания, задачи и нагрузка по дням. Можно добавить запись в Google Calendar. V29 force update.',`
       ${calendarKpis()}
       <section class="calendar-v28-grid">
         <article class="card"><div class="card-head"><div><h3>Календарь месяца</h3><p class="small muted">Цвет и заполнение показывают нагрузку дня.</p></div><div class="row-actions"><button class="ghost-btn" data-action="openRecordForm" data-type="event">＋ Событие</button><button class="ghost-btn" data-action="openRecordForm" data-type="task">＋ Задача</button></div></div>${calendarMonthGrid()}</article>
@@ -936,7 +936,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     save();
     const map={dashboard,finance:financePage,debts:debtsPage,calendar:calendarPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
     renderShell((map[page]||dashboard)());
-    const v=document.querySelector('.version'); if(v) v.textContent='V28 · КАЛЕНДАРЬ СОБЫТИЙ И НАПОМИНАНИЙ';
+    const v=document.querySelector('.version'); if(v) v.textContent='V29 · КАЛЕНДАРЬ · FORCE UPDATE';
   };
 
   window.addEventListener('click',e=>{
