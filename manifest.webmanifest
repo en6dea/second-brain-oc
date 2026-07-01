@@ -3,8 +3,8 @@
   "short_name": "Second Brain OS",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f4f9ff",
-  "theme_color": "#2563eb",
+  "background_color": "#f7f9fd",
+  "theme_color": "#f7f9fd",
   "icons": [
     {
       "src": "icon-192.png",
@@ -15,6 +15,12 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
