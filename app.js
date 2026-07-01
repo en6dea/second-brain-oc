@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v25-planning-finance-fixes-20260701';
+const BUILD='second-brain-space-v26-polina-cycle-calendar-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -269,3 +269,180 @@ function deleteRecord(el){const type=el.dataset.type,id=el.dataset.id,s=schemas[
 function render(){state=normalize(state);if(state.purchases.length>1)state.purchases=dedupeBy(state.purchases,purchaseKey);save();const map={dashboard,finance:financePage,debts:debtsPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,archive:archivePage};renderShell((map[page]||dashboard)())}
 
 try{state=normalize(state);delete state.plannedPurchases;delete state.wants;state.purchases=dedupeBy(state.purchases,purchaseKey);save();render()}catch(e){console.error(e)}
+
+
+/* ===== V26 Polina personal calendar: cycle forecast + good/bad days, no medical advice ===== */
+(function(){
+  const V26_LABEL='V26 · ПОЛИНА · КАЛЕНДАРЬ И ОТКЛИК';
+  try{ localStorage.setItem('secondBrainOS.currentBuild','second-brain-space-v26-polina-cycle-calendar-20260701'); }catch(e){}
+
+  if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='polina')){
+    const idx=SECTIONS.findIndex(s=>s.id==='personal');
+    SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Полина',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
+  }
+
+  function ensurePolinaStyles(){
+    if(document.getElementById('polina-v26-style')) return;
+    const st=document.createElement('style');
+    st.id='polina-v26-style';
+    st.textContent=`
+      .polina-hero-card{background:linear-gradient(135deg,#fff,#fff7fb);border-color:#fbcfe8}
+      .polina-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+      .polina-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+      .polina-weekday{font-size:12px;font-weight:900;color:#64748b;text-align:center;padding:7px 0}
+      .polina-day{min-height:112px;border:1px solid #e7edf6;background:#fff;border-radius:20px;padding:10px;display:flex;flex-direction:column;gap:6px;text-align:left;box-shadow:0 8px 22px rgba(15,23,42,.035);transition:.18s ease;position:relative;overflow:hidden}
+      .polina-day:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 15px 35px rgba(15,23,42,.07)}
+      .polina-day.empty{opacity:.38;background:#f8fbff;box-shadow:none;cursor:default}
+      .polina-day.today{outline:2px solid #2563eb;outline-offset:-2px}
+      .polina-day.predicted{background:linear-gradient(135deg,#fff1f2,#fff7fb);border-color:#fecdd3}
+      .polina-day.period{background:linear-gradient(135deg,#ffe4e6,#fff1f2);border-color:#fb7185}
+      .polina-day.good{background:linear-gradient(135deg,#ecfdf5,#f8fffb);border-color:#86efac}
+      .polina-day.bad{background:linear-gradient(135deg,#fff1f2,#fff7f7);border-color:#fca5a5}
+      .polina-day.neutral{background:linear-gradient(135deg,#f8fbff,#fff);border-color:#bfdbfe}
+      .polina-day-num{font-weight:900;color:#0f172a;font-size:14px}
+      .polina-day-note{font-size:11px;color:#64748b;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+      .polina-chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+      .polina-chip{font-size:10px;font-weight:900;padding:4px 7px;border-radius:999px;border:1px solid #e5eaf2;background:#fff;color:#475569}
+      .polina-chip.predicted{background:#fff1f2;border-color:#fecdd3;color:#e11d48}
+      .polina-chip.period{background:#ffe4e6;border-color:#fb7185;color:#be123c}
+      .polina-chip.good{background:#dcfce7;border-color:#86efac;color:#15803d}
+      .polina-chip.bad{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
+      .polina-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+      .polina-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+      .polina-dot{width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px;vertical-align:middle}
+      .polina-timeline{display:grid;gap:10px}
+      .polina-note{border:1px dashed #fecdd3;background:#fff7fb;color:#9f1239;border-radius:18px;padding:12px;font-size:13px;line-height:1.45}
+      @media(max-width:1180px){.polina-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.polina-day{min-height:96px}}
+      @media(max-width:760px){.polina-kpi{grid-template-columns:1fr}.polina-calendar{gap:5px}.polina-day{min-height:80px;border-radius:14px;padding:7px}.polina-day-note{display:none}.polina-chip{font-size:9px;padding:3px 5px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  const previousNormalize = normalize;
+  normalize = function(raw){
+    const m=previousNormalize(raw);
+    m.settings=m.settings||{};
+    m.settings.polinaCycle={lastStart:'',cycleLength:28,duration:5,...(m.settings.polinaCycle||{})};
+    m.settings.polinaMonth=m.settings.polinaMonth||month();
+    if(!Array.isArray(m.polinaDays)) m.polinaDays=[];
+    m.polinaDays=dedupeBy(m.polinaDays.map(x=>({id:x.id||uid(),date:x.date||today(),mood:x.mood||'neutral',comment:x.comment||x.note||''})),x=>`${x.date}|${x.mood}|${String(x.comment||'').trim().toLowerCase()}`)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    return m;
+  };
+
+  function parseLocalDate(key){ const [y,m,d]=String(key).split('-').map(Number); return new Date(y,(m||1)-1,d||1); }
+  function monthTitle(key){ const [y,m]=String(key).split('-').map(Number); return new Date(y,(m||1)-1,1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}); }
+  function shiftMonthKey(key,delta){ const [y,m]=String(key).split('-').map(Number); const d=new Date(y,(m||1)-1+delta,1); return month(d); }
+  function datesInMonth(key){ const [y,m]=String(key).split('-').map(Number); const count=new Date(y,m,0).getDate(); return Array.from({length:count},(_,i)=>`${y}-${String(m).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`); }
+  function dayDiff(a,b){ return Math.floor((parseLocalDate(b)-parseLocalDate(a))/86400000); }
+  function cycleSettings(){ const c=state.settings.polinaCycle||{}; return {lastStart:c.lastStart||'',cycleLength:Math.max(20,num(c.cycleLength)||28),duration:Math.max(1,Math.min(10,num(c.duration)||5))}; }
+  function isPredictedPeriod(date){ const c=cycleSettings(); if(!c.lastStart) return false; const diff=dayDiff(c.lastStart,date); if(diff<0) return false; const rem=diff % c.cycleLength; return rem>=0 && rem<c.duration; }
+  function nextPredictedStart(){ const c=cycleSettings(); if(!c.lastStart) return ''; let d=parseLocalDate(c.lastStart); const now=parseLocalDate(today()); while(d<now) d=addDays(d,c.cycleLength); return iso(d); }
+  function dayEntry(date){ return (state.polinaDays||[]).find(x=>x.date===date); }
+  function moodTitle(mood){ return ({good:'Хороший день',bad:'Плохой день',neutral:'Нейтрально',period_start:'Начался период',period:'Месячные',period_end:'Период закончился'})[mood]||'Отклик'; }
+  function moodClass(mood){ return ({good:'good',bad:'bad',neutral:'neutral',period_start:'period',period:'period',period_end:'period'})[mood]||''; }
+  function polinaStats(){
+    const c=cycleSettings(), next=nextPredictedStart();
+    const good=state.polinaDays.filter(x=>x.mood==='good').length;
+    const bad=state.polinaDays.filter(x=>x.mood==='bad').length;
+    const last=state.polinaDays[0];
+    return {c,next,good,bad,last};
+  }
+  function polinaPage(){
+    ensurePolinaStyles();
+    const stats=polinaStats(), mk=state.settings.polinaMonth||month();
+    const days=datesInMonth(mk);
+    const first=parseLocalDate(`${mk}-01`).getDay();
+    const blanks=(first+6)%7;
+    const cells=[...Array(blanks).fill(null),...days];
+    const weeks=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    return layout('Полина','Личный раздел для бережного отклика: хорошие/плохие дни, комментарии и ориентировочный прогноз месячных от прошлого периода.',`
+      <section class="polina-kpi">
+        <article class="card polina-hero-card"><h3>Последний период</h3><div class="value sm">${stats.c.lastStart?fmt(stats.c.lastStart):'не указан'}</div><p class="small muted">можно изменить в настройках</p></article>
+        <article class="card"><h3>Следующий прогноз</h3><div class="value sm ${stats.next?'red':''}">${stats.next?fmt(stats.next):'—'}</div><p class="small muted">ориентировочно, не медицинский прогноз</p></article>
+        <article class="card"><h3>Хорошие дни</h3><div class="value sm green">${stats.good}</div><p class="small muted">отмечены зелёным</p></article>
+        <article class="card"><h3>Плохие дни</h3><div class="value sm red">${stats.bad}</div><p class="small muted">отмечены красным</p></article>
+      </section>
+      <section class="grid cols-2">
+        <article class="card" style="grid-column:span 2">
+          <div class="polina-toolbar">
+            <div><h3>Календарь Полины · ${esc(monthTitle(mk))}</h3><p class="small muted">Нажимай на день, чтобы поставить хороший/плохой день и короткий комментарий.</p></div>
+            <div class="row-actions"><button class="ghost-btn" onclick="setPolinaMonth(-1)">← Месяц</button><button class="ghost-btn" onclick="setPolinaMonth(0)">Сегодня</button><button class="ghost-btn" onclick="setPolinaMonth(1)">Месяц →</button><button class="btn" onclick="openPolinaCycle()">Настроить цикл</button></div>
+          </div>
+          <div class="polina-calendar">${weeks.map(w=>`<div class="polina-weekday">${w}</div>`).join('')}${cells.map(date=>polinaDayCell(date)).join('')}</div>
+          <div class="polina-legend"><span class="small muted"><i class="polina-dot" style="background:#fecdd3"></i>прогноз месячных</span><span class="small muted"><i class="polina-dot" style="background:#86efac"></i>хороший день</span><span class="small muted"><i class="polina-dot" style="background:#fca5a5"></i>плохой день</span><span class="small muted"><i class="polina-dot" style="background:#fb7185"></i>фактический период</span></div>
+        </article>
+      </section>
+      <section class="grid cols-2" style="margin-top:16px">
+        <article class="card"><div class="card-head"><h3>Отклик по дням</h3><button class="btn" onclick="openPolinaDay('${today()}')">＋ Отметить сегодня</button></div><div class="polina-timeline">${polinaTimeline()}</div></article>
+        <article class="card"><h3>Как использовать папку</h3><div class="polina-note">Эта папка — не медицинская диагностика, а личный календарь заботы. Отмечай настроение дня Полины, короткий комментарий, начало/дни периода и смотри ориентировочный прогноз следующего периода от прошлой даты. Красные дни — тяжёлые, зелёные — хорошие, розовые — прогноз месячных.</div><div class="actions"><button class="ghost-btn" onclick="markPolinaPeriodStart()">Отметить начало периода сегодня</button><button class="ghost-btn" onclick="openPolinaCycle()">Изменить прошлый период</button></div></article>
+      </section>`);
+  }
+  function polinaDayCell(date){
+    if(!date) return `<div class="polina-day empty"></div>`;
+    const e=dayEntry(date), predicted=isPredictedPeriod(date);
+    const cls=[date===today()?'today':'',predicted?'predicted':'',e?moodClass(e.mood):''].filter(Boolean).join(' ');
+    const chips=[];
+    if(predicted) chips.push(`<span class="polina-chip predicted">прогноз</span>`);
+    if(e) chips.push(`<span class="polina-chip ${moodClass(e.mood)}">${esc(moodTitle(e.mood))}</span>`);
+    return `<button class="polina-day ${cls}" onclick="openPolinaDay('${date}')"><span class="polina-day-num">${Number(date.slice(8,10))}</span>${e?.comment?`<span class="polina-day-note">${esc(e.comment)}</span>`:''}<span class="polina-chip-row">${chips.join('')}</span></button>`;
+  }
+  function polinaTimeline(){
+    const rows=(state.polinaDays||[]).slice(0,12);
+    if(!rows.length) return empty('Пока нет отметок. Нажми на день в календаре или «Отметить сегодня».');
+    return rows.map(x=>`<div class="row"><div class="avatar" style="background:${x.mood==='good'?'#dcfce7':x.mood==='bad'?'#fee2e2':'#fff1f2'}">${x.mood==='good'?'😊':x.mood==='bad'?'🧡':'🌸'}</div><div><div class="row-title">${fmt(x.date)} · ${esc(moodTitle(x.mood))}</div><div class="row-sub">${esc(x.comment||'без комментария')}</div></div><div class="row-actions"><button class="mini blue" onclick="openPolinaDay('${x.date}')">Ред.</button><button class="mini red" onclick="deletePolinaDay('${x.id}')">Удалить</button></div></div>`).join('');
+  }
+  window.openPolinaCycle=function(){
+    const c=cycleSettings();
+    openModal('Настройки цикла Полины',`<div class="form"><div class="field"><label>Дата начала прошлого периода</label><input id="pol_lastStart" type="date" value="${esc(c.lastStart)}"></div><div class="field"><label>Длина цикла, дней</label><input id="pol_cycleLength" type="number" value="${esc(c.cycleLength)}"></div><div class="field"><label>Длительность периода, дней</label><input id="pol_duration" type="number" value="${esc(c.duration)}"></div><div class="field span-2"><label>Комментарий</label><textarea disabled>Прогноз считается ориентировочно от прошлого периода. Это не медицинская рекомендация.</textarea></div></div><div class="row-actions" style="margin-top:14px"><button class="btn" onclick="savePolinaCycle()">Сохранить</button><button class="ghost-btn" onclick="closeModal()">Отмена</button></div>`);
+  };
+  window.savePolinaCycle=function(){
+    state.settings.polinaCycle={lastStart:$('#pol_lastStart')?.value||'',cycleLength:num($('#pol_cycleLength')?.value)||28,duration:num($('#pol_duration')?.value)||5};
+    save(); closeModal(); render(); toast('Настройки Полины сохранены');
+  };
+  window.openPolinaDay=function(date){
+    const found=dayEntry(date);
+    openModal(`Отклик Полины · ${fmt(date)}`,`<div class="form"><div class="field"><label>Дата</label><input id="pol_day_date" type="date" value="${esc(date)}"></div><div class="field"><label>Тип дня</label><select id="pol_day_mood"><option value="good" ${found?.mood==='good'?'selected':''}>Хороший день</option><option value="bad" ${found?.mood==='bad'?'selected':''}>Плохой день</option><option value="neutral" ${!found||found?.mood==='neutral'?'selected':''}>Нейтрально</option><option value="period_start" ${found?.mood==='period_start'?'selected':''}>Начался период</option><option value="period" ${found?.mood==='period'?'selected':''}>Месячные</option><option value="period_end" ${found?.mood==='period_end'?'selected':''}>Период закончился</option></select></div><div class="field span-2"><label>Краткий комментарий</label><textarea id="pol_day_comment" placeholder="Что было важного в этот день? Как лучше поддержать?">${esc(found?.comment||'')}</textarea></div></div><div class="row-actions" style="margin-top:14px"><button class="btn" onclick="savePolinaDay('${found?.id||''}')">Сохранить</button>${found?`<button class="btn red" onclick="deletePolinaDay('${found.id}')">Удалить</button>`:''}<button class="ghost-btn" onclick="closeModal()">Отмена</button></div>`);
+  };
+  window.savePolinaDay=function(id){
+    const date=$('#pol_day_date')?.value||today();
+    const mood=$('#pol_day_mood')?.value||'neutral';
+    const comment=$('#pol_day_comment')?.value||'';
+    const obj={id:id||uid(),date,mood,comment};
+    if(id) state.polinaDays=state.polinaDays.map(x=>x.id===id?obj:x); else {state.polinaDays=(state.polinaDays||[]).filter(x=>x.date!==date); state.polinaDays.unshift(obj);}
+    if(mood==='period_start') state.settings.polinaCycle={...cycleSettings(),lastStart:date};
+    state=normalize(state); save(); closeModal(); render(); toast('День Полины сохранён');
+  };
+  window.deletePolinaDay=function(id){
+    state.polinaDays=(state.polinaDays||[]).filter(x=>x.id!==id); save(); closeModal(); render(); toast('Отметка удалена');
+  };
+  window.setPolinaMonth=function(delta){
+    if(delta===0) state.settings.polinaMonth=month(); else state.settings.polinaMonth=shiftMonthKey(state.settings.polinaMonth||month(),delta);
+    save(); render();
+  };
+  window.markPolinaPeriodStart=function(){
+    state.settings.polinaCycle={...cycleSettings(),lastStart:today()};
+    const existing=dayEntry(today());
+    const obj={id:existing?.id||uid(),date:today(),mood:'period_start',comment:existing?.comment||'Отмечено начало периода'};
+    if(existing) state.polinaDays=state.polinaDays.map(x=>x.id===existing.id?obj:x); else state.polinaDays.unshift(obj);
+    save(); render(); toast('Начало периода отмечено');
+  };
+
+  const previousPersonalPage=personalPage;
+  personalPage=function(){
+    const folders=[['polina','Полина','🌸','#ec4899',(state.polinaDays||[]).length],['people','Люди','👥','#22c55e',state.people.length],['notes','Заметки','📝','#f59e0b',state.notes.length],['ideas','Идеи','💡','#eab308',state.ideas.length],['wishes','Желания','💗','#ec4899',state.wishes.length],['books','Книги','📚','#14b8a6',state.books.length],['films','Фильмы','🎬','#f97316',state.films.length],['trips','Путешествия','✈️','#38bdf8',state.trips.length],['documents','Документы','📄','#0ea5e9',state.documents.length]];
+    return layout('Личное','Личный раздел второго мозга: Полина, люди, память, идеи, книги, фильмы, желания, путешествия и документы.',`<section class="grid cols-3">${folders.map(([id,n,ico,c,count])=>`<button class="card" data-go="${id}" style="text-align:left;min-height:130px"><span class="avatar" style="background:${c};color:white">${ico}</span><h3 style="margin-top:10px">${n}</h3><p class="small muted">${count} записей</p><span class="pill blue">Открыть</span></button>`).join('')}</section><article class="card" style="margin-top:16px"><h3>Что делать в «Личном»</h3><p class="muted">Сюда складывай всё, что относится к тебе как к человеку: люди, предпочтения, важные даты, идеи подарков, заметки, книги, фильмы, желания, путешествия и личные выводы. Папка «Полина» — отдельный календарь отклика и заботы.</p></article>`);
+  };
+
+  render=function(){
+    ensurePolinaStyles();
+    state=normalize(state);
+    if(state.purchases?.length>1)state.purchases=dedupeBy(state.purchases,purchaseKey);
+    save();
+    const map={dashboard,finance:financePage,debts:debtsPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
+    renderShell((map[page]||dashboard)());
+    const v=$('.version'); if(v) v.textContent=V26_LABEL;
+  };
+
+  try{ state=normalize(state); save(); render(); }catch(e){console.error(e)}
+})();
