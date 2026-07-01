@@ -90,7 +90,7 @@
 /* Second Brain OS — compatibility copy. Main runtime is inline in index.html. */
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='folder-system-v2-diagnostics-visible-20260630';
+const BUILD='paged-sections-final-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const SNAPSHOT_KEY='secondBrainOS.snapshots';
 const META_KEY='secondBrainOS.meta';
@@ -2738,56 +2738,113 @@ window.budgetRow = budgetRow;
   try{setupV2(); injectV2Css(); render(); console.log('[Second Brain OS]',FOLDER_V2_BUILD)}catch(e){console.error('[folder system v2 init]',e)}
 })();
 
+
+
+/* ===== Paged Sections Final — folders first, content only on separate sheet ===== */
+(function(){
+  const BUILD_FINAL='paged-sections-final-20260701';
+  try{
+    window.SBOS_LATEST_BUILD=BUILD_FINAL;
+    localStorage.setItem('secondBrainOS.currentBuild',BUILD_FINAL);
+    localStorage.setItem('secondBrainOS.finalAddonBuild',BUILD_FINAL);
+    const meta=document.querySelector('meta[name="second-brain-build"]');
+    if(meta) meta.content=BUILD_FINAL;
+  }catch(e){}
+
+  const esc2=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+  const numF=v=>Number(String(v??'').replace(/\s/g,'').replace(',','.'))||0;
+  const rub2=v=>{try{return money(v)}catch(e){return Math.round(numF(v)).toLocaleString('ru-RU')+' ₽'}};
+  const arrF=k=>{ if(!window.state) return []; if(!Array.isArray(state[k])) state[k]=[]; return state[k]; };
+  const monF=()=>{try{return (state.settings&&state.settings.currentMonth)||monthKey()}catch(e){return new Date().toISOString().slice(0,7)}};
+  const todayF=()=>{try{return todayKey()}catch(e){return new Date().toISOString().slice(0,10)}};
+  function saveF(){try{save(true)}catch(e){try{localStorage.setItem(STORE_KEY,JSON.stringify(state))}catch(_){}}}
+  function ensureSheets(){state.settings=state.settings||{}; state.settings.pageSheets=state.settings.pageSheets||{finance:{folder:'',sub:''},budget:{folder:'',sub:''},debts:{folder:'',sub:''},goals:{folder:'',sub:''}}; ['finance','budget','debts','goals'].forEach(k=>state.settings.pageSheets[k]=state.settings.pageSheets[k]||{folder:'',sub:''});}
+  function getSheet(section){ensureSheets(); return state.settings.pageSheets[section]||{folder:'',sub:''};}
+  function setSheet(section,folder='',sub=''){ensureSheets(); state.settings.pageSheets[section]={folder:folder||'',sub:sub||''}; saveF(); render();}
+  function backSheet(section){const d=getSheet(section); if(d.sub) setSheet(section,d.folder,''); else setSheet(section,'','');}
+  function resetSheetsOnNav(target){ensureSheets(); if(state.settings.pageSheets[target]) state.settings.pageSheets[target]={folder:'',sub:''}; if((target==='planning'||target==='spheres')&&state.settings.fileExplorerV2) state.settings.fileExplorerV2[target]={folder:'',sub:''}; saveF();}
+
+  function monthName(m){try{return new Date(String(m||monF())+'-01T12:00:00').toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}catch(e){return m||monF()}}
+  function mAdd(m,add){const [y,mo]=String(m||monF()).split('-').map(Number); const d=new Date(y||new Date().getFullYear(),(mo||1)-1+add,1); return d.toISOString().slice(0,7)}
+  function catType(c){return String(c.type||c.kind||'expense').toLowerCase().includes('income')||/доход/i.test(c.type||'')?'income':'expense'}
+  function cats(filter){let c=arrF('categories'); if(filter==='expense') c=c.filter(x=>catType(x)==='expense'); if(filter==='income') c=c.filter(x=>catType(x)==='income'); if(filter==='limits') c=c.filter(x=>numF(x.limit)>0); if(filter==='nolimits') c=c.filter(x=>!numF(x.limit)); return c;}
+  function getDebtsAll(){try{return typeof activeDebts==='function'?activeDebts():arrF('debts').filter(d=>String(d.status||'Активен')!=='Закрыт')}catch(e){return arrF('debts')}}
+  function debtsFilter(filter){let d=getDebtsAll(); if(filter==='owe') d=d.filter(x=>(x.direction||'owe')==='owe'); if(filter==='owed') d=d.filter(x=>x.direction==='owed_to_me'); if(filter==='closed') d=arrF('debts').filter(x=>String(x.status||'')==='Закрыт'); if(filter==='soon') d=d.filter(x=>String(x.due||'')<=todayF()||String(x.due||'')<=dateIn(7)); return d;}
+  function dateIn(days){const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10);}
+  function plansAll(){
+    const out=[];
+    arrF('plannedPurchases').forEach(p=>{ const kind=String(p.kind||p.type||'Покупка'); const root=/виш|wish|хотел/i.test(kind)?'wishlist':/плат|обяз/i.test(kind)?'payments':/будущ/i.test(kind)?'future':'purchases'; out.push({id:p.id,title:p.title||'Пункт',amount:numF(p.amount),month:p.month||String(p.due||monF()).slice(0,7)||monF(),owner:p.owner||'Я',kind,category:p.category||'Без категории',include:p.includeInBudget!==false&&p.active!==false,image:p.image||'',link:p.link||'',raw:p,root});});
+    return out;
+  }
+  function monthPlans(m=monF()){return plansAll().filter(x=>x.include!==false&&String(x.month||'').slice(0,7)===m)}
+  function sum(list){return list.reduce((a,b)=>a+numF(b.amount),0)}
+  function opRows(filter){let ops=arrF('operations'); if(filter==='expense')ops=ops.filter(o=>String(o.type||'').toLowerCase().includes('expense')||/расход/i.test(o.type||'')); if(filter==='income')ops=ops.filter(o=>String(o.type||'').toLowerCase().includes('income')||/доход/i.test(o.type||'')); if(filter==='month')ops=ops.filter(o=>String(o.date||'').slice(0,7)===monF()); return ops;}
+  function goalsAll(){return arrF('goals').filter(g=>!/подуш/i.test(g.title||''));}
+  function goalFilter(filter){let g=goalsAll(); if(filter==='active')g=g.filter(x=>String(x.status||'Активна')!=='Готово'); if(filter==='finance')g=g.filter(x=>/финанс|деньг|зар|трейд|руб/i.test([x.title,x.s,x.specific,x.category].join(' '))); if(filter==='personal')g=g.filter(x=>!/финанс|деньг|зар|трейд|руб/i.test([x.title,x.s,x.specific,x.category].join(' '))); if(filter==='images')g=g.filter(x=>x.image); if(filter==='completed')g=g.filter(x=>String(x.status||'')==='Готово'); return g;}
+
+  function sheetHeader(section,title,sub){return `<section class="fs-header paged-head"><div>${title?`<button type="button" class="mini-btn" data-action="sheetBack" data-section="${esc2(section)}">← Назад</button>`:''}<h2>${esc2(title||section)}</h2><p>${esc2(sub||'')}</p></div>${title?`<div class="fs-breadcrumb">${esc2(rootName(section))} / <b>${esc2(title)}</b></div>`:''}</section>`;}
+  function rootName(section){return {finance:'Финансы',budget:'Бюджет',debts:'Долги',goals:'Цели SMART'}[section]||section}
+  function folderBtn(section,folder,title,ico,meta,desc,sub=''){return `<button type="button" class="fs-folder paged-folder" data-action="sheetOpen" data-section="${esc2(section)}" data-folder="${esc2(folder)}" data-sub="${esc2(sub)}"><span class="fs-tab"></span><span class="fs-icon">${esc2(ico||'▣')}</span><b>${esc2(title)}</b><small>${esc2(meta||'')}</small>${desc?`<em>${esc2(desc)}</em>`:''}</button>`;}
+  function rootFolders(section,title,subtitle,cards,top=''){return layout(title,subtitle,`${top}<section class="card paged-root"><div class="card-head"><div><h3>Папки</h3><p class="muted small">Сначала выбираешь папку. Записи откроются на отдельном листе.</p></div><span class="pill blue">страничный просмотр</span></div><div class="fs-grid paged-grid">${cards}</div></section>`)}
+  function subFolderPage(section,title,subtitle,cards){return layout(rootName(section)+' · '+title,'',sheetHeader(section,title,subtitle)+`<section class="card paged-root"><div class="card-head"><div><h3>${esc2(title)}</h3><p class="muted small">Внутри этой папки тоже только подпапки.</p></div></div><div class="fs-grid paged-grid">${cards}</div></section>`)}
+  function listPage(section,title,subtitle,body,addAction){return layout(rootName(section)+' · '+title,'',sheetHeader(section,title,subtitle)+`<section class="card paged-list-card"><div class="card-head"><div><h3>${esc2(title)}</h3><p class="muted small">Отдельный лист без лишних блоков.</p></div>${addAction?`<button class="btn secondary" data-action="${esc2(addAction)}">Добавить</button>`:''}</div>${body}</section>`)}
+  function emptyBox(t){try{return empty(t)}catch(e){return `<div class="empty">${esc2(t)}</div>`}}
+  function rowLite(kind,title,sub,action,id,extra=''){return `<div class="drill-row paged-row">${extra||`<span class="pill blue">${esc2(kind)}</span>`}<div class="drill-row-main"><div class="row-title">${esc2(title||'—')}</div><div class="row-sub">${esc2(sub||'')}</div></div>${action?`<button class="mini-btn" data-action="${esc2(action)}" data-id="${esc2(id||'')}">Открыть</button>`:''}</div>`}
+  function categoryRow(c){return `<div class="drill-row paged-row category-row"><span class="pill ${catType(c)==='income'?'green':'blue'}">${catType(c)==='income'?'Доход':'Расход'}</span><div class="drill-row-main"><div class="row-title">${esc2(c.name)}</div><div class="row-sub">Лимит: ${numF(c.limit)?rub2(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${esc2(c.id)}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${esc2(c.id)}">Удалить</button></div></div>`}
+  function budgetLimitRow(c){let spent=0; try{spent=arrF('operations').filter(o=>String(o.category||'')===String(c.name||'')&&String(o.date||'').slice(0,7)===monF()&&(String(o.type||'').toLowerCase().includes('expense')||/расход/i.test(o.type||''))).reduce((a,b)=>a+numF(b.amount),0)}catch(e){} const lim=numF(c.limit); const pct=lim?Math.round(spent/lim*100):0; return `<div class="mini-box paged-limit"><div class="stat-row"><strong>${esc2(c.name)}</strong><span class="pill ${pct>100?'red':pct>80?'amber':'blue'}">${pct}%</span></div><div class="small muted">${rub2(spent)} из ${lim?rub2(lim):'лимит не задан'}</div>${typeof progressBar==='function'?progressBar(pct,pct>100?'red':pct>80?'amber':'green'):''}<div class="actions"><button class="mini-btn" data-action="editCategory" data-id="${esc2(c.id)}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${esc2(c.id)}">Удалить</button></div></div>`}
+  function planRow(x){const img=x.image?`<img class="drill-img" src="${esc2(x.image)}" alt="">`:''; return `<div class="drill-row paged-row">${img}<div class="drill-row-main"><div><span class="pill violet">${esc2(x.kind)}</span> <span class="pill blue">${esc2(x.owner)}</span></div><div class="row-title">${esc2(x.title)}${x.amount?' · '+rub2(x.amount):''}</div><div class="row-sub">${esc2(x.month)} · ${esc2(x.category)}${x.include?' · в прогнозе':' · вне прогноза'}</div></div><button class="mini-btn" data-action="editPurchase" data-id="${esc2(x.id)}">Ред.</button></div>`}
+  function debtRow(d){try{if(typeof rowDebt==='function')return rowDebt(d)}catch(e){} return `<div class="drill-row paged-row"><span class="pill ${d.direction==='owed_to_me'?'green':'red'}">${d.direction==='owed_to_me'?'Мне должны':'Я должен'}</span><div class="drill-row-main"><div class="row-title">${esc2(d.person||'Долг')} · ${rub2(d.amount)}</div><div class="row-sub">срок: ${esc2(d.due||'—')} · ${esc2(d.status||'Активен')}</div></div><div class="button-row"><button class="mini-btn" data-action="editDebt" data-id="${esc2(d.id)}">Ред.</button><button class="mini-btn" data-action="closeDebt" data-id="${esc2(d.id)}">Закрыть</button></div></div>`}
+  function operationRow(o){try{if(typeof rowOperation==='function')return rowOperation(o)}catch(e){} return rowLite(o.type||'Операция',o.category||'',`${o.date||''} · ${rub2(o.amount)}`,'editOperation',o.id)}
+
+  function financePagePaged(){
+    const d=getSheet('finance'), s=(()=>{try{return summary()}catch(e){return {actual:0,toNext:0,nextSalary:{date:'',type:''}}}})();
+    if(!d.folder){
+      const top=`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${typeof hasActualBalance==='function'&&hasActualBalance()?rub2(s.actual):'Не внесён'}</div><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${s.toNext<0?'red':'blue'}">${rub2(s.toNext||0)}</div><p class="muted small">${esc2(s.nextSalary?.date||'')}</p></article><article class="card"><h3>План месяца</h3><div class="value sm">${rub2(sum(monthPlans()))}</div><p class="muted small">${esc2(monthName(monF()))}</p></article><article class="card"><h3>Активные долги</h3><div class="value sm">${getDebtsAll().length}</div><p class="muted small">отдельная папка</p></article></section>`;
+      const cards=[folderBtn('finance','operations','Операции','≡',`${arrF('operations').length} записей`,'расходы и доходы'),folderBtn('finance','categories','Категории доходов/расходов','▦',`${arrF('categories').length} категорий`,'внутри: расходы, доходы, лимиты'),folderBtn('finance','debts','Долги','▣',`${getDebtsAll().length} записей`,'переход к папке долгов'),folderBtn('finance','planned','Запланированные расходы','☷',rub2(sum(plansAll().filter(x=>x.include!==false))),'по месяцам'),folderBtn('finance','principles','Финансовые принципы','✦','памятка','без списка операций')].join('');
+      return rootFolders('finance','Финансы','Сводка сверху, всё детальное спрятано в папки.',cards,top)
+    }
+    if(d.folder==='categories'&&!d.sub){const cards=[folderBtn('finance','categories','Расходы','↘',`${cats('expense').length} категорий`,'только расходные категории','expense'),folderBtn('finance','categories','Доходы','↗',`${cats('income').length} категорий`,'только доходные категории','income'),folderBtn('finance','categories','С лимитом','◉',`${cats('limits').length} категорий`,'категории с месячным лимитом','limits'),folderBtn('finance','categories','Без лимита','○',`${cats('nolimits').length} категорий`,'категории без ограничения','nolimits')].join(''); return subFolderPage('finance','Категории','Выбери подпапку категорий.',cards)}
+    if(d.folder==='categories'){const list=cats(d.sub).map(categoryRow).join('')||emptyBox('Категорий нет'); return listPage('finance','Категории · '+({expense:'Расходы',income:'Доходы',limits:'С лимитом',nolimits:'Без лимита'}[d.sub]||'Все'),'Только выбранные категории.',`<div class="fs-list">${list}</div>`,'addCategory')}
+    if(d.folder==='operations'&&!d.sub){const cards=[folderBtn('finance','operations','Этот месяц','30',`${opRows('month').length} операций`,'операции текущего месяца','month'),folderBtn('finance','operations','Расходы','↘',`${opRows('expense').length} операций`,'только расходы','expense'),folderBtn('finance','operations','Доходы','↗',`${opRows('income').length} операций`,'только доходы','income'),folderBtn('finance','operations','Все операции','☷',`${arrF('operations').length} операций`,'полный список','all')].join(''); return subFolderPage('finance','Операции','Операции тоже разнесены по подпапкам.',cards)}
+    if(d.folder==='operations'){let list=d.sub==='all'?arrF('operations'):opRows(d.sub); return listPage('finance','Операции','Отдельный лист операций.',`<div class="op-list">${list.slice(0,120).map(operationRow).join('')||emptyBox('Операций нет')}</div>`,d.sub==='income'?'addIncome':'addExpense')}
+    if(d.folder==='debts'){return debtsPagePaged()}
+    if(d.folder==='planned') return listPage('finance','Запланированные расходы','План расходов по месяцам.',monthlyPlanBody(),'addPurchase');
+    if(d.folder==='principles') return listPage('finance','Финансовые принципы','Памятка без лишнего.',typeof financePrinciples==='function'?financePrinciples():emptyBox('Принципов пока нет'),'');
+    return financePagePaged();
+  }
+
+  function monthlyPlanBody(){const months=[monF(),mAdd(monF(),1),mAdd(monF(),2),mAdd(monF(),3)]; return `<div class="grid cols-4">${months.map(m=>{const rows=monthPlans(m); return `<article class="mini-box"><h3>${esc2(monthName(m))}</h3><div class="value sm">${rub2(sum(rows))}</div><p class="small muted">${rows.length} пунктов в прогнозе</p></article>`}).join('')}</div><div class="fs-list" style="margin-top:14px">${plansAll().filter(x=>x.include!==false).map(planRow).join('')||emptyBox('Плановых расходов нет')}</div>`}
+
+  function budgetPagePaged(){
+    const d=getSheet('budget'), s=(()=>{try{return summary()}catch(e){return {dailyLimit:0}}})();
+    if(!d.folder){const top=`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Можно тратить в день</h3><div class="value">${rub2(s.dailyLimit||0)}</div><p class="muted small">с учётом плана</p></article><article class="card"><h3>Запланировано</h3><div class="value sm">${rub2(sum(monthPlans()))}</div><p class="muted small">${esc2(monthName(monF()))}</p></article><article class="card"><h3>Лимиты</h3><div class="value sm">${cats('limits').length}</div><p class="muted small">отдельная папка</p></article><article class="card"><h3>Платежи</h3><div class="value sm">${rub2(sum(plansAll().filter(x=>x.root==='payments'&&x.include!==false&&x.month===monF())))}</div></article></section>`; const cards=[folderBtn('budget','limits','Лимиты по категориям','◉',`${cats('limits').length} лимитов`,'откроются отдельным листом'),folderBtn('budget','monthly','План расходов по месяцам','☷',rub2(sum(monthPlans())),'общий прогноз'),folderBtn('budget','wishlist','Вишлист','✦',`${plansAll().filter(x=>x.root==='wishlist').length} пунктов`,'желания с пометкой кому'),folderBtn('budget','payments','Платежи','₽',`${plansAll().filter(x=>x.root==='payments').length} пунктов`,'регулярные/обязательные'),folderBtn('budget','purchases','Покупки','◇',`${plansAll().filter(x=>x.root==='purchases').length} пунктов`,'покупки и картинки'),folderBtn('budget','chart','График трат','▥','по дням','отдельная страница')].join(''); return rootFolders('budget','Бюджет','На главной бюджета только сводка и папки.',cards,top)}
+    if(d.folder==='limits'){const body=`<div class="grid cols-2">${cats('limits').map(budgetLimitRow).join('')||emptyBox('Лимитов нет')}</div>`; return listPage('budget','Лимиты по категориям','Отдельный лист лимитов без длинной страницы бюджета.',body,'addCategory')}
+    if(d.folder==='monthly') return listPage('budget','План расходов по месяцам','Запланированная сумма расходов по месяцам.',monthlyPlanBody(),'addPurchase');
+    if(d.folder==='wishlist') return listPage('budget','Вишлист','Все хотелки/желания с пометкой кому.',`<div class="fs-list">${plansAll().filter(x=>x.root==='wishlist').map(planRow).join('')||emptyBox('Вишлист пуст')}</div>`,'addWishlistItem');
+    if(d.folder==='payments') return listPage('budget','Платежи','Обязательные платежи с пометкой кому.',`<div class="fs-list">${plansAll().filter(x=>x.root==='payments').map(planRow).join('')||emptyBox('Платежей нет')}</div>`,'addPaymentItem');
+    if(d.folder==='purchases') return listPage('budget','Покупки','Покупки и будущие траты.',`<div class="fs-list">${plansAll().filter(x=>x.root==='purchases'||x.root==='future').map(planRow).join('')||emptyBox('Покупок нет')}</div>`,'addPurchase');
+    if(d.folder==='chart') return listPage('budget','График трат по дням','Только аналитика по дням.',typeof renderDailySpendChart==='function'?renderDailySpendChart():emptyBox('Графика нет'),'');
+    return budgetPagePaged();
+  }
+
+  function debtsPagePaged(){const d=getSheet('debts'); if(!d.folder){const owe=debtsFilter('owe'), owed=debtsFilter('owed'), closed=debtsFilter('closed'); const cards=[folderBtn('debts','owe','Я должен','↘',rub2(owe.reduce((a,b)=>a+numF(b.amount),0)),'кому и когда вернуть'),folderBtn('debts','owed','Мне должны','↗',rub2(owed.reduce((a,b)=>a+numF(b.amount),0)),'кто должен мне'),folderBtn('debts','soon','Ближайшие сроки','●',`${debtsFilter('soon').length} записей`,'контроль сроков'),folderBtn('debts','closed','Закрытые','✓',`${closed.length} записей`,'архив долгов'),folderBtn('debts','all','Все долги','▣',`${getDebtsAll().length} записей`,'общий список')].join(''); return rootFolders('debts','Долги','Сначала папки, списки долгов открываются отдельно.',cards,`<section class="grid cols-3"><article class="card premium-hero-card"><h3>Я должен</h3><div class="value sm red">${rub2(owe.reduce((a,b)=>a+numF(b.amount),0))}</div><button class="btn" data-action="addDebt">Добавить</button></article><article class="card"><h3>Мне должны</h3><div class="value sm green">${rub2(owed.reduce((a,b)=>a+numF(b.amount),0))}</div></article><article class="card"><h3>Активных записей</h3><div class="value sm">${getDebtsAll().length}</div></article></section>`)} const list=debtsFilter(d.folder==='all'?'':d.folder); const title={owe:'Я должен',owed:'Мне должны',soon:'Ближайшие сроки',closed:'Закрытые',all:'Все долги'}[d.folder]||'Долги'; return listPage('debts',title,'Отдельный лист долгов.',`<div class="fs-list">${list.map(debtRow).join('')||emptyBox('Долгов нет')}</div>`,'addDebt')}
+
+  function goalsPagePaged(){const d=getSheet('goals'); if(!d.folder){const gs=goalsAll(); const cards=[folderBtn('goals','active','Активные цели','◎',`${goalFilter('active').length} целей`,'то, что сейчас в работе'),folderBtn('goals','finance','Финансовые цели','₽',`${goalFilter('finance').length} целей`,'деньги, доход, трейдинг'),folderBtn('goals','personal','Личные цели','♡',`${goalFilter('personal').length} целей`,'жизнь, развитие'),folderBtn('goals','images','С картинками','▧',`${goalFilter('images').length} целей`,'цели с визуалом'),folderBtn('goals','completed','Завершённые','✓',`${goalFilter('completed').length} целей`,'архив целей')].join(''); return rootFolders('goals','Цели SMART','Цели не простынёй: сначала папки, потом отдельный лист.',cards,`<section class="grid cols-3"><article class="card premium-hero-card"><h3>Всего целей</h3><div class="value sm">${gs.length}</div><button class="btn" data-action="addGoal">Новая цель</button></article><article class="card"><h3>Активные</h3><div class="value sm">${goalFilter('active').length}</div></article><article class="card"><h3>Подушка</h3><p class="muted small">отдельный запас безопасности</p><div class="value sm">${typeof safetyProgress==='function'?safetyProgress():0}%</div></article></section>`)} const list=goalFilter(d.folder); const title={active:'Активные цели',finance:'Финансовые цели',personal:'Личные цели',images:'С картинками',completed:'Завершённые'}[d.folder]||'Цели'; const body=`<div class="grid cols-2">${list.map(g=>{try{return typeof goalCard==='function'?goalCard(g):rowLite('SMART',g.title,`${g.progress||0}%`,'editGoal',g.id)}catch(e){return rowLite('SMART',g.title,`${g.progress||0}%`,'editGoal',g.id)}}).join('')||emptyBox('Целей нет')}</div>`; return listPage('goals',title,'Отдельный лист выбранных целей.',body,'addGoal')}
+
+  function diagnosticsPageClean(){const meta=(()=>{try{return JSON.parse(localStorage.getItem('secondBrainOS.meta')||localStorage.getItem('secondBrainOS.finalMeta')||'{}')}catch(e){return {}}})(); const runtime=(()=>{try{return localStorage.getItem('secondBrainOS.currentBuild')||localStorage.getItem('secondBrainOS.finalAddonBuild')||BUILD_FINAL}catch(e){return BUILD_FINAL}})(); return layout('Диагностика','Проверка активной сборки и структуры данных.',`<section class="card diag-version-card"><div class="card-head"><h3>Активная версия</h3><span class="pill good">Paged Sections Final</span></div><div class="value sm">${esc2(runtime)}</div><p class="muted small">Нужная версия: ${BUILD_FINAL}. Если видишь JavaScript-текст на странице — загружен старый битый index.html.</p><div class="actions"><button class="btn secondary" data-action="clearCaches">Очистить кэш сайта</button><button class="btn" data-action="exportData">Экспорт</button></div></section><section class="grid cols-3" style="margin-top:18px"><article class="card"><h3>Страничный просмотр</h3><p class="muted small">Планирование, Сферы жизни, Финансы, Бюджет, Долги и Цели SMART открывают сначала папки. Записи появляются только на отдельном листе.</p></article><article class="card"><h3>Данные</h3><p class="muted small">Операции: ${arrF('operations').length}<br>Категории: ${arrF('categories').length}<br>Плановые расходы: ${plansAll().length}<br>Долги: ${arrF('debts').length}<br>Цели: ${arrF('goals').length}</p></article><article class="card"><h3>Технически</h3><p class="muted small">Сборка: ${BUILD_FINAL}<br>Meta: ${esc2(meta.build||'—')}<br>Обновлено: ${esc2(meta.updatedAt||'—')}</p></article></section>`)}
+
+  function injectPagedCss(){if(document.getElementById('pagedSectionsCss'))return; const st=document.createElement('style'); st.id='pagedSectionsCss'; st.textContent=`
+    .paged-root{margin-top:18px;padding:20px}.paged-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.paged-folder{min-height:148px}.paged-list-card{margin-top:18px}.paged-row{margin:0 0 10px}.paged-limit{padding:16px;border-radius:22px;background:#fff;border:1px solid #e2ecf8}.paged-limit .actions{margin-top:10px}.diag-version-card{overflow:hidden}.diag-version-card .value{font-size:24px;word-break:break-word}.fs-header.paged-head{margin-bottom:8px}.fs-breadcrumb b{color:#1d4ed8}@media(max-width:760px){.paged-grid{grid-template-columns:1fr}.paged-folder{min-height:125px}.paged-list-card{padding:14px}}
+  `; document.head.appendChild(st)}
+  const prevForce=window.SBOS_FORCE_ACTION;
+  window.SBOS_FORCE_ACTION=function(action,id,el){try{action=action||(el&&el.dataset&&el.dataset.action)||''; id=id||(el&&el.dataset&&el.dataset.id)||''; if(action==='sheetOpen'){setSheet(el.dataset.section,el.dataset.folder,el.dataset.sub||''); return true;} if(action==='sheetBack'){backSheet(el.dataset.section); return true;} if(action==='clearCaches'){try{localStorage.setItem('secondBrainOS.currentBuild',BUILD_FINAL); if('caches' in window)caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))); if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));}catch(e){} toast('Кэш очищен. Обнови страницу.'); return true;} return prevForce?prevForce(action,id,el):false}catch(e){console.error('[paged sections action]',action,e); try{toast('Ошибка кнопки: '+e.message)}catch(_){alert('Ошибка кнопки: '+e.message)} return true;}}
+  document.addEventListener('click',function(ev){const el=ev.target&&ev.target.closest&&ev.target.closest('[data-action],[data-go]'); if(!el)return; if(el.dataset.go) resetSheetsOnNav(el.dataset.go); const a=el.dataset.action||''; if(a==='sheetOpen'||a==='sheetBack'||a==='clearCaches'){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();window.SBOS_FORCE_ACTION(a,el.dataset.id||'',el)}},true);
+
+  const prevRender=window.render||render;
+  render=function(){try{ensureSheets(); if(typeof renderNav==='function')renderNav(); const map={dashboard:typeof dashboardV2==='function'?dashboardV2:dashboard,finance:financePagePaged,budget:budgetPagePaged,goals:goalsPagePaged,planning:typeof planningPageV2==='function'?planningPageV2:planningPage, spheres:typeof spheresPageV2==='function'?spheresPageV2:spheresPage, habits:typeof habitsPageFinal==='function'?habitsPageFinal:habitsPage, debts:debtsPagePaged, trips:typeof tripsPageFinal==='function'?tripsPageFinal:tripsPage, import:typeof importPageFinal==='function'?importPageFinal:importPage, diagnostics:diagnosticsPageClean}; document.querySelector('#view').innerHTML=(map[page]||map.dashboard)(); setTimeout(()=>{try{injectV2Css&&injectV2Css()}catch(e){} try{injectPagedCss()}catch(e){} try{if(typeof patchClickableButtons==='function')patchClickableButtons()}catch(e){}},0); return true;}catch(e){console.error('[paged sections render]',e); try{document.querySelector('#view').innerHTML=layout('Second Brain OS','Ошибка',`<section class="card"><h3>Ошибка</h3><p>${esc2(e.message)}</p></section>`)}catch(_){}}};
+  window.render=render; window.diagnosticsPage=diagnosticsPageClean; window.financePagePaged=financePagePaged; window.budgetPagePaged=budgetPagePaged; window.debtsPagePaged=debtsPagePaged; window.goalsPagePaged=goalsPagePaged;
+  try{ensureSheets(); localStorage.setItem('secondBrainOS.currentBuild',BUILD_FINAL); saveF(); injectPagedCss(); render(); console.log('[Second Brain OS]',BUILD_FINAL)}catch(e){console.error('[paged sections init]',e)}
+})();
 </script>
 </body>
 </html>
-
-
-/* ===== Diagnostics Version Visible Fix — active Folder System V2 marker ===== */
-(function(){
-  const DIAG_BUILD='folder-system-v2-diagnostics-visible-20260630';
-  try{
-    window.SBOS_LATEST_BUILD=DIAG_BUILD;
-    localStorage.setItem('secondBrainOS.currentBuild',DIAG_BUILD);
-    localStorage.setItem('secondBrainOS.finalAddonBuild',DIAG_BUILD);
-    localStorage.setItem(META_KEY, JSON.stringify({app:APP_NAME,build:DIAG_BUILD,updatedAt:new Date().toISOString()}));
-    const meta=document.querySelector('meta[name="second-brain-build"]'); if(meta)meta.content=DIAG_BUILD;
-  }catch(e){}
-
-  function getRuntimeBuild(){
-    try{return localStorage.getItem('secondBrainOS.currentBuild')||localStorage.getItem('secondBrainOS.finalAddonBuild')||DIAG_BUILD;}catch(e){return DIAG_BUILD;}
-  }
-
-  const oldDiagnosticsPage = typeof diagnosticsPage==='function' ? diagnosticsPage : null;
-  diagnosticsPage=function(){
-    const runtime=getRuntimeBuild();
-    const meta=(()=>{try{return JSON.parse(localStorage.getItem(META_KEY)||'{}')}catch(e){return {}}})();
-    const explorer=(state.settings&&state.settings.fileExplorerV2)?'включена':'не найдена';
-    const planCount=(typeof allPlan2==='function'?allPlan2():[]).length;
-    return layout('Диагностика','Проверка активной сборки, кэша и структуры данных.',`
-      <section class="card diag-version-card">
-        <div class="card-head"><h3>Активная версия</h3><span class="pill good">Folder System V2</span></div>
-        <div class="value sm">${q(runtime)}</div>
-        <p class="muted small">Если здесь не написано <b>folder-system-v2</b>, значит открылся старый файл или кэш. Эта версия должна показывать папочную систему в Планировании и Сферах жизни.</p>
-        <div class="actions"><button class="btn secondary" data-action="clearCaches">Очистить кэш сайта</button><button class="btn" data-action="exportData">Экспорт</button></div>
-      </section>
-      <section class="grid cols-3">
-        <article class="card"><h3>Папочная система</h3><p class="muted small">Планирование: папки → подпапки → лист записей<br>Сферы жизни: папки → подпапки → лист записей<br>Статус: <b>${q(explorer)}</b></p></article>
-        <article class="card"><h3>Данные</h3><p class="muted small">Операции: ${state.operations.length}<br>Задачи: ${state.tasks.length}<br>Планирование всего: ${planCount}<br>Заметки: ${state.notes.length}<br>Привычки: ${state.habits.length}<br>Долги: ${activeDebts().length}</p></article>
-        <article class="card"><h3>Что должно измениться</h3><p class="muted small">В разделе <b>Планирование</b> сначала только папки. В разделе <b>Сферы жизни</b> сначала только папки. Записи не должны валиться на первый экран.</p></article>
-      </section>
-      <section class="card"><h3>Технически</h3><p class="muted small">Базовая сборка: ${q(BUILD)}<br>Meta build: ${q(meta.build||'—')}<br>Обновлено: ${q(meta.updatedAt||'—')}</p></section>
-    `);
-  };
-  window.diagnosticsPage=diagnosticsPage;
-  try{
-    const prev=window.SBOS_FORCE_ACTION;
-    window.SBOS_FORCE_ACTION=function(action,id,el){
-      if(action==='showBuild'){toast('Сборка: '+getRuntimeBuild()); return true;}
-      if(prev) return prev(action,id,el);
-      return false;
-    };
-  }catch(e){}
-  try{ if(page==='diagnostics') render(); }catch(e){}
-  console.log('[Second Brain OS diagnostics]',DIAG_BUILD);
-})();
