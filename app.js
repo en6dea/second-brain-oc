@@ -713,3 +713,237 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{ render(); }catch(e){ console.error(e); }
 })();
+
+
+/* ===== V28 Space Calendar: events, reminders, load, Google Calendar ===== */
+(function(){
+  const V28_BUILD='second-brain-space-v28-calendar-events-20260701';
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V28_BUILD); }catch(e){}
+
+  function ensureCalendarV28(){
+    if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='calendar')){
+      const idx=SECTIONS.findIndex(s=>s.id==='tasks');
+      SECTIONS.splice(idx>=0?idx:SECTIONS.length,0,{id:'calendar',label:'Календарь',icon:'📅',color:'#38bdf8',group:'ПРОСТРАНСТВО'});
+    }
+    state.events = Array.isArray(state.events) ? state.events : [];
+    state.events = state.events.map(e=>({
+      id:e.id||uid(),
+      title:e.title||'Событие',
+      area:e.area||'Личное',
+      date:e.date||today(),
+      startTime:e.startTime||e.time||'09:00',
+      endTime:e.endTime||'',
+      type:e.type||'Событие',
+      google:Boolean(e.google),
+      reminder:e.reminder||'',
+      load:e.load||'Средняя',
+      note:e.note||''
+    }));
+    schemas.event={arr:'events',title:'Событие / напоминание',fields:[
+      ['title','Название'],
+      ['area','Сфера / папка'],
+      ['date','Дата','date'],
+      ['startTime','Начало','time'],
+      ['endTime','Окончание','time'],
+      ['type','Тип','select',[['Событие','Событие'],['Напоминание','Напоминание'],['Фокус','Фокус'],['Дедлайн','Дедлайн']]],
+      ['google','Добавить в Google Calendar','select',[['false','Не сейчас'],['true','Да']]],
+      ['load','Нагрузка','select',[['Низкая','Низкая'],['Средняя','Средняя'],['Высокая','Высокая']]],
+      ['reminder','Напоминание','datetime-local'],
+      ['note','Комментарий','textarea']
+    ]};
+  }
+
+  function ensureCalendarStylesV28(){
+    if(document.getElementById('calendar-v28-style')) return;
+    const st=document.createElement('style');
+    st.id='calendar-v28-style';
+    st.textContent=`
+      .calendar-v28-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,.85fr);gap:16px;margin-top:16px}
+      .calendar-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .calendar-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+      .calendar-weekday{text-align:center;font-size:12px;font-weight:900;color:#64748b;padding:6px 0}
+      .calendar-day{min-height:126px;border:1px solid #e7edf6;border-radius:20px;background:linear-gradient(180deg,#fff,#fbfdff);padding:10px;display:flex;flex-direction:column;gap:7px;cursor:pointer;transition:.16s ease;position:relative;overflow:hidden}
+      .calendar-day:hover{border-color:#bfdbfe;box-shadow:0 16px 34px rgba(15,23,42,.07);transform:translateY(-1px)}
+      .calendar-day.empty{opacity:.34;cursor:default;background:#f8fbff;box-shadow:none}
+      .calendar-day.today{outline:2px solid #2563eb;outline-offset:-2px}
+      .calendar-day.low{background:linear-gradient(135deg,#f8fbff,#ffffff)}
+      .calendar-day.medium{background:linear-gradient(135deg,#eff6ff,#ffffff);border-color:#bfdbfe}
+      .calendar-day.high{background:linear-gradient(135deg,#fff7ed,#ffffff);border-color:#fed7aa}
+      .calendar-day.overload{background:linear-gradient(135deg,#fff1f2,#ffffff);border-color:#fca5a5}
+      .calendar-day-num{font-weight:900;color:#0f172a;font-size:14px}
+      .calendar-load{height:8px;background:#eef2ff;border-radius:999px;overflow:hidden;margin-top:auto}
+      .calendar-load b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#2563eb)}
+      .calendar-load.high b{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+      .calendar-dots{display:flex;gap:4px;flex-wrap:wrap}
+      .calendar-dot{width:7px;height:7px;border-radius:99px;background:#2563eb}
+      .calendar-dot.event{background:#38bdf8}.calendar-dot.task{background:#8b5cf6}.calendar-dot.reminder{background:#f59e0b}.calendar-dot.google{background:#22c55e}.calendar-dot.deadline{background:#ef4444}
+      .calendar-chipline{display:flex;flex-wrap:wrap;gap:5px}
+      .calendar-mini-chip{font-size:10px;font-weight:900;padding:3px 6px;border-radius:999px;background:#eff6ff;color:#2563eb;border:1px solid #dbeafe;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .calendar-agenda{display:flex;flex-direction:column;gap:10px}
+      .calendar-event-card{border:1px solid #e7edf6;border-radius:18px;background:#fff;padding:12px;display:flex;gap:12px;align-items:flex-start}
+      .calendar-event-icon{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:#eff6ff;color:#2563eb;font-weight:900;flex:0 0 38px}
+      .calendar-event-card.reminder .calendar-event-icon{background:#fffbeb;color:#b45309}
+      .calendar-event-card.deadline .calendar-event-icon{background:#fff1f2;color:#dc2626}
+      .calendar-event-card.google .calendar-event-icon{background:#ecfdf5;color:#15803d}
+      .calendar-area-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+      .calendar-area-pill{border:1px solid #e7edf6;background:#fff;border-radius:999px;padding:7px 10px;font-weight:800;color:#334155;font-size:12px}
+      .calendar-area-pill b{color:#2563eb}
+      .calendar-load-bars{display:flex;align-items:end;gap:7px;height:130px;padding:12px;border:1px solid #e7edf6;border-radius:18px;background:#fbfdff;margin-top:10px}
+      .calendar-load-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+      .calendar-load-col b{width:100%;min-height:6px;border-radius:999px;background:linear-gradient(180deg,#38bdf8,#2563eb)}
+      .calendar-load-col.high b{background:linear-gradient(180deg,#f59e0b,#ef4444)}
+      .calendar-load-col span{font-size:10px;color:#64748b;font-weight:800;white-space:nowrap}
+      @media(max-width:1180px){.calendar-v28-grid,.calendar-kpi-grid{grid-template-columns:1fr}.calendar-day{min-height:104px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function monthRange(base=new Date()){
+    const s=new Date(base.getFullYear(),base.getMonth(),1);
+    const e=new Date(base.getFullYear(),base.getMonth()+1,0);
+    return {start:s,end:e,key:`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}`};
+  }
+  function calendarEntries(){
+    ensureCalendarV28();
+    const taskEntries=state.tasks.filter(t=>t.date).map(t=>({
+      id:t.id,source:'task',title:t.title,area:t.area||'Личное',date:t.date,time:t.time||'',type:t.reminder?'Напоминание':'Задача',google:Boolean(t.google),reminder:t.reminder||'',note:t.note||'',priority:t.priority||'B'
+    }));
+    const eventEntries=state.events.map(e=>({
+      id:e.id,source:'event',title:e.title,area:e.area||'Личное',date:e.date,time:e.startTime||'',endTime:e.endTime||'',type:e.type||'Событие',google:Boolean(e.google),reminder:e.reminder||'',load:e.load||'Средняя',note:e.note||''
+    }));
+    const debtReminders=state.debts.filter(d=>d.due&&d.status!=='Закрыт').map(d=>({
+      id:d.id,source:'debt',title:`${d.direction==='out'?'Оплатить':'Напомнить'}: ${d.person}`,area:'Финансы',date:d.due,time:'10:00',type:'Напоминание',google:false,reminder:'',note:`${d.direction==='out'?'Я должен':'Мне должны'} · ${money(d.amount)}`
+    }));
+    const purchaseEntries=state.purchases.filter(p=>p.date&&p.includeInBudget!==false).map(p=>({
+      id:p.id,source:'purchase',title:`Покупка: ${p.title}`,area:p.area||'Личное',date:p.date,time:'',type:'Дедлайн',google:false,reminder:'',note:`${money(p.amount)} · учитывается в бюджете`
+    }));
+    return [...taskEntries,...eventEntries,...debtReminders,...purchaseEntries].sort((a,b)=>String(a.date+(a.time||'')).localeCompare(String(b.date+(b.time||''))));
+  }
+  function entriesOn(date){return calendarEntries().filter(e=>e.date===date)}
+  function loadClass(count){return count>=7?'overload':count>=5?'high':count>=3?'medium':count?'low':''}
+  function entryIcon(e){
+    if(e.source==='task') return e.google?'📅':'✅';
+    if(e.source==='debt') return '⚖️';
+    if(e.source==='purchase') return '🛒';
+    if(e.type==='Напоминание') return '🔔';
+    if(e.type==='Дедлайн') return '🚩';
+    if(e.type==='Фокус') return '🎯';
+    return '🗓️';
+  }
+  function entryCss(e){
+    if(e.google) return 'google';
+    if(e.type==='Напоминание') return 'reminder';
+    if(e.type==='Дедлайн'||e.source==='purchase') return 'deadline';
+    return 'event';
+  }
+  function calendarDayCell(date,inMonth){
+    const es=entriesOn(date); const cls=loadClass(es.length);
+    return `<button class="calendar-day ${!inMonth?'empty':''} ${date===today()?'today':''} ${cls}" data-action="selectCalendarDay" data-date="${date}">
+      <div class="calendar-day-num">${new Date(date).getDate()}</div>
+      <div class="calendar-dots">${es.slice(0,8).map(e=>`<span class="calendar-dot ${entryCss(e)}"></span>`).join('')}</div>
+      <div class="calendar-chipline">${es.slice(0,2).map(e=>`<span class="calendar-mini-chip">${esc(e.title)}</span>`).join('')}</div>
+      <div class="calendar-load ${es.length>=5?'high':''}"><b style="width:${Math.min(100,es.length*18)}%"></b></div>
+      <div class="small muted">${es.length?`${es.length} записей`:'свободно'}</div>
+    </button>`;
+  }
+  function calendarMonthGrid(){
+    const m=monthRange();
+    const cells=[];
+    const startPad=(m.start.getDay()+6)%7;
+    for(let i=startPad;i>0;i--) cells.push({d:iso(addDays(m.start,-i)),inMonth:false});
+    for(let d=new Date(m.start);d<=m.end;d=addDays(d,1)) cells.push({d:iso(d),inMonth:true});
+    while(cells.length%7!==0) cells.push({d:iso(addDays(new Date(cells[cells.length-1].d),1)),inMonth:false});
+    const weekdays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    return `<div class="calendar-month">${weekdays.map(w=>`<div class="calendar-weekday">${w}</div>`).join('')}${cells.map(c=>calendarDayCell(c.d,c.inMonth)).join('')}</div>`;
+  }
+  function calendarKpis(){
+    const es=calendarEntries();
+    const todayCount=entriesOn(today()).length;
+    const weekEnd=iso(addDays(new Date(),7));
+    const week=es.filter(e=>e.date>=today()&&e.date<=weekEnd);
+    const reminders=es.filter(e=>e.type==='Напоминание'||e.reminder);
+    const google=es.filter(e=>e.google);
+    return `<section class="grid calendar-kpi-grid">
+      <article class="card"><h3>Сегодня</h3><div class="value sm blue">${todayCount}</div><p class="small muted">событий, задач и напоминаний</p></article>
+      <article class="card"><h3>Нагрузка недели</h3><div class="value sm ${week.length>18?'red':week.length>10?'amber':'green'}">${week.length}</div><p class="small muted">записей на 7 дней</p></article>
+      <article class="card"><h3>Напоминания</h3><div class="value sm amber">${reminders.length}</div><p class="small muted">внутренние и долговые</p></article>
+      <article class="card"><h3>Google Calendar</h3><div class="value sm green">${google.length}</div><p class="small muted">готово к добавлению / уже отмечено</p></article>
+    </section>`;
+  }
+  function calendarAgenda(date=state.settings.calendarDate||today()){
+    const es=entriesOn(date);
+    return `<div class="calendar-agenda">${es.map(e=>`<article class="calendar-event-card ${entryCss(e)}"><div class="calendar-event-icon">${entryIcon(e)}</div><div style="flex:1;min-width:0"><div class="card-head" style="margin-bottom:3px"><div><h3>${esc(e.title)}</h3><p class="small muted">${esc(e.area)} · ${esc(e.type)} ${e.time?`· ${esc(e.time)}`:''}</p></div><span class="pill ${e.source==='debt'?'red':e.google?'green':'blue'}">${e.source==='task'?'задача':e.source==='event'?'событие':e.source==='debt'?'долг':'покупка'}</span></div>${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}<div class="row-actions" style="margin-top:10px">${e.source==='task'?`<button class="mini blue" data-action="editRecord" data-type="task" data-id="${e.id}">Ред.</button><button class="mini green" data-action="googleTask" data-id="${e.id}">Google</button><button class="mini red" data-action="deleteRecord" data-type="task" data-id="${e.id}">Удалить</button>`:''}${e.source==='event'?`<button class="mini blue" data-action="editRecord" data-type="event" data-id="${e.id}">Ред.</button><button class="mini green" data-action="googleEvent" data-id="${e.id}">Google</button><button class="mini red" data-action="deleteRecord" data-type="event" data-id="${e.id}">Удалить</button>`:''}${e.source==='debt'?`<button class="mini blue" data-action="editRecord" data-type="debt" data-id="${e.id}">Долг</button><button class="mini green" data-action="debtReminder" data-id="${e.id}">Напомнить</button>`:''}${e.source==='purchase'?`<button class="mini blue" data-action="editRecord" data-type="purchase" data-id="${e.id}">Покупка</button>`:''}</div></div></article>`).join('')||empty('На выбранный день записей нет')}</div>`;
+  }
+  function calendarAreasLoad(){
+    const upcoming=calendarEntries().filter(e=>e.date>=today()&&e.date<=iso(addDays(new Date(),14)));
+    const m={}; upcoming.forEach(e=>m[e.area]=(m[e.area]||0)+1);
+    return `<div class="calendar-area-pills">${Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>`<span class="calendar-area-pill">${esc(k)} <b>${v}</b></span>`).join('')||'<span class="calendar-area-pill">Пока нет нагрузки</span>'}</div>`;
+  }
+  function calendarLoadBars(){
+    const days=Array.from({length:14},(_,i)=>iso(addDays(new Date(),i)));
+    const max=Math.max(1,...days.map(d=>entriesOn(d).length));
+    return `<div class="calendar-load-bars">${days.map(d=>{const c=entriesOn(d).length;return `<div class="calendar-load-col ${c>=5?'high':''}"><b style="height:${Math.max(6,c/max*100)}%"></b><span>${new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</span></div>`}).join('')}</div>`;
+  }
+  function calendarPage(){
+    ensureCalendarV28(); ensureCalendarStylesV28();
+    const selected=state.settings.calendarDate||today();
+    return layout('Календарь','События, напоминания, задачи и нагрузка по дням. Можно добавить запись в Google Calendar.',`
+      ${calendarKpis()}
+      <section class="calendar-v28-grid">
+        <article class="card"><div class="card-head"><div><h3>Календарь месяца</h3><p class="small muted">Цвет и заполнение показывают нагрузку дня.</p></div><div class="row-actions"><button class="ghost-btn" data-action="openRecordForm" data-type="event">＋ Событие</button><button class="ghost-btn" data-action="openRecordForm" data-type="task">＋ Задача</button></div></div>${calendarMonthGrid()}</article>
+        <div style="display:grid;gap:16px">
+          <article class="card"><div class="card-head"><div><h3>День: ${fmt(selected)}</h3><p class="small muted">События, напоминания, задачи и дедлайны.</p></div><button class="btn" data-action="openRecordForm" data-type="event">＋ Добавить</button></div>${calendarAgenda(selected)}</article>
+          <article class="card"><div class="card-head"><h3>Нагрузка по сферам</h3><span class="pill blue">14 дней</span></div>${calendarAreasLoad()}${calendarLoadBars()}</article>
+        </div>
+      </section>
+    `);
+  }
+  function selectCalendarDay(el){state.settings.calendarDate=el.dataset.date||today();save();render()}
+  function googleEvent(el){
+    const e=state.events.find(x=>x.id===el.dataset.id); if(!e) return;
+    e.google=true; save();
+    const date=(e.date||today()).replaceAll('-','');
+    const start=`${date}T${(e.startTime||'09:00').replace(':','')}00`;
+    const endTime=e.endTime||e.startTime||'10:00';
+    const end=`${date}T${endTime.replace(':','')}00`;
+    const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${start}/${end}&details=${encodeURIComponent((e.note||'')+'\nСоздано из Second Brain OS')}`;
+    window.open(url,'_blank'); render();
+  }
+
+  const oldSaveRecord=saveRecord;
+  saveRecord=function(el){
+    oldSaveRecord(el);
+    try{
+      if(el.dataset.type==='event'){
+        const id=el.dataset.id;
+        const last=id?state.events.find(x=>x.id===id):state.events[0];
+        if(last && last.google) setTimeout(()=>googleEvent({dataset:{id:last.id}}),50);
+      }
+    }catch(e){console.error(e)}
+  };
+
+  const oldDeleteRecord=deleteRecord;
+  deleteRecord=function(el){
+    oldDeleteRecord(el);
+  };
+
+  const prevRenderV28=render;
+  render=function(){
+    ensureCalendarV28();
+    state=normalize(state);
+    ensureCalendarV28();
+    if(state.purchases&&state.purchases.length>1) state.purchases=dedupeBy(state.purchases,x=>`${String(x.title||'').toLowerCase()}|${num(x.amount)}|${x.date}|${String(x.note||'').toLowerCase()}`);
+    save();
+    const map={dashboard,finance:financePage,debts:debtsPage,calendar:calendarPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
+    renderShell((map[page]||dashboard)());
+    const v=document.querySelector('.version'); if(v) v.textContent='V28 · КАЛЕНДАРЬ СОБЫТИЙ И НАПОМИНАНИЙ';
+  };
+
+  window.addEventListener('click',e=>{
+    const act=e.target.closest('[data-action]'); if(!act) return;
+    if(act.dataset.action==='selectCalendarDay'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return selectCalendarDay(act)}
+    if(act.dataset.action==='googleEvent'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return googleEvent(act)}
+  },true);
+
+  try{ensureCalendarV28();save();render()}catch(e){console.error(e)}
+})();
