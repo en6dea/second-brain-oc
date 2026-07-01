@@ -446,3 +446,270 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{ state=normalize(state); save(); render(); }catch(e){console.error(e)}
 })();
+
+
+/* ===== V27 finance & debts overhaul: keep current visual, improve literacy flow ===== */
+(function(){
+  try{ localStorage.setItem('secondBrainOS.currentBuild','second-brain-space-v27-finance-debts-20260701'); }catch(e){}
+
+  function ensureFinanceDebtV27Styles(){
+    if(document.getElementById('finance-debts-v27-style')) return;
+    const st=document.createElement('style');
+    st.id='finance-debts-v27-style';
+    st.textContent=`
+      .finance-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+      .v27-kpi-card{position:relative;overflow:hidden}
+      .v27-kpi-card:before{content:'';position:absolute;inset:auto -10% 0 auto;width:130px;height:130px;border-radius:999px;background:radial-gradient(circle,rgba(59,130,246,.08),transparent 68%);pointer-events:none}
+      .v27-card-sub{margin-top:6px;font-size:12px;color:#64748b}
+      .v27-health-grid,.v27-rules-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .v27-health{border:1px solid #e7edf6;border-radius:18px;padding:14px;background:linear-gradient(180deg,#fff,#fbfdff)}
+      .v27-health h4{margin:0 0 6px;font-size:13px;color:#0f172a}
+      .v27-health .value{font-size:28px;margin:0 0 6px}
+      .v27-focus-list,.v27-debt-plan{display:flex;flex-direction:column;gap:10px}
+      .v27-step,.v27-debt-step{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid #e7edf6;border-radius:18px;background:#fff}
+      .v27-step .num,.v27-debt-step .num{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;font-weight:900;background:#eff6ff;color:#2563eb;flex:0 0 28px}
+      .v27-debt-step .num.red{background:#fee2e2;color:#dc2626}
+      .v27-debt-step .num.green{background:#dcfce7;color:#16a34a}
+      .v27-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .v27-line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef2f7}
+      .v27-line:last-child{border-bottom:0}
+      .v27-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+      .v27-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8}
+      .v27-badge.red{border-color:#fecaca;background:#fff1f2;color:#dc2626}
+      .v27-badge.green{border-color:#bbf7d0;background:#ecfdf5;color:#15803d}
+      .v27-badge.amber{border-color:#fde68a;background:#fffbeb;color:#b45309}
+      .v27-category-bars{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+      .v27-cat-row{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:12px;align-items:center}
+      .v27-cat-row .track{height:10px;background:#eef2ff;border-radius:999px;overflow:hidden}
+      .v27-cat-row .track b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#60a5fa,#2563eb)}
+      .v27-goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .v27-goal{border:1px solid #e7edf6;border-radius:18px;padding:14px;background:#fff}
+      .v27-grid-3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px}
+      .v27-debt-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+      .v27-timeline{display:flex;flex-direction:column;gap:10px}
+      .v27-timeline-item{border:1px solid #e7edf6;border-radius:18px;padding:12px 14px;background:#fff}
+      .v27-empty-tip{padding:14px;border:1px dashed #d8e1ee;border-radius:18px;background:#fbfdff;color:#64748b}
+      @media (max-width:1180px){.finance-kpi-grid,.v27-health-grid,.v27-rules-grid,.v27-goals,.v27-grid-3,.v27-debt-columns{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function daysBetween(a,b){
+    return Math.ceil((new Date(b)-new Date(a))/86400000);
+  }
+
+  function financialGoalsOnly(){
+    return state.goals.filter(g=>String(g.kind||'').toLowerCase().includes('фин'));
+  }
+
+  function currentReserveGoal(){
+    return financialGoalsOnly().find(g=>/подуш|резерв/i.test(g.title||''));
+  }
+
+  function debtPayoffOrder(list){
+    return list.slice().sort((a,b)=>{
+      const ao=(a.due&&a.due<today())?0:1;
+      const bo=(b.due&&b.due<today())?0:1;
+      if(ao!==bo) return ao-bo;
+      const ad=a.due?daysBetween(today(),a.due):9999;
+      const bd=b.due?daysBetween(today(),b.due):9999;
+      if(ad!==bd) return ad-bd;
+      return num(a.amount)-num(b.amount);
+    });
+  }
+
+  function financeModel(p){
+    const t=financeTotals(p);
+    const out=activeDebts().filter(d=>d.direction==='out');
+    const incoming=activeDebts().filter(d=>d.direction==='in');
+    const overdue=out.filter(d=>d.due && d.due<today());
+    const due7=out.filter(d=>d.due && daysBetween(today(),d.due)>=0 && daysBetween(today(),d.due)<=7);
+    const due30=out.filter(d=>d.due && daysBetween(today(),d.due)>=0 && daysBetween(today(),d.due)<=30);
+    const minDebtNeed=total(overdue)+total(due7);
+    const freeCash=Math.max(0, state.settings.currentBalance + t.inc - t.exp - t.upcoming);
+    const reserveGoal=currentReserveGoal();
+    const reserveTarget = reserveGoal ? Math.max(0,num(reserveGoal.target)) : Math.max(30000, Math.round((t.exp||15000)*1.5/1000)*1000);
+    const reserveCurrent = reserveGoal ? Math.max(num(reserveGoal.current), state.settings.currentBalance||0) : Math.max(0,state.settings.currentBalance||0);
+    const reserveProgress = reserveTarget ? clamp(Math.round(reserveCurrent/reserveTarget*100)) : 0;
+    const debtLoad = t.inc ? clamp(Math.round(total(out)/Math.max(1,t.inc)*100),0,999) : 0;
+    const recommendedReserve = total(out)>0 ? Math.min(Math.max(3000, Math.round(Math.max(0,freeCash-minDebtNeed)*0.2/1000)*1000), Math.max(0,freeCash-minDebtNeed)) : Math.round(Math.max(0,freeCash)*0.2/1000)*1000;
+    const recommendedDebtPayment = Math.max(minDebtNeed, Math.round(Math.max(0,freeCash-recommendedReserve)/1000)*1000);
+    const safeToSpend = Math.max(0, freeCash - recommendedDebtPayment - recommendedReserve);
+    const monthlyPurchasePressure = t.planned;
+    const inflowSoon = total(incoming.filter(d=>d.due && daysBetween(today(),d.due)>=0 && daysBetween(today(),d.due)<=14));
+    return {t,out,incoming,overdue,due7,due30,minDebtNeed,freeCash,reserveTarget,reserveCurrent,reserveProgress,debtLoad,recommendedReserve,recommendedDebtPayment,safeToSpend,monthlyPurchasePressure,inflowSoon};
+  }
+
+  function financeHealthCard(title, value, sub, progress, cls='blue'){
+    return `<div class="v27-health"><h4>${title}</h4><div class="value sm ${cls}">${value}</div>${progress!=null?prog(progress,cls==='green'?'green':cls==='red'?'red':''):'<div style="height:8px"></div>'}<div class="v27-card-sub">${sub}</div></div>`;
+  }
+
+  function financeActionPlan(model){
+    const lines=[];
+    if(model.overdue.length) lines.push(`Закрыть или частично погасить просрочку на ${money(total(model.overdue))}.`);
+    if(model.inflowSoon>0) lines.push(`Напомнить тем, кто должен тебе, о возврате ${money(model.inflowSoon)} в ближайшие 14 дней.`);
+    lines.push(`Сразу после обязательных расходов направить ${money(model.recommendedDebtPayment)} на долги.`);
+    lines.push(`Отложить ${money(model.recommendedReserve)} в подушку / резерв, даже если сумма небольшая.`);
+    if(model.monthlyPurchasePressure>0) lines.push(`Проверить покупки на ${money(model.monthlyPurchasePressure)} и оставить только реально нужные.`);
+    return `<div class="v27-focus-list">${lines.slice(0,5).map((x,i)=>`<div class="v27-step"><div class="num">${i+1}</div><div><b>${x}</b><div class="small muted">Небольшие регулярные шаги быстрее выводят из долгов, чем редкие резкие рывки.</div></div></div>`).join('')}</div>`;
+  }
+
+  function moneyRoute(model){
+    return `<div class="forecast-list">
+      <div class="row"><div>Факт на руках</div><b class="blue">${money(state.settings.currentBalance)}</b></div>
+      <div class="row"><div>+ Доходы периода</div><b class="green">${money(model.t.inc)}</b></div>
+      <div class="row"><div>− Расходы периода</div><b class="red">${money(model.t.exp)}</b></div>
+      <div class="row"><div>− Ближайшие покупки</div><b class="amber">${money(model.t.upcoming)}</b></div>
+      <div class="row"><div>= Доступно после базы</div><b>${money(model.freeCash)}</b></div>
+      <div class="row"><div>→ На долги</div><b class="red">${money(model.recommendedDebtPayment)}</b></div>
+      <div class="row"><div>→ В накопления</div><b class="green">${money(model.recommendedReserve)}</b></div>
+      <div class="row"><div>Свободный остаток</div><b class="${model.safeToSpend>0?'blue':'red'}">${money(model.safeToSpend)}</b></div>
+    </div><p class="small muted" style="margin-top:10px">Логика простая: сначала база и сроки, затем долги, после этого — накопления и только потом свободные траты.</p>`;
+  }
+
+  function expenseShareBars(p){
+    const ex=state.operations.filter(o=>o.type==='expense'&&inPeriod(o.date,p));
+    if(!ex.length) return empty('Расходов пока нет');
+    const m={}; ex.forEach(o=>m[o.category||'Без категории']=(m[o.category||'Без категории']||0)+num(o.amount));
+    const rows=Object.entries(m).sort((a,b)=>b[1]-a[1]);
+    const max=rows[0][1]||1;
+    return `<div class="v27-category-bars">${rows.slice(0,6).map(([k,v])=>`<div class="v27-cat-row"><div><div class="small"><b>${esc(k)}</b></div><div class="track"><b style="width:${clamp(v/max*100)}%"></b></div></div><div class="small" style="text-align:right"><b>${money(v)}</b></div></div>`).join('')}</div>`;
+  }
+
+  function financeGoalsBlock(){
+    const goals=financialGoalsOnly();
+    return `<section class="card" style="margin-top:16px"><div class="card-head"><div><h3>Финансовые цели и накопления</h3><p class="small muted">Чтобы не только закрывать долги, но и строить запас и большие суммы.</p></div><div class="row-actions"><button class="ghost-btn" data-action="addFinancialGoal">＋ Фин. цель</button><button class="ghost-btn" data-go="goals">Открыть цели →</button></div></div>${goals.length?`<div class="v27-goals">${goals.map(g=>{const p=g.target?clamp(Math.round(num(g.current)/Math.max(1,num(g.target))*100)):0;return `<div class="v27-goal"><div class="card-head"><div><h3>${esc(g.title)}</h3><p class="small muted">${esc(g.area||'Финансы')} · срок ${fmt(g.deadline)}</p></div><span class="pill blue">${p}%</span></div>${prog(p,'green')}<div class="v27-line"><span>Сейчас</span><b>${money(g.current)}</b></div><div class="v27-line"><span>Цель</span><b>${money(g.target)}</b></div><div class="v27-line"><span>Шаг недели</span><b>${esc((g.note||'Один конкретный шаг на неделю').slice(0,60))}</b></div><div class="row-actions" style="margin-top:10px"><button class="mini green" data-action="createGoalWeeklyTask" data-id="${g.id}">Шаг недели</button><button class="mini blue" data-action="editRecord" data-type="goal" data-id="${g.id}">Ред.</button></div></div>`}).join('')}</div>`:`<div class="v27-empty-tip">Добавь хотя бы 2 финансовые цели: <b>подушка безопасности</b> и <b>сумма для накопления</b>. Так приложение будет показывать не только долги, но и твой прогресс к финансовой свободе.</div>`}</section>`;
+  }
+
+  function debtRepayPlan(out){
+    return debtPayoffOrder(out).map((d,i)=>{
+      const dd=d.due?daysBetween(today(),d.due):null;
+      const tone = d.due && d.due<today() ? 'red' : dd!=null && dd<=7 ? 'amber' : 'green';
+      const note = d.due && d.due<today() ? 'Просрочено — закрыть в первую очередь' : dd!=null && dd<=7 ? `Срок через ${dd} дн.` : d.due ? `До ${fmt(d.due)}` : 'Без срока';
+      return {debt:d,tone,note,index:i+1};
+    });
+  }
+
+  function debtPlanBlock(rows){
+    return rows.length?`<div class="v27-debt-plan">${rows.map(r=>`<div class="v27-debt-step"><div class="num ${r.tone==='red'?'red':r.tone==='green'?'green':''}">${r.index}</div><div style="flex:1"><div class="card-head" style="margin-bottom:4px"><div><h3>${esc(r.debt.person)}</h3><p class="small muted">${r.note}</p></div><span class="pill ${r.debt.direction==='out'?'red':'green'}">${money(r.debt.amount)}</span></div><div class="small muted">${esc(r.debt.note||'Без комментария')}</div><div class="row-actions" style="margin-top:10px"><button class="mini blue" data-action="editRecord" data-type="debt" data-id="${r.debt.id}">Ред.</button><button class="mini ${r.debt.direction==='out'?'red':'green'}" data-action="debtReminder" data-id="${r.debt.id}">${r.debt.direction==='out'?'Напомнить себе':'Напомнить'}</button><button class="mini green" data-action="closeDebt" data-id="${r.debt.id}">Закрыть</button></div></div></div>`).join('')}</div>`:empty('Нет активных долгов');
+  }
+
+  function dueTimeline(list, title, emptyText){
+    return `<article class="card"><div class="card-head"><h3>${title}</h3></div><div class="v27-timeline">${list.length?list.map(d=>`<div class="v27-timeline-item"><div class="card-head"><div><b>${esc(d.person)}</b><div class="small muted">${d.direction==='out'?'Я должен':'Мне должны'} · ${fmt(d.due)}</div></div><span class="pill ${d.direction==='out'?'red':'green'}">${money(d.amount)}</span></div><div class="small muted">${esc(d.note||'Без комментария')}</div></div>`).join(''):`<div class="v27-empty-tip">${emptyText}</div>`}</div></article>`;
+  }
+
+  financePage = function(){
+    ensureFinanceDebtV27Styles();
+    const p=periodInfo();
+    const model=financeModel(p);
+    const nextDebt = debtPayoffOrder(model.out)[0];
+    return layout('Финансы','Деньги под контролем: сначала порядок, затем закрытие долгов и накопление сумм.',`
+      <section class="finance-tabs">${[['month','Текущий месяц'],['last','Прошлый'],['next','Будущий месяц'],['quarter','3 месяца'],['year','Год']].map(([k,l])=>`<button class="chip-btn ${p.key===k?'active':''}" data-action="setFinancePeriod" data-period="${k}">${l}</button>`).join('')}</section>
+      <section class="grid finance-kpi-grid">
+        <article class="card v27-kpi-card"><h3>Фактический остаток</h3><div class="value sm blue">${money(state.settings.currentBalance)}</div><button class="ghost-btn" data-action="setActualBalance">Проставить остаток</button><div class="v27-card-sub">Точка отсчёта для всех прогнозов.</div></article>
+        <article class="card v27-kpi-card"><h3>Доходы · ${p.title}</h3><div class="value sm green">${money(model.t.inc)}</div><div class="v27-card-sub">Все доходы за выбранный период.</div></article>
+        <article class="card v27-kpi-card"><h3>Расходы · ${p.title}</h3><div class="value sm red">${money(model.t.exp)}</div><div class="v27-card-sub">Фактические траты за период.</div></article>
+        <article class="card v27-kpi-card"><h3>Покупки в плане</h3><div class="value sm amber">${money(model.t.upcoming)}</div><div class="v27-card-sub">Плановые покупки до ${fmt(p.end)}.</div></article>
+        <article class="card v27-kpi-card"><h3>Прогноз остатка</h3><div class="value sm ${model.freeCash>=0?'green':'red'}">${money(model.freeCash)}</div><div class="v27-card-sub">Что останется после базы и ближайших покупок.</div></article>
+      </section>
+
+      <section class="grid cols-2" style="margin-top:16px">
+        <article class="card">
+          <div class="card-head"><div><h3>Финансовый фокус периода</h3><p class="small muted">Система, которая помогает одновременно сокращать долги и накапливать суммы.</p></div><div class="row-actions"><button class="ghost-btn" data-action="openRecordForm" data-type="operation">＋ Операция</button><button class="ghost-btn" data-action="addFinancialGoal">＋ Фин. цель</button></div></div>
+          <div class="v27-health-grid">
+            ${financeHealthCard('Подушка / резерв', money(model.reserveCurrent), `Цель: ${money(model.reserveTarget)}`, model.reserveProgress, 'green')}
+            ${financeHealthCard('Долговая нагрузка', `${model.debtLoad}%`, 'Чем ниже, тем легче выйти в плюс.', Math.min(model.debtLoad,100), model.debtLoad>50?'red':'blue')}
+            ${financeHealthCard('Рекомендовано на долги', money(model.recommendedDebtPayment), nextDebt?`Следующий приоритет: ${esc(nextDebt.person)}`:'Долгов нет — можно копить быстрее.', null, 'red')}
+            ${financeHealthCard('Рекомендовано в накопления', money(model.recommendedReserve), 'Даже небольшой резерв снижает риск новых долгов.', null, 'green')}
+          </div>
+          <div style="margin-top:14px">${financeActionPlan(model)}</div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><div><h3>Маршрут денег</h3><p class="small muted">Понятная последовательность, чтобы деньги не растворялись.</p></div><span class="v27-badge">автопилот</span></div>
+          ${moneyRoute(model)}
+          <div class="record-card" style="margin-top:14px"><b>Почему это эффективно</b><ul class="small muted"><li>Сначала закрываются обязательные платежи и срочные долги — уменьшается давление.</li><li>Плановые покупки заранее учитываются в бюджете, поэтому не ломают месяц.</li><li>Часть денег сразу идёт в резерв, чтобы не пришлось снова занимать.</li></ul></div>
+        </article>
+      </section>
+
+      <section class="grid cols-2" style="margin-top:16px">
+        <article class="card"><div class="card-head"><h3>График доходов и расходов</h3><span class="pill blue">${fmt(p.start)} — ${fmt(p.end)}</span></div>${financeChart(p)}<div class="v27-legend"><span class="v27-badge green">Доходы</span><span class="v27-badge red">Расходы</span><span class="v27-badge amber">Покупки в прогнозе ${money(model.t.upcoming)}</span></div></article>
+        <article class="card"><div class="card-head"><div><h3>Категории и точки контроля</h3><p class="small muted">Показывает, куда уходит большая часть денег.</p></div><button class="ghost-btn" data-action="openRecordForm" data-type="operation">＋ Операция</button></div>${categoryBreakdown(p)}${expenseShareBars(p)}${incomeExplain(p)}</article>
+      </section>
+
+      <section class="grid cols-2" style="margin-top:16px">
+        <article class="card">
+          <div class="card-head"><div><h3>Долги и возвраты</h3><p class="small muted">Всё, что влияет на чистый финансовый результат.</p></div><button class="ghost-btn" data-go="debts">Открыть долги →</button></div>
+          <div class="v27-mini-grid">
+            <div class="v27-health"><h4>Я должен</h4><div class="value sm red">${money(total(model.out))}</div><div class="v27-card-sub">Активных долгов: ${model.out.length}</div></div>
+            <div class="v27-health"><h4>Мне должны</h4><div class="value sm green">${money(total(model.incoming))}</div><div class="v27-card-sub">Можно ускорить возвраты.</div></div>
+          </div>
+          <div style="margin-top:12px">${debtPlanBlock(debtRepayPlan(model.out).slice(0,3))}</div>
+        </article>
+        <article class="card">
+          <div class="card-head"><div><h3>Импорт банка и фактический контроль</h3><p class="small muted">Обновляй факт, чтобы прогноз был точным.</p></div><span class="pill blue">дубли удаляются</span></div>
+          <p class="small muted">Одинаковые строки по дате, типу, сумме, категории и комментарию будут пропущены.</p>
+          <input type="file" id="csvFile" accept=".csv,text/csv">
+          <div class="row-actions" style="margin-top:10px"><button class="btn" data-action="importBankCsv">Импортировать CSV</button><button class="ghost-btn" data-action="setActualBalance">Обновить остаток</button></div>
+          <div class="record-card" style="margin-top:12px"><b>Последний импорт</b><div class="small muted">Добавлено ${state.settings.lastCsvAdded||0}, дублей удалено ${state.settings.lastCsvDuplicates||0}</div></div>
+          <div class="record-card" style="margin-top:12px"><b>Если сумма в доходах кажется странной</b><div class="small muted">Открой блок «Откуда доходы» выше. Там видны все операции, из которых сложилась сумма.</div></div>
+        </article>
+      </section>
+
+      ${financeGoalsBlock()}
+
+      <section class="card" style="margin-top:16px"><div class="card-head"><div><h3>Плановые покупки по месяцам</h3><p class="small muted">Покупки автоматически влияют на прогноз того периода, в котором указана их дата.</p></div><button class="btn" data-action="openRecordForm" data-type="purchase">＋ Добавить покупку</button></div>${plannedMonthBlock(p)}</section>
+    `);
+  }
+
+  debtsPage = function(){
+    ensureFinanceDebtV27Styles();
+    const all=activeDebts();
+    const out=all.filter(d=>d.direction==='out');
+    const incoming=all.filter(d=>d.direction==='in');
+    const overdue=out.filter(d=>d.due && d.due<today());
+    const due7=out.filter(d=>d.due && daysBetween(today(),d.due)>=0 && daysBetween(today(),d.due)<=7);
+    const nextIn = incoming.filter(d=>d.due).sort((a,b)=>String(a.due).localeCompare(String(b.due)))[0];
+    const payoffRows=debtRepayPlan(out);
+    const potentialNet=Math.max(0,total(incoming)-total(out));
+    return layout('Долги','Чёткая карта: что закрывать первым, что вернуть себе и как перестать жить в кассовом разрыве.',`
+      <section class="grid finance-kpi-grid">
+        <article class="card v27-kpi-card"><h3>Я должен</h3><div class="value sm red">${money(total(out))}</div><div class="v27-card-sub">Всего активных долгов: ${out.length}</div></article>
+        <article class="card v27-kpi-card"><h3>Мне должны</h3><div class="value sm green">${money(total(incoming))}</div><div class="v27-card-sub">Можно ускорить возвраты.</div></article>
+        <article class="card v27-kpi-card"><h3>Просрочено</h3><div class="value sm red">${money(total(overdue))}</div><div class="v27-card-sub">Это зона №1 для внимания.</div></article>
+        <article class="card v27-kpi-card"><h3>Срок 7 дней</h3><div class="value sm amber">${money(total(due7))}</div><div class="v27-card-sub">То, что может стать новой просрочкой.</div></article>
+        <article class="card v27-kpi-card"><h3>Ближайший возврат мне</h3><div class="value sm green">${nextIn?money(nextIn.amount):money(0)}</div><div class="v27-card-sub">${nextIn?`${esc(nextIn.person)} · ${fmt(nextIn.due)}`:'Пока без ближайших возвратов'}</div></article>
+      </section>
+
+      <section class="grid cols-2" style="margin-top:16px">
+        <article class="card">
+          <div class="card-head"><div><h3>План выхода из долгов</h3><p class="small muted">Приоритет: просрочки → ближайшие сроки → мелкие быстрые закрытия.</p></div><div class="row-actions"><button class="ghost-btn" data-action="openDebtOut">＋ Я должен</button><button class="ghost-btn" data-action="openDebtIn">＋ Мне должны</button></div></div>
+          ${debtPlanBlock(payoffRows)}
+        </article>
+
+        <article class="card">
+          <div class="card-head"><div><h3>Тактика на этот месяц</h3><p class="small muted">Простой алгоритм, чтобы долги уменьшались, а не крутились по кругу.</p></div><span class="v27-badge green">эффективно</span></div>
+          <div class="forecast-list">
+            <div class="row"><div>Сначала закрыть</div><b class="red">${money(total(overdue)+total(due7))}</b></div>
+            <div class="row"><div>Запросить возвраты у других</div><b class="green">${money(total(incoming))}</b></div>
+            <div class="row"><div>Минимум оставить в резерве</div><b class="blue">${money(Math.max(3000,Math.round((state.settings.currentBalance||0)*0.15/1000)*1000))}</b></div>
+            <div class="row"><div>Потенциал после возвратов</div><b class="${potentialNet>=0?'green':'red'}">${money(potentialNet)}</b></div>
+          </div>
+          <div class="record-card" style="margin-top:14px"><b>Правила, которые помогают</b><ul class="small muted"><li>Не брать новый долг, пока не понятен план закрытия текущего.</li><li>Просрочки и ближайшие сроки — всегда впереди крупных дальних долгов.</li><li>Деньги, которые должны тебе, лучше направлять на закрытие срочных обязательств.</li><li>Даже маленький резерв уменьшает риск снова занимать.</li></ul></div>
+        </article>
+      </section>
+
+      <section class="v27-debt-columns" style="margin-top:16px">
+        <article class="card"><div class="card-head"><div><h3 class="red">← Я должен</h3><p class="small muted">Все обязательства, которые нужно закрыть.</p></div><button class="ghost-btn" data-action="openDebtOut">＋ Добавить</button></div><div class="list">${out.map(debtCard).join('')||empty('Нет активных долгов')}</div><div class="debt-footer"><span>Итого</span><b class="red">${money(total(out))}</b></div></article>
+        <article class="card"><div class="card-head"><div><h3 class="green">Мне должны →</h3><p class="small muted">Возвраты, которые можно использовать себе на пользу.</p></div><button class="ghost-btn" data-action="openDebtIn">＋ Добавить</button></div><div class="list">${incoming.map(debtCard).join('')||empty('Тебе пока никто не должен')}</div><div class="debt-footer"><span>Итого</span><b class="green">${money(total(incoming))}</b></div></article>
+      </section>
+
+      <section class="grid cols-2" style="margin-top:16px">
+        ${dueTimeline(out.filter(d=>d.due).sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,6),'Ближайшие обязательства','На ближайшие даты обязательств нет')}
+        ${dueTimeline(incoming.filter(d=>d.due).sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,6),'Ближайшие возвраты мне','Возвратов по датам пока нет')}
+      </section>
+    `);
+  }
+
+  try{ render(); }catch(e){ console.error(e); }
+})();
