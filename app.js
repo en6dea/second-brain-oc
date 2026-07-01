@@ -1,542 +1,356 @@
 'use strict';
+const APP_NAME='Second Brain OS';
+const BUILD='life-smart-polish-light-tech-20260630';
+const STORE_KEY='secondBrainOS.v1';
+const SNAPSHOT_KEY='secondBrainOS.snapshots';
+const META_KEY='secondBrainOS.meta';
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const monthKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+const num=v=>Number(String(v??'').replace(/\s/g,'').replace(',','.'))||0;
+const money=v=>`${Math.round(num(v)).toLocaleString('ru-RU')} ₽`;
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Number(v)||0));
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const fmtDate=d=>new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+const iso=d=>new Date(d).toISOString().slice(0,10);
+let page=location.hash?location.hash.slice(1):'dashboard';
+let state=normalizeState(loadRawState());
+let csvRows=[];
+let csvDuplicateRemoved=0;
 
-const APP_NAME = 'Second Brain OS';
-const BUILD = 'ru-light-tech-working-v49-20260701';
-const STORE_KEY = 'secondBrainOS.v1';
-const META_KEY = 'secondBrainOS.meta';
-const SNAPSHOT_KEY = 'secondBrainOS.snapshots';
+document.title=APP_NAME;
+try{const m=document.querySelector('meta[name="second-brain-build"]'); if(m)m.content=BUILD; localStorage.setItem('secondBrainOS.currentBuild',BUILD);}catch(e){}
+if(location.search) history.replaceState(null,'',location.pathname+(location.hash||''));
 
-const $ = (s, root = document) => root.querySelector(s);
-const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-5);
-const todayKey = () => new Date().toISOString().slice(0, 10);
-const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
-const num = (v) => Number(String(v ?? 0).replace(/\s/g, '').replace(',', '.').replace(/[^0-9.-]/g, '')) || 0;
-const money = (v) => `${Math.round(num(v)).toLocaleString('ru-RU')} ₽`;
-const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('ru-RU', {day:'numeric', month:'short'}); } catch(e) { return d || '—'; } };
-const weekday = (d) => ['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'][new Date(d).getDay()] || '—';
-
-const navSections = [
-  ['Главное', [
-    ['dashboard', '▦', 'Главная'],
-    ['timeline', '◷', 'Таймлайн'],
-    ['notes', '✎', 'Заметки'],
-    ['tasks', '✓', 'Задачи'],
-    ['goals', '◎', 'Цели'],
-    ['habits', '◌', 'Привычки'],
-    ['finance', '₽', 'Финансы'],
-    ['links', '⌁', 'Связи'],
-    ['calendar', '□', 'Календарь'],
-  ]],
-  ['Папки', [
-    ['folders', '☷', 'Папки'],
-    ['resources', '▤', 'Ресурсы'],
-    ['people', '○', 'Люди'],
-    ['inbox', '↓', 'Входящие'],
-    ['import', '⇣', 'Импорт'],
-  ]],
-  ['Система', [
-    ['settings', '⚙', 'Настройки'],
-    ['diagnostics', '✦', 'Диагностика'],
-  ]]
+const navItems=[
+ ['dashboard','⌂','Обзор'],['finance','◔','Финансы'],['budget','◉','Бюджет'],['goals','◎','Цели SMART'],['planning','☷','Планирование'],['spheres','✣','Сферы жизни'],['import','⇣','Импорт'],['diagnostics','⚙','Диагностика']
 ];
-const flatNav = navSections.flatMap(s => s[1]);
-const mobileItems = ['dashboard','finance','tasks','notes','settings'];
-
-const memoryStore = new Map();
-function storageGet(key){ try { return localStorage.getItem(key); } catch(e) { return memoryStore.has(key) ? memoryStore.get(key) : null; } }
-function storageSet(key, value){ try { localStorage.setItem(key, value); } catch(e) { memoryStore.set(key, String(value)); } }
-
-const labelDefaults = {
-  appName: 'Second Brain OS',
-  appSubtitle: 'Собирай. Связывай. Действуй.',
-  greeting: 'Доброе утро.',
-  greetingSub: 'Вот что происходит в твоей системе сегодня.',
-  quote: 'Ясность — это сила действовать осознанно.',
-  todayCard: 'Сегодня',
-  calendarCard: 'Календарь',
-  goalsCard: 'Цели',
-  tasksCard: 'Задачи',
-  timelineCard: 'Таймлайн',
-  linksCard: 'Связи / граф',
-  habitsCard: 'Привычки',
-  financeCard: 'Финансы',
-  notesCard: 'Заметки',
-  quickCard: 'Быстрый захват',
-  folderWork: 'Работа',
-  folderMoney: 'Деньги',
-  folderLife: 'Жизнь',
-  folderPeople: 'Люди',
-  folderIdeas: 'Идеи',
-  folderArchive: 'Архив'
-};
+const mobileItems=[['dashboard','⌂','Обзор'],['finance','◔','Финансы'],['planning','☷','План'],['spheres','✣','Сферы'],['budget','◉','Бюджет']];
 
 function defaultState(){
-  const t = todayKey(), m = monthKey();
-  return {
-    settings: {
-      currentMonth: m,
-      currentBalance: 24540,
-      importActualBalance: '',
-      dailyLimit: 4500,
-      labels: {...labelDefaults},
-      ui: {search:'', timelineMode:'week', importRows:[]}
-    },
-    categories: [
-      {id:uid(), name:'Доход', type:'income', limit:0},
-      {id:uid(), name:'Продукты', type:'expense', limit:35000},
-      {id:uid(), name:'Дом', type:'expense', limit:25000},
-      {id:uid(), name:'Транспорт', type:'expense', limit:15000},
-      {id:uid(), name:'Кафе', type:'expense', limit:12000},
-      {id:uid(), name:'Здоровье', type:'expense', limit:10000},
-      {id:uid(), name:'Без категории', type:'expense', limit:0}
-    ],
-    operations: [
-      {id:uid(), date:t, type:'income', amount:210000, category:'Доход', note:'Зарплата'},
-      {id:uid(), date:t, type:'expense', amount:2450, category:'Продукты', note:'Магазин'},
-      {id:uid(), date:t, type:'expense', amount:1200, category:'Кафе', note:'Обед'}
-    ],
-    tasks: [
-      {id:uid(), title:'Проверить бюджет на неделю', area:'Финансы', due:t, time:'10:00', priority:'A', status:'В работе'},
-      {id:uid(), title:'Разобрать входящие заметки', area:'Система', due:t, time:'13:00', priority:'B', status:'В работе'},
-      {id:uid(), title:'Запланировать фокус-блок', area:'Работа', due:t, time:'16:00', priority:'B', status:'В работе'}
-    ],
-    calendarEvents: [
-      {id:uid(), title:'Глубокая работа', date:t, time:'09:00', end:'11:00', color:'blue'},
-      {id:uid(), title:'Синхронизация проекта', date:t, time:'11:00', end:'12:00', color:'green'},
-      {id:uid(), title:'Созвон по финансам', date:t, time:'14:00', end:'15:00', color:'amber'},
-      {id:uid(), title:'Ревью и план', date:t, time:'16:00', end:'17:00', color:'violet'}
-    ],
-    goals: [
-      {id:uid(), title:'Запустить Second Brain OS', area:'Продукт', targetValue:100, currentValue:72, deadline:'2026-09-30', note:'Стабилизировать интерфейс и данные'},
-      {id:uid(), title:'Собрать подушку безопасности', area:'Финансы', targetValue:300000, currentValue:165000, deadline:'2026-12-31', note:'Ежемесячный взнос'},
-      {id:uid(), title:'Прочитать 24 книги', area:'Развитие', targetValue:24, currentValue:8, deadline:'2026-12-31', note:'2 книги в месяц'}
-    ],
-    habits: [
-      {id:uid(), name:'Утренний план', area:'Фокус', target:'ежедневно', streak:12, marks:{[t]:true}},
-      {id:uid(), name:'Учёт расходов', area:'Финансы', target:'ежедневно', streak:8, marks:{[t]:true}},
-      {id:uid(), name:'Чтение', area:'Развитие', target:'20 минут', streak:15, marks:{}},
-      {id:uid(), name:'Дневник', area:'Память', target:'вечером', streak:6, marks:{}}
-    ],
-    notes: [
-      {id:uid(), title:'Идеи продукта', folder:'Работа', text:'Сделать быстрый захват, граф связей и редактируемые названия.', createdAt:t, tags:['продукт','идея']},
-      {id:uid(), title:'Фокус и энергия', folder:'Жизнь', text:'Главная должна показывать только важное на сегодня.', createdAt:t, tags:['фокус']}
-    ],
-    people: [
-      {id:uid(), name:'Полина', relation:'близкий человек', birthday:'1999-08-23', notes:'Идеи подарков и темы для разговоров можно хранить здесь.'}
-    ],
-    links: [
-      {id:uid(), title:'Дорожная карта продукта', type:'Проект', target:'Second Brain OS', note:'Связь с целями и задачами'},
-      {id:uid(), title:'Привычки', type:'Сфера', target:'Фокус', note:'Влияют на ежедневный ритм'},
-      {id:uid(), title:'Финансовая цель', type:'Цель', target:'Финансы', note:'Связана с бюджетом'}
-    ],
-    resources: [
-      {id:uid(), title:'Инструкция по загрузке на GitHub', type:'Документ', url:'', note:'Хранить чек-лист деплоя'}
-    ],
-    inbox: [
-      {id:uid(), title:'Новая мысль', type:'Идея', text:'Добавить редактирование текстов интерфейса.', createdAt:t, status:'Новое'}
-    ],
-    folders: [
-      {id:'work', labelKey:'folderWork', icon:'▤', note:'Проекты, задачи, заметки по работе'},
-      {id:'money', labelKey:'folderMoney', icon:'₽', note:'Финансы, бюджет, долги, платежи'},
-      {id:'life', labelKey:'folderLife', icon:'◌', note:'Привычки, здоровье, планы'},
-      {id:'people', labelKey:'folderPeople', icon:'○', note:'Люди, связи, дни рождения'},
-      {id:'ideas', labelKey:'folderIdeas', icon:'✎', note:'Идеи, ресурсы, входящие'},
-      {id:'archive', labelKey:'folderArchive', icon:'□', note:'Старые записи и завершённое'}
-    ],
-    plannedPurchases: [], debts: [], books: [], media: [], ideas: [], trips: [], files: [], spheres: []
-  };
+ const t=todayKey(), m=monthKey();
+ return {
+  settings:{currentMonth:m, currentBalance:0, importActualBalance:'', monthlyPlan:300000, salaryMain:150000, salaryAdvance:50000, paydayMain:10, paydayAdvance:25, savingsRate:10, lifeFolder:'overview', taskScope:'today'},
+  categories:[
+    {id:uid(),name:'Продукты',type:'expense',limit:35000},{id:uid(),name:'Дом',type:'expense',limit:25000},{id:uid(),name:'Транспорт',type:'expense',limit:15000},{id:uid(),name:'Кафе',type:'expense',limit:12000},{id:uid(),name:'Одежда',type:'expense',limit:15000},{id:uid(),name:'Здоровье',type:'expense',limit:10000},{id:uid(),name:'Доход',type:'income',limit:0}
+  ],
+  operations:[{id:uid(),date:t,type:'income',amount:210000,category:'Доход',note:'Зарплата'},{id:uid(),date:t,type:'expense',amount:2450,category:'Продукты',note:'Магазин'},{id:uid(),date:t,type:'expense',amount:1250,category:'Кафе',note:'Кофе'}],
+  tasks:[{id:uid(),title:'Проверить бюджет на неделю',area:'Финансы',due:t,time:'10:00',status:'В работе',priority:'B'},{id:uid(),title:'Тренировка',area:'Здоровье',due:t,time:'12:00',status:'В работе',priority:'B'}],
+  calendarEvents:[{id:uid(),title:'Планирование бюджета',date:t,time:'16:00',area:'Финансы',note:'Сверить факт, план и лимиты'}],
+  debts:[{id:uid(),person:'Кредит / карта',amount:45000,due:t,status:'Активен',note:'Первый долг к закрытию',reminder:false}],
+  plannedPurchases:[{id:uid(),title:'Одежда на сезон',category:'Одежда',amount:12000,month:m,importance:'Важно',includeInBudget:true,note:'Поставить в лимит, если есть свободный бюджет'}],
+  goals:[{id:uid(),title:'Увеличить доход',area:'Финансы',targetValue:300000,currentValue:210000,deadline:'2026-12-31',specific:'Увеличить доход до 300 000 ₽',measurable:'300 000 ₽/мес',achievable:'1 новый источник дохода',relevant:'Больше свободы и спокойствия',timebound:'До конца года',nextAction:'Определить один шаг на этой неделе',week52:'Сделай один встречный шаг в эту неделю'}],
+  safetyFund:{current:450000,target:600000,note:'Отдельно от целей. Это запас спокойствия, а не цель.'},
+  habits:[{id:uid(),name:'Записать расходы',area:'Финансы',target:'ежедневно',marks:{[t]:true}},{id:uid(),name:'План дня',area:'Фокус',target:'ежедневно',marks:{}}],
+  notes:[{id:uid(),title:'Фокус дня',text:'Минимум лишнего, максимум ясности.',folder:'Личное',tags:['фокус'],createdAt:t}],
+  people:[{id:uid(),name:'Полина',relation:'близкий человек',birthday:'1999-08-23',photo:'',likes:'море, кофе, украшения',talkIdeas:'обсудить планы',gifts:'сертификат / украшение',links:'',notes:'важный человек'}],
+  books:[{id:uid(),title:'Психология денег',author:'Морган Хаузел',status:'Хочу прочитать',insight:'Деньги — это запас спокойствия и свободы решений.',quotes:['Свобода — лучший дивиденд.'],cover:''}],
+  media:[{id:uid(),title:'Фильм на вечер',type:'Фильм',status:'Хочу посмотреть',link:'',trailer:'',note:'Добавь ссылку на трейлер'}],
+  ideas:[{id:uid(),title:'Идея для проекта',text:'Сделать один маленький шаг.',createdAt:t}],
+  trips:[{id:uid(),title:'Поездка в горы',direction:'Любое направление',start:'',end:'',budget:100000,saved:0,transport:25000,hotel:45000,food:20000,activities:10000,notes:'Свободное планирование маршрута и бюджета',status:'Идея'}],
+  files:[],
+  spheres:[{id:'life_people',title:'Люди',icon:'◌',progress:70,note:'Контакты, даты, подарки'},{id:'life_planning',title:'Планирование',icon:'☷',progress:60,note:'Задачи, календарь, покупки'},{id:'life_habits',title:'Привычки',icon:'◷',progress:65,note:'Повторы и ритм'},{id:'life_books',title:'Книги',icon:'◧',progress:45,note:'Чтение и цитаты'},{id:'life_ideas',title:'Идеи',icon:'✦',progress:50,note:'Мысли и проекты'},{id:'life_personal',title:'Личная жизнь',icon:'♡',progress:55,note:'Фильмы, сериалы, память'}],
+  dataCore:{schema:4801,updatedAt:new Date().toISOString()}
+ };
 }
+function loadRawState(){try{const raw=localStorage.getItem(STORE_KEY); if(!raw)return null; const parsed=JSON.parse(raw); return parsed.state||parsed;}catch(e){return null}}
+function normalizeState(raw){
+ const base=defaultState(); const s=raw&&typeof raw==='object'?raw:{}; const merged={...base,...s,settings:{...base.settings,...(s.settings||{})},dataCore:{...base.dataCore,...(s.dataCore||{})}};
+ ['operations','tasks','calendarEvents','debts','plannedPurchases','goals','habits','notes','people','books','media','ideas','trips','files','spheres','categories'].forEach(k=>{if(!Array.isArray(merged[k])) merged[k]=base[k]||[]});
+ if(!merged.safetyFund||typeof merged.safetyFund!=='object') merged.safetyFund=base.safetyFund;
+ merged.settings.currentMonth=merged.settings.currentMonth||monthKey();
+ merged.settings.lifeFolder=merged.settings.lifeFolder||'overview';
+ merged.settings.taskScope=merged.settings.taskScope||'today';
+ merged.settings.paydayMain=num(merged.settings.paydayMain)||10; merged.settings.paydayAdvance=num(merged.settings.paydayAdvance)||25;
+ merged.categories=dedupeCategories([...(merged.categories||[]),...deriveCategories(merged)]);
+ merged.spheres=dedupeSpheres(merged.spheres.length?merged.spheres:base.spheres);
+ if(!merged.media.length) merged.media=base.media;
+ merged.dataCore.schema=4801; merged.dataCore.updatedAt=new Date().toISOString();
+ return merged;
+}
+function dedupeSpheres(arr){const keep=['Люди','Планирование','Привычки','Книги','Идеи','Личная жизнь']; const map=new Map(); [...arr,...defaultState().spheres].forEach(x=>{const key=(x.title||'').trim().toLowerCase(); if(keep.map(k=>k.toLowerCase()).includes(key)&&!map.has(key))map.set(key,{...x,id:x.id||uid()});}); return Array.from(map.values());}
+function deriveCategories(s){const out=[];(s.operations||[]).forEach(o=>{if(o.category)out.push({id:uid(),name:o.category,type:o.type||'expense',limit:0})});(s.budgets||[]).forEach(b=>{if(b.category)out.push({id:uid(),name:b.category,type:'expense',limit:num(b.limit)})});return out;}
+function dedupeCategories(arr){const map=new Map(); arr.forEach(c=>{if(!c.name)return; const k=c.name.trim().toLowerCase()+'|'+(c.type||'expense'); if(!map.has(k))map.set(k,{id:c.id||uid(),name:c.name.trim(),type:c.type||'expense',limit:num(c.limit)}); else if(num(c.limit)) map.get(k).limit=num(c.limit);}); return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,'ru'));}
+function save(snapshot=false){state=normalizeState(state);localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem(META_KEY,JSON.stringify({app:APP_NAME,build:BUILD,updatedAt:new Date().toISOString()}));if(snapshot)saveSnapshot('manual')}
+function saveSnapshot(reason='auto'){try{const list=JSON.parse(localStorage.getItem(SNAPSHOT_KEY)||'[]'); list.unshift({app:APP_NAME,build:BUILD,reason,createdAt:new Date().toISOString(),state}); localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(list.slice(0,8)));}catch(e){}}
+function toast(msg){const t=$('#toast'); if(!t)return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200)}
+function go(p){page=p;location.hash=p;render()} window.addEventListener('hashchange',()=>{page=location.hash.slice(1)||'dashboard';render()});
+function layout(title,subtitle,body){return `<div class="page"><div class="hero"><div><h1>${title}</h1><p>${subtitle||''}</p></div><div class="date-pill">☷ ${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</div></div>${body}</div>`}
+function progressBar(p,cls=''){return `<div class="progress ${cls}"><b style="width:${clamp(p)}%"></b></div>`}
+function empty(t){return `<div class="mini-box muted">${t}</div>`}
+function monthOps(type){return state.operations.filter(o=>String(o.date||'').startsWith(state.settings.currentMonth)&&(!type||o.type===type))}
+function total(list){return list.reduce((s,x)=>s+num(x.amount),0)}
+function currentCycle(){const now=new Date(); const start=new Date(now.getFullYear(),now.getMonth(),10); if(now.getDate()<10) start.setMonth(start.getMonth()-1); const end=new Date(start.getFullYear(),start.getMonth()+1,9); return {start:iso(start),end:iso(end)}}
+function cycleOps(type){const c=currentCycle();return state.operations.filter(o=>String(o.date||'')>=c.start&&String(o.date||'')<=c.end&&(!type||o.type===type))}
+function plannedInMonth(){return state.plannedPurchases.filter(p=>p.month===state.settings.currentMonth&&p.includeInBudget!==false)}
+function activeDebts(){return state.debts.filter(d=>d.status!=='Закрыт')}
+function summary(){
+ const income=total(monthOps('income')), expenses=total(monthOps('expense')), cycleIncome=total(cycleOps('income')), cycleExpenses=total(cycleOps('expense'));
+ const planned=total(plannedInMonth()); const debtDue=total(activeDebts().filter(d=>String(d.due||'').startsWith(state.settings.currentMonth)));
+ const calcBalance=income-expenses-planned-debtDue; const actual=num(state.settings.currentBalance)||calcBalance; const plan=num(state.settings.monthlyPlan)||income||1;
+ const next=nextSalaryDate(); const days=Math.max(1,Math.ceil((new Date(next.date)-new Date())/86400000)); const obligations=dueUntil(next.date); const toNext=actual-obligations; const dailyLimit=Math.max(0,Math.floor(toNext/days));
+ const byCat={}; monthOps('expense').forEach(o=>{byCat[o.category||'Без категории']=(byCat[o.category||'Без категории']||0)+num(o.amount)}); const topCats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+ return {income,expenses,cycleIncome,cycleExpenses,planned,debtDue,calcBalance,actual,plan,progress:clamp(Math.round(income/plan*100)),nextSalary:next,daysToSalary:days,obligations,toNext,dailyLimit,topCats};
+}
+function adjustedPayday(year,monthIndex,day){const d=new Date(year,monthIndex,day); const w=d.getDay(); if(w===6)d.setDate(d.getDate()-1); if(w===0)d.setDate(d.getDate()-2); return d}
+function nextSalaryDate(){const now=new Date(); const candidates=[]; for(let add=0;add<3;add++){const d=new Date(now.getFullYear(),now.getMonth()+add,1); candidates.push({date:iso(adjustedPayday(d.getFullYear(),d.getMonth(),state.settings.paydayMain)),type:'Основная зарплата',amount:num(state.settings.salaryMain)}); candidates.push({date:iso(adjustedPayday(d.getFullYear(),d.getMonth(),state.settings.paydayAdvance)),type:'Аванс',amount:num(state.settings.salaryAdvance)});} return candidates.filter(x=>new Date(x.date)>=new Date(todayKey())).sort((a,b)=>a.date.localeCompare(b.date))[0]||candidates[0];}
+function dueUntil(date){const p=state.plannedPurchases.filter(x=>x.includeInBudget!==false&&(!x.due||x.due<=date)&&(!x.month||x.month<=monthKey(new Date(date)))).reduce((a,b)=>a+num(b.amount),0); const d=activeDebts().filter(x=>x.due&&x.due<=date).reduce((a,b)=>a+num(b.amount),0); return p+d;}
+function goalProgress(g){return num(g?.targetValue)?clamp(Math.round(num(g.currentValue)/num(g.targetValue)*100)):0}
+function safetyProgress(){return num(state.safetyFund.target)?clamp(Math.round(num(state.safetyFund.current)/num(state.safetyFund.target)*100)):0}
+function budgetStats(){const s=summary(); return state.categories.filter(c=>c.type!=='income').map(c=>{const spent=s.topCats.find(([cat])=>cat===c.name)?.[1]||0; const limit=num(c.limit); const pct=limit?clamp(Math.round(spent/limit*100),0,999):0; return {...c,spent,limit,pct,left:limit-spent}})}
+function openTasks(){return state.tasks.filter(t=>(t.status||'В работе')!=='Готово').sort((a,b)=>String((a.due||'')+(a.time||'')).localeCompare(String((b.due||'')+(b.time||''))))}
+function tasksByScope(){const scope=state.settings.taskScope||'today'; const now=new Date(todayKey()); const week=iso(addDays(now,7)); const month=iso(addDays(now,31)); const list=openTasks(); if(scope==='today')return list.filter(t=>t.due===todayKey()); if(scope==='week')return list.filter(t=>t.due&&t.due>=todayKey()&&t.due<=week); if(scope==='month')return list.filter(t=>t.due&&t.due>=todayKey()&&t.due<=month); return list.filter(t=>!t.due||t.due>month)}
+function taskPill(t){const m={A:['Срочно/важно','red'],B:['Важно','blue'],C:['Делегировать','amber'],D:['Позже','']}; const v=m[t.priority]||m.B; return `<span class="pill ${v[1]}">${v[0]}</span>`}
+function rowTask(t){return `<div class="list-row"><button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${t.id}"></button><button class="mini-btn" data-action="editTask" data-id="${t.id}" style="text-align:left;background:transparent;border:0;min-width:0"><div class="row-title">${esc(t.title)}</div><div class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</div></button><div class="button-row">${taskPill(t)}<button class="mini-btn blue" data-action="googleTask" data-id="${t.id}">Google</button></div></div>`}
+function rowOperation(o){return `<div class="list-row"><span class="pill ${o.type==='income'?'green':'blue'}">${o.type==='income'?'＋':'−'}</span><button class="mini-btn" data-action="editOperation" data-id="${o.id}" style="text-align:left;background:transparent;border:0;min-width:0"><div class="row-title">${esc(o.category||'Без категории')}</div><div class="row-sub">${esc(o.note||'')} · ${esc(o.date||'')}</div></button><b class="${o.type==='income'?'green':''}">${o.type==='income'?'+':'−'} ${money(o.amount)}</b></div>`}
+function rowEvent(e){return `<div class="list-row"><span>☷</span><div><div class="row-title">${esc(e.title)}</div><div class="row-sub">${esc(e.date)} ${esc(e.time||'')} · ${esc(e.area||'Личное')}</div></div><div class="button-row"><button class="mini-btn blue" data-action="googleEvent" data-id="${e.id}">Google</button><button class="mini-btn" data-action="editEvent" data-id="${e.id}">Ред.</button></div></div>`}
+function financeSpark(){return `<div class="spark"><svg viewBox="0 0 280 80" preserveAspectRatio="none"><defs><linearGradient id="gblue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity=".18"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs><path class="area-blue" d="M0 70 L0 54 C30 48 40 58 62 48 C80 38 95 44 112 30 C132 12 150 40 170 24 C190 8 205 18 222 11 C245 2 260 -5 280 -20 L280 70 Z"/><path class="stroke-blue" d="M0 54 C30 48 40 58 62 48 C80 38 95 44 112 30 C132 12 150 40 170 24 C190 8 205 18 222 11 C245 2 260 -5 280 -20"/></svg></div>`}
+function dailyQuote(){const qs=[['Порядок в деньгах начинается с честного взгляда на реальность.','Я не ругаю себя за прошлые траты. Я вижу картину и выбираю следующий шаг.'],['Сначала заплати себе — потом распределяй остальное.','Моя свобода начинается не с суммы, а с привычки откладывать регулярно.'],['Маленькие действия, повторённые много раз, становятся системой.','Сегодня мне достаточно одного ясного действия, а не идеального плана.'],['Цель без следующего шага остаётся мечтой.','Я превращаю желание в маленькое действие на этой неделе.']];const i=new Date().getDate()%qs.length;return {quote:qs[i][0],thought:qs[i][1]}}
+function quoteCard(){const q=dailyQuote(); return `<article class="card quote-card"><div class="card-head"><h3>Цитата дня</h3><span class="pill blue">рефлексия</span></div><p style="font-size:17px;line-height:1.45;margin:0 0 10px">“${esc(q.quote)}”</p><div class="small muted"><b>Что я думаю:</b> ${esc(q.thought)}</div><textarea id="dailyReflection" placeholder="Моя мысль на сегодня...">${esc(state.settings.dailyReflection||'')}</textarea><div class="actions"><button class="btn secondary" data-action="saveDailyReflection">Сохранить в заметки</button></div></article>`}
+function dashboard(){const s=summary();return layout('Обзор','Деньги, задачи и жизнь — на одном чистом экране.',`<section class="grid dashboard"><article class="card premium-hero-card"><div class="card-head"><h3>Фактический остаток</h3><button class="link" data-go="finance">Финансы →</button></div><div class="value">${money(s.actual)}</div><div class="small muted">основной показатель. Расчётный баланс: ${money(s.calcBalance)}</div>${financeSpark()}</article><article class="card"><div class="card-head"><h3>До зарплаты</h3><button class="link" data-go="planning">План →</button></div><div class="value sm">${s.daysToSalary} дн.</div><p class="muted small">${s.nextSalary.type}: ${fmtDate(s.nextSalary.date)} · ${money(s.nextSalary.amount)}</p><div class="alert">Прогноз: ${money(s.toNext)} до ближайшей выплаты</div></article><article class="card"><div class="card-head"><h3>Бюджет на день</h3><button class="link" data-go="budget">Бюджет →</button></div><div class="ring" style="--p:${Math.min(100,s.progress)}"><span>${Math.min(100,s.progress)}%</span></div><div class="stat-row"><span class="small muted">можно тратить</span><b>${money(s.dailyLimit)}</b></div></article></section><section class="grid cols-3" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Сегодня / неделя / месяц</h3><button class="link" data-go="planning">Открыть →</button></div>${taskScopeButtons()}<div class="task-list">${tasksByScope().slice(0,4).map(rowTask).join('')||empty('Нет задач')}</div></article><article class="card"><div class="card-head"><h3>Цели SMART</h3><button class="link" data-go="goals">Все цели →</button></div>${state.goals.filter(g=>!/подуш/i.test(g.title)).slice(0,3).map(g=>`<div class="mini-box" style="margin-bottom:10px"><div class="stat-row"><strong>${esc(g.title)}</strong><span class="pill blue">${goalProgress(g)}%</span></div>${progressBar(goalProgress(g))}<p class="small muted">${esc(g.nextAction||'Следующий шаг')}</p></div>`).join('')||empty('Создай цель')}</article>${quoteCard()}</section><section class="grid bottom" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Операции</h3><button class="link" data-go="finance">Все →</button></div><div class="op-list">${state.operations.slice(0,5).map(rowOperation).join('')}</div></article><article class="card"><div class="card-head"><h3>Долги и обязательства</h3><button class="link" data-go="finance">Долги →</button></div>${activeDebts().slice(0,4).map(d=>`<div class="mini-box" style="margin-bottom:8px"><div class="stat-row"><strong>${esc(d.person)}</strong><span class="pill ${d.due&&d.due<=todayKey()?'red':'amber'}">${money(d.amount)}</span></div><p class="small muted">отдать до ${esc(d.due||'—')}</p></div>`).join('')||empty('Активных долгов нет')}</article><article class="card"><div class="card-head"><h3>Папки жизни</h3><button class="link" data-go="spheres">Все →</button></div><div class="folder-list" style="grid-template-columns:repeat(2,minmax(0,1fr))">${lifeFolders().slice(0,4).map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</div></article></section>`)}
+function taskScopeButtons(){const s=state.settings.taskScope||'today';return `<div class="button-row" style="margin:0 0 10px"><button class="tab-btn ${s==='today'?'active':''}" data-action="setTaskScope" data-scope="today">Сегодня</button><button class="tab-btn ${s==='week'?'active':''}" data-action="setTaskScope" data-scope="week">Неделя</button><button class="tab-btn ${s==='month'?'active':''}" data-action="setTaskScope" data-scope="month">Месяц</button><button class="tab-btn ${s==='later'?'active':''}" data-action="setTaskScope" data-scope="later">Позже</button></div>`}
+function financePage(){const s=summary(); const diff=s.actual-s.calcBalance; return layout('Финансы','Фактический остаток — главный. Прогноз до зарплаты и спокойный контроль категорий.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${money(s.actual)}</div><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${s.toNext<0?'red':'blue'}">${money(s.toNext)}</div><p class="muted small">до ${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</p></article><article class="card"><h3>Расхождение</h3><div class="value sm ${Math.abs(diff)>0?'amber':''}">${money(diff)}</div><p class="muted small">факт минус расчёт</p></article><article class="card"><h3>Подушка</h3><div class="value sm">${money(state.safetyFund.current)}</div>${progressBar(safetyProgress(),'green')}<p class="muted small">отдельно от целей · ${safetyProgress()}%</p></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Категории доходов/расходов</h3><button class="btn secondary" data-action="addCategory">Категория</button></div><div class="note-list">${state.categories.map(c=>`<div class="list-row"><span class="pill ${c.type==='income'?'green':'blue'}">${c.type==='income'?'Доход':'Расход'}</span><div><div class="row-title">${esc(c.name)}</div><div class="row-sub">Лимит: ${c.limit?money(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${c.id}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${c.id}">Удалить</button></div></div>`).join('')}</div></article><article class="card"><div class="card-head"><h3>Финансовые принципы</h3><span class="pill blue">книги без перегруза</span></div>${financePrinciples()}</article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Долги</h3><button class="btn secondary" data-action="addDebt">Добавить долг</button></div><div class="note-list">${activeDebts().map(rowDebt).join('')||empty('Активных долгов нет')}</div></article><article class="card"><div class="card-head"><h3>Операции</h3><div class="button-row"><button class="btn secondary" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button></div></div><div class="op-list">${state.operations.slice(0,12).map(rowOperation).join('')}</div></article></section>`)}
+function financePrinciples(){return `<div class="finance-principles"><div class="mini-box"><b>Заплати себе сначала</b><p class="small muted">Сразу после дохода отдели деньги на будущее.</p></div><div class="mini-box"><b>Не покупай эмоцией</b><p class="small muted">Для импульсивной покупки — пауза 24 часа.</p></div><div class="mini-box"><b>Деньги = запас спокойствия</b><p class="small muted">Подушка снижает тревогу и даёт выбор.</p></div></div>`}
+function rowDebt(d){return `<div class="list-row"><span class="pill ${d.due&&d.due<=todayKey()?'red':'amber'}">долг</span><div><div class="row-title">${esc(d.person)} · ${money(d.amount)}</div><div class="row-sub">до ${esc(d.due||'—')} · ${esc(d.note||'')}</div></div><div class="button-row"><button class="mini-btn blue" data-action="debtTask" data-id="${d.id}">Напомнить</button><button class="mini-btn" data-action="editDebt" data-id="${d.id}">Ред.</button><button class="mini-btn green" data-action="closeDebt" data-id="${d.id}">Закрыт</button></div></div>`}
+function budgetPage(){const s=summary(), items=budgetStats(), used=items.reduce((a,b)=>a+b.spent,0), limit=items.reduce((a,b)=>a+b.limit,0); const top=dailySpendSeries().sort((a,b)=>b.amount-a.amount).filter(x=>x.amount>0).slice(0,5); return layout('Бюджет','Расчёт по зарплатному циклу от 10 числа: лимиты, дни и плановые покупки.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Цикл бюджета</h3><div class="value sm">10 → 9</div><p class="muted small">основа расчёта месяца</p></article><article class="card"><h3>Можно тратить в день</h3><div class="value blue">${money(s.dailyLimit)}</div></article><article class="card"><h3>Плановые покупки</h3><div class="value sm">${money(total(plannedInMonth()))}</div><p class="muted small">включены в бюджет</p></article><article class="card"><h3>Лимиты</h3><div class="value sm">${limit?Math.round(used/limit*100):0}%</div>${progressBar(limit?used/limit*100:0)}</article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>График трат по дням</h3><span class="pill blue">выделены пики</span></div>${renderDailySpendChart()}</article><article class="card"><h3>Дни с максимальными тратами</h3><div class="note-list">${top.map(x=>`<div class="list-row"><span class="pill ${x.hot?'red':x.warn?'amber':'blue'}">${x.day}</span><div><div class="row-title">${money(x.amount)}</div><div class="row-sub">${x.hot?'пик трат':'контрольный день'}</div></div><button class="mini-btn" data-action="filterDayOps" data-day="${x.day}">Операции</button></div>`).join('')||empty('Расходов нет')}</div></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Лимиты категорий</h3><button class="btn secondary" data-action="addCategory">Добавить лимит</button></div><div class="grid cols-2">${items.map(b=>`<div class="mini-box"><div class="stat-row"><strong>${esc(b.name)}</strong><span class="pill ${b.pct>100?'red':b.pct>80?'amber':'blue'}">${b.pct}%</span></div><div class="small muted">${money(b.spent)} из ${money(b.limit)}</div>${progressBar(b.pct,b.pct>100?'red':b.pct>80?'amber':'green')}<div class="small muted" style="margin-top:8px">Осталось: ${money(b.left)}</div></div>`).join('')}</div></article><article class="card"><div class="card-head"><h3>Плановые покупки</h3><button class="btn secondary" data-action="addPurchase">Добавить покупку</button></div>${purchaseAdvice()}<div class="note-list" style="margin-top:10px">${state.plannedPurchases.map(rowPurchase).join('')||empty('Покупок пока нет')}</div></article></section>`)}
+function purchaseAdvice(){const s=summary(), need=total(plannedInMonth()); const free=s.income-s.expenses-s.debtDue; if(!need)return `<div class="ok">Плановых покупок на этот месяц нет.</div>`; if(free<need)return `<div class="alert">Свободного бюджета не хватает: нужно ${money(need)}, доступно примерно ${money(free)}. Перенеси часть покупок на следующий месяц.</div>`; return `<div class="ok">Покупки помещаются в бюджет. Рекомендуем откладывать ${money(Math.ceil(need/4))} в неделю.</div>`}
+function rowPurchase(p){return `<div class="list-row"><span class="pill ${p.importance==='Очень важно'?'red':p.importance==='Важно'?'amber':'blue'}">${esc(p.importance||'Важно')}</span><div><div class="row-title">${esc(p.title)} · ${money(p.amount)}</div><div class="row-sub">${esc(p.category)} · ${esc(p.month)} · ${p.includeInBudget!==false?'в лимит':'вне лимита'}</div></div><div class="button-row"><button class="mini-btn" data-action="editPurchase" data-id="${p.id}">Ред.</button><button class="mini-btn red" data-action="deletePurchase" data-id="${p.id}">Удалить</button></div></div>`}
+function dailySpendSeries(){const days=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();const map={};monthOps('expense').forEach(o=>{const d=Number(String(o.date||'').slice(8,10))||1;map[d]=(map[d]||0)+num(o.amount)});const max=Math.max(1,...Object.values(map));const avg=Object.values(map).reduce((a,b)=>a+b,0)/Math.max(1,Object.keys(map).length);return Array.from({length:days},(_,i)=>{const day=i+1, amount=map[day]||0;return {day,amount,h:Math.max(6,Math.round(amount/max*100)),hot:amount>avg*1.6&&amount>0,warn:amount>avg&&amount>0}})}
+function renderDailySpendChart(){return `<div class="day-chart">${dailySpendSeries().map(x=>`<div class="day-bar ${x.hot?'hot':x.warn?'warn':''}" style="--h:${x.h}%" data-tip="${x.day}: ${money(x.amount)}"></div>`).join('')}</div><div class="small muted">Красным выделены дни с пиковыми тратами.</div>`}
+function goalsPage(){const goals=state.goals.filter(g=>!/подуш/i.test(g.title));return layout('Цели SMART','Финансовые и личные цели в одном формате: S M A R T + шаг недели.',`<section class="grid cols-3"><article class="card premium-hero-card"><h3>52 недели</h3><p class="muted">Каждая цель должна иметь встречный шаг на текущую неделю.</p><button class="btn" data-action="addGoal">Новая цель</button></article><article class="card"><h3>Активные цели</h3><div class="value sm">${goals.length}</div></article><article class="card"><h3>Подушка</h3><p class="muted small">Не связана с целями. Это отдельный запас безопасности.</p><div class="value sm">${safetyProgress()}%</div>${progressBar(safetyProgress(),'green')}</article></section><section class="grid cols-2" style="margin-top:18px">${goals.map(goalCard).join('')||empty('Целей пока нет')}</section>`)}
+function goalCard(g){return `<article class="card"><div class="card-head"><h3>${esc(g.title)}</h3><span class="pill blue">${goalProgress(g)}%</span></div>${progressBar(goalProgress(g))}<div class="grid cols-2" style="margin-top:12px"><div class="mini-box"><b>S</b><p class="small muted">${esc(g.specific||'что именно?')}</p></div><div class="mini-box"><b>M</b><p class="small muted">${esc(g.measurable||money(g.targetValue))}</p></div><div class="mini-box"><b>A</b><p class="small muted">${esc(g.achievable||'реалистично')}</p></div><div class="mini-box"><b>R/T</b><p class="small muted">${esc(g.relevant||'важно')} · ${esc(g.timebound||g.deadline||'срок')}</p></div></div><div class="alert" style="margin-top:12px">Шаг недели: ${esc(g.week52||g.nextAction||'назначить следующий шаг')}</div><div class="button-row"><button class="mini-btn" data-action="editGoal" data-id="${g.id}">Редактировать</button><button class="mini-btn red" data-action="deleteGoal" data-id="${g.id}">Удалить</button></div></article>`}
+function planningPage(){return layout('Планирование','Задачи и календарь в одной папке: сегодня, неделя, месяц + матрица Эйзенхауэра.',`<section class="grid cols-3"><button class="folder-card" data-action="setTaskScope" data-scope="today"><div class="folder-ico">1</div><strong>Сегодня</strong><small>${openTasks().filter(t=>t.due===todayKey()).length} задач</small></button><button class="folder-card" data-action="setTaskScope" data-scope="week"><div class="folder-ico">7</div><strong>Неделя</strong><small>ближайшие действия</small></button><button class="folder-card" data-action="setTaskScope" data-scope="month"><div class="folder-ico">30</div><strong>Месяц</strong><small>план без перегруза</small></button></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Задачи</h3><button class="btn secondary" data-action="addTask">Добавить</button></div>${taskScopeButtons()}<div class="task-list">${tasksByScope().map(rowTask).join('')||empty('Нет задач')}</div></article><article class="card"><div class="card-head"><h3>Календарь</h3><button class="btn secondary" data-action="addEvent">Событие</button></div><div class="note-list">${upcomingEvents().slice(0,8).map(rowEvent).join('')||empty('Нет событий')}</div></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><span class="pill blue">приоритеты</span></div>${eisenhowerMatrix()}</section>`)}
+function upcomingEvents(){return state.calendarEvents.slice().filter(e=>!e.date||e.date>=todayKey()).sort((a,b)=>String((a.date||'')+(a.time||'')).localeCompare(String((b.date||'')+(b.time||''))))}
+function eisenhowerMatrix(){const cells=[['A','Срочно и важно','urgent important'],['B','Важно, не срочно','important'],['C','Срочно, не важно','urgent'],['D','Позже / убрать','']];return `<div class="matrix">${cells.map(([p,t,cl])=>`<div class="matrix-cell ${cl}"><h3>${t}</h3>${openTasks().filter(x=>(x.priority||'B')===p).slice(0,4).map(x=>`<p class="small"><b>${esc(x.title)}</b><br><span class="muted">${esc(x.due||'')} ${esc(x.time||'')}</span></p>`).join('')||'<p class="muted small">Пусто</p>'}</div>`).join('')}</div>`}
+function spheresPage(){const folder=state.settings.lifeFolder||'overview';return layout('Сферы жизни','Папки без дублей: люди, заметки, планирование, привычки, книги, идеи и личная жизнь.',`<section class="folder-list">${lifeFolders().map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</section><section style="margin-top:18px">${folder==='overview'?lifeOverview():folder==='people'?peopleFolder():folder==='notes'?notesFolder():folder==='planning'?planningPageInner():folder==='habits'?habitsFolder():folder==='books'?booksFolder():folder==='ideas'?ideasFolder():personalFolder()}</section>`)}
+function lifeFolders(){return [{id:'people',title:'Люди',ico:'◌'},{id:'notes',title:'Заметки',ico:'✎'},{id:'planning',title:'Планирование',ico:'☷'},{id:'habits',title:'Привычки',ico:'◷'},{id:'books',title:'Книги',ico:'◧'},{id:'ideas',title:'Идеи',ico:'✦'},{id:'personal',title:'Личная жизнь',ico:'♡'}]}
+function lifeFolderCount(id){return ({people:state.people.length,notes:state.notes.length,planning:openTasks().length+upcomingEvents().length,habits:state.habits.length,books:state.books.length,ideas:state.ideas.length,personal:state.media.length}[id]||0)}
+function folderButton(id,title,ico,count){return `<button class="folder-card ${state.settings.lifeFolder===id?'active':''}" data-life-folder="${id}"><div class="folder-ico">${ico}</div><strong>${title}</strong><small>${count} записей</small><span class="pill blue">Открыть</span></button>`}
+function lifeOverview(){return `<section class="card"><div class="card-head"><h3>Список сфер</h3><button class="btn secondary" data-action="addSphere">Добавить сферу</button></div><div class="life-grid">${state.spheres.map(s=>`<div class="life-tile"><div class="life-ico">${esc(s.icon||'✣')}</div><strong>${esc(s.title)}</strong><small class="muted">${esc(s.note||'')}</small>${progressBar(num(s.progress),num(s.progress)>75?'green':'')}<div class="button-row"><button class="mini-btn" data-action="editSphere" data-id="${s.id}">Ред.</button><button class="mini-btn red" data-action="deleteSphere" data-id="${s.id}">Удалить</button></div></div>`).join('')}</div></section>`}
+function peopleFolder(){return `<section class="card"><div class="card-head"><h3>Люди</h3><button class="btn" data-action="addPerson">Добавить человека</button></div><div class="grid cols-3">${state.people.map(p=>`<article class="person-card"><div class="person-top"><div class="person-avatar">${p.photo?`<img src="${esc(p.photo)}" alt="">`:esc((p.name||'?').slice(0,1))}</div><div><strong>${esc(p.name)}</strong><p class="muted small">${esc(p.relation||'контакт')}</p></div></div><p class="small muted">ДР: ${esc(p.birthday||'—')}</p><p class="small"><b>Любит:</b> ${esc(p.likes||'—')}</p><p class="small"><b>Разговор:</b> ${esc(p.talkIdeas||'—')}</p><p class="small"><b>Подарки:</b> ${esc(p.gifts||'—')}</p><div class="button-row"><button class="mini-btn" data-action="editPerson" data-id="${p.id}">Ред.</button>${p.links?`<a class="mini-btn blue" href="${esc(p.links)}" target="_blank">Ссылка</a>`:''}<button class="mini-btn red" data-action="deletePerson" data-id="${p.id}">Удалить</button></div></article>`).join('')||empty('Люди пока не добавлены')}</div></section>`}
+function notesFolder(){return `<section class="card"><div class="card-head"><h3>Заметки</h3><button class="btn" data-action="addNote">Новая заметка</button></div><div class="note-list">${state.notes.map(n=>`<div class="list-row"><span class="pill ${n.tags&&n.tags.includes('рефлексия')?'violet':'blue'}">${n.tags&&n.tags.includes('рефлексия')?'рефлексия':'заметка'}</span><div><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.folder||'Личное')} · ${esc(n.createdAt||'')} · ${esc(n.text||'')}</div></div><div class="button-row"><button class="mini-btn" data-action="editNote" data-id="${n.id}">Ред.</button><button class="mini-btn red" data-action="deleteNote" data-id="${n.id}">Удалить</button></div></div>`).join('')||empty('Нет заметок')}</div></section>`}
+function planningPageInner(){return `<div>${planningPage().replace(/^<div class="page">|<\/div>$/g,'')}</div>`}
+function habitsFolder(){const avg=state.habits.length?Math.round(state.habits.reduce((a,h)=>a+habitPct(h),0)/state.habits.length):0;return `<section class="grid cols-3"><article class="card premium-hero-card"><h3>Ритм привычек</h3><div class="value">${avg}%</div><p class="muted small">за 28 дней</p>${progressBar(avg)}</article><article class="card"><h3>Сегодня</h3><div class="value sm">${state.habits.filter(h=>h.marks&&h.marks[todayKey()]).length}/${state.habits.length}</div></article><article class="card"><h3>Новая привычка</h3><button class="btn" data-action="addHabit">Добавить</button></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>График повторений</h3><span class="pill blue">28 дней</span></div><div class="grid cols-2">${state.habits.map(habitCard).join('')||empty('Нет привычек')}</div></section>`}
+function habitPct(h){const days=lastDays(28);return Math.round(days.filter(d=>h.marks&&h.marks[d]).length/28*100)}
+function lastDays(n){const out=[];for(let i=n-1;i>=0;i--)out.push(iso(addDays(new Date(),-i)));return out}
+function habitCard(h){return `<div class="mini-box"><div class="stat-row"><strong>${esc(h.name)}</strong><span class="pill blue">${habitPct(h)}%</span></div><p class="small muted">${esc(h.area||'Личное')} · ${esc(h.target||'ежедневно')}</p><div class="habit-grid">${lastDays(28).map(d=>`<button class="habit-cell ${h.marks&&h.marks[d]?'on':''}" data-action="toggleHabitDate" data-id="${h.id}" data-date="${d}" title="${d}"></button>`).join('')}</div><div class="button-row"><button class="mini-btn" data-action="editHabit" data-id="${h.id}">Ред.</button><button class="mini-btn red" data-action="deleteHabit" data-id="${h.id}">Удалить</button></div></div>`}
+function booksFolder(){return `<section class="card"><div class="card-head"><h3>Книги</h3><button class="btn" data-action="addBook">Добавить книгу</button></div><div class="grid cols-2">${state.books.map(b=>`<article class="mini-box"><div class="stat-row"><strong>${esc(b.title)}</strong><span class="pill blue">${esc(b.status||'В списке')}</span></div><p class="small muted">${esc(b.author||'Автор')}</p><p class="small"><b>Инсайт:</b> ${esc(b.insight||'')}</p><p class="small"><b>Цитаты:</b> ${(b.quotes||[]).map(esc).join(' · ')}</p><div class="button-row"><button class="mini-btn" data-action="editBook" data-id="${b.id}">Ред.</button><button class="mini-btn red" data-action="deleteBook" data-id="${b.id}">Удалить</button></div></article>`).join('')||empty('Книг нет')}</div></section>`}
+function ideasFolder(){return `<section class="card"><div class="card-head"><h3>Идеи</h3><button class="btn" data-action="addIdea">Новая идея</button></div><div class="note-list">${state.ideas.map(i=>`<div class="list-row"><span>✦</span><div><div class="row-title">${esc(i.title)}</div><div class="row-sub">${esc(i.text||'')} · ${esc(i.createdAt||'')}</div></div><div class="button-row"><button class="mini-btn" data-action="editIdea" data-id="${i.id}">Ред.</button><button class="mini-btn red" data-action="deleteIdea" data-id="${i.id}">Удалить</button></div></div>`).join('')||empty('Идей нет')}</div></section>`}
+function personalFolder(){return `<section class="card"><div class="card-head"><h3>Что посмотреть</h3><button class="btn" data-action="addMedia">Добавить фильм/сериал</button></div><div class="grid cols-2">${state.media.map(m=>`<article class="mini-box"><div class="stat-row"><strong>${esc(m.title)}</strong><span class="pill blue">${esc(m.type||'Фильм')}</span></div><p class="small muted">${esc(m.status||'Хочу посмотреть')}</p><p class="small">${esc(m.note||'')}</p><div class="button-row">${m.link?`<a class="mini-btn blue" href="${esc(m.link)}" target="_blank">Фильм</a>`:''}${m.trailer?`<a class="mini-btn blue" href="${esc(m.trailer)}" target="_blank">Трейлер</a>`:''}<button class="mini-btn" data-action="editMedia" data-id="${m.id}">Ред.</button><button class="mini-btn red" data-action="deleteMedia" data-id="${m.id}">Удалить</button></div></article>`).join('')||empty('Список пуст')}</div></section>`}
+function calendarPage(){return planningPage()}
+function importPage(){const s=summary(), actual=num(state.settings.importActualBalance||state.settings.currentBalance), diff=actual-s.calcBalance;return layout('Импорт банка','Дубли убираются сразу. Перед сохранением можно изменить тип, сумму, категорию и комментарий.',`<section class="grid cols-3"><article class="card premium-hero-card"><h3>CSV-импорт</h3><p class="muted">Выбери файл. Предпросмотр покажет только новые строки.</p><input type="file" id="csvFile" accept=".csv,text/csv" class="field"><div class="actions"><button class="btn" data-action="loadCsv">Предпросмотр</button><button class="btn secondary" data-action="confirmCsv" ${csvRows.length?'':'disabled'}>Сохранить</button></div></article><article class="card"><h3>Фактический остаток</h3><div class="field"><input id="importActualBalance" inputmode="decimal" placeholder="Например: 125000" value="${esc(state.settings.importActualBalance||state.settings.currentBalance||'')}"></div><button class="btn secondary" data-action="saveImportBalance">Сохранить остаток</button></article><article class="card"><h3>Сверка</h3><div class="value sm">${actual?money(actual):'не указан'}</div><p class="muted small">Расчёт: ${money(s.calcBalance)}<br>Расхождение: ${actual?money(diff):'—'}<br>Дубли убраны: ${csvDuplicateRemoved}</p></article></section>${csvRows.length?`<section class="card" style="margin-top:18px"><div class="card-head"><h3>Предпросмотр</h3><span class="pill blue">${csvRows.length} новых строк</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Импорт</th><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Комментарий</th></tr></thead><tbody>${csvRows.map((r,i)=>`<tr><td><input type="checkbox" data-action="csvInclude" data-row="${i}" checked></td><td><input data-action="csvDateInput" data-row="${i}" value="${esc(r.date)}"></td><td><select data-action="csvTypeInput" data-row="${i}"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select></td><td><input data-action="csvCategoryInput" data-row="${i}" value="${esc(r.category)}"></td><td><input data-action="csvAmountInput" data-row="${i}" value="${esc(r.amount)}"></td><td><input data-action="csvNoteInput" data-row="${i}" value="${esc(r.note)}"></td></tr>`).join('')}</tbody></table></div></section>`:''}`)}
+function diagnosticsPage(){return layout('Диагностика','Техническая информация отдельно от названия продукта.',`<section class="grid cols-2"><article class="card"><h3>Название</h3><div class="value sm">Second Brain OS</div><p class="muted">Домен и название не меняются от сборок.</p></article><article class="card"><h3>Сборка</h3><p class="muted small">${BUILD}</p></article><article class="card"><h3>Данные</h3><p class="muted small">Операции: ${state.operations.length}<br>Задачи: ${state.tasks.length}<br>Люди: ${state.people.length}<br>Заметки: ${state.notes.length}<br>Привычки: ${state.habits.length}<br>Долги: ${activeDebts().length}</p><div class="actions"><button class="btn" data-action="exportData">Экспорт</button><button class="btn secondary" data-action="snapshot">Снимок</button></div></article><article class="card"><h3>Кэш</h3><button class="btn secondary" data-action="clearCaches">Очистить кэш сайта</button></article></section>`)}
+function upcomingTasks(){return openTasks().filter(t=>t.due&&t.due>=todayKey())}
+function renderNav(){$('#sidebarNav').innerHTML=`<div class="nav-label">Навигация</div>`+navItems.map(([id,ico,label])=>`<button class="nav-btn ${page===id?'active':''}" data-go="${id}"><span class="nav-ico">${ico}</span>${label}</button>`).join('');$('#bottomNav').innerHTML=mobileItems.map(([id,ico,label])=>`<button class="${page===id?'active':''}" data-go="${id}"><i>${ico}</i>${label}</button>`).join('')}
+function render(){renderNav();const map={dashboard,finance:financePage,budget:budgetPage,goals:goalsPage,planning:planningPage,spheres:spheresPage,calendar:calendarPage,import:importPage,diagnostics:diagnosticsPage};$('#view').innerHTML=(map[page]||dashboard)()}
+function openModal(title,html){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modal').classList.add('show')}
+function closeModal(){$('#modal').classList.remove('show')}
+function formVal(id){return $('#'+id)?.value||''}
+function field(label,id,val='',type='text'){return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(val)}"></div>`}
+function area(label,id,val=''){return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea id="${id}">${esc(val)}</textarea></div>`}
+function openQuick(){openModal('Быстро добавить',`<div class="grid cols-2"><button class="btn" data-action="addTask">Задача</button><button class="btn" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button><button class="btn secondary" data-action="addNote">Заметка</button><button class="btn secondary" data-action="addGoal">Цель SMART</button><button class="btn secondary" data-action="addHabit">Привычка</button><button class="btn secondary" data-action="addPerson">Человек</button><button class="btn secondary" data-action="addPurchase">Покупка</button></div>`)}
+function modalButtons(action){return `<div class="actions"><button class="btn" data-action="${action}">Сохранить</button></div>`}
+function addTask(){openModal('Новая задача',`<div class="form-grid">${field('Задача','f_title')}${field('Сфера','f_area','Личное')}${field('Дата','f_due',todayKey(),'date')}${field('Время','f_time','','time')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A">Срочно и важно</option><option value="B" selected>Важно, не срочно</option><option value="C">Срочно, не важно</option><option value="D">Позже / убрать</option></select></div></div>${modalButtons('saveTask')}`)}
+function saveTask(){state.tasks.unshift({id:uid(),title:formVal('f_title')||'Новая задача',area:formVal('f_area')||'Личное',due:formVal('f_due')||todayKey(),time:formVal('f_time'),priority:formVal('f_priority')||'B',status:'В работе'});save(true);closeModal();toast('Задача добавлена');render()}
+function editTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;openModal('Редактировать задачу',`<div class="form-grid">${field('Задача','f_title',t.title)}${field('Сфера','f_area',t.area)}${field('Дата','f_due',t.due,'date')}${field('Время','f_time',t.time,'time')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A" ${t.priority==='A'?'selected':''}>Срочно и важно</option><option value="B" ${t.priority==='B'?'selected':''}>Важно, не срочно</option><option value="C" ${t.priority==='C'?'selected':''}>Срочно, не важно</option><option value="D" ${t.priority==='D'?'selected':''}>Позже</option></select></div></div><div class="actions"><button class="btn" data-action="saveEditedTask" data-id="${id}">Сохранить</button><button class="btn red" data-action="deleteTask" data-id="${id}">Удалить</button></div>`)}
+function saveEditedTask(id){const t=state.tasks.find(x=>x.id===id);if(t){t.title=formVal('f_title');t.area=formVal('f_area');t.due=formVal('f_due');t.time=formVal('f_time');t.priority=formVal('f_priority')}save(true);closeModal();render()}
+function toggleTask(id){const t=state.tasks.find(x=>x.id===id);if(t)t.status=t.status==='Готово'?'В работе':'Готово';save(true);render()}
+function deleteTask(id){state.tasks=state.tasks.filter(x=>x.id!==id);save(true);closeModal();render()}
+function setTaskScope(){state.settings.taskScope=this?.dataset?.scope||'today';save();render()}
+function addOperationModal(type,o=null){openModal(type==='income'?'Доход':'Расход',`<div class="form-grid">${field('Сумма','f_amount',o?.amount||'')}${field('Категория','f_category',o?.category||(type==='income'?'Доход':'Продукты'))}${field('Дата','f_date',o?.date||todayKey(),'date')}${field('Комментарий','f_note',o?.note||'')}</div><div class="actions"><button class="btn" data-action="${o?'saveEditedOperation':'saveOperation'}" data-type="${type}" ${o?`data-id="${o.id}"`:''}>Сохранить</button></div>`)}
+function addExpense(){addOperationModal('expense')} function addIncome(){addOperationModal('income')}
+function saveOperation(){const type=this.dataset.type;state.operations.unshift({id:uid(),type,amount:num(formVal('f_amount')),category:formVal('f_category')||'Без категории',date:formVal('f_date')||todayKey(),note:formVal('f_note')});save(true);closeModal();render()}
+function editOperation(id){const o=state.operations.find(x=>x.id===id); if(o)addOperationModal(o.type,o)}
+function saveEditedOperation(){const o=state.operations.find(x=>x.id===this.dataset.id); if(o){o.amount=num(formVal('f_amount'));o.category=formVal('f_category');o.date=formVal('f_date');o.note=formVal('f_note');o.type=this.dataset.type}save(true);closeModal();render()}
+function editActualBalance(){openModal('Фактический остаток',`<div class="field"><label>Сколько денег фактически сейчас?</label><input id="f_balance" inputmode="decimal" value="${esc(state.settings.currentBalance||'')}"></div><div class="actions"><button class="btn" data-action="saveActualBalance">Сохранить</button></div>`)}
+function saveActualBalance(){state.settings.currentBalance=num(formVal('f_balance'));state.settings.importActualBalance=state.settings.currentBalance;save(true);closeModal();render()}
+function addCategory(){openModal('Категория',`<div class="form-grid">${field('Название','f_name')}<div class="field"><label>Тип</label><select id="f_type"><option value="expense">Расход</option><option value="income">Доход</option></select></div>${field('Лимит в месяц','f_limit')}</div>${modalButtons('saveCategory')}`)}
+function saveCategory(){state.categories.push({id:uid(),name:formVal('f_name')||'Категория',type:formVal('f_type')||'expense',limit:num(formVal('f_limit'))});save(true);closeModal();render()}
+function editCategory(id){const c=state.categories.find(x=>x.id===id);if(!c)return;openModal('Редактировать категорию',`<div class="form-grid">${field('Название','f_name',c.name)}<div class="field"><label>Тип</label><select id="f_type"><option value="expense" ${c.type==='expense'?'selected':''}>Расход</option><option value="income" ${c.type==='income'?'selected':''}>Доход</option></select></div>${field('Лимит в месяц','f_limit',c.limit)}</div><div class="actions"><button class="btn" data-action="saveEditedCategory" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedCategory(id){const c=state.categories.find(x=>x.id===id);const old=c?.name;if(c){c.name=formVal('f_name');c.type=formVal('f_type');c.limit=num(formVal('f_limit'));state.operations.forEach(o=>{if(o.category===old)o.category=c.name});state.plannedPurchases.forEach(p=>{if(p.category===old)p.category=c.name})}save(true);closeModal();render()}
+function deleteCategory(id){state.categories=state.categories.filter(x=>x.id!==id);save(true);render()}
+function addDebt(){openModal('Долг',`<div class="form-grid">${field('Кому / что','f_person')}${field('Сумма','f_amount')}${field('Когда отдать','f_due',todayKey(),'date')}${field('Комментарий','f_note')}</div>${modalButtons('saveDebt')}`)}
+function saveDebt(){state.debts.unshift({id:uid(),person:formVal('f_person')||'Долг',amount:num(formVal('f_amount')),due:formVal('f_due'),status:'Активен',note:formVal('f_note')});save(true);closeModal();render()}
+function editDebt(id){const d=state.debts.find(x=>x.id===id);if(!d)return;openModal('Редактировать долг',`<div class="form-grid">${field('Кому / что','f_person',d.person)}${field('Сумма','f_amount',d.amount)}${field('Когда отдать','f_due',d.due,'date')}${field('Комментарий','f_note',d.note)}</div><div class="actions"><button class="btn" data-action="saveEditedDebt" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedDebt(id){const d=state.debts.find(x=>x.id===id);if(d){d.person=formVal('f_person');d.amount=num(formVal('f_amount'));d.due=formVal('f_due');d.note=formVal('f_note')}save(true);closeModal();render()}
+function closeDebt(id){const d=state.debts.find(x=>x.id===id);if(d)d.status='Закрыт';save(true);render()}
+function debtTask(id){const d=state.debts.find(x=>x.id===id); if(d){state.tasks.unshift({id:uid(),title:`Отдать долг: ${d.person} — ${money(d.amount)}`,area:'Финансы',due:d.due||todayKey(),time:'10:00',priority:'A',status:'В работе'});d.reminder=true;save(true);toast('Задача-напоминание создана');render()}}
+function addPurchase(){openModal('Плановая покупка',`<div class="form-grid">${field('Что купить','f_title')}${field('Категория','f_category','Одежда')}${field('Сумма','f_amount')}${field('Месяц','f_month',state.settings.currentMonth)}<div class="field"><label>Важность</label><select id="f_importance"><option>Очень важно</option><option selected>Важно</option><option>Можно позже</option></select></div><div class="field"><label>Учитывать в лимите</label><select id="f_include"><option value="true">Да</option><option value="false">Нет</option></select></div>${area('Комментарий','f_note')}</div>${modalButtons('savePurchase')}`)}
+function savePurchase(){state.plannedPurchases.unshift({id:uid(),title:formVal('f_title')||'Покупка',category:formVal('f_category')||'Покупки',amount:num(formVal('f_amount')),month:formVal('f_month')||state.settings.currentMonth,importance:formVal('f_importance'),includeInBudget:formVal('f_include')!=='false',note:formVal('f_note')});save(true);closeModal();render()}
+function editPurchase(id){const p=state.plannedPurchases.find(x=>x.id===id);if(!p)return;openModal('Редактировать покупку',`<div class="form-grid">${field('Что купить','f_title',p.title)}${field('Категория','f_category',p.category)}${field('Сумма','f_amount',p.amount)}${field('Месяц','f_month',p.month)}<div class="field"><label>Важность</label><select id="f_importance"><option ${p.importance==='Очень важно'?'selected':''}>Очень важно</option><option ${p.importance==='Важно'?'selected':''}>Важно</option><option ${p.importance==='Можно позже'?'selected':''}>Можно позже</option></select></div><div class="field"><label>Учитывать в лимите</label><select id="f_include"><option value="true" ${p.includeInBudget!==false?'selected':''}>Да</option><option value="false" ${p.includeInBudget===false?'selected':''}>Нет</option></select></div>${area('Комментарий','f_note',p.note)}</div><div class="actions"><button class="btn" data-action="saveEditedPurchase" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedPurchase(id){const p=state.plannedPurchases.find(x=>x.id===id);if(p){p.title=formVal('f_title');p.category=formVal('f_category');p.amount=num(formVal('f_amount'));p.month=formVal('f_month');p.importance=formVal('f_importance');p.includeInBudget=formVal('f_include')!=='false';p.note=formVal('f_note')}save(true);closeModal();render()}
+function deletePurchase(id){state.plannedPurchases=state.plannedPurchases.filter(x=>x.id!==id);save(true);render()}
+function addGoal(){openModal('Цель SMART',`<div class="form-grid">${field('Название','f_title')}${field('Сфера','f_area','Личное')}${field('Цель, ₽/число','f_target')}${field('Сейчас','f_current')}${field('Срок','f_deadline','','date')}${field('Шаг недели','f_week52')}${area('S — конкретика','f_specific')}${area('M — измерение','f_measurable')}${area('A — достижимость','f_achievable')}${area('R — зачем это важно','f_relevant')}${area('T — срок','f_timebound')}</div>${modalButtons('saveGoal')}`)}
+function saveGoal(){state.goals.unshift({id:uid(),title:formVal('f_title')||'Цель',area:formVal('f_area'),targetValue:num(formVal('f_target')),currentValue:num(formVal('f_current')),deadline:formVal('f_deadline'),specific:formVal('f_specific'),measurable:formVal('f_measurable'),achievable:formVal('f_achievable'),relevant:formVal('f_relevant'),timebound:formVal('f_timebound'),week52:formVal('f_week52'),nextAction:formVal('f_week52'),status:'Активна'});save(true);closeModal();render()}
+function editGoal(id){const g=state.goals.find(x=>x.id===id);if(!g)return;openModal('Редактировать цель SMART',`<div class="form-grid">${field('Название','f_title',g.title)}${field('Сфера','f_area',g.area)}${field('Цель, ₽/число','f_target',g.targetValue)}${field('Сейчас','f_current',g.currentValue)}${field('Срок','f_deadline',g.deadline,'date')}${field('Шаг недели','f_week52',g.week52||g.nextAction)}${area('S — конкретика','f_specific',g.specific)}${area('M — измерение','f_measurable',g.measurable)}${area('A — достижимость','f_achievable',g.achievable)}${area('R — зачем это важно','f_relevant',g.relevant)}${area('T — срок','f_timebound',g.timebound)}</div><div class="actions"><button class="btn" data-action="saveEditedGoal" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedGoal(id){const g=state.goals.find(x=>x.id===id);if(g){['title','area','deadline','specific','measurable','achievable','relevant','timebound'].forEach(k=>g[k]=formVal('f_'+k));g.targetValue=num(formVal('f_target'));g.currentValue=num(formVal('f_current'));g.week52=formVal('f_week52');g.nextAction=g.week52}save(true);closeModal();render()}
+function deleteGoal(id){state.goals=state.goals.filter(x=>x.id!==id);save(true);render()}
+function addNote(){openModal('Заметка',`<div class="form-grid">${field('Заголовок','f_title')}${field('Папка','f_folder','Личное')}${area('Текст','f_text')}</div>${modalButtons('saveNote')}`)}
+function saveNote(){state.notes.unshift({id:uid(),title:formVal('f_title')||'Заметка',folder:formVal('f_folder')||'Личное',text:formVal('f_text'),tags:[],createdAt:todayKey()});save(true);closeModal();render()}
+function editNote(id){const n=state.notes.find(x=>x.id===id);if(!n)return;openModal('Редактировать заметку',`<div class="form-grid">${field('Заголовок','f_title',n.title)}${field('Папка','f_folder',n.folder)}${area('Текст','f_text',n.text)}</div><div class="actions"><button class="btn" data-action="saveEditedNote" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedNote(id){const n=state.notes.find(x=>x.id===id);if(n){n.title=formVal('f_title');n.folder=formVal('f_folder');n.text=formVal('f_text')}save(true);closeModal();render()}
+function deleteNote(id){state.notes=state.notes.filter(x=>x.id!==id);save(true);render()}
+function saveDailyReflection(){const text=formVal('dailyReflection')||$('#dailyReflection')?.value||''; if(text.trim()){state.notes.unshift({id:uid(),title:'Рефлексия дня',text,folder:'Рефлексия',tags:['рефлексия'],createdAt:todayKey()});state.settings.dailyReflection='';save(true);toast('Рефлексия сохранена в заметки');render()}}
+function addPerson(){openModal('Человек',`<div class="form-grid">${field('Имя','f_name')}${field('Отношение','f_relation')}${field('День рождения','f_birthday','','date')}${field('Фото URL','f_photo')}${field('Любит','f_likes')}${field('Полезная ссылка','f_links')}${field('Темы для разговора','f_talk')}${field('Идеи подарков','f_gifts')}${area('Памятка','f_notes')}</div>${modalButtons('savePerson')}`)}
+function savePerson(){state.people.unshift({id:uid(),name:formVal('f_name')||'Человек',relation:formVal('f_relation'),birthday:formVal('f_birthday'),photo:formVal('f_photo'),likes:formVal('f_likes'),links:formVal('f_links'),talkIdeas:formVal('f_talk'),gifts:formVal('f_gifts'),notes:formVal('f_notes')});save(true);closeModal();render()}
+function editPerson(id){const p=state.people.find(x=>x.id===id);if(!p)return;openModal('Редактировать человека',`<div class="form-grid">${field('Имя','f_name',p.name)}${field('Отношение','f_relation',p.relation)}${field('День рождения','f_birthday',p.birthday,'date')}${field('Фото URL','f_photo',p.photo)}${field('Любит','f_likes',p.likes)}${field('Полезная ссылка','f_links',p.links)}${field('Темы для разговора','f_talk',p.talkIdeas)}${field('Идеи подарков','f_gifts',p.gifts)}${area('Памятка','f_notes',p.notes)}</div><div class="actions"><button class="btn" data-action="saveEditedPerson" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedPerson(id){const p=state.people.find(x=>x.id===id);if(p){p.name=formVal('f_name');p.relation=formVal('f_relation');p.birthday=formVal('f_birthday');p.photo=formVal('f_photo');p.likes=formVal('f_likes');p.links=formVal('f_links');p.talkIdeas=formVal('f_talk');p.gifts=formVal('f_gifts');p.notes=formVal('f_notes')}save(true);closeModal();render()}
+function deletePerson(id){state.people=state.people.filter(x=>x.id!==id);save(true);render()}
+function addHabit(){openModal('Привычка',`<div class="form-grid">${field('Название','f_name')}${field('Сфера','f_area','Личное')}${field('Цель','f_target','ежедневно')}</div>${modalButtons('saveHabit')}`)}
+function saveHabit(){state.habits.unshift({id:uid(),name:formVal('f_name')||'Привычка',area:formVal('f_area'),target:formVal('f_target'),marks:{}});save(true);closeModal();render()}
+function editHabit(id){const h=state.habits.find(x=>x.id===id);if(!h)return;openModal('Редактировать привычку',`<div class="form-grid">${field('Название','f_name',h.name)}${field('Сфера','f_area',h.area)}${field('Цель','f_target',h.target)}</div><div class="actions"><button class="btn" data-action="saveEditedHabit" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedHabit(id){const h=state.habits.find(x=>x.id===id);if(h){h.name=formVal('f_name');h.area=formVal('f_area');h.target=formVal('f_target')}save(true);closeModal();render()}
+function deleteHabit(id){state.habits=state.habits.filter(x=>x.id!==id);save(true);render()} function toggleHabitDate(id,date){const h=state.habits.find(x=>x.id===id);if(h){h.marks=h.marks||{};h.marks[date]=!h.marks[date]}save(true);render()}
+function addBook(){openModal('Книга',`<div class="form-grid">${field('Название','f_title')}${field('Автор','f_author')}${field('Статус','f_status','Хочу прочитать')}${field('Обложка URL','f_cover')}${area('Инсайт','f_insight')}${area('Цитаты, которые запомнились','f_quotes')}</div>${modalButtons('saveBook')}`)}
+function saveBook(){state.books.unshift({id:uid(),title:formVal('f_title')||'Книга',author:formVal('f_author'),status:formVal('f_status'),cover:formVal('f_cover'),insight:formVal('f_insight'),quotes:formVal('f_quotes').split('\n').filter(Boolean)});save(true);closeModal();render()}
+function editBook(id){const b=state.books.find(x=>x.id===id);if(!b)return;openModal('Редактировать книгу',`<div class="form-grid">${field('Название','f_title',b.title)}${field('Автор','f_author',b.author)}${field('Статус','f_status',b.status)}${field('Обложка URL','f_cover',b.cover)}${area('Инсайт','f_insight',b.insight)}${area('Цитаты, которые запомнились','f_quotes',(b.quotes||[]).join('\n'))}</div><div class="actions"><button class="btn" data-action="saveEditedBook" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedBook(id){const b=state.books.find(x=>x.id===id);if(b){b.title=formVal('f_title');b.author=formVal('f_author');b.status=formVal('f_status');b.cover=formVal('f_cover');b.insight=formVal('f_insight');b.quotes=formVal('f_quotes').split('\n').filter(Boolean)}save(true);closeModal();render()} function deleteBook(id){state.books=state.books.filter(x=>x.id!==id);save(true);render()}
+function addIdea(){openModal('Идея',`${field('Название','f_title')}${area('Описание','f_text')}${modalButtons('saveIdea')}`)}
+function saveIdea(){state.ideas.unshift({id:uid(),title:formVal('f_title')||'Идея',text:formVal('f_text'),createdAt:todayKey()});save(true);closeModal();render()} function editIdea(id){const x=state.ideas.find(i=>i.id===id);if(!x)return;openModal('Идея',`${field('Название','f_title',x.title)}${area('Описание','f_text',x.text)}<div class="actions"><button class="btn" data-action="saveEditedIdea" data-id="${id}">Сохранить</button></div>`)} function saveEditedIdea(id){const x=state.ideas.find(i=>i.id===id);if(x){x.title=formVal('f_title');x.text=formVal('f_text')}save(true);closeModal();render()} function deleteIdea(id){state.ideas=state.ideas.filter(x=>x.id!==id);save(true);render()}
+function addMedia(){openModal('Фильм / сериал',`<div class="form-grid">${field('Название','f_title')}${field('Тип','f_type','Фильм')}${field('Статус','f_status','Хочу посмотреть')}${field('Ссылка на фильм','f_link')}${field('Ссылка на трейлер','f_trailer')}${area('Заметка','f_note')}</div>${modalButtons('saveMedia')}`)}
+function saveMedia(){state.media.unshift({id:uid(),title:formVal('f_title')||'Фильм',type:formVal('f_type'),status:formVal('f_status'),link:formVal('f_link'),trailer:formVal('f_trailer'),note:formVal('f_note')});save(true);closeModal();render()} function editMedia(id){const m=state.media.find(x=>x.id===id);if(!m)return;openModal('Фильм / сериал',`<div class="form-grid">${field('Название','f_title',m.title)}${field('Тип','f_type',m.type)}${field('Статус','f_status',m.status)}${field('Ссылка на фильм','f_link',m.link)}${field('Ссылка на трейлер','f_trailer',m.trailer)}${area('Заметка','f_note',m.note)}</div><div class="actions"><button class="btn" data-action="saveEditedMedia" data-id="${id}">Сохранить</button></div>`)} function saveEditedMedia(id){const m=state.media.find(x=>x.id===id);if(m){m.title=formVal('f_title');m.type=formVal('f_type');m.status=formVal('f_status');m.link=formVal('f_link');m.trailer=formVal('f_trailer');m.note=formVal('f_note')}save(true);closeModal();render()} function deleteMedia(id){state.media=state.media.filter(x=>x.id!==id);save(true);render()}
+function addSphere(){openModal('Сфера',`<div class="form-grid">${field('Название','f_title')}${field('Иконка','f_icon','✣')}${field('Прогресс %','f_progress','50')}${field('Комментарий','f_note')}</div>${modalButtons('saveSphere')}`)}
+function saveSphere(){state.spheres.push({id:uid(),title:formVal('f_title')||'Сфера',icon:formVal('f_icon')||'✣',progress:clamp(num(formVal('f_progress'))),note:formVal('f_note')});save(true);closeModal();render()} function editSphere(id){const s=state.spheres.find(x=>x.id===id);if(!s)return;openModal('Сфера',`<div class="form-grid">${field('Название','f_title',s.title)}${field('Иконка','f_icon',s.icon)}${field('Прогресс %','f_progress',s.progress)}${field('Комментарий','f_note',s.note)}</div><div class="actions"><button class="btn" data-action="saveEditedSphere" data-id="${id}">Сохранить</button></div>`)} function saveEditedSphere(id){const s=state.spheres.find(x=>x.id===id);if(s){s.title=formVal('f_title');s.icon=formVal('f_icon');s.progress=clamp(num(formVal('f_progress')));s.note=formVal('f_note')}save(true);closeModal();render()} function deleteSphere(id){state.spheres=state.spheres.filter(x=>x.id!==id);save(true);render()}
+function addEvent(){openModal('Событие',`<div class="form-grid">${field('Название','f_title')}${field('Дата','f_date',todayKey(),'date')}${field('Время','f_time','','time')}${field('Сфера','f_area','Личное')}${area('Заметка','f_note')}</div>${modalButtons('saveEvent')}`)} function saveEvent(){state.calendarEvents.unshift({id:uid(),title:formVal('f_title')||'Событие',date:formVal('f_date'),time:formVal('f_time'),area:formVal('f_area'),note:formVal('f_note')});save(true);closeModal();render()} function editEvent(id){const e=state.calendarEvents.find(x=>x.id===id);if(!e)return;openModal('Событие',`<div class="form-grid">${field('Название','f_title',e.title)}${field('Дата','f_date',e.date,'date')}${field('Время','f_time',e.time,'time')}${field('Сфера','f_area',e.area)}${area('Заметка','f_note',e.note)}</div><div class="actions"><button class="btn" data-action="saveEditedEvent" data-id="${id}">Сохранить</button></div>`)} function saveEditedEvent(id){const e=state.calendarEvents.find(x=>x.id===id);if(e){e.title=formVal('f_title');e.date=formVal('f_date');e.time=formVal('f_time');e.area=formVal('f_area');e.note=formVal('f_note')}save(true);closeModal();render()}
+function googleUrl(title,date,time,note=''){const start=(date||todayKey()).replace(/-/g,'')+'T'+String(time||'10:00').replace(':','')+'00';const end=(date||todayKey()).replace(/-/g,'')+'T'+String(time||'11:00').replace(':','')+'00';return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}&details=${encodeURIComponent(note)}`}
+function googleTask(id){const t=state.tasks.find(x=>x.id===id);if(t)window.open(googleUrl(t.title,t.due,t.time,t.area),'_blank')} function googleEvent(id){const e=state.calendarEvents.find(x=>x.id===id);if(e)window.open(googleUrl(e.title,e.date,e.time,e.note),'_blank')}
+function parseCsv(text){const sep=(text.split('\n')[0].match(/;/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?';':',';const rows=[];let row=[],cur='',q=false;for(let i=0;i<text.length;i++){const ch=text[i],n=text[i+1];if(ch==='"'&&q&&n==='"'){cur+='"';i++;continue}if(ch==='"'){q=!q;continue}if(ch===sep&&!q){row.push(cur.trim());cur='';continue}if((ch==='\n'||ch==='\r')&&!q){if(cur||row.length){row.push(cur.trim());rows.push(row);row=[];cur=''}continue}cur+=ch}if(cur||row.length){row.push(cur.trim());rows.push(row)}const heads=rows.shift()||[];return {heads,rows:rows.filter(r=>r.some(Boolean)).map(r=>Object.fromEntries(heads.map((h,i)=>[h,r[i]||''])))} }
+function guessRowDate(r){const vals=Object.values(r).map(String);for(const v of vals){let m=v.match(/(20\d{2})[-.\/](\d{1,2})[-.\/](\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;m=v.match(/(\d{1,2})[.\/](\d{1,2})[.\/](20\d{2})/);if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}return todayKey()}
+function guessRowAmount(r){const nums=Object.values(r).map(v=>Number(String(v).replace(/\s/g,'').replace(',','.'))).filter(v=>!Number.isNaN(v)&&v!==0);if(!nums.length)return 0;return Math.abs(nums.sort((a,b)=>Math.abs(b)-Math.abs(a))[0])}
+function guessRowType(r){const text=Object.entries(r).map(([k,v])=>`${k} ${v}`).join(' ').toLowerCase();return /доход|income|поступ|зачисл|зарплат|пополн/.test(text)?'income':'expense'}
+function opKey(date,type,amount,note){return [date,type,Math.round(num(amount)*100),String(note||'').toLowerCase().replace(/\s+/g,' ').slice(0,80)].join('|')}
+function loadCsv(){const input=$('#csvFile');const f=input?.files?.[0];if(!f){toast('Выбери CSV');return}f.text().then(text=>{const p=parseCsv(text);const keys=new Set(state.operations.map(o=>opKey(o.date,o.type,o.amount,o.note||o.category)));csvDuplicateRemoved=0;const seen=new Set();csvRows=[];p.rows.forEach(r=>{const row={raw:r,date:guessRowDate(r),amount:guessRowAmount(r),type:guessRowType(r),category:r['Категория']||r.category||'Импорт',note:Object.values(r).filter(Boolean).slice(0,4).join(' · ').slice(0,160)};const k=opKey(row.date,row.type,row.amount,row.note);if(keys.has(k)||seen.has(k)){csvDuplicateRemoved++;return}seen.add(k);csvRows.push(row)});toast(`Новых строк: ${csvRows.length}, дублей убрано: ${csvDuplicateRemoved}`);render()})}
+function confirmCsv(){const keys=new Set(state.operations.map(o=>opKey(o.date,o.type,o.amount,o.note||o.category)));let added=0;csvRows.forEach((r,i)=>{if(!document.querySelector(`[data-action="csvInclude"][data-row="${i}"]`)?.checked)return;const date=document.querySelector(`[data-action="csvDateInput"][data-row="${i}"]`)?.value||r.date;const type=document.querySelector(`[data-action="csvTypeInput"][data-row="${i}"]`)?.value||r.type;const amount=num(document.querySelector(`[data-action="csvAmountInput"][data-row="${i}"]`)?.value??r.amount);const category=document.querySelector(`[data-action="csvCategoryInput"][data-row="${i}"]`)?.value||r.category;const note=document.querySelector(`[data-action="csvNoteInput"][data-row="${i}"]`)?.value||r.note;const k=opKey(date,type,amount,note);if(keys.has(k))return;keys.add(k);state.operations.unshift({id:uid(),date,type,amount,category,note,importBatch:BUILD});added++});const v=$('#importActualBalance')?.value;if(v!==''){state.settings.importActualBalance=v;state.settings.currentBalance=num(v)}csvRows=[];save(true);toast(`Импортировано: ${added}`);render()}
+function saveImportBalance(){state.settings.importActualBalance=num($('#importActualBalance')?.value);state.settings.currentBalance=state.settings.importActualBalance;save(true);toast('Фактический остаток сохранён');render()}
+function filterDayOps(day){const d=String(day).padStart(2,'0');const list=monthOps('expense').filter(o=>String(o.date||'').slice(8,10)===d);openModal(`Расходы ${day} числа`,list.map(rowOperation).join('')||empty('Расходов нет'))}
+function setLifeFolder(id){state.settings.lifeFolder=id;save();render()}
+function exportData(){const blob=new Blob([JSON.stringify({app:APP_NAME,build:BUILD,exportedAt:new Date().toISOString(),state},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-os-backup-${todayKey()}.json`;a.click();URL.revokeObjectURL(a.href);toast('Экспорт готов')}
+function snapshot(){saveSnapshot('manual');toast('Снимок сохранён')}
+async function clearCaches(){try{if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}if('caches'in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}toast('Кэш очищен');setTimeout(()=>location.reload(),700)}catch(e){toast('Не удалось очистить кэш')}}
+/* primary click router replaced by final capture router */
+const windowActions={openQuick,closeModal,exportData,snapshot,clearCaches,addTask,saveTask,editTask,saveEditedTask,toggleTask,deleteTask,setTaskScope,addExpense,addIncome,saveOperation,editOperation,saveEditedOperation,editActualBalance,saveActualBalance,addCategory,saveCategory,editCategory,saveEditedCategory,deleteCategory,addDebt,saveDebt,editDebt,saveEditedDebt,closeDebt,debtTask,addPurchase,savePurchase,editPurchase,saveEditedPurchase,deletePurchase,addGoal,saveGoal,editGoal,saveEditedGoal,deleteGoal,addNote,saveNote,editNote,saveEditedNote,deleteNote,saveDailyReflection,addPerson,savePerson,editPerson,saveEditedPerson,deletePerson,addHabit,saveHabit,editHabit,saveEditedHabit,deleteHabit,toggleHabitDate,addBook,saveBook,editBook,saveEditedBook,deleteBook,addIdea,saveIdea,editIdea,saveEditedIdea,deleteIdea,addMedia,saveMedia,editMedia,saveEditedMedia,deleteMedia,addSphere,saveSphere,editSphere,saveEditedSphere,deleteSphere,addEvent,saveEvent,editEvent,saveEditedEvent,googleTask,googleEvent,loadCsv,confirmCsv,saveImportBalance,filterDayOps};
+function googleCompat(){return true}
+function filesPage(){return diagnosticsPage()}
+try{state=normalizeState(state);save();render()}catch(e){document.body.innerHTML='<pre style="padding:24px;font-family:monospace">Second Brain OS: ошибка загрузки\n'+String(e.stack||e)+'</pre>';throw e}
 
-function loadState(){
-  try { return JSON.parse(storageGet(STORE_KEY) || 'null') || defaultState(); }
-  catch(e){ return defaultState(); }
+/* ===== Final overrides: planning trips, cycle charts, event routing ===== */
+function cycleExpenseByDate(){const c=currentCycle();const map={};cycleOps('expense').forEach(o=>{map[o.date]=(map[o.date]||0)+num(o.amount)});return {map,start:new Date(c.start),end:new Date(c.end)}}
+function dailySpendSeries(){const {map,start,end}=cycleExpenseByDate();const arr=[];let d=new Date(start);while(d<=end){const key=iso(d);const amount=map[key]||0;arr.push({date:key,day:d.getDate(),label:fmtDate(key),amount});d=addDays(d,1)}const max=Math.max(1,...arr.map(x=>x.amount));const active=arr.filter(x=>x.amount>0);const avg=active.reduce((a,b)=>a+b.amount,0)/Math.max(1,active.length);return arr.map(x=>({...x,h:Math.max(6,Math.round(x.amount/max*100)),hot:x.amount>avg*1.6&&x.amount>0,warn:x.amount>avg&&x.amount>0}))}
+function renderDailySpendChart(){return `<div class="day-chart">${dailySpendSeries().map(x=>`<div class="day-bar ${x.hot?'hot':x.warn?'warn':''}" style="--h:${x.h}%" data-tip="${x.label}: ${money(x.amount)}"></div>`).join('')}</div><div class="small muted">График рассчитан по зарплатному циклу 10 → 9. Красным выделены пики трат.</div>`}
+function summary(){
+ const income=total(monthOps('income')), expenses=total(monthOps('expense')), cycleIncome=total(cycleOps('income')), cycleExpenses=total(cycleOps('expense'));
+ const planned=total(plannedInMonth()); const debtDue=total(activeDebts().filter(d=>String(d.due||'').startsWith(state.settings.currentMonth)));
+ const calcBalance=income-expenses-planned-debtDue; const actual=num(state.settings.currentBalance)||calcBalance; const plan=num(state.settings.monthlyPlan)||income||1;
+ const next=nextSalaryDate(); const days=Math.max(1,Math.ceil((new Date(next.date)-new Date())/86400000)); const obligations=dueUntil(next.date); const toNext=actual-obligations; const dailyLimit=Math.max(0,Math.floor(toNext/days));
+ const byCat={}; cycleOps('expense').forEach(o=>{byCat[o.category||'Без категории']=(byCat[o.category||'Без категории']||0)+num(o.amount)}); const topCats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+ return {income,expenses,cycleIncome,cycleExpenses,planned,debtDue,calcBalance,actual,plan,progress:clamp(Math.round(income/plan*100)),nextSalary:next,daysToSalary:days,obligations,toNext,dailyLimit,topCats};
 }
-let page = location.hash ? location.hash.slice(1) : 'dashboard';
-let state = normalize(loadState());
+function travelTotal(t){return num(t.transport)+num(t.hotel)+num(t.food)+num(t.activities)}
+function tripProgress(t){return num(t.budget)?clamp(Math.round(num(t.saved)/num(t.budget)*100)):0}
+function tripsPanel(){return `<section class="card" style="margin-top:18px"><div class="card-head"><h3>Путешествия и поездки</h3><button class="btn secondary" data-action="addTrip">Запланировать</button></div><div class="grid cols-2">${state.trips.map(t=>`<article class="mini-box"><div class="stat-row"><strong>${esc(t.title)}</strong><span class="pill blue">${esc(t.status||'План')}</span></div><p class="small muted">${esc(t.direction||'Любое направление')} ${t.start?`· ${esc(t.start)} — ${esc(t.end||'')}`:''}</p><div class="value sm">${money(t.budget)}</div>${progressBar(tripProgress(t))}<p class="small muted">Накоплено ${money(t.saved)} · расчёт ${money(travelTotal(t))}</p><p class="small muted">Транспорт ${money(t.transport)} · Жильё ${money(t.hotel)} · Еда ${money(t.food)} · Активности ${money(t.activities)}</p><div class="button-row"><button class="mini-btn" data-action="editTrip" data-id="${t.id}">Ред.</button><button class="mini-btn blue" data-action="tripToBudget" data-id="${t.id}">В бюджет</button><button class="mini-btn red" data-action="deleteTrip" data-id="${t.id}">Удалить</button></div></article>`).join('')||empty('Поездок пока нет')}</div></section>`}
+function planningPage(){return layout('Планирование','Задачи и календарь в одной папке: сегодня, неделя, месяц + матрица Эйзенхауэра.',`<section class="grid cols-3"><button class="folder-card" data-action="setTaskScope" data-scope="today"><div class="folder-ico">1</div><strong>Сегодня</strong><small>${openTasks().filter(t=>t.due===todayKey()).length} задач</small></button><button class="folder-card" data-action="setTaskScope" data-scope="week"><div class="folder-ico">7</div><strong>Неделя</strong><small>ближайшие действия</small></button><button class="folder-card" data-action="setTaskScope" data-scope="month"><div class="folder-ico">30</div><strong>Месяц</strong><small>план без перегруза</small></button></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Задачи</h3><button class="btn secondary" data-action="addTask">Добавить</button></div>${taskScopeButtons()}<div class="task-list">${tasksByScope().map(rowTask).join('')||empty('Нет задач')}</div></article><article class="card"><div class="card-head"><h3>Календарь</h3><button class="btn secondary" data-action="addEvent">Событие</button></div><div class="note-list">${upcomingEvents().slice(0,8).map(rowEvent).join('')||empty('Нет событий')}</div></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><span class="pill blue">приоритеты</span></div>${eisenhowerMatrix()}</section>${tripsPanel()}`)}
+function planningPageInner(){return `<section class="grid cols-3"><button class="folder-card" data-go="planning"><div class="folder-ico">☑</div><strong>Задачи</strong><small>${openTasks().length} открытых</small></button><button class="folder-card" data-go="planning"><div class="folder-ico">☷</div><strong>Календарь</strong><small>${upcomingEvents().length} событий</small></button><button class="folder-card" data-action="addTrip"><div class="folder-ico">✈</div><strong>Поездка</strong><small>план + бюджет</small></button></section>${tripsPanel()}`}
+function addTrip(){openModal('Запланировать поездку',`<div class="form-grid">${field('Название','f_title')}${field('Направление','f_direction','Любое направление')}${field('Дата начала','f_start','','date')}${field('Дата окончания','f_end','','date')}${field('Общий бюджет','f_budget')}${field('Уже накоплено','f_saved')}${field('Транспорт','f_transport')}${field('Жильё','f_hotel')}${field('Еда','f_food')}${field('Активности','f_activities')}${area('Маршрут и заметки','f_notes')}</div>${modalButtons('saveTrip')}`)}
+function saveTrip(){state.trips.unshift({id:uid(),title:formVal('f_title')||'Поездка',direction:formVal('f_direction'),start:formVal('f_start'),end:formVal('f_end'),budget:num(formVal('f_budget')),saved:num(formVal('f_saved')),transport:num(formVal('f_transport')),hotel:num(formVal('f_hotel')),food:num(formVal('f_food')),activities:num(formVal('f_activities')),notes:formVal('f_notes'),status:'План'});save(true);closeModal();render()}
+function editTrip(id){const t=state.trips.find(x=>x.id===id);if(!t)return;openModal('Редактировать поездку',`<div class="form-grid">${field('Название','f_title',t.title)}${field('Направление','f_direction',t.direction)}${field('Дата начала','f_start',t.start,'date')}${field('Дата окончания','f_end',t.end,'date')}${field('Общий бюджет','f_budget',t.budget)}${field('Уже накоплено','f_saved',t.saved)}${field('Транспорт','f_transport',t.transport)}${field('Жильё','f_hotel',t.hotel)}${field('Еда','f_food',t.food)}${field('Активности','f_activities',t.activities)}${area('Маршрут и заметки','f_notes',t.notes)}</div><div class="actions"><button class="btn" data-action="saveEditedTrip" data-id="${id}">Сохранить</button></div>`)}
+function saveEditedTrip(id){const t=state.trips.find(x=>x.id===id);if(t){t.title=formVal('f_title');t.direction=formVal('f_direction');t.start=formVal('f_start');t.end=formVal('f_end');t.budget=num(formVal('f_budget'));t.saved=num(formVal('f_saved'));t.transport=num(formVal('f_transport'));t.hotel=num(formVal('f_hotel'));t.food=num(formVal('f_food'));t.activities=num(formVal('f_activities'));t.notes=formVal('f_notes')}save(true);closeModal();render()}
+function deleteTrip(id){state.trips=state.trips.filter(x=>x.id!==id);save(true);render()}
+function tripToBudget(id){const t=state.trips.find(x=>x.id===id);if(!t)return;state.plannedPurchases.unshift({id:uid(),title:`Поездка: ${t.title}`,category:'Путешествия',amount:num(t.budget)-num(t.saved),month:state.settings.currentMonth,importance:'Важно',includeInBudget:true,note:'Добавлено из планирования поездки'});save(true);toast('Поездка добавлена в бюджет');render()}
+// extend action map after trip overrides
+Object.assign(windowActions,{addTrip,saveTrip,editTrip,saveEditedTrip,deleteTrip,tripToBudget});
+// replace click router so actions can receive dataset fields too
+const oldBodyClick = document.body.onclick;
+document.addEventListener('click', e=>{
+ const goEl=e.target.closest('[data-go]'); if(goEl){go(goEl.dataset.go);return}
+ const lf=e.target.closest('[data-life-folder]'); if(lf){setLifeFolder(lf.dataset.lifeFolder);return}
+ const a=e.target.closest('[data-action]'); if(!a)return;
+ e.preventDefault();
+ e.stopImmediatePropagation();
+ const action=a.dataset.action;
+ if(action==='filterDayOps') return filterDayOps(a.dataset.day);
+ if(action==='toggleHabitDate') return toggleHabitDate(a.dataset.id,a.dataset.date);
+ if(action==='setTaskScope') return setTaskScope.call(a,a.dataset.id);
+ const fn=windowActions[action]; if(fn) return fn.call(a,a.dataset.id);
+}, true);
+try{render()}catch(e){console.error(e)}
 
-function normalize(s){
-  const d = defaultState();
-  if(!s || typeof s !== 'object' || Array.isArray(s)) s = {};
-  s.settings = {...d.settings, ...(s.settings || {})};
-  s.settings.labels = {...labelDefaults, ...(s.settings.labels || {})};
-  s.settings.ui = {...d.settings.ui, ...(s.settings.ui || {})};
-  ['categories','operations','tasks','calendarEvents','goals','habits','notes','people','links','resources','inbox','folders','plannedPurchases','debts','books','media','ideas','trips','files','spheres'].forEach(k => {
-    if(!Array.isArray(s[k])) s[k] = d[k] || [];
-  });
-  if(!s.folders.length) s.folders = d.folders;
-  if(!s.links.length) s.links = d.links;
-  s.categories = s.categories.map(c => ({id:c.id || uid(), name:c.name || c.title || 'Категория', type:c.type || 'expense', limit:num(c.limit)}));
-  s.operations = s.operations.map(o => ({id:o.id || uid(), date:o.date || todayKey(), type:o.type || (num(o.amount) < 0 ? 'expense' : 'income'), amount:Math.abs(num(o.amount)), category:o.category || 'Без категории', note:o.note || o.comment || ''}));
-  s.tasks = s.tasks.map(t => ({id:t.id || uid(), title:t.title || t.name || 'Задача', area:t.area || t.folder || 'Общее', due:t.due || t.date || todayKey(), time:t.time || '', priority:t.priority || 'B', status:t.status || 'В работе'}));
-  s.notes = s.notes.map(n => ({id:n.id || uid(), title:n.title || n.name || 'Заметка', folder:n.folder || 'Личное', text:n.text || n.note || n.content || '', createdAt:n.createdAt || n.date || todayKey(), tags:Array.isArray(n.tags) ? n.tags : []}));
-  s.goals = s.goals.map(g => ({id:g.id || uid(), title:g.title || g.name || 'Цель', area:g.area || 'Общее', targetValue:num(g.targetValue || g.target || 100), currentValue:num(g.currentValue || g.current || 0), deadline:g.deadline || '', note:g.note || g.week52 || ''}));
-  s.habits = s.habits.map(h => ({id:h.id || uid(), name:h.name || h.title || 'Привычка', area:h.area || 'Фокус', target:h.target || 'ежедневно', streak:num(h.streak), marks:h.marks || {}}));
-  return s;
-}
-function save(snapshot=false){
-  state = normalize(state);
-  storageSet(STORE_KEY, JSON.stringify(state));
-  storageSet(META_KEY, JSON.stringify({app:APP_NAME, build:BUILD, updatedAt:new Date().toISOString()}));
-  storageSet('secondBrainOS.currentBuild', BUILD);
-  if(snapshot) saveSnapshot();
-}
-function saveSnapshot(){
-  try { const list = JSON.parse(storageGet(SNAPSHOT_KEY) || '[]'); list.unshift({build:BUILD, createdAt:new Date().toISOString(), state}); storageSet(SNAPSHOT_KEY, JSON.stringify(list.slice(0, 10))); } catch(e){}
-}
-function arr(k){ if(!Array.isArray(state[k])) state[k] = []; return state[k]; }
-function lab(k, fallback){ return state.settings.labels[k] || fallback || labelDefaults[k] || k; }
-function ui(k, def){ return state.settings.ui[k] ?? def; }
-function setUI(k, v){ state.settings.ui[k] = v; save(); render(); }
-function formVal(id){ return $('#'+id)?.value ?? ''; }
-function checked(id){ return Boolean($('#'+id)?.checked); }
-function field(label,id,val='',type='text',extra=''){ return `<div class="field"><label>${esc(label)}</label><input id="${id}" type="${type}" value="${esc(val)}" ${extra}></div>`; }
-function area(label,id,val=''){ return `<div class="field" style="grid-column:1/-1"><label>${esc(label)}</label><textarea id="${id}">${esc(val)}</textarea></div>`; }
-function selectField(label,id,options,val=''){
-  return `<div class="field"><label>${esc(label)}</label><select id="${id}">${options.map(o => `<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''}>${esc(o[1])}</option>`).join('')}</select></div>`;
-}
-function toast(msg){ const t = $('#toast'); if(!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); }
-function openModal(title, html){ $('#modalTitle').textContent = title; $('#modalBody').innerHTML = html; $('#modal').classList.add('show'); $('#modal').setAttribute('aria-hidden','false'); }
-function closeModal(){ $('#modal').classList.remove('show'); $('#modal').setAttribute('aria-hidden','true'); }
-function go(p){ page = p || 'dashboard'; location.hash = page; render(); }
-function pct(cur, target){ target = Math.max(1, num(target)); return Math.max(0, Math.min(100, Math.round(num(cur) / target * 100))); }
-function todayEvents(){ return arr('calendarEvents').filter(e => (e.date || todayKey()) === todayKey()).sort((a,b)=>String(a.time||'').localeCompare(String(b.time||''))); }
-function openTasks(){ return arr('tasks').filter(t => t.status !== 'Готово'); }
-function monthOps(){ const m = monthKey(); return arr('operations').filter(o => String(o.date || '').startsWith(m)); }
-function income(){ return monthOps().filter(o => o.type === 'income').reduce((a,o)=>a+num(o.amount),0); }
-function expense(){ return monthOps().filter(o => o.type !== 'income').reduce((a,o)=>a+num(o.amount),0); }
-function balance(){ return num(state.settings.importActualBalance || state.settings.currentBalance) + income() - expense(); }
-function categoryOptions(){ return arr('categories').map(c => [c.name, c.name]); }
-function empty(t){ return `<div class="empty-state">${esc(t)}</div>`; }
-function pill(t, cls='blue'){ return `<span class="pill ${cls}">${esc(t)}</span>`; }
-function progress(p){ return `<div class="progress" style="--p:${Math.max(0,Math.min(100,num(p)))}%"><b></b></div>`; }
+/* ===== Timeline Focus Polish Fix — categories preserved, logic clarified ===== */
+try{ localStorage.setItem('secondBrainOS.currentBuild','timeline-focus-polish-light-tech-20260630'); }catch(e){}
 
-function render(){
-  document.title = lab('appName','Second Brain OS');
-  const app = $('#app');
-  app.innerHTML = `${sidebar()}<main class="main">${topbar()}${pageView()}</main>${mobileTabs()}<div class="version-badge">${BUILD}</div>`;
-}
-function sidebar(){
-  return `<aside class="sidebar">
-    <div class="brand">
-      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-3.5 0-6.5 2.7-6.5 6.1 0 2.7 1.7 4.7 4 5.7V21l2.8-2.8h.2c3.5 0 6-2.7 6-6.1S15.5 3 12 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M9.2 8.2h5.6M9.2 11.3h5.6M9.2 14.4h3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-      <div><div class="brand-title">${esc(lab('appName'))}</div><div class="brand-sub">${esc(lab('appSubtitle'))}</div></div>
-    </div>
-    <div class="sidebar-tools">
-      <label class="mini-search">⌕<input id="sideSearch" value="${esc(ui('search',''))}" placeholder="Поиск" data-action="liveSearch"></label>
-      <button class="icon-btn" data-action="editTexts" title="Редактировать названия">✎</button>
-    </div>
-    <div class="nav-scroll">${navSections.map(([title, items]) => `<section class="nav-section"><div class="nav-title">${esc(title)}</div>${items.map(navBtn).join('')}</section>`).join('')}</div>
-    <section class="sidebar-card">
-      <h3>Фокус дня</h3><p>${esc(lab('quote'))}</p><div class="focus-bar"><b style="width:${Math.min(100, Math.max(10, Math.round(openTasks().filter(t=>t.priority==='A').length ? 72 : 45)))}%"></b></div>
-    </section>
-    <div class="sidebar-bottom"><span>${BUILD}</span><button class="link" data-action="clearCaches">сброс кэша</button></div>
-  </aside>`;
-}
-function navBtn(item){
-  const [key, ico, fallback] = item;
-  const name = lab('nav_'+key, fallback);
-  const badge = key === 'tasks' ? openTasks().length : key === 'inbox' ? arr('inbox').filter(x=>x.status!=='Готово').length : '';
-  return `<button class="nav-btn ${page===key?'active':''}" data-go="${key}"><span class="nav-ico">${ico}</span><span class="nav-name">${esc(name)}</span>${badge!==''?`<span class="nav-badge">${badge}</span>`:''}</button>`;
-}
-function topbar(){
-  return `<header class="topbar">
-    <div class="topbar-left"><b>${esc(lab('appName'))}</b><span>${new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})}</span></div>
-    <label class="search">⌕<input id="globalSearch" value="${esc(ui('search',''))}" placeholder="Найти задачу, заметку, цель..." data-action="liveSearch"><span class="kbd">Ctrl K</span></label>
-    <div class="top-actions">
-      <button class="primary-btn" data-action="quickCapture"><span>＋</span><span>Быстрый захват</span></button>
-      <button class="icon-btn" data-action="notifications" title="Уведомления">♡</button>
-      <button class="icon-btn" data-action="editTexts" title="Редактировать тексты">✎</button>
-    </div>
-  </header>`;
-}
-function mobileTabs(){
-  return `<nav class="mobile-tabs">${mobileItems.map(k => { const it = flatNav.find(x=>x[0]===k); return `<button class="${page===k?'active':''}" data-go="${k}"><div>${it?.[1]||'•'}</div>${esc(lab('nav_'+k,it?.[2]||k))}</button>`; }).join('')}</nav>`;
-}
-function pageView(){
-  const views = {dashboard, timeline: timelinePage, notes: notesPage, tasks: tasksPage, goals: goalsPage, habits: habitsPage, finance: financePage, links: linksPage, calendar: calendarPage, folders: foldersPage, resources: resourcesPage, people: peoplePage, inbox: inboxPage, import: importPage, settings: settingsPage, diagnostics: diagnosticsPage};
-  return (views[page] || dashboard)();
-}
-function hero(title, sub){ return `<div class="hero"><div><h1>${esc(title)}</h1><p>${esc(sub || '')}</p></div><div class="date-pill">${weekday(todayKey())}, ${fmtDate(todayKey())}</div></div>`; }
-
-function dashboard(){
-  const goalsAvg = arr('goals').length ? Math.round(arr('goals').reduce((a,g)=>a+pct(g.currentValue,g.targetValue),0)/arr('goals').length) : 0;
-  return `<section class="page">${hero(lab('greeting'), lab('greetingSub'))}
-    <section class="grid cols-4">
-      ${metricCard(lab('todayCard'), '☼', `${openTasks().length}`, 'задач открыто', `${todayEvents().length} событий сегодня`, 66, 'blue', 'tasks')}
-      ${calendarMiniCard()}
-      ${metricCard(lab('goalsCard'), '◎', `${goalsAvg}%`, 'средний прогресс', `${arr('goals').length} активных целей`, goalsAvg, 'violet', 'goals')}
-      ${tasksMiniCard()}
-    </section>
-    <section class="dash-grid">
-      ${timelineWidget()}
-      ${linksWidget()}
-    </section>
-    <section class="lower-grid">
-      ${habitsWidget()}
-      ${financeWidget()}
-      ${notesQuickWidget()}
-    </section>
-    <section class="grid cols-3">
-      ${quickCaptureWidget()}
-      ${folderPreviewWidget()}
-      ${inboxWidget()}
-    </section>
-  </section>`;
-}
-function metricCard(title, icon, value, sub, foot, p, cls, to){
-  return `<article class="card metric-card"><div class="metric-top"><span class="metric-icon">${icon}</span><button class="link" data-go="${to}">Открыть</button></div><div><div class="metric-title">${esc(title)}</div><div class="value ${cls}">${esc(value)}</div><p class="muted small">${esc(sub)}</p></div><div class="metric-lines">${progress(p)}<small class="muted">${esc(foot)}</small></div></article>`;
-}
-function calendarMiniCard(){
-  const ev = todayEvents();
-  return `<article class="card metric-card"><div class="card-head"><div><h3>${esc(lab('calendarCard'))}</h3><p class="muted small">Сегодня</p></div><button class="link" data-go="calendar">Весь календарь</button></div><div class="list">${ev.slice(0,4).map(e => `<div class="stat-row"><b>${esc(e.time||'—')}</b><span class="muted small">${esc(e.title)}</span></div>`).join('') || empty('Нет событий')}</div><button class="link" data-action="addEvent">+ Добавить событие</button></article>`;
-}
-function tasksMiniCard(){
-  const tasks = openTasks().slice(0,3);
-  return `<article class="card metric-card"><div class="card-head"><div><h3>${esc(lab('tasksCard'))}</h3><p class="muted small">Сегодня / скоро</p></div><button class="link" data-go="tasks">Все</button></div><div class="list">${tasks.map(t => taskLine(t, true)).join('') || empty('Задач нет')}</div><button class="link" data-action="addTask">+ Новая задача</button></article>`;
-}
-function timelineWidget(){
-  const days = ['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'];
-  const todayIdx = Math.max(0, (new Date().getDay()+6)%7);
-  const events = todayEvents();
-  const colors = ['blue','green','amber','violet'];
-  let cells = `<div class="tl-cell tl-head"></div>` + days.map((d,i)=>`<div class="tl-cell tl-head"><div>${d}</div><span class="${i===todayIdx?'tl-today':''}">${i+1}</span></div>`).join('');
-  ['09:00','12:00','15:00','18:00'].forEach((time, r) => {
-    cells += `<div class="tl-cell tl-time">${time}</div>`;
-    for(let i=0;i<7;i++){
-      const ev = i===todayIdx ? events[r] : null;
-      cells += `<div class="tl-cell">${ev?`<button class="event-block event-${ev.color||colors[r%4]}" data-action="editEvent" data-id="${ev.id}">${esc(ev.title)}<br><small>${esc(ev.time||'')}</small></button>`:''}</div>`;
-    }
-  });
-  return `<article class="card timeline-card"><div class="card-head"><div><h3>${esc(lab('timelineCard'))}</h3><p class="muted small">Неделя, фокус-блоки и события</p></div><div class="timeline-toolbar"><button class="seg ${ui('timelineMode','week')==='day'?'active':''}" data-action="setTimeline" data-mode="day">День</button><button class="seg ${ui('timelineMode','week')==='week'?'active':''}" data-action="setTimeline" data-mode="week">Неделя</button><button class="seg ${ui('timelineMode','week')==='month'?'active':''}" data-action="setTimeline" data-mode="month">Месяц</button></div></div><div class="timeline">${cells}</div><div class="actions"><button class="btn secondary small" data-action="addEvent">+ Добавить блок</button><button class="btn secondary small" data-go="timeline">Открыть таймлайн</button></div></article>`;
-}
-function linksWidget(){
-  const nodes = [
-    [50,50,'Second Brain OS','main'],[27,30,'Цели',''],[69,24,'Заметки',''],[78,58,'Финансы',''],[31,67,'Привычки',''],[17,53,'Задачи',''],[58,78,'Люди',''],[44,20,'Проекты','']
-  ];
-  const lines = [[50,50,27,30],[50,50,69,24],[50,50,78,58],[50,50,31,67],[50,50,17,53],[50,50,58,78],[50,50,44,20],[27,30,44,20],[69,24,78,58],[31,67,58,78]];
-  const lineHtml = lines.map(([x1,y1,x2,y2]) => { const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy), deg=Math.atan2(dy,dx)*180/Math.PI; return `<span class="graph-line" style="left:${x1}%;top:${y1}%;width:${len}%;transform:rotate(${deg}deg)"></span>`; }).join('');
-  const nodeHtml = nodes.map(([x,y,t,c]) => `<button class="node ${c}" style="left:calc(${x}% - ${c==='main'?35:9}px);top:calc(${y}% - ${c==='main'?35:9}px)" data-action="addLink">${c==='main'?'☷':''}<small>${esc(t)}</small></button>`).join('');
-  return `<article class="card graph-card"><div class="card-head"><div><h3>${esc(lab('linksCard'))}</h3><p class="muted small">Цель → задача → заметка → финансы → человек</p></div><button class="link" data-go="links">Полный граф</button></div><div class="graph">${lineHtml}${nodeHtml}</div><div class="graph-legend">${pill('Проекты','blue')}${pill('Темы','green')}${pill('Ресурсы','violet')}${pill('Заметки','amber')}</div></article>`;
-}
-function habitsWidget(){
-  const days = ['П','В','С','Ч','П','С','В'];
-  return `<article class="card"><div class="card-head"><div><h3>${esc(lab('habitsCard'))}</h3><p class="muted small">Ритм недели</p></div><button class="link" data-go="habits">Все</button></div><div class="list">${arr('habits').slice(0,5).map(h => `<div class="item"><span class="metric-icon">◌</span><div class="item-main"><b>${esc(h.name)}</b><small>${esc(h.area)} · серия ${num(h.streak)} дней</small></div><div class="tag-cloud">${days.map((d,i)=>`<button class="check ${h.marks?.[todayKey()]&&i===days.length-1?'done':''}" data-action="toggleHabit" data-id="${h.id}">${h.marks?.[todayKey()]&&i===days.length-1?'✓':''}</button>`).join('')}</div></div>`).join('') || empty('Привычек нет')}</div><button class="link" data-action="addHabit">+ Добавить привычку</button></article>`;
-}
-function financeWidget(){
-  return `<article class="card"><div class="card-head"><div><h3>${esc(lab('financeCard'))}</h3><p class="muted small">Текущий месяц</p></div><button class="link" data-go="finance">Открыть</button></div><div class="value big">${money(balance())}</div><p class="green small">+${money(Math.max(0, income()-expense()))} к плану месяца</p><div class="grid cols-3" style="margin-top:14px"><div><small class="muted">Доход</small><b class="green">${money(income())}</b></div><div><small class="muted">Расходы</small><b>${money(expense())}</b></div><div><small class="muted">Лимит дня</small><b>${money(state.settings.dailyLimit)}</b></div></div><div style="margin-top:16px">${progress(Math.min(100, expense() / Math.max(1, income()) * 100))}</div><div class="actions"><button class="btn small" data-action="addIncome">+ Доход</button><button class="btn secondary small" data-action="addExpense">+ Расход</button></div></article>`;
-}
-function notesQuickWidget(){
-  return `<article class="card"><div class="card-head"><div><h3>${esc(lab('notesCard'))}</h3><p class="muted small">Последние записи</p></div><button class="link" data-go="notes">Все</button></div><div class="list">${arr('notes').slice(0,4).map(n => `<button class="item" data-action="editNote" data-id="${n.id}"><span class="metric-icon">✎</span><span class="item-main"><b>${esc(n.title)}</b><small>${esc(n.folder)} · ${fmtDate(n.createdAt)}</small></span></button>`).join('') || empty('Заметок нет')}</div><button class="link" data-action="addNote">+ Новая заметка</button></article>`;
-}
-function quickCaptureWidget(){
-  return `<article class="card"><div class="card-head"><div><h3>${esc(lab('quickCard'))}</h3><p class="muted small">Создать без лишних шагов</p></div></div><div class="quick-grid"><button class="quick-action" data-action="addNote"><i>✎</i>Заметка</button><button class="quick-action" data-action="addTask"><i>✓</i>Задача</button><button class="quick-action" data-action="addLink"><i>⌁</i>Связь</button><button class="quick-action" data-action="addEvent"><i>□</i>Событие</button></div></article>`;
-}
-function folderPreviewWidget(){
-  return `<article class="card"><div class="card-head"><div><h3>Папки</h3><p class="muted small">Названия можно менять</p></div><button class="link" data-go="folders">Все</button></div><div class="list">${arr('folders').slice(0,4).map(f => `<div class="item"><span class="metric-icon">${esc(f.icon)}</span><div class="item-main"><b>${esc(lab(f.labelKey, f.id))}</b><small>${esc(f.note)}</small></div><button class="icon-btn" data-action="editFolder" data-id="${esc(f.id)}">✎</button></div>`).join('')}</div></article>`;
-}
-function inboxWidget(){
-  return `<article class="card"><div class="card-head"><div><h3>Входящие</h3><p class="muted small">Быстро сохранённое</p></div><button class="link" data-go="inbox">Открыть</button></div><div class="list">${arr('inbox').slice(0,3).map(i => `<div class="item"><span class="metric-icon">↓</span><div class="item-main"><b>${esc(i.title)}</b><small>${esc(i.type)} · ${esc(i.status||'Новое')}</small></div><button class="icon-btn" data-action="inboxToNote" data-id="${i.id}">→</button></div>`).join('') || empty('Входящие пусты')}</div></article>`;
-}
-function taskLine(t, compact=false){ return `<div class="item"><button class="check ${t.status==='Готово'?'done':''}" data-action="toggleTask" data-id="${t.id}">${t.status==='Готово'?'✓':''}</button><div class="item-main"><b>${esc(t.title)}</b><small>${esc(t.area)} ${t.due?'· '+fmtDate(t.due):''} ${t.time?'· '+esc(t.time):''}</small></div>${!compact?`<div class="item-actions"><button class="icon-btn" data-action="editTask" data-id="${t.id}">✎</button><button class="icon-btn" data-action="deleteTask" data-id="${t.id}">×</button></div>`:''}</div>`; }
-
-function timelinePage(){ return `<section class="page">${hero(lab('nav_timeline','Таймлайн'), 'Все события и фокус-блоки в одном месте.')}${timelineWidget()}<section class="card"><div class="card-head"><h3>Список событий</h3><button class="btn" data-action="addEvent">Добавить</button></div><div class="list">${arr('calendarEvents').map(e => `<div class="item"><span class="metric-icon">□</span><div class="item-main"><b>${esc(e.title)}</b><small>${fmtDate(e.date)} · ${esc(e.time||'')}–${esc(e.end||'')}</small></div><button class="icon-btn" data-action="editEvent" data-id="${e.id}">✎</button><button class="icon-btn" data-action="deleteEvent" data-id="${e.id}">×</button></div>`).join('') || empty('Нет событий')}</div></section></section>`; }
-function tasksPage(){ const q = ui('search','').toLowerCase(); const list = arr('tasks').filter(t => !q || JSON.stringify(t).toLowerCase().includes(q)); return `<section class="page">${hero(lab('nav_tasks','Задачи'), 'Активные дела, статусы и приоритеты.')}${summaryCards([['Открыто',openTasks().length,'blue'],['Готово',arr('tasks').filter(t=>t.status==='Готово').length,'green'],['Сегодня',arr('tasks').filter(t=>t.due===todayKey()).length,'violet']])}<section class="card"><div class="card-head"><h3>Все задачи</h3><button class="btn" data-action="addTask">Добавить задачу</button></div><div class="list">${list.map(t => taskLine(t)).join('') || empty('Задач нет')}</div></section></section>`; }
-function notesPage(){ const q = ui('search','').toLowerCase(); const list = arr('notes').filter(n => !q || JSON.stringify(n).toLowerCase().includes(q)); return `<section class="page">${hero(lab('nav_notes','Заметки'), 'Память, идеи, дневник и рабочие записи.')}${summaryCards([['Заметок',list.length,'blue'],['Папок',new Set(list.map(n=>n.folder)).size,'violet'],['Входящие',arr('inbox').length,'amber']])}<section class="card"><div class="card-head"><h3>Все заметки</h3><button class="btn" data-action="addNote">Добавить заметку</button></div><div class="grid cols-2">${list.map(n => `<article class="card"><div class="card-head"><div><h3>${esc(n.title)}</h3><p class="muted small">${esc(n.folder)} · ${fmtDate(n.createdAt)}</p></div><div class="item-actions"><button class="icon-btn" data-action="editNote" data-id="${n.id}">✎</button><button class="icon-btn" data-action="deleteNote" data-id="${n.id}">×</button></div></div><p>${esc(n.text).slice(0,260)}</p><div class="tag-cloud">${(n.tags||[]).map(t=>pill(t,'blue')).join('')}</div></article>`).join('') || empty('Заметок нет')}</div></section></section>`; }
-function goalsPage(){ return `<section class="page">${hero(lab('nav_goals','Цели'), 'SMART-направления и прогресс.')}${summaryCards([['Целей',arr('goals').length,'blue'],['Средний прогресс',arr('goals').length?Math.round(arr('goals').reduce((a,g)=>a+pct(g.currentValue,g.targetValue),0)/arr('goals').length)+'%':'0%','green'],['Дедлайны',arr('goals').filter(g=>g.deadline).length,'violet']])}<section class="grid cols-3">${arr('goals').map(g => `<article class="card"><div class="card-head"><div><h3>${esc(g.title)}</h3><p class="muted small">${esc(g.area)} · дедлайн ${esc(g.deadline||'не указан')}</p></div><button class="icon-btn" data-action="editGoal" data-id="${g.id}">✎</button></div><div class="value">${pct(g.currentValue,g.targetValue)}%</div>${progress(pct(g.currentValue,g.targetValue))}<p class="muted small">${money(g.currentValue)} из ${money(g.targetValue)}</p><p>${esc(g.note||'')}</p></article>`).join('') || empty('Целей нет')}</section><button class="btn" data-action="addGoal">Добавить цель</button></section>`; }
-function habitsPage(){ return `<section class="page">${hero(lab('nav_habits','Привычки'), 'Повторения, серии и контроль дня.')}<section class="card"><div class="card-head"><h3>Все привычки</h3><button class="btn" data-action="addHabit">Добавить привычку</button></div><div class="list">${arr('habits').map(h => `<div class="item"><button class="check ${h.marks?.[todayKey()]?'done':''}" data-action="toggleHabit" data-id="${h.id}">${h.marks?.[todayKey()]?'✓':''}</button><div class="item-main"><b>${esc(h.name)}</b><small>${esc(h.area)} · ${esc(h.target)} · серия ${num(h.streak)} дней</small></div><button class="icon-btn" data-action="editHabit" data-id="${h.id}">✎</button><button class="icon-btn" data-action="deleteHabit" data-id="${h.id}">×</button></div>`).join('') || empty('Привычек нет')}</div></section></section>`; }
-function financePage(){ return `<section class="page">${hero(lab('nav_finance','Финансы'), 'Доходы, расходы, категории и фактический баланс.')}${summaryCards([['Баланс',money(balance()),'blue'],['Доход',money(income()),'green'],['Расход',money(expense()),'amber']])}<section class="grid cols-2"><article class="card"><div class="card-head"><h3>Операции</h3><div class="actions"><button class="btn small" data-action="addIncome">+ Доход</button><button class="btn secondary small" data-action="addExpense">+ Расход</button></div></div>${operationsTable(arr('operations').slice(0,12))}</article><article class="card"><div class="card-head"><h3>Категории</h3><button class="btn" data-action="addCategory">Добавить</button></div><div class="list">${arr('categories').map(c => `<div class="item"><span class="metric-icon">${c.type==='income'?'＋':'−'}</span><div class="item-main"><b>${esc(c.name)}</b><small>${c.type==='income'?'Доход':'Расход'} · лимит ${money(c.limit)}</small></div><button class="icon-btn" data-action="editCategory" data-id="${c.id}">✎</button><button class="icon-btn" data-action="deleteCategory" data-id="${c.id}">×</button></div>`).join('')}</div></article></section></section>`; }
-function operationsTable(list){ return `<div class="table-card"><div class="table-head"><span>Описание</span><span>Категория</span><span>Дата</span><span>Сумма</span><span>Действия</span></div>${list.map(o => `<div class="table-row"><span><b>${esc(o.note||'Операция')}</b><small class="muted">${o.type==='income'?'Доход':'Расход'}</small></span><span>${esc(o.category)}</span><span>${fmtDate(o.date)}</span><span class="${o.type==='income'?'green':'red'}">${o.type==='income'?'+':'−'} ${money(o.amount)}</span><span><button class="btn secondary small" data-action="editOperation" data-id="${o.id}">Изменить</button><button class="btn danger small" data-action="deleteOperation" data-id="${o.id}">Удалить</button></span></div>`).join('') || empty('Операций нет')}</div>`; }
-function linksPage(){ return `<section class="page">${hero(lab('nav_links','Связи'), 'Граф смыслов: цели, задачи, заметки, люди и финансы.')}${linksWidget()}<section class="card"><div class="card-head"><h3>Все связи</h3><button class="btn" data-action="addLink">Добавить связь</button></div><div class="list">${arr('links').map(l => `<div class="item"><span class="metric-icon">⌁</span><div class="item-main"><b>${esc(l.title)}</b><small>${esc(l.type)} → ${esc(l.target)}</small></div><button class="icon-btn" data-action="editLink" data-id="${l.id}">✎</button><button class="icon-btn" data-action="deleteLink" data-id="${l.id}">×</button></div>`).join('') || empty('Связей нет')}</div></section></section>`; }
-function calendarPage(){ return `<section class="page">${hero(lab('nav_calendar','Календарь'), 'События и фокус-блоки по датам.')}${calendarMiniCard()}<section class="card"><div class="card-head"><h3>События</h3><button class="btn" data-action="addEvent">Добавить</button></div><div class="list">${arr('calendarEvents').map(e => `<div class="item"><span class="metric-icon">□</span><div class="item-main"><b>${esc(e.title)}</b><small>${esc(e.date)} · ${esc(e.time||'')}–${esc(e.end||'')}</small></div><button class="icon-btn" data-action="editEvent" data-id="${e.id}">✎</button><button class="icon-btn" data-action="deleteEvent" data-id="${e.id}">×</button></div>`).join('') || empty('Событий нет')}</div></section></section>`; }
-function foldersPage(){ return `<section class="page">${hero(lab('nav_folders','Папки'), 'Здесь можно менять названия папок и описания.')}${summaryCards([['Папок',arr('folders').length,'blue'],['Заметок',arr('notes').length,'violet'],['Связей',arr('links').length,'green']])}<section class="grid cols-3">${arr('folders').map(f => `<article class="card"><div class="card-head"><div><span class="metric-icon">${esc(f.icon)}</span><h3 style="margin-top:10px">${esc(lab(f.labelKey,f.id))}</h3></div><button class="icon-btn" data-action="editFolder" data-id="${esc(f.id)}">✎</button></div><p class="muted">${esc(f.note)}</p><div class="actions"><button class="btn secondary small" data-action="openFolder" data-id="${esc(f.id)}">Открыть</button></div></article>`).join('')}</section></section>`; }
-function resourcesPage(){ return `<section class="page">${hero(lab('nav_resources','Ресурсы'), 'Ссылки, документы и полезные материалы.')}<section class="card"><div class="card-head"><h3>Ресурсы</h3><button class="btn" data-action="addResource">Добавить</button></div><div class="list">${arr('resources').map(r => `<div class="item"><span class="metric-icon">▤</span><div class="item-main"><b>${esc(r.title)}</b><small>${esc(r.type)} ${r.url?'· '+esc(r.url):''}</small></div><button class="icon-btn" data-action="editResource" data-id="${r.id}">✎</button><button class="icon-btn" data-action="deleteResource" data-id="${r.id}">×</button></div>`).join('') || empty('Ресурсов нет')}</div></section></section>`; }
-function peoplePage(){ return `<section class="page">${hero(lab('nav_people','Люди'), 'Контакты, идеи подарков и темы разговоров.')}<section class="card"><div class="card-head"><h3>Люди</h3><button class="btn" data-action="addPerson">Добавить</button></div><div class="grid cols-3">${arr('people').map(p => `<article class="card"><div class="card-head"><div><h3>${esc(p.name)}</h3><p class="muted small">${esc(p.relation||'')} ${p.birthday?'· '+esc(p.birthday):''}</p></div><button class="icon-btn" data-action="editPerson" data-id="${p.id}">✎</button></div><p>${esc(p.notes||'')}</p></article>`).join('') || empty('Людей нет')}</div></section></section>`; }
-function inboxPage(){ return `<section class="page">${hero(lab('nav_inbox','Входящие'), 'Сюда попадает всё, что нужно разобрать.')}<section class="card"><div class="card-head"><h3>Входящие</h3><button class="btn" data-action="quickCapture">Добавить</button></div><div class="list">${arr('inbox').map(i => `<div class="item"><span class="metric-icon">↓</span><div class="item-main"><b>${esc(i.title)}</b><small>${esc(i.type)} · ${fmtDate(i.createdAt)}</small><small>${esc(i.text||'')}</small></div><button class="btn secondary small" data-action="inboxToNote" data-id="${i.id}">В заметку</button><button class="icon-btn" data-action="deleteInbox" data-id="${i.id}">×</button></div>`).join('') || empty('Входящие пусты')}</div></section></section>`; }
-function importPage(){ return `<section class="page">${hero(lab('nav_import','Импорт'), 'Импорт операций с проверкой по категориям и фактическим балансом.')}<section class="grid cols-2"><article class="card"><div class="card-head"><h3>Загрузка файла</h3><button class="btn" data-action="pickImportFile">Выбрать файл</button></div><p class="muted">Поддерживаются JSON и простые CSV/текстовые выгрузки. После загрузки каждая строка выпадет для проверки: можно поменять категорию, сумму, тип и удалить лишнее.</p><div class="form-grid">${field('Фактический баланс после импорта','actualBalance',state.settings.importActualBalance || state.settings.currentBalance,'number')}${selectField('Категория по умолчанию','defaultImportCategory',categoryOptions(),'Без категории')}</div><div class="actions"><button class="btn secondary" data-action="saveActualBalance">Сохранить баланс</button><button class="btn secondary" data-action="exportData">Экспорт JSON</button></div></article><article class="card"><div class="card-head"><h3>Проверка строк</h3><button class="btn" data-action="applyImportRows">Импортировать выбранное</button></div>${importPreview()}</article></section></section>`; }
-function importPreview(){ const rows = ui('importRows', []); if(!rows.length) return empty('Файл ещё не выбран. После выбора строки появятся здесь.'); return `<div class="import-preview">${rows.map((r,i)=>`<div class="import-row" data-import-index="${i}"><input data-import-field="note" value="${esc(r.note)}"><input data-import-field="amount" value="${esc(r.amount)}"><select data-import-field="category">${categoryOptions().map(c=>`<option value="${esc(c[0])}" ${c[0]===r.category?'selected':''}>${esc(c[1])}</option>`).join('')}</select><select data-import-field="type"><option value="expense" ${r.type==='expense'?'selected':''}>Расход</option><option value="income" ${r.type==='income'?'selected':''}>Доход</option></select><button class="btn danger small" data-action="removeImportRow" data-index="${i}">Удалить</button></div>`).join('')}</div>`; }
-function settingsPage(){ return `<section class="page">${hero(lab('nav_settings','Настройки'), 'Русские названия, папки, тексты и обслуживание приложения.')}<section class="grid cols-2"><article class="card"><div class="card-head"><h3>Названия и тексты</h3><button class="btn" data-action="editTexts">Редактировать всё</button></div><p class="muted">Можно менять название приложения, подпись, приветствие, названия карточек, пункты меню и названия папок. Всё сохраняется в браузере.</p></article><article class="card"><div class="card-head"><h3>Данные</h3></div><div class="actions"><button class="btn secondary" data-action="exportData">Экспорт</button><button class="btn secondary" data-action="pickImportFile">Импорт</button><button class="btn danger" data-action="clearCaches">Очистить кэш</button></div></article></section><section class="card"><div class="card-head"><h3>Быстрое редактирование папок</h3><button class="btn secondary" data-go="folders">Открыть папки</button></div><div class="list">${arr('folders').map(f => `<div class="item"><span class="metric-icon">${esc(f.icon)}</span><div class="item-main"><b>${esc(lab(f.labelKey,f.id))}</b><small>${esc(f.note)}</small></div><button class="icon-btn" data-action="editFolder" data-id="${esc(f.id)}">✎</button></div>`).join('')}</div></section></section>`; }
-function diagnosticsPage(){ return `<section class="page">${hero(lab('nav_diagnostics','Диагностика'), 'Проверка версии, кэша и данных.')}<section class="grid cols-3">${summaryCards([['Версия',BUILD,'blue'],['Хранилище',storageGet(STORE_KEY)?'OK':'пусто','green'],['Кнопки','делегированы','violet']])}</section><section class="card"><h3>Что проверять после загрузки</h3><div class="list"><div class="item"><span class="check done">✓</span><div class="item-main"><b>Бейдж версии</b><small>${BUILD}</small></div></div><div class="item"><span class="check done">✓</span><div class="item-main"><b>Все пункты меню открываются</b><small>Главная, таймлайн, заметки, задачи, цели, финансы, импорт, настройки</small></div></div><div class="item"><span class="check done">✓</span><div class="item-main"><b>Редактирование текстов</b><small>Кнопка ✎ вверху и в сайдбаре</small></div></div></div><div class="actions"><button class="btn" data-action="runSelfTest">Запустить самопроверку</button><button class="btn secondary" data-action="clearCaches">Очистить кэш</button></div></section></section>`; }
-function summaryCards(items){ return `<section class="grid cols-${Math.min(4, Math.max(2, items.length))}">${items.map(([t,v,c]) => `<article class="card"><p class="muted small">${esc(t)}</p><div class="value ${c||'blue'}">${esc(v)}</div></article>`).join('')}</section>`; }
-
-function addTask(){ openModal('Новая задача', `<div class="form-grid">${field('Название','taskTitle')}${field('Сфера / папка','taskArea','Общее')}${field('Дата','taskDue',todayKey(),'date')}${field('Время','taskTime','','time')}${selectField('Приоритет','taskPriority',[['A','A — важно'],['B','B — нормально'],['C','C — потом']],'B')}${selectField('Статус','taskStatus',[['В работе','В работе'],['Готово','Готово']],'В работе')}</div><div class="actions"><button class="btn" data-action="saveTask">Сохранить</button></div>`); }
-function editTask(id){ const t=arr('tasks').find(x=>x.id===id); if(!t) return; openModal('Редактировать задачу', `<div class="form-grid">${field('Название','taskTitle',t.title)}${field('Сфера / папка','taskArea',t.area)}${field('Дата','taskDue',t.due,'date')}${field('Время','taskTime',t.time,'time')}${selectField('Приоритет','taskPriority',[['A','A — важно'],['B','B — нормально'],['C','C — потом']],t.priority)}${selectField('Статус','taskStatus',[['В работе','В работе'],['Готово','Готово']],t.status)}</div><div class="actions"><button class="btn" data-action="saveTask" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteTask" data-id="${id}">Удалить</button></div>`); }
-function saveTask(id){ const obj={id:id||uid(), title:formVal('taskTitle')||'Задача', area:formVal('taskArea')||'Общее', due:formVal('taskDue')||todayKey(), time:formVal('taskTime'), priority:formVal('taskPriority')||'B', status:formVal('taskStatus')||'В работе'}; if(id){ const i=arr('tasks').findIndex(x=>x.id===id); if(i>=0) state.tasks[i]=obj; } else arr('tasks').unshift(obj); save(true); closeModal(); render(); toast('Задача сохранена'); }
-function toggleTask(id){ const t=arr('tasks').find(x=>x.id===id); if(t){ t.status=t.status==='Готово'?'В работе':'Готово'; save(true); render(); } }
-function deleteTask(id){ state.tasks=arr('tasks').filter(x=>x.id!==id); save(true); closeModal(); render(); toast('Задача удалена'); }
-function addNote(){ openModal('Новая заметка', `<div class="form-grid">${field('Название','noteTitle')}${field('Папка','noteFolder','Личное')}${field('Теги через запятую','noteTags')}${area('Текст','noteText')}</div><div class="actions"><button class="btn" data-action="saveNote">Сохранить</button></div>`); }
-function editNote(id){ const n=arr('notes').find(x=>x.id===id); if(!n) return; openModal('Редактировать заметку', `<div class="form-grid">${field('Название','noteTitle',n.title)}${field('Папка','noteFolder',n.folder)}${field('Теги через запятую','noteTags',(n.tags||[]).join(', '))}${area('Текст','noteText',n.text)}</div><div class="actions"><button class="btn" data-action="saveNote" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteNote" data-id="${id}">Удалить</button></div>`); }
-function saveNote(id){ const obj={id:id||uid(), title:formVal('noteTitle')||'Заметка', folder:formVal('noteFolder')||'Личное', text:formVal('noteText'), createdAt:id?(arr('notes').find(n=>n.id===id)?.createdAt||todayKey()):todayKey(), tags:formVal('noteTags').split(',').map(x=>x.trim()).filter(Boolean)}; if(id){ const i=arr('notes').findIndex(x=>x.id===id); if(i>=0) state.notes[i]=obj; } else arr('notes').unshift(obj); save(true); closeModal(); render(); toast('Заметка сохранена'); }
-function deleteNote(id){ state.notes=arr('notes').filter(x=>x.id!==id); save(true); closeModal(); render(); toast('Заметка удалена'); }
-function addGoal(){ openModal('Новая цель', `<div class="form-grid">${field('Название','goalTitle')}${field('Сфера','goalArea','Финансы')}${field('Цель / сумма','goalTarget',100,'number')}${field('Сейчас','goalCurrent',0,'number')}${field('Дедлайн','goalDeadline','','date')}${area('Комментарий','goalNote')}</div><div class="actions"><button class="btn" data-action="saveGoal">Сохранить</button></div>`); }
-function editGoal(id){ const g=arr('goals').find(x=>x.id===id); if(!g) return; openModal('Редактировать цель', `<div class="form-grid">${field('Название','goalTitle',g.title)}${field('Сфера','goalArea',g.area)}${field('Цель / сумма','goalTarget',g.targetValue,'number')}${field('Сейчас','goalCurrent',g.currentValue,'number')}${field('Дедлайн','goalDeadline',g.deadline,'date')}${area('Комментарий','goalNote',g.note)}</div><div class="actions"><button class="btn" data-action="saveGoal" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteGoal" data-id="${id}">Удалить</button></div>`); }
-function saveGoal(id){ const obj={id:id||uid(), title:formVal('goalTitle')||'Цель', area:formVal('goalArea')||'Общее', targetValue:num(formVal('goalTarget')), currentValue:num(formVal('goalCurrent')), deadline:formVal('goalDeadline'), note:formVal('goalNote')}; if(id){ const i=arr('goals').findIndex(x=>x.id===id); if(i>=0) state.goals[i]=obj; } else arr('goals').unshift(obj); save(true); closeModal(); render(); toast('Цель сохранена'); }
-function deleteGoal(id){ state.goals=arr('goals').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addHabit(){ openModal('Новая привычка', `<div class="form-grid">${field('Название','habitName')}${field('Сфера','habitArea','Фокус')}${field('Цель','habitTarget','ежедневно')}${field('Серия дней','habitStreak',0,'number')}</div><div class="actions"><button class="btn" data-action="saveHabit">Сохранить</button></div>`); }
-function editHabit(id){ const h=arr('habits').find(x=>x.id===id); if(!h) return; openModal('Редактировать привычку', `<div class="form-grid">${field('Название','habitName',h.name)}${field('Сфера','habitArea',h.area)}${field('Цель','habitTarget',h.target)}${field('Серия дней','habitStreak',h.streak,'number')}</div><div class="actions"><button class="btn" data-action="saveHabit" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteHabit" data-id="${id}">Удалить</button></div>`); }
-function saveHabit(id){ const old = arr('habits').find(x=>x.id===id) || {}; const obj={id:id||uid(), name:formVal('habitName')||'Привычка', area:formVal('habitArea')||'Фокус', target:formVal('habitTarget')||'ежедневно', streak:num(formVal('habitStreak')), marks:old.marks||{}}; if(id){ const i=arr('habits').findIndex(x=>x.id===id); if(i>=0) state.habits[i]=obj; } else arr('habits').push(obj); save(true); closeModal(); render(); }
-function toggleHabit(id){ const h=arr('habits').find(x=>x.id===id); if(h){ h.marks=h.marks||{}; if(h.marks[todayKey()]){ delete h.marks[todayKey()]; h.streak=Math.max(0,num(h.streak)-1); } else { h.marks[todayKey()]=true; h.streak=num(h.streak)+1; } save(true); render(); } }
-function deleteHabit(id){ state.habits=arr('habits').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addEvent(){ openModal('Новое событие', `<div class="form-grid">${field('Название','eventTitle')}${field('Дата','eventDate',todayKey(),'date')}${field('Начало','eventTime','09:00','time')}${field('Конец','eventEnd','10:00','time')}${selectField('Цвет','eventColor',[['blue','Синий'],['green','Зелёный'],['amber','Жёлтый'],['violet','Фиолетовый']],'blue')}</div><div class="actions"><button class="btn" data-action="saveEvent">Сохранить</button></div>`); }
-function editEvent(id){ const e=arr('calendarEvents').find(x=>x.id===id); if(!e) return; openModal('Редактировать событие', `<div class="form-grid">${field('Название','eventTitle',e.title)}${field('Дата','eventDate',e.date,'date')}${field('Начало','eventTime',e.time,'time')}${field('Конец','eventEnd',e.end,'time')}${selectField('Цвет','eventColor',[['blue','Синий'],['green','Зелёный'],['amber','Жёлтый'],['violet','Фиолетовый']],e.color)}</div><div class="actions"><button class="btn" data-action="saveEvent" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteEvent" data-id="${id}">Удалить</button></div>`); }
-function saveEvent(id){ const obj={id:id||uid(), title:formVal('eventTitle')||'Событие', date:formVal('eventDate')||todayKey(), time:formVal('eventTime'), end:formVal('eventEnd'), color:formVal('eventColor')||'blue'}; if(id){ const i=arr('calendarEvents').findIndex(x=>x.id===id); if(i>=0) state.calendarEvents[i]=obj; } else arr('calendarEvents').push(obj); save(true); closeModal(); render(); }
-function deleteEvent(id){ state.calendarEvents=arr('calendarEvents').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addOperation(type='expense'){ openModal(type==='income'?'Новый доход':'Новый расход', `<div class="form-grid">${field('Описание','opNote')}${field('Сумма','opAmount','','number')}${field('Дата','opDate',todayKey(),'date')}${selectField('Категория','opCategory',categoryOptions(),type==='income'?'Доход':'Без категории')}</div><div class="actions"><button class="btn" data-action="saveOperation" data-type="${type}">Сохранить</button></div>`); }
-function editOperation(id){ const o=arr('operations').find(x=>x.id===id); if(!o) return; openModal('Редактировать операцию', `<div class="form-grid">${field('Описание','opNote',o.note)}${field('Сумма','opAmount',o.amount,'number')}${field('Дата','opDate',o.date,'date')}${selectField('Тип','opType',[['expense','Расход'],['income','Доход']],o.type)}${selectField('Категория','opCategory',categoryOptions(),o.category)}</div><div class="actions"><button class="btn" data-action="saveOperation" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteOperation" data-id="${id}">Удалить</button></div>`); }
-function saveOperation(idOrType){ const isExisting = arr('operations').some(x=>x.id===idOrType); const type = isExisting ? formVal('opType') : idOrType; const obj={id:isExisting?idOrType:uid(), note:formVal('opNote')||'Операция', amount:num(formVal('opAmount')), date:formVal('opDate')||todayKey(), type:type||'expense', category:formVal('opCategory')||'Без категории'}; if(isExisting){ const i=arr('operations').findIndex(x=>x.id===idOrType); state.operations[i]=obj; } else arr('operations').unshift(obj); save(true); closeModal(); render(); }
-function deleteOperation(id){ state.operations=arr('operations').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addCategory(){ openModal('Новая категория', `<div class="form-grid">${field('Название','catName')}${selectField('Тип','catType',[['expense','Расход'],['income','Доход']],'expense')}${field('Лимит','catLimit',0,'number')}</div><div class="actions"><button class="btn" data-action="saveCategory">Сохранить</button></div>`); }
-function editCategory(id){ const c=arr('categories').find(x=>x.id===id); if(!c) return; openModal('Редактировать категорию', `<div class="form-grid">${field('Название','catName',c.name)}${selectField('Тип','catType',[['expense','Расход'],['income','Доход']],c.type)}${field('Лимит','catLimit',c.limit,'number')}</div><div class="actions"><button class="btn" data-action="saveCategory" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteCategory" data-id="${id}">Удалить</button></div>`); }
-function saveCategory(id){ const old=arr('categories').find(x=>x.id===id); const newName=formVal('catName')||'Категория'; if(id && old){ arr('operations').forEach(o=>{ if(o.category===old.name) o.category=newName; }); old.name=newName; old.type=formVal('catType')||'expense'; old.limit=num(formVal('catLimit')); } else arr('categories').push({id:uid(), name:newName, type:formVal('catType')||'expense', limit:num(formVal('catLimit'))}); save(true); closeModal(); render(); }
-function deleteCategory(id){ const c=arr('categories').find(x=>x.id===id); state.categories=arr('categories').filter(x=>x.id!==id); if(c) arr('operations').forEach(o=>{ if(o.category===c.name) o.category='Без категории'; }); save(true); closeModal(); render(); }
-function addLink(){ openModal('Новая связь', `<div class="form-grid">${field('Название','linkTitle')}${field('Тип','linkType','Заметка')}${field('Связано с','linkTarget','Second Brain OS')}${area('Комментарий','linkNote')}</div><div class="actions"><button class="btn" data-action="saveLink">Сохранить</button></div>`); }
-function editLink(id){ const l=arr('links').find(x=>x.id===id); if(!l) return; openModal('Редактировать связь', `<div class="form-grid">${field('Название','linkTitle',l.title)}${field('Тип','linkType',l.type)}${field('Связано с','linkTarget',l.target)}${area('Комментарий','linkNote',l.note)}</div><div class="actions"><button class="btn" data-action="saveLink" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteLink" data-id="${id}">Удалить</button></div>`); }
-function saveLink(id){ const obj={id:id||uid(), title:formVal('linkTitle')||'Связь', type:formVal('linkType')||'Заметка', target:formVal('linkTarget')||'', note:formVal('linkNote')}; if(id){ const i=arr('links').findIndex(x=>x.id===id); if(i>=0) state.links[i]=obj; } else arr('links').push(obj); save(true); closeModal(); render(); }
-function deleteLink(id){ state.links=arr('links').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addResource(){ openModal('Новый ресурс', `<div class="form-grid">${field('Название','resTitle')}${field('Тип','resType','Документ')}${field('Ссылка','resUrl')}${area('Комментарий','resNote')}</div><div class="actions"><button class="btn" data-action="saveResource">Сохранить</button></div>`); }
-function editResource(id){ const r=arr('resources').find(x=>x.id===id); if(!r) return; openModal('Редактировать ресурс', `<div class="form-grid">${field('Название','resTitle',r.title)}${field('Тип','resType',r.type)}${field('Ссылка','resUrl',r.url)}${area('Комментарий','resNote',r.note)}</div><div class="actions"><button class="btn" data-action="saveResource" data-id="${id}">Сохранить</button><button class="btn danger" data-action="deleteResource" data-id="${id}">Удалить</button></div>`); }
-function saveResource(id){ const obj={id:id||uid(), title:formVal('resTitle')||'Ресурс', type:formVal('resType')||'Документ', url:formVal('resUrl'), note:formVal('resNote')}; if(id){ const i=arr('resources').findIndex(x=>x.id===id); if(i>=0) state.resources[i]=obj; } else arr('resources').push(obj); save(true); closeModal(); render(); }
-function deleteResource(id){ state.resources=arr('resources').filter(x=>x.id!==id); save(true); closeModal(); render(); }
-function addPerson(){ openModal('Новый человек', `<div class="form-grid">${field('Имя','personName')}${field('Роль / связь','personRelation')}${field('День рождения','personBirthday','','date')}${area('Заметки / подарки / темы','personNotes')}</div><div class="actions"><button class="btn" data-action="savePerson">Сохранить</button></div>`); }
-function editPerson(id){ const p=arr('people').find(x=>x.id===id); if(!p) return; openModal('Редактировать человека', `<div class="form-grid">${field('Имя','personName',p.name)}${field('Роль / связь','personRelation',p.relation)}${field('День рождения','personBirthday',p.birthday,'date')}${area('Заметки / подарки / темы','personNotes',p.notes)}</div><div class="actions"><button class="btn" data-action="savePerson" data-id="${id}">Сохранить</button></div>`); }
-function savePerson(id){ const obj={id:id||uid(), name:formVal('personName')||'Человек', relation:formVal('personRelation'), birthday:formVal('personBirthday'), notes:formVal('personNotes')}; if(id){ const i=arr('people').findIndex(x=>x.id===id); if(i>=0) state.people[i]=obj; } else arr('people').push(obj); save(true); closeModal(); render(); }
-function editFolder(id){ const f=arr('folders').find(x=>String(x.id)===String(id)); if(!f) return; openModal('Редактировать папку', `<div class="form-grid">${field('Название папки','folderName',lab(f.labelKey,f.id))}${field('Иконка','folderIcon',f.icon)}${area('Описание','folderNote',f.note)}</div><div class="actions"><button class="btn" data-action="saveFolder" data-id="${esc(f.id)}">Сохранить</button></div>`); }
-function saveFolder(id){ const f=arr('folders').find(x=>String(x.id)===String(id)); if(f){ state.settings.labels[f.labelKey]=formVal('folderName')||lab(f.labelKey,f.id); f.icon=formVal('folderIcon')||f.icon; f.note=formVal('folderNote'); save(true); closeModal(); render(); toast('Папка переименована'); } }
-function openFolder(id){ const map={work:'tasks',money:'finance',life:'habits',people:'people',ideas:'notes',archive:'resources'}; go(map[id]||'folders'); }
-function editTexts(){
-  const keys = [
-    ['appName','Название приложения'],['appSubtitle','Подпись приложения'],['greeting','Приветствие на главной'],['greetingSub','Подзаголовок главной'],['quote','Цитата / фокус'],
-    ['todayCard','Карточка: сегодня'],['calendarCard','Карточка: календарь'],['goalsCard','Карточка: цели'],['tasksCard','Карточка: задачи'],['timelineCard','Карточка: таймлайн'],['linksCard','Карточка: связи'],['habitsCard','Карточка: привычки'],['financeCard','Карточка: финансы'],['notesCard','Карточка: заметки'],['quickCard','Карточка: быстрый захват'],
-    ...flatNav.map(([k,,fallback]) => ['nav_'+k, 'Меню: '+fallback]),
-    ...arr('folders').map(f => [f.labelKey, 'Папка: '+lab(f.labelKey,f.id)])
-  ];
-  openModal('Редактор названий и текстов', `<div class="editor-list">${keys.map(([k,title]) => `<div class="editor-row"><label class="field"><span>${esc(title)}</span></label><input data-label-key="${esc(k)}" value="${esc(lab(k,labelDefaults[k]||''))}"></div>`).join('')}</div><div class="actions"><button class="btn" data-action="saveTexts">Сохранить тексты</button><button class="btn secondary" data-action="resetTexts">Вернуть стандартные</button></div>`);
-}
-function saveTexts(){ $$('[data-label-key]').forEach(inp => { state.settings.labels[inp.dataset.labelKey] = inp.value; }); save(true); closeModal(); render(); toast('Тексты сохранены'); }
-function resetTexts(){ state.settings.labels={...labelDefaults}; save(true); closeModal(); render(); toast('Стандартные названия восстановлены'); }
-function quickCapture(){ openModal('Быстрый захват', `<div class="quick-grid"><button class="quick-action" data-action="addNote"><i>✎</i>Заметка</button><button class="quick-action" data-action="addTask"><i>✓</i>Задача</button><button class="quick-action" data-action="addEvent"><i>□</i>Событие</button><button class="quick-action" data-action="addInbox"><i>↓</i>Входящее</button></div>`); }
-function addInbox(){ openModal('Новое входящее', `<div class="form-grid">${field('Название','inboxTitle')}${field('Тип','inboxType','Идея')}${area('Текст','inboxText')}</div><div class="actions"><button class="btn" data-action="saveInbox">Сохранить</button></div>`); }
-function saveInbox(){ arr('inbox').unshift({id:uid(), title:formVal('inboxTitle')||'Входящее', type:formVal('inboxType')||'Идея', text:formVal('inboxText'), createdAt:todayKey(), status:'Новое'}); save(true); closeModal(); render(); }
-function inboxToNote(id){ const i=arr('inbox').find(x=>x.id===id); if(i){ arr('notes').unshift({id:uid(), title:i.title, folder:'Входящие', text:i.text, createdAt:todayKey(), tags:[i.type]}); state.inbox=arr('inbox').filter(x=>x.id!==id); save(true); render(); toast('Перенесено в заметки'); } }
-function deleteInbox(id){ state.inbox=arr('inbox').filter(x=>x.id!==id); save(true); render(); }
-function notifications(){ toast(`Сегодня: ${openTasks().length} задач и ${todayEvents().length} событий`); }
-function setTimeline(mode){ state.settings.ui.timelineMode=mode; save(); render(); toast(`Режим: ${mode==='day'?'день':mode==='month'?'месяц':'неделя'}`); }
-function saveActualBalance(){ state.settings.importActualBalance=formVal('actualBalance'); state.settings.currentBalance=num(formVal('actualBalance')); save(true); render(); toast('Фактический баланс сохранён'); }
-function pickImportFile(){ $('#hiddenImportFile').click(); }
-function parseCsv(text){
-  const lines = text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  if(!lines.length) return [];
-  const sep = lines[0].includes(';') ? ';' : ',';
-  const headers = lines[0].split(sep).map(x=>x.trim().toLowerCase());
-  return lines.slice(1).map(line => {
-    const cols = line.split(sep).map(x=>x.trim().replace(/^"|"$/g,''));
-    const obj = {}; headers.forEach((h,i)=>obj[h]=cols[i]||'');
-    const amount = obj.amount || obj['сумма'] || obj.sum || cols.find(c=>/^-?\d+[\d\s,.]*$/.test(c)) || '0';
-    const note = obj.note || obj['описание'] || obj['комментарий'] || obj.title || cols[0] || 'Операция';
-    const date = obj.date || obj['дата'] || todayKey();
-    return {note, amount:Math.abs(num(amount)), type:num(amount)<0?'expense':'expense', category:formVal('defaultImportCategory')||'Без категории', date};
-  });
-}
-function importFile(file){
-  const r = new FileReader();
-  r.onload = () => {
-    try{
-      const text = String(r.result||'');
-      let rows=[];
-      if(file.name.toLowerCase().endsWith('.json')){
-        const data = JSON.parse(text);
-        if(Array.isArray(data)) rows = data.map(x => ({note:x.note||x.title||x['Описание']||x['Клиент / лид']||'Импорт', amount:Math.abs(num(x.amount||x['Сумма']||x['Потенциал ₽']||0)), type:(x.type||'expense'), category:x.category||formVal('defaultImportCategory')||'Без категории', date:x.date||x['Дата']||todayKey()}));
-        else { state = normalize({...state, ...data}); save(true); render(); toast('JSON состояния импортирован'); return; }
-      } else rows = parseCsv(text);
-      state.settings.ui.importRows = rows.filter(r=>num(r.amount)>0).slice(0,200);
-      save(); go('import'); toast(`Строк к проверке: ${state.settings.ui.importRows.length}`);
-    } catch(e){ toast('Ошибка импорта: '+e.message); }
-  };
-  r.readAsText(file);
-}
-function syncImportRowsFromDom(){
-  const rows=[];
-  $$('.import-row').forEach(row => {
-    rows.push({
-      note: $('[data-import-field="note"]',row)?.value || 'Операция',
-      amount: num($('[data-import-field="amount"]',row)?.value),
-      category: $('[data-import-field="category"]',row)?.value || 'Без категории',
-      type: $('[data-import-field="type"]',row)?.value || 'expense',
-      date: todayKey()
-    });
-  });
-  state.settings.ui.importRows = rows;
-}
-function removeImportRow(i){ syncImportRowsFromDom(); state.settings.ui.importRows.splice(num(i),1); save(); render(); }
-function applyImportRows(){ syncImportRowsFromDom(); const rows=ui('importRows',[]).filter(r=>num(r.amount)>0); rows.forEach(r=>arr('operations').unshift({id:uid(), date:r.date||todayKey(), type:r.type, amount:num(r.amount), category:r.category, note:r.note})); state.settings.ui.importRows=[]; save(true); render(); toast(`Импортировано операций: ${rows.length}`); }
-function exportData(){ const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`second-brain-os-${BUILD}-${todayKey()}.json`; a.click(); URL.revokeObjectURL(a.href); }
-function clearCaches(){ try{ storageSet('secondBrainOS.currentBuild', BUILD); if('caches' in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k))); if(navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())); }catch(e){} toast('Кэш очищен. Обнови страницу.'); }
-function runSelfTest(){
-  const missing = [];
-  ['app','toast','modal'].forEach(id => { if(!$('#'+id)) missing.push(id); });
-  flatNav.forEach(([k]) => { if(!pageView) missing.push(k); });
-  toast(missing.length ? 'Есть проблемы: '+missing.join(', ') : 'Самопроверка OK: интерфейс и кнопки активны');
-}
-
-function handleAction(action, el){
-  const id = el.dataset.id;
-  switch(action){
-    case 'closeModal': closeModal(); break;
-    case 'liveSearch': break;
-    case 'quickCapture': quickCapture(); break;
-    case 'notifications': notifications(); break;
-    case 'editTexts': editTexts(); break;
-    case 'saveTexts': saveTexts(); break;
-    case 'resetTexts': resetTexts(); break;
-    case 'clearCaches': clearCaches(); break;
-    case 'setTimeline': setTimeline(el.dataset.mode); break;
-    case 'addTask': addTask(); break; case 'editTask': editTask(id); break; case 'saveTask': saveTask(id); break; case 'toggleTask': toggleTask(id); break; case 'deleteTask': deleteTask(id); break;
-    case 'addNote': addNote(); break; case 'editNote': editNote(id); break; case 'saveNote': saveNote(id); break; case 'deleteNote': deleteNote(id); break;
-    case 'addGoal': addGoal(); break; case 'editGoal': editGoal(id); break; case 'saveGoal': saveGoal(id); break; case 'deleteGoal': deleteGoal(id); break;
-    case 'addHabit': addHabit(); break; case 'editHabit': editHabit(id); break; case 'saveHabit': saveHabit(id); break; case 'toggleHabit': toggleHabit(id); break; case 'deleteHabit': deleteHabit(id); break;
-    case 'addEvent': addEvent(); break; case 'editEvent': editEvent(id); break; case 'saveEvent': saveEvent(id); break; case 'deleteEvent': deleteEvent(id); break;
-    case 'addIncome': addOperation('income'); break; case 'addExpense': addOperation('expense'); break; case 'editOperation': editOperation(id); break; case 'saveOperation': saveOperation(id || el.dataset.type); break; case 'deleteOperation': deleteOperation(id); break;
-    case 'addCategory': addCategory(); break; case 'editCategory': editCategory(id); break; case 'saveCategory': saveCategory(id); break; case 'deleteCategory': deleteCategory(id); break;
-    case 'addLink': addLink(); break; case 'editLink': editLink(id); break; case 'saveLink': saveLink(id); break; case 'deleteLink': deleteLink(id); break;
-    case 'addResource': addResource(); break; case 'editResource': editResource(id); break; case 'saveResource': saveResource(id); break; case 'deleteResource': deleteResource(id); break;
-    case 'addPerson': addPerson(); break; case 'editPerson': editPerson(id); break; case 'savePerson': savePerson(id); break;
-    case 'editFolder': editFolder(id); break; case 'saveFolder': saveFolder(id); break; case 'openFolder': openFolder(id); break;
-    case 'addInbox': addInbox(); break; case 'saveInbox': saveInbox(); break; case 'inboxToNote': inboxToNote(id); break; case 'deleteInbox': deleteInbox(id); break;
-    case 'pickImportFile': pickImportFile(); break; case 'saveActualBalance': saveActualBalance(); break; case 'removeImportRow': removeImportRow(el.dataset.index); break; case 'applyImportRows': applyImportRows(); break;
-    case 'exportData': exportData(); break; case 'runSelfTest': runSelfTest(); break;
-    default: toast('Кнопка активна: '+action);
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const nav = e.target.closest('[data-go]');
-  if(nav){ e.preventDefault(); go(nav.dataset.go); return; }
-  const el = e.target.closest('[data-action]');
-  if(!el) return;
-  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName) && el.dataset.action === 'liveSearch') return;
-  e.preventDefault(); handleAction(el.dataset.action, el);
-});
-document.addEventListener('input', (e) => {
-  if(e.target.matches('#globalSearch,#sideSearch')){
-    state.settings.ui.search = e.target.value;
-    save();
-    $$('#globalSearch,#sideSearch').forEach(inp => { if(inp !== e.target) inp.value = e.target.value; });
-  }
-});
-document.addEventListener('keydown', (e) => {
-  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#globalSearch')?.focus(); }
-  if(e.key === 'Escape') closeModal();
-});
-$('#hiddenImportFile')?.addEventListener('change', e => { const file=e.target.files?.[0]; if(file) importFile(file); e.target.value=''; });
-window.addEventListener('hashchange', () => { page = location.hash ? location.hash.slice(1) : 'dashboard'; render(); });
-
+// Keep the same categories, only expose existing hidden sections more clearly.
 try{
-  save();
-  render();
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v='+BUILD).catch(()=>{});
-  console.log('[Second Brain OS]', BUILD);
-}catch(e){
-  console.error(e);
-  document.body.insertAdjacentHTML('beforeend', `<pre style="white-space:pre-wrap;color:#b91c1c;background:#fff;padding:20px">${esc(e.stack||e.message)}</pre>`);
+  const desiredNav=[
+    ['dashboard','⌂','Обзор'],['finance','◔','Финансы'],['budget','◉','Бюджет'],['goals','◎','Цели SMART'],['planning','☷','Планирование'],['spheres','✣','Сферы жизни'],['habits','◷','Привычки'],['debts','▣','Долги'],['trips','✈','Путешествия'],['import','⇣','Импорт'],['diagnostics','⚙','Диагностика']
+  ];
+  navItems.splice(0,navItems.length,...desiredNav);
+}catch(e){}
+
+function hasActualBalance(){ return String(state.settings.currentBalance ?? '').trim() !== '' || String(state.settings.importActualBalance ?? '').trim() !== ''; }
+function discrepancyDetails(){
+  const s=summary();
+  const diff=s.actual-s.calcBalance;
+  const cls=Math.abs(diff)>0?'amber':'green';
+  return `<details class="drawer" open>
+    <summary>Как считается расхождение</summary>
+    <div class="drawer-body">
+      <div class="stat-row"><span>Фактический остаток</span><b>${money(s.actual)}</b></div>
+      <div class="stat-row"><span>Расчётный остаток</span><b>${money(s.calcBalance)}</b></div>
+      <div class="stat-row"><span>Доходы месяца</span><b class="green">${money(s.income)}</b></div>
+      <div class="stat-row"><span>Расходы месяца</span><b>${money(s.expenses)}</b></div>
+      <div class="stat-row"><span>Плановые покупки</span><b>${money(s.planned)}</b></div>
+      <div class="stat-row"><span>Долги к оплате в месяце</span><b>${money(s.debtDue)}</b></div>
+      <div class="alert" style="margin-top:10px">Расхождение = факт − расчёт. Если сумма непонятна, проверь импорт банка, дубли, долги и фактический остаток.</div>
+      <div class="actions"><button class="btn secondary" data-action="editActualBalance">Изменить фактический остаток</button><button class="btn secondary" data-go="import">Проверить импорт</button></div>
+    </div>
+  </details>`;
 }
+function safetyFundCard(){
+  const p=safetyProgress();
+  return `<article class="card"><div class="card-head"><h3>Подушка безопасности</h3><button class="mini-btn" data-action="editSafetyFund">Изменить</button></div><div class="value sm">${p}%</div>${progressBar(p,'green')}<p class="muted small">${money(state.safetyFund.current)} из ${money(state.safetyFund.target)}. Отдельный запас безопасности, не цель.</p><details class="drawer"><summary>Откуда процент</summary><div class="drawer-body">${money(state.safetyFund.current)} ÷ ${money(state.safetyFund.target)} × 100 = ${p}%. Если цифры не твои — нажми «Изменить».</div></details></article>`;
+}
+function editSafetyFund(){openModal('Подушка безопасности',`<div class="form-grid">${field('Сейчас накоплено','f_current',state.safetyFund.current)}${field('Цель подушки','f_target',state.safetyFund.target)}${area('Комментарий','f_note',state.safetyFund.note||'')}</div><div class="actions"><button class="btn" data-action="saveSafetyFund">Сохранить</button></div>`)}
+function saveSafetyFund(){state.safetyFund.current=num(formVal('f_current'));state.safetyFund.target=num(formVal('f_target'))||1;state.safetyFund.note=formVal('f_note');save(true);closeModal();render();toast('Подушка обновлена')}
+
+function dailyQuote(){
+  const qs=[
+    ['Маленькие действия, повторённые много раз, становятся системой.','Сегодня мне достаточно одного ясного действия, а не идеального плана.'],
+    ['Фокус — это не делать больше. Фокус — это убрать лишнее.','Я выбираю один главный шаг и не распыляюсь.'],
+    ['Деньги любят ясность: факт, план и честный взгляд на остаток.','Я смотрю на цифры спокойно и принимаю лучшее решение.'],
+    ['Система освобождает голову для жизни.','Я строю порядок не ради контроля, а ради свободы.']
+  ]; const i=new Date().getDate()%qs.length;return {quote:qs[i][0],thought:qs[i][1]}
+}
+function quoteCard(){const q=dailyQuote(); const last=state.notes.filter(n=>(n.tags||[]).includes('рефлексия')).slice(0,2); return `<article class="card quote-card quote-polish"><div class="card-head"><h3>Цитата дня</h3><span class="pill blue">рефлексия → заметки</span></div><div class="quote-big">“${esc(q.quote)}”</div><div class="reflection-hint"><b>Что я думаю:</b> ${esc(q.thought)}</div><textarea id="dailyReflection" placeholder="Коротко: что я думаю об этой цитате и какой шаг сделаю?">${esc(state.settings.dailyReflection||'')}</textarea><div class="actions"><button class="btn" data-action="saveDailyReflection">Сохранить в заметки</button><button class="btn secondary" data-life-folder="notes">Открыть рефлексии</button></div>${last.length?`<div class="note-list" style="margin-top:10px">${last.map(n=>`<div class="mini-box"><strong>${esc(n.title)}</strong><p class="small muted">${esc(n.text).slice(0,110)}</p></div>`).join('')}</div>`:''}</article>`}
+function saveDailyReflection(){const text=$('#dailyReflection')?.value||''; if(text.trim()){state.notes.unshift({id:uid(),title:'Рефлексия дня',text,folder:'Рефлексия',tags:['рефлексия'],createdAt:todayKey()});state.settings.dailyReflection='';save(true);toast('Рефлексия сохранена в заметки');render()}else toast('Напиши мысль перед сохранением')}
+
+function rowTask(t){return `<div class="list-row task-row-polish"><button class="check ${(t.status==='Готово')?'done':''}" data-action="toggleTask" data-id="${t.id}"></button>${t.image?`<img class="task-thumb" src="${esc(t.image)}" alt="">`:''}<button class="mini-btn" data-action="editTask" data-id="${t.id}" style="text-align:left;background:transparent;border:0;min-width:0"><div class="row-title">${esc(t.title)}</div><div class="row-sub">${esc(t.area||'Личное')} · ${esc(t.due||'')} ${esc(t.time||'')}</div></button><div class="button-row">${taskPill(t)}<button class="mini-btn blue" data-action="googleTask" data-id="${t.id}">Google</button></div></div>`}
+function addTask(){openModal('Новая задача',`<div class="form-grid">${field('Задача','f_title')}${field('Сфера','f_area','Личное')}${field('Дата','f_due',todayKey(),'date')}${field('Время','f_time','','time')}${field('Картинка URL','f_image','')}<div class="field"><label>Приоритет</label><select id="f_priority"><option value="A">Срочно и важно</option><option value="B" selected>Важно, не срочно</option><option value="C">Срочно, не важно</option><option value="D">Позже / убрать</option></select></div></div>${modalButtons('saveTask')}`)}
+function saveTask(){state.tasks.unshift({id:uid(),title:formVal('f_title')||'Новая задача',area:formVal('f_area')||'Личное',due:formVal('f_due')||todayKey(),time:formVal('f_time'),image:formVal('f_image'),priority:formVal('f_priority')||'B',status:'В работе'});save(true);closeModal();toast('Задача добавлена');render()}
+function editTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;openModal('Редактировать задачу',`<div class="form-grid">${field('Задача','f_title',t.title)}${field('Сфера','f_area',t.area)}${field('Дата','f_due',t.due,'date')}${field('Время','f_time',t.time,'time')}${field('Картинка URL','f_image',t.image||'')}<div class="field"><label>Приоритет / Эйзенхауэр</label><select id="f_priority"><option value="A" ${t.priority==='A'?'selected':''}>Срочно и важно</option><option value="B" ${t.priority==='B'?'selected':''}>Важно, не срочно</option><option value="C" ${t.priority==='C'?'selected':''}>Срочно, не важно</option><option value="D" ${t.priority==='D'?'selected':''}>Позже / убрать</option></select></div></div>${t.image?`<img src="${esc(t.image)}" style="max-width:100%;border-radius:18px;margin:12px 0;border:1px solid #eaf0f8">`:''}<div class="actions"><button class="btn" data-action="saveEditedTask" data-id="${id}">Сохранить</button><button class="btn red" data-action="deleteTask" data-id="${id}">Удалить</button></div>`)}
+function saveEditedTask(id){const t=state.tasks.find(x=>x.id===id);if(t){t.title=formVal('f_title');t.area=formVal('f_area');t.due=formVal('f_due');t.time=formVal('f_time');t.image=formVal('f_image');t.priority=formVal('f_priority')}save(true);closeModal();render()}
+function eisenhowerMatrix(){const cells=[['A','Важно / Срочно','urgent important','red'],['B','Важно / Не срочно','important','green'],['C','Не важно / Срочно','urgent','amber'],['D','Не важно / Не срочно','','']];return `<div class="matrix">${cells.map(([p,t,cl,color])=>{const list=openTasks().filter(x=>(x.priority||'B')===p);return `<div class="matrix-cell ${cl}"><div class="stat-row"><h3>${t}</h3><span class="pill ${color}">${list.length}</span></div>${list.slice(0,5).map(x=>`<button class="matrix-task" data-action="editTask" data-id="${x.id}"><b>${esc(x.title)}</b><small>${esc(x.due||'')} ${esc(x.time||'')}</small></button>`).join('')||'<p class="muted small">Пусто</p>'}<button class="mini-btn blue" data-action="addTask">Добавить</button></div>`}).join('')}</div>`}
+
+function lifeFolders(){return [{id:'people',title:'Люди',ico:'◌'},{id:'notes',title:'Заметки',ico:'✎'},{id:'planning',title:'Планирование',ico:'☷'},{id:'habits',title:'Привычки',ico:'◷'},{id:'books',title:'Книги',ico:'◧'},{id:'ideas',title:'Идеи',ico:'✦'},{id:'personal',title:'Личная жизнь',ico:'♡'},{id:'documents',title:'Документы',ico:'▣'},{id:'trips',title:'Путешествия',ico:'✈'}]}
+function lifeFolderCount(id){return ({people:state.people.length,notes:state.notes.length,planning:openTasks().length,habits:state.habits.length,books:state.books.length,ideas:state.ideas.length,personal:state.media.length,documents:state.files.length,trips:state.trips.length}[id]||0)}
+function folderButton(id,title,ico,count){const label=id==='planning'?'открытых задач':id==='documents'?'файлов':'записей';return `<button class="folder-card ${state.settings.lifeFolder===id?'active':''}" data-life-folder="${id}"><div class="folder-ico">${ico}</div><strong>${title}</strong><small>${count} ${label}</small><span class="pill blue">Открыть</span></button>`}
+function lifeOverview(){return `<section class="card"><div class="card-head"><h3>Папки жизни</h3><span class="pill blue">без дублей</span></div><p class="muted">Папки выше — основной вход в личные разделы. Здесь нет повторного списка, чтобы экран не перегружался.</p><div class="grid cols-3" style="margin-top:12px"><div class="mini-box"><strong>Сегодня</strong><p class="small muted">${openTasks().filter(t=>t.due===todayKey()).length} задач · ${upcomingEvents().filter(e=>e.date===todayKey()).length} событий</p></div><div class="mini-box"><strong>Память</strong><p class="small muted">${state.people.length} людей · ${state.books.length} книг · ${state.notes.length} заметок</p></div><div class="mini-box"><strong>Ритм</strong><p class="small muted">${state.habits.length} привычек · ${state.trips.length} поездок</p></div></div></section>`}
+function spheresPage(){const folder=state.settings.lifeFolder||'overview';return layout('Сферы жизни','Папки без дублей: люди, заметки, планирование, привычки, книги, идеи, документы и путешествия.',`<section class="folder-list">${lifeFolders().map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</section><section style="margin-top:18px">${folder==='overview'?lifeOverview():folder==='people'?peopleFolder():folder==='notes'?notesFolder():folder==='planning'?planningPageInner():folder==='habits'?habitsFolder():folder==='books'?booksFolder():folder==='ideas'?ideasFolder():folder==='documents'?documentsFolder():folder==='trips'?tripsPanel():personalFolder()}</section>`)}
+function documentsFolder(){return `<section class="card"><div class="card-head"><h3>Документы</h3><button class="btn secondary" data-action="addFileNote">Добавить запись</button></div>${state.files.length?state.files.map(f=>`<div class="list-row"><span class="pill blue">файл</span><div><div class="row-title">${esc(f.title||f.name||'Документ')}</div><div class="row-sub">${esc(f.note||f.url||'')}</div></div></div>`).join(''):empty('Документы пока не добавлены')}</section>`}
+function addFileNote(){openModal('Документ / ссылка',`<div class="form-grid">${field('Название','f_title')}${field('Ссылка или путь','f_url')}${area('Комментарий','f_note')}</div>${modalButtons('saveFileNote')}`)}
+function saveFileNote(){state.files.unshift({id:uid(),title:formVal('f_title')||'Документ',url:formVal('f_url'),note:formVal('f_note'),createdAt:todayKey()});save(true);closeModal();render()}
+
+function financePage(){const s=summary(); const diff=s.actual-s.calcBalance; return layout('Финансы','Фактический остаток — главный. Все непонятные цифры раскрываются в деталях.',`<section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${hasActualBalance()?money(s.actual):'Не внесён'}</div><p class="muted small">Основной показатель. Вносится вручную после импорта банка.</p><button class="btn secondary" data-action="editActualBalance">Изменить</button></article><article class="card"><h3>Прогноз до зарплаты</h3><div class="value sm ${s.toNext<0?'red':'blue'}">${money(s.toNext)}</div><p class="muted small">до ${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</p></article><article class="card"><h3>Расхождение</h3><div class="value sm ${Math.abs(diff)>0?'amber':'green'}">${money(diff)}</div><p class="muted small">факт минус расчёт</p>${discrepancyDetails()}</article>${safetyFundCard()}</section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Долги</h3><button class="btn secondary" data-action="addDebt">Добавить долг</button></div><div class="note-list">${activeDebts().map(rowDebt).join('')||empty('Активных долгов нет')}</div></article><article class="card"><div class="card-head"><h3>Категории доходов/расходов</h3><button class="btn secondary" data-action="addCategory">Категория</button></div><div class="note-list">${state.categories.map(c=>`<div class="list-row"><span class="pill ${c.type==='income'?'green':'blue'}">${c.type==='income'?'Доход':'Расход'}</span><div><div class="row-title">${esc(c.name)}</div><div class="row-sub">Лимит: ${c.limit?money(c.limit):'—'}</div></div><div class="button-row"><button class="mini-btn" data-action="editCategory" data-id="${c.id}">Ред.</button><button class="mini-btn red" data-action="deleteCategory" data-id="${c.id}">Удалить</button></div></div>`).join('')}</div></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Операции</h3><div class="button-row"><button class="btn secondary" data-action="addExpense">Расход</button><button class="btn secondary" data-action="addIncome">Доход</button></div></div><div class="op-list">${state.operations.slice(0,12).map(rowOperation).join('')}</div></article><article class="card"><div class="card-head"><h3>Финансовые принципы</h3><span class="pill blue">без перегруза</span></div>${financePrinciples()}</article></section>`)}
+function debtsPage(){return layout('Долги','Суммы, сроки возврата и напоминания в одном месте.',`<section class="grid cols-3"><article class="card premium-hero-card"><h3>Активные долги</h3><div class="value sm">${money(total(activeDebts()))}</div><button class="btn" data-action="addDebt">Добавить долг</button></article><article class="card"><h3>Ближайший срок</h3>${activeDebts().sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,1).map(d=>`<div class="value sm">${esc(d.due||'—')}</div><p class="muted small">${esc(d.person)} · ${money(d.amount)}</p>`).join('')||empty('Сроков нет')}</article><article class="card"><h3>Задачи-напоминания</h3><p class="muted small">Нажимай «Напомнить», чтобы долг попал в планирование.</p></article></section><section class="card" style="margin-top:18px"><div class="card-head"><h3>Все долги</h3><button class="btn secondary" data-action="addDebt">Добавить</button></div><div class="note-list">${activeDebts().map(rowDebt).join('')||empty('Активных долгов нет')}</div></section>`)}
+function habitsPage(){return layout('Привычки','Красивый трекер повторений и ритма.',habitsFolder())}
+function tripsPage(){return layout('Путешествия','Планирование поездок и бюджета.',tripsPanel())}
+
+function dashboard(){const s=summary();return layout('Обзор','День, деньги и фокус — на одной временной линии.',`<section class="timeline-strip"><div><b>Сегодня</b><span>${new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})}</span></div><div><b>Зарплата</b><span>${fmtDate(s.nextSalary.date)} · ${s.nextSalary.type}</span></div><div><b>Факт</b><span>${money(s.actual)}</span></div><div><b>План</b><span>${openTasks().filter(t=>t.due===todayKey()).length} задач сегодня</span></div></section><section class="grid cols-4"><article class="card premium-hero-card"><h3>Фактический остаток</h3><div class="value">${money(s.actual)}</div><p class="muted small">до зарплаты ${s.daysToSalary} дн.</p>${financeSpark()}</article><article class="card"><h3>Бюджет на день</h3><div class="value sm">${money(s.dailyLimit)}</div>${renderDailySpendChart().replace('day-chart','day-chart compact')}</article><article class="card"><h3>Цели SMART</h3><div class="ring" style="--p:${Math.min(100,s.progress)}"><span>${Math.min(100,s.progress)}%</span></div><p class="muted small">до плана месяца</p></article><article class="card"><h3>План на сегодня</h3><div class="task-list">${openTasks().filter(t=>t.due===todayKey()).slice(0,3).map(rowTask).join('')||empty('Нет задач')}</div><button class="link" data-go="planning">Все задачи →</button></article></section><section class="grid cols-2" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Планирование</h3><button class="link" data-go="planning">Открыть →</button></div>${taskScopeButtons()}<div class="task-list">${tasksByScope().slice(0,4).map(rowTask).join('')||empty('Нет задач')}</div></article><article class="card"><div class="card-head"><h3>Матрица Эйзенхауэра</h3><button class="link" data-go="planning">Редактировать →</button></div>${eisenhowerMatrix()}</article></section><section class="grid bottom" style="margin-top:18px"><article class="card"><div class="card-head"><h3>Сферы жизни</h3><button class="link" data-go="spheres">Все →</button></div><div class="life-grid">${lifeFolders().slice(0,9).map(f=>folderButton(f.id,f.title,f.ico,lifeFolderCount(f.id))).join('')}</div></article><article class="card"><div class="card-head"><h3>Привычки</h3><button class="link" data-go="habits">Все →</button></div>${habitsFolder().replace(/<section class="grid cols-3">[\s\S]*?<\/section><section class="card" style="margin-top:18px">/,'<div>').replace(/<\/section>$/,'</div>')}</article><article class="card"><div class="card-head"><h3>Долги</h3><button class="link" data-go="debts">Все →</button></div>${activeDebts().slice(0,4).map(rowDebt).join('')||empty('Активных долгов нет')}</article></section><section class="grid cols-3" style="margin-top:18px">${quoteCard()}<article class="card"><div class="card-head"><h3>Люди</h3><button class="link" data-life-folder="people">Открыть →</button></div>${state.people.slice(0,3).map(p=>`<div class="person-top" style="margin-bottom:10px"><div class="person-avatar">${p.photo?`<img src="${esc(p.photo)}">`:esc((p.name||'?')[0])}</div><div><strong>${esc(p.name)}</strong><p class="small muted">${p.birthday?`ДР: ${esc(p.birthday)}`:'добавь дату рождения'}</p></div></div>`).join('')||empty('Добавь людей')}</article><article class="card"><div class="card-head"><h3>Книги</h3><button class="link" data-life-folder="books">Открыть →</button></div>${state.books.slice(0,2).map(b=>`<div class="mini-box"><strong>${esc(b.title)}</strong><p class="small muted">${esc((b.quotes||[])[0]||b.insight||'Цитата, которая запомнилась')}</p></div>`).join('')||empty('Добавь книгу')}</article></section>`)}
+
+function renderNav(){$('#sidebarNav').innerHTML=`<div class="nav-label">Навигация</div>`+navItems.map(([id,ico,label])=>`<button class="nav-btn ${page===id?'active':''}" data-go="${id}"><span class="nav-ico">${ico}</span>${label}</button>`).join('');$('#bottomNav').innerHTML=mobileItems.map(([id,ico,label])=>`<button class="${page===id?'active':''}" data-go="${id}"><i>${ico}</i>${label}</button>`).join('')}
+function render(){renderNav();const map={dashboard,finance:financePage,budget:budgetPage,goals:goalsPage,planning:planningPage,spheres:spheresPage,habits:habitsPage,debts:debtsPage,trips:tripsPage,import:importPage,diagnostics:diagnosticsPage};$('#view').innerHTML=(map[page]||dashboard)()}
+
+Object.assign(windowActions,{editSafetyFund,saveSafetyFund,saveDailyReflection,addTask,saveTask,editTask,saveEditedTask,addFileNote,saveFileNote,debtsPage,habitsPage,tripsPage});
+
+try{state=normalizeState(state);save();render()}catch(e){console.error(e)}
