@@ -1,4 +1,4 @@
-const CACHE_NAME='second-brain-os-clean-real-visual-20260701';
+const CACHE_NAME='second-brain-os-premium-semantic-folders-20260701';
 self.addEventListener('install',event=>{self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{event.respondWith(fetch(event.request,{cache:'no-store'}).catch(()=>caches.match(event.request)))})
