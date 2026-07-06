@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v32-buttons-root-cause-fix-20260701';
+const BUILD='second-brain-space-v35-personal-sync-20260703';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -74,7 +74,14 @@ window.addEventListener('click',function(e){
     restoreSections:()=>restoreSections(),
     clearCache:()=>clearCache(),
     selectCalendarDay:()=>{state.settings.calendarDate=act.dataset.date||today();save();render()},
-    googleEvent:()=>googleEventV31(act)
+    googleEvent:()=>googleEventV31(act),
+    polinaOpenDay:()=>window.openPolinaDay?window.openPolinaDay(act.dataset.date||today()):toast('Полина: форма дня не готова'),
+    polinaDeleteDay:()=>window.deletePolinaDay?window.deletePolinaDay(act.dataset.id):toast('Полина: удаление не готово'),
+    polinaOpenCycle:()=>window.openPolinaCycle?window.openPolinaCycle():toast('Полина: настройки не готовы'),
+    polinaSaveCycle:()=>window.savePolinaCycle?window.savePolinaCycle():toast('Полина: сохранение настроек не готово'),
+    polinaSaveDay:()=>window.savePolinaDay?window.savePolinaDay(act.dataset.id||''):toast('Полина: сохранение дня не готово'),
+    polinaMonth:()=>window.setPolinaMonth?window.setPolinaMonth(act.dataset.delta||0):toast('Полина: календарь не готов'),
+    polinaMarkStart:()=>window.markPolinaPeriodStart?window.markPolinaPeriodStart():toast('Полина: отметка не готова')
   };
   if(act && actions[act.dataset.action]) return run(actions[act.dataset.action]);
   if(goEl) return run(()=>go(goEl.dataset.go));
@@ -1283,4 +1290,325 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
 
   try{ensurePolinaV33();save();render()}catch(e){console.error(e);toast('Ошибка Полина: '+(e.message||e));}
+})();
+
+
+/* ===== V34 Polina inline button fix: root cause is old master router intercepting polina actions ===== */
+(function(){
+  const V34_LABEL='V34 · ПОЛИНА · INLINE FIX';
+  try{ localStorage.setItem('secondBrainOS.currentBuild','second-brain-space-v34-polina-inline-buttons-fix-20260701'); }catch(e){}
+
+  function ensurePolinaSectionV34(){
+    try{
+      if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='polina')){
+        const idx=SECTIONS.findIndex(s=>s.id==='personal');
+        SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Полина',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
+      }
+      state=settingsSafeStateV34(state);
+    }catch(e){console.error('[V34 Polina ensure]',e)}
+  }
+
+  function settingsSafeStateV34(st){
+    st=st||{};
+    st.settings=st.settings||{};
+    st.settings.polinaCycle={lastStart:'',cycleLength:28,duration:5,...(st.settings.polinaCycle||{})};
+    st.settings.polinaMonth=st.settings.polinaMonth||month();
+    if(!Array.isArray(st.polinaDays)) st.polinaDays=[];
+    return st;
+  }
+
+  function updatePolinaVersionV34(){
+    const v=document.querySelector('.version');
+    if(v) v.textContent=V34_LABEL;
+  }
+
+  const prevRenderV34=typeof render==='function'?render:null;
+  if(prevRenderV34){
+    render=function(){
+      ensurePolinaSectionV34();
+      const res=prevRenderV34();
+      updatePolinaVersionV34();
+      return res;
+    };
+  }
+
+  // Direct route guard: even if an older layer misses the route, #polina always opens Polina page.
+  function forceOpenPolinaV34(){
+    if((location.hash||'').replace('#','')!=='polina') return;
+    ensurePolinaSectionV34();
+    if(typeof window.polinaPage==='function'){
+      try{
+        page='polina';
+        if(document.querySelector('#view')){
+          document.querySelector('#view').innerHTML=window.polinaPage();
+          updatePolinaVersionV34();
+        } else if(typeof renderShell==='function'){
+          renderShell(window.polinaPage());
+          updatePolinaVersionV34();
+        }
+      }catch(e){console.error('[V34 force Polina]',e);try{toast('Ошибка Полина V34: '+(e.message||e))}catch(_){}}
+    }
+  }
+
+  // Handle navigation to Polina before old routers can redirect or swallow it.
+  window.addEventListener('click',function(e){
+    const goEl=e.target.closest&&e.target.closest('[data-go="polina"]');
+    if(!goEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    try{
+      page='polina';
+      if(location.hash!=='#polina') history.pushState(null,'','#polina');
+      forceOpenPolinaV34();
+    }catch(err){console.error('[V34 Polina go]',err);try{toast('Ошибка Полина: '+(err.message||err))}catch(_){}}
+  },true);
+
+  window.addEventListener('hashchange',()=>setTimeout(forceOpenPolinaV34,0));
+  try{ ensurePolinaSectionV34(); if((location.hash||'').replace('#','')==='polina') setTimeout(forceOpenPolinaV34,0); setTimeout(updatePolinaVersionV34,0); }catch(e){console.error(e)}
+})();
+
+
+/* ===== V35 Personal page visual polish + optional cloud sync across devices ===== */
+(function(){
+  const V35_LABEL='V35 · ЛИЧНОЕ + СИНХРОНИЗАЦИЯ';
+  const V35_BUILD='second-brain-space-v35-personal-sync-20260703';
+  let syncBusy=false;
+  let syncPulling=false;
+  let syncTimer=null;
+
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V35_BUILD); }catch(e){}
+
+  function ensureV35State(){
+    state=state||{};
+    state.settings=state.settings||{};
+    state.settings.sync=Object.assign({provider:'github-gist',gistId:'',token:'',filename:'second-brain-os-sync.json',auto:false,lastPull:'',lastPush:'',lastError:'',updatedAt:''},state.settings.sync||{});
+    return state;
+  }
+
+  function syncCfg(){ensureV35State();return state.settings.sync||{};}
+  function isoNow(){return new Date().toISOString();}
+  function syncStatusText(){
+    const c=syncCfg();
+    if(c.lastError) return `Ошибка: ${esc(c.lastError)}`;
+    if(c.lastPush || c.lastPull) return `Выгрузка: ${c.lastPush?new Date(c.lastPush).toLocaleString('ru-RU'):'—'} · загрузка: ${c.lastPull?new Date(c.lastPull).toLocaleString('ru-RU'):'—'}`;
+    return 'Синхронизация ещё не выполнялась';
+  }
+
+  function ensureV35Styles(){
+    if(document.getElementById('v35-personal-sync-style')) return;
+    const st=document.createElement('style');
+    st.id='v35-personal-sync-style';
+    st.textContent=`
+      .personal-v35-wrap{max-width:1180px;display:grid;gap:10px;margin-top:18px}
+      .personal-v35-row{width:100%;border:1px solid rgba(226,232,240,.96);background:rgba(255,255,255,.9);border-radius:20px;box-shadow:0 10px 24px rgba(15,23,42,.035);padding:16px 18px;display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:16px;text-align:left;min-height:82px;transition:.16s ease;position:relative;overflow:hidden;color:#0f172a}
+      .personal-v35-row:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(37,99,235,.025),transparent 45%);pointer-events:none}
+      .personal-v35-row:hover{transform:translateY(-1px);border-color:#bfdbfe;background:#fff;box-shadow:0 16px 34px rgba(15,23,42,.06)}
+      .personal-v35-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:20px;font-weight:900;position:relative;z-index:1}
+      .personal-v35-row h3{margin:0;font-size:17px;letter-spacing:-.035em;position:relative;z-index:1}
+      .personal-v35-row p{margin:5px 0 0;position:relative;z-index:1}
+      .personal-v35-chevron{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;color:#0f172a;background:rgba(248,250,252,.75);border:1px solid #edf2f7;font-weight:900;position:relative;z-index:1}
+      .personal-v35-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1180px;margin-top:8px;flex-wrap:wrap}
+      .sync-v35-panel{border:1px solid #e7edf6;background:linear-gradient(180deg,#fff,#f8fbff);border-radius:22px;padding:14px;display:grid;gap:10px}
+      .sync-v35-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .sync-v35-note{border:1px dashed #bfdbfe;background:#f8fbff;border-radius:18px;padding:12px;color:#64748b;font-size:13px;line-height:1.45}
+      .sync-v35-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #dbeafe;background:#eef5ff;color:#2563eb;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}
+      @media(max-width:760px){.personal-v35-row{grid-template-columns:50px minmax(0,1fr) auto;padding:14px;min-height:74px}.personal-v35-icon{width:42px;height:42px}.sync-v35-grid{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  const personalFoldersV35=()=>[
+    ['polina','Полина','🌸','#ec4899',Array.isArray(state.polinaDays)?state.polinaDays.length:0],
+    ['people','Люди','👥','#7c3aed',state.people?.length||0],
+    ['notes','Заметки','📝','#f97316',state.notes?.length||0],
+    ['ideas','Идеи','💡','#eab308',state.ideas?.length||0],
+    ['wishes','Желания','💗','#ec4899',state.wishes?.length||0],
+    ['books','Книги','🚩','#22c55e',state.books?.length||0],
+    ['films','Фильмы','🎬','#8b5cf6',state.films?.length||0],
+    ['trips','Путешествия','✈️','#38bdf8',state.trips?.length||0],
+    ['documents','Документы','📄','#0ea5e9',state.documents?.length||0]
+  ];
+
+  personalPage=function(){
+    ensureV35State(); ensureV35Styles();
+    const c=syncCfg();
+    return layout('Личное','Личная база: люди, заметки, идеи, желания, книги, фильмы, путешествия, документы и Полина.',`
+      <section class="personal-v35-actions">
+        <div class="sync-v35-pill">${c.auto&&c.gistId?'☁️ Синхронизация включена':'☁️ Синхронизация не настроена'}</div>
+        <div class="row-actions">
+          <button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button>
+          <button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button>
+          <button class="btn" data-sync-action="syncPush">Сохранить в облако</button>
+        </div>
+      </section>
+      <section class="personal-v35-wrap">
+        ${personalFoldersV35().map(([id,title,icon,color,count])=>`<button class="personal-v35-row" data-go="${id}"><span class="personal-v35-icon" style="background:${color}18;color:${color}">${icon}</span><span><h3>${esc(title)}</h3><p class="small muted">${count} записей</p></span><span class="personal-v35-chevron">›</span></button>`).join('')}
+      </section>
+    `);
+  };
+
+  function cloudSnapshot(){
+    ensureV35State();
+    const clean=JSON.parse(JSON.stringify(state));
+    if(clean.settings&&clean.settings.sync&&clean.settings.sync.token) clean.settings.sync.token='';
+    return {app:'Second Brain OS',format:1,build:V35_BUILD,updatedAt:syncCfg().updatedAt||isoNow(),state:clean};
+  }
+
+  function authHeaders(){
+    const c=syncCfg();
+    const h={'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+    if(c.token) h.Authorization='Bearer '+c.token.trim();
+    return h;
+  }
+
+  async function createSyncGist(){
+    ensureV35State();
+    const c=syncCfg();
+    if(!c.token) return toast('Для создания облака нужен GitHub token с доступом gist');
+    const filename=c.filename||'second-brain-os-sync.json';
+    c.lastError=''; save();
+    try{
+      syncBusy=true; toast('Создаю облачное хранилище...');
+      const res=await fetch('https://api.github.com/gists',{method:'POST',headers:authHeaders(),body:JSON.stringify({description:'Second Brain OS sync storage',public:false,files:{[filename]:{content:JSON.stringify(cloudSnapshot(),null,2)}}})});
+      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
+      const data=await res.json();
+      state.settings.sync.gistId=data.id;
+      state.settings.sync.lastPush=isoNow();
+      state.settings.sync.lastError='';
+      save(); closeModal(); render(); toast('Облако создано и сохранено');
+    }catch(e){state.settings.sync.lastError=e.message||String(e);save();toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
+    finally{syncBusy=false;}
+  }
+
+  async function pushCloudSync(showToast=true){
+    ensureV35State();
+    const c=syncCfg();
+    if(!c.gistId || !c.token){ if(showToast) openSyncSettings(); return; }
+    if(syncBusy) return;
+    try{
+      syncBusy=true; c.lastError='';
+      if(showToast) toast('Сохраняю в облако...');
+      const filename=c.filename||'second-brain-os-sync.json';
+      const snap=cloudSnapshot();
+      const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(c.gistId.trim())}`,{method:'PATCH',headers:authHeaders(),body:JSON.stringify({files:{[filename]:{content:JSON.stringify(snap,null,2)}}})});
+      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
+      state.settings.sync.lastPush=isoNow();
+      state.settings.sync.lastError='';
+      save();
+      if(showToast) toast('Данные сохранены в облако');
+    }catch(e){state.settings.sync.lastError=e.message||String(e);save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
+    finally{syncBusy=false;}
+  }
+
+  async function pullCloudSync(showToast=true){
+    ensureV35State();
+    const localCfg={...syncCfg()};
+    if(!localCfg.gistId){ if(showToast) openSyncSettings(); return; }
+    if(syncBusy) return;
+    try{
+      syncBusy=true; syncPulling=true; localCfg.lastError='';
+      if(showToast) toast('Загружаю из облака...');
+      const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(localCfg.gistId.trim())}`,{headers:authHeaders()});
+      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
+      const data=await res.json();
+      const filename=localCfg.filename||'second-brain-os-sync.json';
+      const file=data.files?.[filename] || Object.values(data.files||{}).find(f=>f.filename===filename) || Object.values(data.files||{})[0];
+      if(!file || !file.content) throw new Error('Файл синхронизации не найден');
+      const parsed=JSON.parse(file.content);
+      const incoming=parsed.state||parsed;
+      const keepToken=localCfg.token||'';
+      state=normalize(incoming);
+      state.settings=state.settings||{};
+      state.settings.sync={...localCfg,...(state.settings.sync||{}),gistId:localCfg.gistId,token:keepToken,filename,lastPull:isoNow(),lastError:''};
+      save(); closeModal(); render();
+      if(showToast) toast('Данные загружены из облака');
+    }catch(e){state.settings.sync={...localCfg,lastError:e.message||String(e)};save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
+    finally{syncBusy=false;syncPulling=false;}
+  }
+
+  function openSyncSettings(){
+    ensureV35State();
+    const c=syncCfg();
+    openModal('Синхронизация на разных устройствах',`
+      <div class="sync-v35-panel">
+        <div class="sync-v35-note"><b>Как работает:</b> приложение остаётся на GitHub Pages, а данные синхронизируются через приватный GitHub Gist. На каждом устройстве нужно один раз вставить одинаковый Gist ID и token. Token хранится только в браузере этого устройства.</div>
+        <div class="form">
+          <div class="field"><label>GitHub Gist ID</label><input id="sync_gistId" value="${esc(c.gistId||'')}" placeholder="например: a1b2c3..."></div>
+          <div class="field"><label>GitHub token</label><input id="sync_token" type="password" value="${esc(c.token||'')}" placeholder="token с доступом gist"></div>
+          <div class="field"><label>Имя файла</label><input id="sync_filename" value="${esc(c.filename||'second-brain-os-sync.json')}"></div>
+          <div class="field"><label>Автосинхронизация</label><select id="sync_auto"><option value="false" ${!c.auto?'selected':''}>Выключена</option><option value="true" ${c.auto?'selected':''}>Включена</option></select></div>
+        </div>
+        <div class="small muted">${syncStatusText()}</div>
+        <div class="row-actions"><button class="ghost-btn" data-sync-action="syncCreateGist">Создать облако</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button><button class="ghost-btn" data-sync-action="syncPush">Сохранить в облако</button><button class="btn" data-sync-action="syncSaveSettings">Сохранить настройки</button></div>
+      </div>`);
+  }
+
+  function saveSyncSettings(){
+    ensureV35State();
+    state.settings.sync={...syncCfg(),gistId:$('#sync_gistId')?.value.trim()||'',token:$('#sync_token')?.value.trim()||'',filename:$('#sync_filename')?.value.trim()||'second-brain-os-sync.json',auto:($('#sync_auto')?.value==='true'),lastError:''};
+    save(); closeModal(); render(); toast('Настройки синхронизации сохранены');
+  }
+
+  const oldOpenProfileToolsV35=typeof openProfileTools==='function'?openProfileTools:null;
+  openProfileTools=function(){
+    ensureV35State();
+    openModal('Профиль, импорт и сервис',`
+      <div class="grid cols-2"><button class="ghost-btn" data-action="exportData">Экспорт данных</button><button class="ghost-btn" data-action="restoreSections">Показать все папки</button><button class="ghost-btn" data-action="clearCache">Очистить кэш</button><button class="ghost-btn" data-action="setActualBalance">Фактический остаток</button></div>
+      <div class="sync-v35-panel" style="margin-top:14px"><div class="card-head"><div><h3>Синхронизация устройств</h3><p class="small muted">GitHub Gist: ${syncCfg().gistId?'настроен':'не настроен'} · ${syncStatusText()}</p></div><span class="pill ${syncCfg().auto?'green':'blue'}">${syncCfg().auto?'авто':'ручной режим'}</span></div><div class="row-actions"><button class="ghost-btn" data-sync-action="syncSettings">Настроить</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить</button><button class="btn" data-sync-action="syncPush">Сохранить</button></div></div>
+      <div class="csv-import-box" style="margin-top:14px"><h3>Импорт CSV банка</h3><p class="small muted">Дубли удаляются автоматически.</p><input type="file" id="csvFile" accept=".csv,text/csv"><div class="row-actions" style="margin-top:10px"><button class="btn" data-action="importBankCsv">Импортировать CSV</button></div></div>
+      <p class="small muted" style="margin-top:12px">Сборка: ${V35_BUILD}</p>`);
+  };
+
+  const oldSaveV35=typeof save==='function'?save:null;
+  if(oldSaveV35){
+    save=function(){
+      ensureV35State();
+      if(!syncPulling) state.settings.sync.updatedAt=isoNow();
+      const res=oldSaveV35();
+      try{ localStorage.setItem('secondBrainOS.currentBuild',V35_BUILD); }catch(e){}
+      const c=syncCfg();
+      if(c.auto && c.gistId && c.token && !syncPulling){
+        clearTimeout(syncTimer);
+        syncTimer=setTimeout(()=>pushCloudSync(false),1500);
+      }
+      return res;
+    };
+  }
+
+  const oldRenderV35=typeof render==='function'?render:null;
+  if(oldRenderV35){
+    render=function(){
+      ensureV35State();
+      const res=oldRenderV35();
+      ensureV35Styles();
+      const v=document.querySelector('.version'); if(v) v.textContent=V35_LABEL;
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-sync-action]');
+    if(!el) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const a=el.dataset.syncAction;
+    try{
+      if(a==='syncSettings') return openSyncSettings();
+      if(a==='syncSaveSettings') return saveSyncSettings();
+      if(a==='syncCreateGist') return createSyncGist();
+      if(a==='syncPush') return pushCloudSync(true);
+      if(a==='syncPull') return pullCloudSync(true);
+    }catch(err){console.error('[V35 sync action]',err);toast('Ошибка синхронизации: '+(err.message||err));}
+  },true);
+
+  async function autoPullOnLoad(){
+    ensureV35State();
+    const c=syncCfg();
+    if(!c.auto||!c.gistId) return;
+    const last=Date.parse(c.lastPull||0)||0;
+    if(Date.now()-last<60000) return;
+    await pullCloudSync(false);
+  }
+
+  try{ensureV35State();ensureV35Styles();save();render();setTimeout(autoPullOnLoad,1200);}catch(e){console.error('[V35]',e);try{toast('Ошибка V35: '+(e.message||e))}catch(_){}}
 })();
