@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v35-personal-sync-20260703';
+const BUILD='second-brain-space-v38-auto-sync-subconscious-20260706';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -2015,4 +2015,304 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
 
   try{v37EnsureState();v37EnsureSections();v37EnsureStyles();save();render();}catch(e){console.error('[V37 init]',e)}
+})();
+
+
+/* ===== V38 Auto Sync + Subconscious Diary: stable add-on over V37 ===== */
+(function(){
+  const V38_LABEL='V38 · АВТОСИНХРОНИЗАЦИЯ + ДНЕВНИК';
+  const V38_BUILD='second-brain-space-v38-auto-sync-subconscious-20260706';
+  let v38SyncBusy=false;
+  let v38SyncTimer=null;
+  let v38AutoPullTimer=null;
+
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V38_BUILD); }catch(e){}
+
+  function v38Now(){return new Date().toISOString()}
+  function v38EnsureState(){
+    state=state||{};
+    state.settings=state.settings||{};
+    state.settings.sync=Object.assign({provider:'github-gist',gistId:'',token:'',filename:'second-brain-os-sync.json',auto:false,lastPull:'',lastPush:'',lastError:'',updatedAt:'',lastAutoSync:'',lastAutoCheck:'',autoIntervalMin:3},state.settings.sync||{});
+    state.subconsciousEntries=Array.isArray(state.subconsciousEntries)?state.subconsciousEntries:[];
+    return state;
+  }
+  function v38SyncCfg(){v38EnsureState();return state.settings.sync||{};}
+  function v38HasCloud(){const c=v38SyncCfg();return Boolean(c.gistId&&(c.token||true));}
+  function v38AddSection(){
+    try{
+      if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='subconscious')){
+        const idx=SECTIONS.findIndex(s=>s.id==='personal');
+        SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'subconscious',label:'Дневник подсознания',icon:'🪞',color:'#8b5cf6',group:'ЛИЧНОЕ'});
+      }
+    }catch(e){}
+  }
+
+  function v38EnsureStyles(){
+    if(document.getElementById('v38-style')) return;
+    const st=document.createElement('style');
+    st.id='v38-style';
+    st.textContent=`
+      #view .v38-grid{display:grid;gap:14px}.v38-grid.two{grid-template-columns:1.25fr .75fr}.v38-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.v38-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+      #view .v38-card{border:1px solid #e7edf6;background:rgba(255,255,255,.94);border-radius:22px;padding:16px;box-shadow:0 10px 28px rgba(15,23,42,.04)}
+      #view .v38-soft{background:linear-gradient(135deg,#fff,#f8fbff)}#view .v38-purple{background:linear-gradient(135deg,#faf5ff,#fff);border-color:#e9d5ff}#view .v38-green{background:linear-gradient(135deg,#ecfdf5,#fff);border-color:#bbf7d0}#view .v38-amber{background:linear-gradient(135deg,#fffbeb,#fff);border-color:#fde68a}#view .v38-blue{background:linear-gradient(135deg,#eff6ff,#fff);border-color:#bfdbfe}
+      #view .v38-kpi h4{margin:0 0 6px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em}#view .v38-kpi .value{font-size:30px;margin:0}
+      #view .v38-diary-hero{background:radial-gradient(circle at 15% 10%,rgba(139,92,246,.16),transparent 35%),linear-gradient(135deg,#fff,#f8fbff);border:1px solid #e9d5ff;border-radius:28px;padding:20px;box-shadow:0 16px 42px rgba(15,23,42,.06)}
+      #view .v38-question{display:grid;gap:8px;padding:14px;border:1px solid #edf2f7;border-radius:18px;background:#fff}#view .v38-question b{color:#0f172a}#view .v38-question textarea{min-height:86px;border:1px solid #dbe4f0;border-radius:16px;padding:12px;resize:vertical;background:#fbfdff;font:inherit;color:#0f172a}
+      #view .v38-input-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}#view .v38-input-row .field{margin:0}
+      #view .v38-history{display:grid;gap:10px}#view .v38-entry{border:1px solid #e7edf6;border-radius:18px;background:#fff;padding:14px;display:grid;gap:8px}#view .v38-entry .row-actions{margin-top:2px}
+      #view .v38-sync-panel{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff);border-radius:22px;padding:14px;display:grid;gap:10px;margin-top:14px}
+      #view .v38-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #dbeafe;background:#eef5ff;color:#2563eb;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;line-height:1}.v38-pill.green{background:#ecfdf5;border-color:#bbf7d0;color:#15803d}.v38-pill.red{background:#fff1f2;border-color:#fecaca;color:#dc2626}.v38-pill.amber{background:#fffbeb;border-color:#fde68a;color:#b45309}
+      #view .v38-autosync-dot{width:9px;height:9px;border-radius:999px;background:#f59e0b;display:inline-block}.v38-autosync-dot.ok{background:#10b981}.v38-autosync-dot.err{background:#ef4444}
+      @media(max-width:980px){#view .v38-grid.two,#view .v38-grid.three,#view .v38-grid.four,#view .v38-input-row{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v38SubPrompts(dateStr){
+    const sets=[
+      {quote:'Тишина часто говорит честнее, чем тревога.',qs:['Что я сегодня чувствую на самом деле, если не пытаться выглядеть сильным?','Где я сейчас себя обманываю или откладываю важное?','Что моё тело пытается мне подсказать?','Какое одно действие сегодня вернёт мне спокойствие?','Что мне важно признать, но не ругать себя за это?']},
+      {quote:'Внутренний порядок начинается с одного честного ответа.',qs:['Какая мысль чаще всего возвращалась сегодня?','Чего я избегаю и почему?','Что сегодня дало мне энергию?','Что забрало силы сильнее всего?','Какой маленький шаг завтра поможет мне стать устойчивее?']},
+      {quote:'Не всё нужно решать сразу. Но всё можно услышать.',qs:['Какая эмоция сегодня была главной?','Что я хочу контролировать слишком сильно?','Где мне нужна поддержка, а не давление?','Что я могу отпустить хотя бы на 1 день?','Какой честный вывод я забираю из сегодняшнего дня?']},
+      {quote:'Забота о себе — это система, а не настроение.',qs:['Что сегодня было хорошим, даже если день был тяжёлым?','Что я сделал правильно?','Где я перегрузил себя?','Как я могу проявить к себе уважение вечером?','Какую мысль я хочу оставить в этом дне, а не тащить дальше?']},
+      {quote:'Подсознание часто отвечает образами, телом и повторяющимися мыслями.',qs:['Какой образ лучше всего описывает мой день?','Какая ситуация зацепила сильнее всего?','Что в этой ситуации было про меня?','Какая потребность стоит за моей реакцией?','Что я могу сделать мягко, без рывка?']},
+      {quote:'Самый сильный план начинается с честного состояния.',qs:['На сколько из 10 я сегодня в ресурсе и почему?','Что я делаю из страха?','Что я делаю из любви к себе и близким?','Какая финансовая/личная мысль требует внимания?','Какой один спокойный шаг я выбираю?']},
+      {quote:'Отклик — это не отчёт. Это разговор с собой.',qs:['Что сегодня хочется сказать самому себе без цензуры?','Где я почувствовал напряжение?','Что мне сейчас важно защитить?','Что мне хочется создать или изменить?','Какая фраза станет опорой на завтра?']}
+    ];
+    const d=new Date(dateStr||today());
+    const idx=Math.abs(Math.floor(d.getTime()/86400000))%sets.length;
+    return sets[idx];
+  }
+  function v38DiaryEntry(date=today()){v38EnsureState();return state.subconsciousEntries.find(e=>e.date===date)||null;}
+  function v38DiaryStreak(){
+    v38EnsureState();
+    const dates=new Set(state.subconsciousEntries.map(e=>e.date));
+    let c=0,d=new Date(today());
+    while(dates.has(iso(d))){c++;d=addDays(d,-1)}
+    return c;
+  }
+  function v38MoodAvg(){
+    const arr=state.subconsciousEntries.slice(-14).map(e=>num(e.mood)).filter(Boolean);
+    if(!arr.length) return '—';
+    return (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1);
+  }
+  function v38SubconsciousPage(){
+    v38EnsureState(); v38EnsureStyles();
+    const current=state.settings.subconsciousCurrentDate||today();
+    const entry=v38DiaryEntry(current)||{date:current,mood:'',energy:'',body:'',summary:'',promise:'',answers:[]};
+    const prompt=v38SubPrompts(current);
+    const last=state.subconsciousEntries.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+    return layout('Дневник подсознания','Ежедневный отклик себе: состояние, тело, честные мысли, вывод и маленькое действие.',`
+      <section class="v38-grid four">
+        <article class="v38-card v38-kpi v38-purple"><h4>Записей</h4><div class="value sm blue">${state.subconsciousEntries.length}</div><p class="small muted">в дневнике</p></article>
+        <article class="v38-card v38-kpi v38-green"><h4>Стрик</h4><div class="value sm green">${v38DiaryStreak()}</div><p class="small muted">дней подряд</p></article>
+        <article class="v38-card v38-kpi v38-amber"><h4>Среднее состояние</h4><div class="value sm amber">${v38MoodAvg()}</div><p class="small muted">за последние записи</p></article>
+        <article class="v38-card v38-kpi v38-blue"><h4>Последняя запись</h4><div class="value sm blue">${last?fmt(last.date):'—'}</div><p class="small muted">${last?esc((last.summary||'без вывода').slice(0,42)):'начни сегодня'}</p></article>
+      </section>
+      <section class="v38-grid two" style="margin-top:16px">
+        <article class="v38-diary-hero">
+          <div class="card-head"><div><h3>Отклик дня</h3><p class="small muted">${esc(prompt.quote)}</p></div><span class="v38-pill">🪞 ${fmt(current)}</span></div>
+          <div class="v38-input-row" style="margin:14px 0">
+            <div class="field"><label>Дата</label><input id="v38_sub_date" type="date" value="${esc(current)}"></div>
+            <div class="field"><label>Состояние 1–10</label><input id="v38_sub_mood" type="number" min="1" max="10" value="${esc(entry.mood||'')}"></div>
+            <div class="field"><label>Энергия 1–10</label><input id="v38_sub_energy" type="number" min="1" max="10" value="${esc(entry.energy||'')}"></div>
+          </div>
+          <div class="v38-question" style="margin-bottom:10px"><b>Что говорит тело?</b><textarea id="v38_sub_body" placeholder="Например: напряжение, усталость, тепло, тревога, спокойствие...">${esc(entry.body||'')}</textarea></div>
+          <div class="v38-grid" style="gap:10px">
+            ${prompt.qs.map((q,i)=>`<div class="v38-question"><b>${i+1}. ${esc(q)}</b><textarea id="v38_sub_q_${i}" placeholder="Ответь честно, можно коротко...">${esc((entry.answers||[])[i]||'')}</textarea></div>`).join('')}
+          </div>
+          <div class="v38-input-row" style="margin-top:12px;grid-template-columns:1fr 1fr">
+            <div class="field"><label>Главный вывод дня</label><textarea id="v38_sub_summary" style="min-height:96px">${esc(entry.summary||'')}</textarea></div>
+            <div class="field"><label>Маленькое обещание себе</label><textarea id="v38_sub_promise" style="min-height:96px">${esc(entry.promise||'')}</textarea></div>
+          </div>
+          <div class="row-actions" style="margin-top:14px"><button class="btn" data-v38-action="saveSubconscious">Сохранить отклик</button><button class="ghost-btn" data-v38-action="subToday">Сегодня</button><button class="ghost-btn" data-v38-action="subPrev">← Вчера</button><button class="ghost-btn" data-v38-action="subNext">Завтра →</button></div>
+        </article>
+        <aside class="v38-grid">
+          <article class="v38-card v38-soft"><div class="card-head"><div><h3>Зачем это нужно</h3><p class="small muted">Это не психология ради психологии, а ежедневная самонастройка.</p></div><span class="v38-pill green">5 минут</span></div><ul class="small muted"><li>видишь повторяющиеся тревоги и желания;</li><li>отделяешь реальное состояние от импульса;</li><li>лучше понимаешь, что даёт и забирает энергию;</li><li>каждый день заканчивается маленьким действием.</li></ul></article>
+          <article class="v38-card"><div class="card-head"><h3>История откликов</h3><button class="ghost-btn" data-v38-action="subToday">Сегодня</button></div><div class="v38-history">${state.subconsciousEntries.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12).map(e=>`<div class="v38-entry"><div class="card-head"><div><b>${fmt(e.date)}</b><div class="small muted">Состояние ${esc(e.mood||'—')} · энергия ${esc(e.energy||'—')}</div></div><span class="v38-pill">${esc((e.summary||'отклик').slice(0,24))}</span></div><p class="small muted">${esc((e.summary||e.promise||'Без вывода').slice(0,120))}</p><div class="row-actions"><button class="mini blue" data-v38-action="openSubconscious" data-date="${esc(e.date)}">Открыть</button><button class="mini red" data-v38-action="deleteSubconscious" data-date="${esc(e.date)}">Удалить</button></div></div>`).join('')||'<div class="v38-entry"><p class="small muted">Пока нет записей. Начни с сегодняшнего отклика.</p></div>'}</div></article>
+        </aside>
+      </section>
+    `);
+  }
+  function v38SaveSubconscious(){
+    v38EnsureState();
+    const date=$('#v38_sub_date')?.value||today();
+    const old=v38DiaryEntry(date)||{};
+    const answers=Array.from({length:5},(_,i)=>$(`#v38_sub_q_${i}`)?.value||'');
+    const obj={...old,id:old.id||uid(),date,mood:$('#v38_sub_mood')?.value||'',energy:$('#v38_sub_energy')?.value||'',body:$('#v38_sub_body')?.value||'',answers,summary:$('#v38_sub_summary')?.value||'',promise:$('#v38_sub_promise')?.value||'',updatedAt:v38Now()};
+    state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.date!==date);
+    state.subconsciousEntries.unshift(obj);
+    state.settings.subconsciousCurrentDate=date;
+    save(); render(); try{toast('Отклик сохранён')}catch(e){}
+  }
+  function v38SetSubDate(date){v38EnsureState();state.settings.subconsciousCurrentDate=date;save();render();}
+  function v38DeleteSub(date){v38EnsureState();if(!confirm('Удалить отклик за '+fmt(date)+'?'))return;state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.date!==date);save();render();try{toast('Отклик удалён')}catch(e){} }
+
+  function v38PersonalCount(id){
+    const map={subconscious:state.subconsciousEntries,people:state.people,notes:state.notes,ideas:state.ideas,wishes:state.wishes,books:state.books,films:state.films,trips:state.trips,documents:state.documents};
+    if(id==='polina') return Math.max(Array.isArray(state.polinaDays)?state.polinaDays.length:0,2);
+    return Array.isArray(map[id])?map[id].length:0;
+  }
+  function v38PersonalPage(){
+    v38EnsureState(); v38EnsureStyles();
+    const sync=v38SyncCfg();
+    const folders=[
+      ['polina','Полина','🌸','rgba(236,72,153,.12)','#ec4899'],
+      ['subconscious','Дневник подсознания','🪞','rgba(139,92,246,.12)','#8b5cf6'],
+      ['people','Люди','👥','rgba(124,58,237,.12)','#7c3aed'],
+      ['notes','Заметки','✏️','rgba(249,115,22,.12)','#f97316'],
+      ['ideas','Идеи','💡','rgba(234,179,8,.14)','#eab308'],
+      ['wishes','Желания','💗','rgba(236,72,153,.12)','#ec4899'],
+      ['books','Книги','🚩','rgba(34,197,94,.12)','#22c55e'],
+      ['films','Фильмы','🎬','rgba(139,92,246,.12)','#8b5cf6'],
+      ['trips','Путешествия','✈️','rgba(14,165,233,.12)','#0ea5e9'],
+      ['documents','Документы','📄','rgba(6,182,212,.12)','#06b6d4']
+    ];
+    const status=sync.gistId?(sync.auto?'☁️ Автосинхронизация включена':'☁️ Облако подключено, авто выкл.'):'☁️ Синхронизация не настроена';
+    return layout('Личное','Личная база: люди, заметки, идеи, желания, дневник подсознания, книги, фильмы, путешествия, документы и Полина.',`
+      <section class="personal-v36-actions"><div class="personal-v36-sync-pill ${sync.gistId?'green':''}">${status}</div><div class="row-actions"><button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button><button class="ghost-btn" data-v38-action="syncNow">Синхронизировать сейчас</button><button class="btn" data-sync-action="syncPush">Сохранить в облако</button></div></section>
+      <section class="v38-sync-panel"><div class="card-head"><div><h3>Автоматическая синхронизация</h3><p class="small muted">После настройки GitHub Gist приложение само загружает свежие данные при входе, при возвращении на вкладку и периодически проверяет облако.</p></div><span class="v38-pill ${sync.auto&&sync.gistId?'green':'amber'}"><i class="v38-autosync-dot ${sync.lastError?'err':sync.gistId?'ok':''}"></i>${sync.auto&&sync.gistId?'авто':'нужно настроить'}</span></div><div class="small muted">Последняя выгрузка: ${sync.lastPush?new Date(sync.lastPush).toLocaleString('ru-RU'):'—'} · загрузка: ${sync.lastPull?new Date(sync.lastPull).toLocaleString('ru-RU'):'—'} ${sync.lastError?' · ошибка: '+esc(sync.lastError):''}</div></section>
+      <section class="personal-v36-list">${folders.map(([id,title,icon,bg,color])=>`<button type="button" class="personal-v36-row" data-go="${id}" aria-label="Открыть ${esc(title)}"><span class="personal-v36-icon" style="background:${bg};color:${color}">${icon}</span><div class="personal-v36-text"><h3>${esc(title)}</h3><p>${v38PersonalCount(id)} записей</p></div><span class="personal-v36-chevron">›</span></button>`).join('')}</section>
+    `);
+  }
+
+  function v38CloudPayload(){
+    v38EnsureState();
+    const clean=JSON.parse(JSON.stringify(state));
+    if(clean.settings&&clean.settings.sync) clean.settings.sync.token='';
+    return {app:'Second Brain OS',format:2,build:V38_BUILD,updatedAt:v38Now(),state:clean};
+  }
+  function v38AuthHeaders(){const c=v38SyncCfg();const h={'Accept':'application/vnd.github+json','Content-Type':'application/json'};if(c.token)h.Authorization='Bearer '+String(c.token).trim();return h;}
+  async function v38ReadCloud(){
+    const c=v38SyncCfg();
+    if(!c.gistId) throw new Error('Gist ID не задан');
+    const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(String(c.gistId).trim())}`,{headers:v38AuthHeaders(),cache:'no-store'});
+    if(!res.ok) throw new Error('GitHub Gist: '+res.status);
+    const data=await res.json();
+    const filename=c.filename||'second-brain-os-sync.json';
+    const file=data.files?.[filename] || Object.values(data.files||{}).find(f=>f.filename===filename) || Object.values(data.files||{})[0];
+    if(!file||!file.content) throw new Error('Файл синхронизации не найден');
+    return JSON.parse(file.content);
+  }
+  async function v38WriteCloud(){
+    const c=v38SyncCfg();
+    if(!c.gistId||!c.token) throw new Error('Нужны Gist ID и token');
+    const filename=c.filename||'second-brain-os-sync.json';
+    const payload=v38CloudPayload();
+    const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(String(c.gistId).trim())}`,{method:'PATCH',headers:v38AuthHeaders(),body:JSON.stringify({files:{[filename]:{content:JSON.stringify(payload,null,2)}}})});
+    if(!res.ok) throw new Error('GitHub Gist: '+res.status);
+    state.settings.sync.lastPush=v38Now();
+    state.settings.sync.lastError='';
+    state.settings.sync.updatedAt=payload.updatedAt;
+    save();
+    return payload;
+  }
+  async function v38PullIfNewer(showToast=false,force=false){
+    v38EnsureState();
+    const c=v38SyncCfg();
+    if(!c.gistId||v38SyncBusy) return false;
+    try{
+      v38SyncBusy=true;
+      if(showToast) toast('Проверяю облако...');
+      const cloud=await v38ReadCloud();
+      const incoming=cloud.state||cloud;
+      const remote=Date.parse(cloud.updatedAt||incoming?.settings?.sync?.updatedAt||0)||0;
+      const local=Date.parse(c.updatedAt||0)||0;
+      if(force || remote>local || !c.lastPull){
+        const keep={...c,token:c.token||'',lastPull:v38Now(),lastError:'',lastAutoSync:v38Now()};
+        state=normalize(incoming);
+        state.settings=state.settings||{};
+        state.settings.sync={...(state.settings.sync||{}),...keep,gistId:c.gistId,token:c.token||'',filename:c.filename||'second-brain-os-sync.json',auto:c.auto!==false,updatedAt:cloud.updatedAt||v38Now()};
+        state.subconsciousEntries=Array.isArray(state.subconsciousEntries)?state.subconsciousEntries:[];
+        save(); render();
+        if(showToast) toast('Загружена свежая версия из облака');
+        return true;
+      }
+      state.settings.sync.lastAutoCheck=v38Now(); state.settings.sync.lastError=''; save();
+      if(showToast) toast('Облако проверено: локальная версия актуальна');
+      return false;
+    }catch(e){state.settings.sync.lastError=e.message||String(e);save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError);return false;}
+    finally{v38SyncBusy=false;}
+  }
+  async function v38PushNow(showToast=false){
+    v38EnsureState(); if(v38SyncBusy) return;
+    try{v38SyncBusy=true;if(showToast)toast('Сохраняю в облако...');await v38WriteCloud();if(showToast)toast('Сохранено в облако');}
+    catch(e){state.settings.sync.lastError=e.message||String(e);save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
+    finally{v38SyncBusy=false;}
+  }
+  async function v38SyncNow(){
+    const pulled=await v38PullIfNewer(true,false);
+    if(!pulled) await v38PushNow(true);
+  }
+  function v38ScheduleAutoPush(){
+    const c=v38SyncCfg();
+    if(!c.auto||!c.gistId||!c.token) return;
+    clearTimeout(v38SyncTimer);
+    v38SyncTimer=setTimeout(()=>v38PushNow(false),2500);
+  }
+  function v38StartAutoSync(){
+    v38EnsureState();
+    const c=v38SyncCfg();
+    if(c.gistId && c.token && c.auto!==false) state.settings.sync.auto=true;
+    const interval=Math.max(1,num(c.autoIntervalMin)||3)*60000;
+    clearInterval(v38AutoPullTimer);
+    v38AutoPullTimer=setInterval(()=>{const cfg=v38SyncCfg();if(cfg.auto&&cfg.gistId)v38PullIfNewer(false,false)},interval);
+    setTimeout(()=>{const cfg=v38SyncCfg();if(cfg.auto&&cfg.gistId)v38PullIfNewer(false,false)},1500);
+  }
+
+  const oldSaveV38=typeof save==='function'?save:null;
+  if(oldSaveV38){
+    save=function(){
+      v38EnsureState();
+      state.settings.sync.updatedAt=state.settings.sync.updatedAt||v38Now();
+      const res=oldSaveV38();
+      try{localStorage.setItem('secondBrainOS.currentBuild',V38_BUILD)}catch(e){}
+      try{v38ScheduleAutoPush()}catch(e){}
+      return res;
+    };
+  }
+
+  function v38ForcePage(){
+    try{
+      v38EnsureState(); v38EnsureStyles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const view=document.querySelector('#view'); if(!view) return;
+      if(current==='personal'||page==='personal') view.innerHTML=v38PersonalPage();
+      if(current==='subconscious'||page==='subconscious') view.innerHTML=v38SubconsciousPage();
+      const v=document.querySelector('.version'); if(v) v.textContent=V38_LABEL;
+    }catch(e){console.error('[V38 force page]',e);try{toast('Ошибка V38: '+(e.message||e))}catch(_){}}
+  }
+
+  const oldRenderV38=typeof render==='function'?render:null;
+  if(oldRenderV38){
+    render=function(){
+      v38EnsureState(); v38AddSection(); v38EnsureStyles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='subconscious') page='subconscious';
+      const res=oldRenderV38();
+      setTimeout(v38ForcePage,0);
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-v38-action]');
+    if(!el) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const a=el.dataset.v38Action;
+    try{
+      if(a==='saveSubconscious') return v38SaveSubconscious();
+      if(a==='openSubconscious') return v38SetSubDate(el.dataset.date||today());
+      if(a==='deleteSubconscious') return v38DeleteSub(el.dataset.date||today());
+      if(a==='subToday') return v38SetSubDate(today());
+      if(a==='subPrev'){const d=state.settings.subconsciousCurrentDate||today();return v38SetSubDate(iso(addDays(new Date(d),-1)));}
+      if(a==='subNext'){const d=state.settings.subconsciousCurrentDate||today();return v38SetSubDate(iso(addDays(new Date(d),1)));}
+      if(a==='syncNow') return v38SyncNow();
+    }catch(err){console.error('[V38 action]',err);try{toast('Ошибка: '+(err.message||err))}catch(_){}}
+  },true);
+
+  window.addEventListener('hashchange',()=>setTimeout(v38ForcePage,0));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const c=v38SyncCfg();if(c.auto&&c.gistId)v38PullIfNewer(false,false);}});
+  window.addEventListener('focus',()=>{const c=v38SyncCfg();if(c.auto&&c.gistId)v38PullIfNewer(false,false);});
+
+  try{v38EnsureState();v38AddSection();v38EnsureStyles();save();render();v38StartAutoSync();}catch(e){console.error('[V38 init]',e)}
 })();
