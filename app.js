@@ -1723,3 +1723,296 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
   try{ensureV36PersonalStyles(); if((location.hash||'').replace('#','')==='personal') setTimeout(forcePersonalV36,0); setTimeout(()=>{const v=document.querySelector('.version'); if(v) v.textContent=V36_LABEL;},0);}catch(e){console.error(e)}
 })();
+
+
+/* ===== V37 Stability kit: diagnostics, backup, sync clarity, finance/calendar polish ===== */
+(function(){
+  const V37_BUILD='second-brain-space-v37-stability-kit-20260706';
+  const V37_LABEL='V37 · ДИАГНОСТИКА + БЭКАП + ПОЛИШ';
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V37_BUILD); }catch(e){}
+
+  function v37EnsureState(){
+    state.settings = state.settings || {};
+    state.settings.v37 = state.settings.v37 || {dailyLimit:0,lastBackupAt:'',lastRestoreAt:''};
+    state.settings.sync = state.settings.sync || {gistId:'',token:'',filename:'second-brain-os-sync.json',auto:false,lastPush:'',lastPull:'',lastError:''};
+  }
+  function v37EnsureSections(){
+    try{
+      if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='diagnostics')){
+        const idx=SECTIONS.findIndex(s=>s.id==='archive');
+        SECTIONS.splice(idx>=0?idx:SECTIONS.length,0,{id:'diagnostics',label:'Диагностика',icon:'🛠️',color:'#64748b',group:'СЕРВИС'});
+      }
+    }catch(e){console.warn('[V37 sections]',e)}
+  }
+  function v37EnsureStyles(){
+    if(document.getElementById('v37-stability-kit-style')) return;
+    const st=document.createElement('style');
+    st.id='v37-stability-kit-style';
+    st.textContent=`
+      :root{--v37-line:#e7edf6;--v37-soft:#f8fbff;--v37-blue:#2563eb;--v37-green:#10b981;--v37-red:#ef4444;--v37-amber:#f59e0b}
+      #view .card{transition:box-shadow .18s ease,transform .18s ease,border-color .18s ease!important}
+      #view .card:hover{box-shadow:0 16px 38px rgba(15,23,42,.055)!important;border-color:#dbeafe!important}
+      #view .empty{border:1px dashed #d8e1ee!important;background:rgba(248,251,255,.8)!important;border-radius:18px!important;padding:18px!important;color:#64748b!important;font-weight:700!important;text-align:center!important}
+      #view .btn,#view .ghost-btn,#view .mini,#view .chip-btn{transition:transform .15s ease,box-shadow .15s ease,background .15s ease!important}
+      #view .btn:hover,#view .ghost-btn:hover,#view .mini:hover,#view .chip-btn:hover{transform:translateY(-1px)!important}
+      .v37-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+      .v37-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .v37-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .v37-kpi{position:relative;overflow:hidden}
+      .v37-kpi:before{content:'';position:absolute;right:-42px;bottom:-46px;width:138px;height:138px;border-radius:999px;background:radial-gradient(circle,rgba(37,99,235,.09),transparent 68%);pointer-events:none}
+      .v37-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #eef2f7}
+      .v37-row:last-child{border-bottom:0}
+      .v37-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}
+      .v37-badge.green{background:#ecfdf5;border-color:#bbf7d0;color:#15803d}.v37-badge.red{background:#fff1f2;border-color:#fecaca;color:#dc2626}.v37-badge.amber{background:#fffbeb;border-color:#fde68a;color:#b45309}.v37-badge.gray{background:#f8fafc;border-color:#e2e8f0;color:#475569}
+      .v37-matrix{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .v37-tile{border:1px solid var(--v37-line);background:#fff;border-radius:18px;padding:14px;min-height:110px}
+      .v37-tile h4{margin:0 0 6px;font-size:13px;color:#0f172a}.v37-tile p{margin:0;color:#64748b;font-size:12px;line-height:1.35}
+      .v37-good{background:linear-gradient(135deg,#ecfdf5,#fff);border-color:#bbf7d0}.v37-warn{background:linear-gradient(135deg,#fffbeb,#fff);border-color:#fde68a}.v37-danger{background:linear-gradient(135deg,#fff1f2,#fff);border-color:#fecaca}.v37-info{background:linear-gradient(135deg,#eff6ff,#fff);border-color:#bfdbfe}
+      .v37-status-dot{width:9px;height:9px;border-radius:99px;background:#94a3b8;display:inline-block}.v37-status-dot.ok{background:#10b981}.v37-status-dot.bad{background:#ef4444}.v37-status-dot.warn{background:#f59e0b}
+      .v37-backup-zone{border:1px dashed #cbd5e1;border-radius:20px;padding:16px;background:linear-gradient(180deg,#fff,#fbfdff)}
+      .v37-finance-addon,.v37-calendar-addon{margin-top:16px!important}
+      .v37-week-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+      .v37-check{border:1px solid var(--v37-line);background:#fff;border-radius:18px;padding:14px;display:flex;gap:12px;align-items:flex-start}.v37-check input{margin-top:3px;transform:scale(1.1)}
+      .v37-load-meter{height:13px;background:#eef2ff;border-radius:999px;overflow:hidden}.v37-load-meter b{height:100%;display:block;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#2563eb)}.v37-load-meter b.warn{background:linear-gradient(90deg,#f59e0b,#ef4444)}.v37-load-meter b.good{background:linear-gradient(90deg,#34d399,#10b981)}
+      .v37-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+      .v37-color{width:10px;height:10px;border-radius:99px;display:inline-block}.v37-color.green{background:#10b981}.v37-color.yellow{background:#f59e0b}.v37-color.red{background:#ef4444}.v37-color.blue{background:#2563eb}.v37-color.pink{background:#ec4899}.v37-color.purple{background:#8b5cf6}
+      @media(max-width:1180px){.v37-grid,.v37-grid.two,.v37-grid.four,.v37-week-checks,.v37-matrix{grid-template-columns:1fr!important}}
+    `;
+    document.head.appendChild(st);
+  }
+  function v37Now(){return new Date().toLocaleString('ru-RU')}
+  function v37Bytes(str){return new Blob([str||'']).size}
+  function v37LocalSize(){let n=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);n+=v37Bytes(k)+v37Bytes(localStorage.getItem(k));}}catch(e){}return n}
+  function v37Kb(v){return (v/1024).toFixed(1)+' КБ'}
+  function v37CountArray(k){return Array.isArray(state?.[k])?state[k].length:0}
+  function v37SyncCfg(){v37EnsureState();return state.settings.sync||{}}
+  function v37SyncState(){
+    const c=v37SyncCfg();
+    if(c.lastError) return ['bad','Ошибка: '+c.lastError];
+    if(c.gistId && c.token && c.auto) return ['ok','Подключена · авто'];
+    if(c.gistId && c.token) return ['ok','Подключена · вручную'];
+    if(c.gistId) return ['warn','Нужен token на этом устройстве'];
+    return ['warn','Не настроена'];
+  }
+  function v37StateSnapshot(){return {version:V37_BUILD,createdAt:new Date().toISOString(),state};}
+  function v37DownloadBackup(){
+    v37EnsureState();
+    state.settings.v37.lastBackupAt=new Date().toISOString();
+    try{save();}catch(e){}
+    const blob=new Blob([JSON.stringify(v37StateSnapshot(),null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`second-brain-os-backup-${today()}-v37.json`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    try{toast('Резервная копия скачана')}catch(e){}
+  }
+  function v37OpenRestore(){
+    openModal('Восстановить из резервной копии',`
+      <div class="v37-backup-zone">
+        <h3>Загрузить JSON-файл Second Brain OS</h3>
+        <p class="small muted">Перед восстановлением текущие данные будут заменены данными из файла. Лучше сначала скачать свежую резервную копию.</p>
+        <input id="v37_backup_file" type="file" accept=".json,application/json">
+        <div class="row-actions" style="margin-top:12px"><button class="ghost-btn" data-v37-action="downloadBackup">Сначала скачать текущие данные</button><button class="btn" data-v37-action="restoreBackup">Восстановить из файла</button></div>
+      </div>`);
+  }
+  async function v37RestoreBackup(){
+    const file=document.querySelector('#v37_backup_file')?.files?.[0];
+    if(!file){try{toast('Выбери JSON-файл')}catch(e){} return;}
+    try{
+      const data=JSON.parse(await file.text());
+      const incoming=data.state||data;
+      state=normalize(incoming);
+      v37EnsureState();
+      state.settings.v37.lastRestoreAt=new Date().toISOString();
+      save(); closeModal(); render();
+      try{toast('Данные восстановлены')}catch(e){}
+    }catch(e){console.error(e);try{toast('Не удалось восстановить: '+(e.message||e))}catch(_){}}
+  }
+  function v37DiagnosticsPage(){
+    v37EnsureState(); v37EnsureStyles();
+    const sync=v37SyncState();
+    const arrays=[['Операции',v37CountArray('operations')],['Долги',v37CountArray('debts')],['Задачи',v37CountArray('tasks')],['События',v37CountArray('events')],['Покупки',v37CountArray('purchases')],['Люди',v37CountArray('people')],['Полина',(v37CountArray('polinaDays')||0)],['Идеи',v37CountArray('ideas')],['Цели',v37CountArray('goals')]];
+    const currentBuild=localStorage.getItem('secondBrainOS.currentBuild')||V37_BUILD;
+    return layout('Диагностика','Проверка версии, кэша, данных, ошибок, синхронизации и резервных копий.',`
+      <section class="v37-grid four">
+        <article class="card v37-kpi"><h3>Версия</h3><div class="value sm blue">V37</div><p class="small muted">${esc(currentBuild)}</p></article>
+        <article class="card v37-kpi"><h3>Данные</h3><div class="value sm green">${arrays.reduce((s,x)=>s+x[1],0)}</div><p class="small muted">записей в основных разделах</p></article>
+        <article class="card v37-kpi"><h3>localStorage</h3><div class="value sm amber">${v37Kb(v37LocalSize())}</div><p class="small muted">примерный размер локальной базы</p></article>
+        <article class="card v37-kpi"><h3>Синхронизация</h3><div class="value sm ${sync[0]==='ok'?'green':sync[0]==='bad'?'red':'amber'}">${sync[0]==='ok'?'OK':sync[0]==='bad'?'ERR':'WAIT'}</div><p class="small muted">${esc(sync[1])}</p></article>
+      </section>
+      <section class="v37-grid two">
+        <article class="card"><div class="card-head"><div><h3>Проверки загрузки</h3><p class="small muted">Помогает понять, почему сайт не обновился или кнопки сломались.</p></div><span class="v37-badge green">активно</span></div>
+          <div class="v37-row"><span><span class="v37-status-dot ok"></span> BUILD в браузере</span><b>${esc(currentBuild)}</b></div>
+          <div class="v37-row"><span><span id="v37_sw_dot" class="v37-status-dot warn"></span> Service Worker</span><b id="v37_sw_text">проверяю...</b></div>
+          <div class="v37-row"><span><span id="v37_js_dot" class="v37-status-dot ok"></span> JS-ошибки текущей загрузки</span><b id="v37_js_text">нет данных</b></div>
+          <div class="v37-row"><span>Текущий раздел</span><b>${esc(page||location.hash||'dashboard')}</b></div>
+          <div class="row-actions" style="margin-top:12px"><button class="ghost-btn" data-action="clearCache">Очистить кэш</button><button class="ghost-btn" data-go="personal">Проверить Личное</button><button class="ghost-btn" data-go="calendar">Проверить Календарь</button></div>
+        </article>
+        <article class="card"><div class="card-head"><div><h3>Резервная копия</h3><p class="small muted">Перед крупными правками сохраняй файл с данными.</p></div><span class="v37-badge blue">безопасно</span></div>
+          <div class="v37-row"><span>Последний бэкап</span><b>${state.settings.v37.lastBackupAt?new Date(state.settings.v37.lastBackupAt).toLocaleString('ru-RU'):'ещё не скачивался'}</b></div>
+          <div class="v37-row"><span>Последнее восстановление</span><b>${state.settings.v37.lastRestoreAt?new Date(state.settings.v37.lastRestoreAt).toLocaleString('ru-RU'):'не было'}</b></div>
+          <div class="row-actions" style="margin-top:12px"><button class="btn" data-v37-action="downloadBackup">Скачать резервную копию</button><button class="ghost-btn" data-v37-action="openRestore">Восстановить из файла</button></div>
+        </article>
+      </section>
+      <section class="v37-grid two">
+        <article class="card"><div class="card-head"><div><h3>Синхронизация устройств</h3><p class="small muted">GitHub Gist используется как облако данных между устройствами.</p></div><span class="v37-badge ${sync[0]==='ok'?'green':sync[0]==='bad'?'red':'amber'}">${esc(sync[1])}</span></div>
+          <div class="v37-row"><span>Gist ID</span><b>${v37SyncCfg().gistId?'задан':'не задан'}</b></div>
+          <div class="v37-row"><span>Token на этом устройстве</span><b>${v37SyncCfg().token?'задан':'не задан'}</b></div>
+          <div class="v37-row"><span>Последнее сохранение в облако</span><b>${v37SyncCfg().lastPush?new Date(v37SyncCfg().lastPush).toLocaleString('ru-RU'):'—'}</b></div>
+          <div class="v37-row"><span>Последняя загрузка из облака</span><b>${v37SyncCfg().lastPull?new Date(v37SyncCfg().lastPull).toLocaleString('ru-RU'):'—'}</b></div>
+          <div class="row-actions" style="margin-top:12px"><button class="ghost-btn" data-sync-action="syncSettings">Настроить</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить</button><button class="btn" data-sync-action="syncPush">Сохранить</button></div>
+        </article>
+        <article class="card"><div class="card-head"><h3>Структура данных</h3><span class="v37-badge gray">localStorage</span></div>
+          ${arrays.map(([k,v])=>`<div class="v37-row"><span>${esc(k)}</span><b>${v}</b></div>`).join('')}
+        </article>
+      </section>
+    `);
+  }
+  function v37FillDiagnostics(){
+    if((page||'')!=='diagnostics' && (location.hash||'').replace('#','')!=='diagnostics') return;
+    try{
+      const jsErrors=window.__sbosV37Errors||[];
+      const jsText=document.getElementById('v37_js_text'); const jsDot=document.getElementById('v37_js_dot');
+      if(jsText){jsText.textContent=jsErrors.length?`${jsErrors.length} ошибок`:'ошибок не поймано';}
+      if(jsDot){jsDot.className='v37-status-dot '+(jsErrors.length?'bad':'ok');}
+      const swText=document.getElementById('v37_sw_text'); const swDot=document.getElementById('v37_sw_dot');
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(r=>{if(swText)swText.textContent=r.length?`активен: ${r.length}`:'не активен'; if(swDot)swDot.className='v37-status-dot '+(r.length?'ok':'warn');}).catch(()=>{if(swText)swText.textContent='ошибка проверки'; if(swDot)swDot.className='v37-status-dot bad';});
+      }else{ if(swText)swText.textContent='не поддерживается'; if(swDot)swDot.className='v37-status-dot warn'; }
+    }catch(e){}
+  }
+
+  function v37FinanceStats(){
+    const p=periodInfo();
+    const t=financeTotals(p);
+    const out=activeDebts().filter(d=>d.direction==='out');
+    const debtTotal=total(out);
+    const daysLeft=Math.max(1,Math.ceil((new Date(p.end)-new Date(today()))/86400000)+1);
+    const cashAfterBase=Math.max(0,(state.settings.currentBalance||0)+t.inc-t.exp-(t.upcoming||t.planned||0));
+    const recommendedDebt=Math.max(0,Math.min(cashAfterBase,Math.round(cashAfterBase*.65/1000)*1000));
+    const recommendedReserve=Math.max(0,Math.round((cashAfterBase-recommendedDebt)*.5/1000)*1000);
+    const dailyLimit=state.settings.v37?.dailyLimit||Math.max(0,Math.floor((cashAfterBase-recommendedDebt-recommendedReserve)/daysLeft));
+    return {p,t,out,debtTotal,daysLeft,cashAfterBase,recommendedDebt,recommendedReserve,dailyLimit};
+  }
+  function v37FirstDebt(out){
+    return out.slice().sort((a,b)=>{
+      const ao=a.due&&a.due<today()?0:1, bo=b.due&&b.due<today()?0:1; if(ao!==bo)return ao-bo;
+      const ad=a.due?new Date(a.due)-new Date(today()):9e15, bd=b.due?new Date(b.due)-new Date(today()):9e15; if(ad!==bd)return ad-bd;
+      return num(a.amount)-num(b.amount);
+    })[0];
+  }
+  function v37PayoffMonths(totalDebt,pay){return pay>0?Math.ceil(totalDebt/pay):0}
+  function v37FinanceAddonHtml(){
+    const s=v37FinanceStats(); const first=v37FirstDebt(s.out);
+    return `<section class="v37-finance-addon card" data-v37-addon="finance">
+      <div class="card-head"><div><h3>План недели по деньгам</h3><p class="small muted">Маленький контроль, который помогает закрывать долги и не ломать месяц.</p></div><span class="v37-badge green">дисциплина</span></div>
+      <div class="v37-grid four" style="margin-top:0">
+        <div class="v37-tile v37-info"><h4>Лимит дня</h4><div class="value sm blue">${money(s.dailyLimit)}</div><p>Ориентир свободных трат до конца периода.</p></div>
+        <div class="v37-tile v37-danger"><h4>На долги</h4><div class="value sm red">${money(s.recommendedDebt)}</div><p>${first?`Первый приоритет: ${esc(first.person)}`:'Активных долгов нет.'}</p></div>
+        <div class="v37-tile v37-good"><h4>В резерв</h4><div class="value sm green">${money(s.recommendedReserve)}</div><p>Чтобы не возвращаться к новым займам.</p></div>
+        <div class="v37-tile v37-warn"><h4>Дней до конца периода</h4><div class="value sm amber">${s.daysLeft}</div><p>Лимит считается от этого срока.</p></div>
+      </div>
+      <div class="v37-week-checks" style="margin-top:14px">
+        <label class="v37-check"><input type="checkbox"><span><b>${first?`Закрыть/погасить ${esc(first.person)}`:'Не брать новый долг'}</b><div class="small muted">Приоритет недели</div></span></label>
+        <label class="v37-check"><input type="checkbox"><span><b>Отложить ${money(s.recommendedReserve)}</b><div class="small muted">Даже если маленькая сумма</div></span></label>
+        <label class="v37-check"><input type="checkbox"><span><b>Не выходить за ${money(s.dailyLimit)} в день</b><div class="small muted">Контроль свободных трат</div></span></label>
+      </div>
+      <div class="v37-grid two"><article class="v37-tile"><h4>Сценарии выхода из долгов</h4><div class="v37-row"><span>по 5 000 ₽ / мес</span><b>${v37PayoffMonths(s.debtTotal,5000)||'—'} мес.</b></div><div class="v37-row"><span>по 10 000 ₽ / мес</span><b>${v37PayoffMonths(s.debtTotal,10000)||'—'} мес.</b></div><div class="v37-row"><span>по 15 000 ₽ / мес</span><b>${v37PayoffMonths(s.debtTotal,15000)||'—'} мес.</b></div></article><article class="v37-tile"><h4>Настройка лимита</h4><p>Можно вручную задать дневной лимит, если хочешь жёстче контролировать расходы.</p><div class="row-actions" style="margin-top:10px"><button class="ghost-btn" data-v37-action="setDailyLimit">Задать лимит дня</button></div></article></div>
+    </section>`;
+  }
+  function v37InjectFinance(){
+    try{
+      if((page||'')!=='finance' && (location.hash||'').replace('#','')!=='finance') return;
+      if(document.querySelector('[data-v37-addon="finance"]')) return;
+      const view=document.querySelector('#view'); if(!view) return;
+      view.insertAdjacentHTML('beforeend',v37FinanceAddonHtml());
+    }catch(e){console.error('[V37 finance addon]',e)}
+  }
+  function v37SetDailyLimit(){
+    v37EnsureState();
+    const old=state.settings.v37.dailyLimit||'';
+    const v=prompt('Дневной лимит свободных трат, ₽',old);
+    if(v===null) return;
+    state.settings.v37.dailyLimit=Math.max(0,num(v)); save(); render(); try{toast('Лимит дня сохранён')}catch(e){}
+  }
+
+  function v37CalendarEntries(){
+    const events=Array.isArray(state.events)?state.events.map(e=>({date:e.date,area:e.area||'Личное',type:e.type||'Событие',source:'event'})):[];
+    const tasks=Array.isArray(state.tasks)?state.tasks.filter(t=>t.date).map(t=>({date:t.date,area:t.area||'Личное',type:'Задача',source:'task'})):[];
+    const debts=Array.isArray(state.debts)?state.debts.filter(d=>d.due&&d.status!=='Закрыт').map(d=>({date:d.due,area:'Финансы',type:'Долг',source:'debt'})):[];
+    const purchases=Array.isArray(state.purchases)?state.purchases.filter(p=>p.date&&p.includeInBudget!==false).map(p=>({date:p.date,area:p.area||'Личное',type:'Покупка',source:'purchase'})):[];
+    return [...events,...tasks,...debts,...purchases];
+  }
+  function v37CalendarAddonHtml(){
+    const days=Array.from({length:7},(_,i)=>iso(addDays(new Date(),i)));
+    const counts=days.map(d=>v37CalendarEntries().filter(e=>e.date===d).length);
+    const totalWeek=counts.reduce((a,b)=>a+b,0);
+    const percent=clamp(Math.round(totalWeek/21*100));
+    const cls=percent>75?'warn':percent<45?'good':'';
+    const byArea={}; v37CalendarEntries().filter(e=>e.date>=today()&&e.date<=iso(addDays(new Date(),7))).forEach(e=>byArea[e.area]=(byArea[e.area]||0)+1);
+    return `<section class="v37-calendar-addon card" data-v37-addon="calendar">
+      <div class="card-head"><div><h3>Цветовая нагрузка недели</h3><p class="small muted">Быстрый индикатор, чтобы не перегружать дни.</p></div><span class="v37-badge ${percent>75?'red':percent>45?'amber':'green'}">${percent}%</span></div>
+      <div class="v37-load-meter"><b class="${cls}" style="width:${percent}%"></b></div>
+      <div class="v37-grid two"><article class="v37-tile"><h4>Как читать цвета</h4><div class="v37-legend"><span class="v37-badge"><i class="v37-color green"></i>лёгкий день</span><span class="v37-badge amber"><i class="v37-color yellow"></i>средняя нагрузка</span><span class="v37-badge red"><i class="v37-color red"></i>перегруз</span><span class="v37-badge"><i class="v37-color blue"></i>важные события</span><span class="v37-badge"><i class="v37-color purple"></i>личное</span><span class="v37-badge"><i class="v37-color pink"></i>Полина</span></div></article><article class="v37-tile"><h4>Нагрузка по сферам на 7 дней</h4>${Object.entries(byArea).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="v37-row"><span>${esc(k)}</span><b>${v}</b></div>`).join('')||'<p>На неделю нагрузка не запланирована.</p>'}</article></div>
+    </section>`;
+  }
+  function v37InjectCalendar(){
+    try{
+      if((page||'')!=='calendar' && (location.hash||'').replace('#','')!=='calendar') return;
+      if(document.querySelector('[data-v37-addon="calendar"]')) return;
+      const view=document.querySelector('#view'); if(!view) return;
+      view.insertAdjacentHTML('afterbegin',v37CalendarAddonHtml());
+    }catch(e){console.error('[V37 calendar addon]',e)}
+  }
+
+  const oldOpenProfileToolsV37=typeof openProfileTools==='function'?openProfileTools:null;
+  openProfileTools=function(){
+    v37EnsureState(); v37EnsureStyles();
+    const sync=v37SyncState();
+    openModal('Профиль, импорт, бэкап и синхронизация',`
+      <div class="v37-grid two" style="margin-top:0">
+        <article class="v37-backup-zone"><h3>Резервная копия данных</h3><p class="small muted">Сохрани файл перед большими правками. Его можно перенести на другое устройство и восстановить.</p><div class="row-actions"><button class="btn" data-v37-action="downloadBackup">Скачать бэкап</button><button class="ghost-btn" data-v37-action="openRestore">Восстановить</button></div></article>
+        <article class="v37-backup-zone"><h3>Синхронизация устройств</h3><p class="small muted">Статус: ${esc(sync[1])}</p><div class="row-actions"><button class="ghost-btn" data-sync-action="syncSettings">Настроить</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить</button><button class="btn" data-sync-action="syncPush">Сохранить</button></div></article>
+      </div>
+      <div class="grid cols-2" style="margin-top:14px"><button class="ghost-btn" data-go="diagnostics">Открыть диагностику</button><button class="ghost-btn" data-action="exportData">Старый экспорт JSON</button><button class="ghost-btn" data-action="restoreSections">Показать все папки</button><button class="ghost-btn" data-action="clearCache">Очистить кэш</button><button class="ghost-btn" data-action="setActualBalance">Фактический остаток</button></div>
+      <div class="csv-import-box" style="margin-top:14px"><h3>Импорт CSV банка</h3><p class="small muted">Дубли удаляются автоматически.</p><input type="file" id="csvFile" accept=".csv,text/csv"><div class="row-actions" style="margin-top:10px"><button class="btn" data-action="importBankCsv">Импортировать CSV</button></div></div>
+      <p class="small muted" style="margin-top:12px">Сборка: ${V37_BUILD}</p>`);
+  };
+
+  const oldRenderV37=typeof render==='function'?render:null;
+  render=function(){
+    v37EnsureState(); v37EnsureSections(); v37EnsureStyles();
+    const current=(location.hash||'').replace('#','')||page||'dashboard';
+    if(current==='diagnostics') page='diagnostics';
+    const res=oldRenderV37?oldRenderV37():undefined;
+    try{
+      if((page||current)==='diagnostics'){
+        const view=document.querySelector('#view'); if(view) view.innerHTML=v37DiagnosticsPage();
+      }
+      const v=document.querySelector('.version'); if(v) v.textContent=V37_LABEL;
+      v37InjectFinance();
+      v37InjectCalendar();
+      setTimeout(v37FillDiagnostics,20);
+    }catch(e){console.error('[V37 render]',e);try{toast('Ошибка V37: '+(e.message||e))}catch(_){}}
+    return res;
+  };
+
+  window.__sbosV37Errors=window.__sbosV37Errors||[];
+  window.addEventListener('error',e=>{try{window.__sbosV37Errors.push({message:e.message,source:e.filename,line:e.lineno,time:new Date().toISOString()});}catch(_){}},true);
+  window.addEventListener('unhandledrejection',e=>{try{window.__sbosV37Errors.push({message:String(e.reason?.message||e.reason),time:new Date().toISOString()});}catch(_){}},true);
+
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-v37-action]');
+    if(!el) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const a=el.dataset.v37Action;
+    try{
+      if(a==='downloadBackup') return v37DownloadBackup();
+      if(a==='openRestore') return v37OpenRestore();
+      if(a==='restoreBackup') return v37RestoreBackup();
+      if(a==='setDailyLimit') return v37SetDailyLimit();
+    }catch(err){console.error('[V37 action]',err);try{toast('Ошибка: '+(err.message||err))}catch(_){}}
+  },true);
+
+  try{v37EnsureState();v37EnsureSections();v37EnsureStyles();save();render();}catch(e){console.error('[V37 init]',e)}
+})();
