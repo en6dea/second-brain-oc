@@ -1612,3 +1612,114 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{ensureV35State();ensureV35Styles();save();render();setTimeout(autoPullOnLoad,1200);}catch(e){console.error('[V35]',e);try{toast('Ошибка V35: '+(e.message||e))}catch(_){}}
 })();
+
+
+/* ===== V36 Personal hard layout fix: stable cards for Личное, no broken pastel bars ===== */
+(function(){
+  const V36_LABEL='V36 · ЛИЧНОЕ · HARD LAYOUT FIX';
+  const V36_BUILD='second-brain-space-v36-personal-layout-hard-fix-20260703';
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V36_BUILD); }catch(e){}
+
+  function v36Count(arr){return Array.isArray(arr)?arr.length:0}
+  function v36PolinaCount(){
+    try{
+      const a=v36Count(state.polinaDays);
+      const b=v36Count(state.polina?.days)+v36Count(state.polina?.entries)+v36Count(state.polinaCalendar);
+      return Math.max(a,b,2);
+    }catch(e){return 2}
+  }
+  function v36Folders(){
+    state=state||{};
+    return [
+      ['polina','Полина','🌸','rgba(236,72,153,.12)','#ec4899',v36PolinaCount()],
+      ['people','Люди','👥','rgba(124,58,237,.12)','#7c3aed',v36Count(state.people)],
+      ['notes','Заметки','✏️','rgba(249,115,22,.12)','#f97316',v36Count(state.notes)],
+      ['ideas','Идеи','💡','rgba(234,179,8,.14)','#eab308',v36Count(state.ideas)],
+      ['wishes','Желания','💗','rgba(236,72,153,.12)','#ec4899',v36Count(state.wishes)],
+      ['books','Книги','🚩','rgba(34,197,94,.12)','#22c55e',v36Count(state.books)],
+      ['films','Фильмы','🎬','rgba(139,92,246,.12)','#8b5cf6',v36Count(state.films)],
+      ['trips','Путешествия','✈️','rgba(14,165,233,.12)','#0ea5e9',v36Count(state.trips)],
+      ['documents','Документы','📄','rgba(6,182,212,.12)','#06b6d4',v36Count(state.documents)]
+    ];
+  }
+  function ensureV36PersonalStyles(){
+    if(document.getElementById('v36-personal-hard-layout-style')) return;
+    const st=document.createElement('style');
+    st.id='v36-personal-hard-layout-style';
+    st.textContent=`
+      #view .personal-v36-list{max-width:1180px!important;display:grid!important;grid-template-columns:1fr!important;gap:10px!important;margin-top:18px!important;padding:0!important;align-items:stretch!important}
+      #view .personal-v36-row{all:unset!important;box-sizing:border-box!important;width:100%!important;min-height:84px!important;display:grid!important;grid-template-columns:58px minmax(0,1fr) 36px!important;align-items:center!important;gap:16px!important;padding:16px 18px!important;border:1px solid rgba(226,232,240,.96)!important;border-radius:20px!important;background:rgba(255,255,255,.92)!important;box-shadow:0 10px 24px rgba(15,23,42,.035)!important;color:#0f172a!important;cursor:pointer!important;position:relative!important;overflow:hidden!important;text-align:left!important;font:inherit!important;line-height:normal!important;white-space:normal!important;appearance:none!important;-webkit-appearance:none!important}
+      #view .personal-v36-row:hover{transform:translateY(-1px)!important;border-color:#bfdbfe!important;background:#fff!important;box-shadow:0 16px 34px rgba(15,23,42,.06)!important}
+      #view .personal-v36-row::before{content:''!important;position:absolute!important;inset:0!important;background:linear-gradient(135deg,rgba(37,99,235,.025),transparent 45%)!important;pointer-events:none!important}
+      #view .personal-v36-icon{box-sizing:border-box!important;width:48px!important;height:48px!important;border-radius:16px!important;display:grid!important;place-items:center!important;font-size:20px!important;font-weight:900!important;position:relative!important;z-index:1!important;line-height:1!important;flex:none!important}
+      #view .personal-v36-text{position:relative!important;z-index:1!important;display:grid!important;gap:4px!important;min-width:0!important;background:transparent!important;padding:0!important;margin:0!important}
+      #view .personal-v36-text h3{margin:0!important;font-size:17px!important;line-height:1.2!important;font-weight:900!important;letter-spacing:-.035em!important;color:#0f172a!important;background:transparent!important;padding:0!important;border:0!important}
+      #view .personal-v36-text p{margin:0!important;font-size:12px!important;line-height:1.25!important;color:#64748b!important;font-weight:700!important;background:transparent!important;padding:0!important;border:0!important}
+      #view .personal-v36-chevron{box-sizing:border-box!important;width:34px!important;height:34px!important;border-radius:12px!important;display:grid!important;place-items:center!important;color:#0f172a!important;background:rgba(248,250,252,.75)!important;border:1px solid #edf2f7!important;font-weight:900!important;position:relative!important;z-index:1!important;font-size:22px!important;line-height:1!important}
+      #view .personal-v36-actions{max-width:1180px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin-top:8px!important}
+      #view .personal-v36-sync-pill{display:inline-flex!important;align-items:center!important;gap:6px!important;border:1px solid #dbeafe!important;background:#eef5ff!important;color:#2563eb!important;border-radius:999px!important;padding:7px 10px!important;font-size:12px!important;font-weight:900!important;line-height:1!important}
+      #view .personal-v36-sync-pill.green{background:#ecfdf5!important;border-color:#bbf7d0!important;color:#10b981!important}
+      @media(max-width:760px){#view .personal-v36-row{grid-template-columns:50px minmax(0,1fr) 32px!important;min-height:74px!important;padding:14px!important;gap:12px!important}#view .personal-v36-icon{width:42px!important;height:42px!important}.personal-v36-actions{align-items:stretch!important}.personal-v36-actions .row-actions{width:100%!important;justify-content:flex-start!important}}
+    `;
+    document.head.appendChild(st);
+  }
+  function v36SyncConfigured(){
+    try{return Boolean(state?.settings?.sync?.gistId)}catch(e){return false}
+  }
+  function v36PersonalInner(){
+    const sync = v36SyncConfigured();
+    return `
+      <section class="personal-v36-actions">
+        <div class="personal-v36-sync-pill ${sync?'green':''}">${sync?'☁️ Синхронизация настроена':'☁️ Синхронизация не настроена'}</div>
+        <div class="row-actions">
+          <button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button>
+          <button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button>
+          <button class="btn" data-sync-action="syncPush">Сохранить в облако</button>
+        </div>
+      </section>
+      <section class="personal-v36-list">
+        ${v36Folders().map(([id,title,icon,bg,color,count])=>`<button type="button" class="personal-v36-row" data-go="${id}" aria-label="Открыть ${esc(title)}"><span class="personal-v36-icon" style="background:${bg};color:${color}">${icon}</span><div class="personal-v36-text"><h3>${esc(title)}</h3><p>${count} записей</p></div><span class="personal-v36-chevron">›</span></button>`).join('')}
+      </section>`;
+  }
+  function v36PersonalPage(){
+    ensureV36PersonalStyles();
+    return layout('Личное','Личная база: люди, заметки, идеи, желания, книги, фильмы, путешествия, документы и Полина.',v36PersonalInner());
+  }
+  function forcePersonalV36(){
+    try{
+      ensureV36PersonalStyles();
+      const isPersonal=(location.hash||'').replace('#','')==='personal'||page==='personal';
+      if(!isPersonal) return;
+      const view=document.querySelector('#view');
+      if(!view) return;
+      const hasGood=view.querySelector('.personal-v36-list');
+      const text=(view.textContent||'').slice(0,300);
+      if(hasGood && !view.querySelector('.personal-v35-row')) return;
+      view.innerHTML=v36PersonalPage();
+      const v=document.querySelector('.version'); if(v) v.textContent=V36_LABEL;
+    }catch(e){console.error('[V36 personal force]',e);try{toast('Ошибка Личного: '+(e.message||e))}catch(_){}}
+  }
+
+  try{ personalPage=v36PersonalPage; }catch(e){ console.warn('[V36] personalPage override skipped',e); }
+
+  const oldRenderV36=typeof render==='function'?render:null;
+  if(oldRenderV36){
+    render=function(){
+      const res=oldRenderV36();
+      const v=document.querySelector('.version'); if(v) v.textContent=V36_LABEL;
+      setTimeout(forcePersonalV36,0);
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const go=e.target.closest&&e.target.closest('[data-go="personal"], .nav-item[data-go="personal"], button[data-go="personal"]');
+    if(!go) return;
+    setTimeout(forcePersonalV36,0);
+    setTimeout(forcePersonalV36,80);
+  },true);
+  window.addEventListener('hashchange',()=>{setTimeout(forcePersonalV36,0);setTimeout(forcePersonalV36,80);});
+  const mo=new MutationObserver(()=>forcePersonalV36());
+  try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+  try{ensureV36PersonalStyles(); if((location.hash||'').replace('#','')==='personal') setTimeout(forcePersonalV36,0); setTimeout(()=>{const v=document.querySelector('.version'); if(v) v.textContent=V36_LABEL;},0);}catch(e){console.error(e)}
+})();
