@@ -1,5 +1,18 @@
-const CACHE_NAME='second-brain-space-v40-finance-cockpit-alfa-20260707';
-const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./offline.html'];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS).catch(()=>{}))) });
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{const clone=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(event.request,clone)).catch(()=>{});return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./offline.html'))))});
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Second Brain OS V41</title>
+  <style>body{font-family:Manrope,Inter,Arial,sans-serif;background:#f8fbff;color:#0f172a;padding:28px}.card{max-width:860px;margin:auto;background:white;border:1px solid #dbeafe;border-radius:24px;padding:24px;box-shadow:0 20px 50px rgba(15,23,42,.08)}a{color:#2563eb;font-weight:800}</style>
+</head>
+<body>
+  <div class="card">
+    <h1>✅ Second Brain OS · V41 Force Update Hotfix</h1>
+    <p><b>Сборка:</b> second-brain-space-v41-force-update-hotfix-20260707</p>
+    <p>Исправлено зависание страницы force-update.html из-за сломанной строки в inline-скрипте. Finance Cockpit V40 и подготовка Альфа-Банк API сохранены.</p>
+    <p><a href="./force-update.html?v=v41-force-update-hotfix-20260707">Очистить кэш и открыть приложение</a></p>
+    <p><a href="./?v=second-brain-space-v41-force-update-hotfix-20260707#finance">Открыть Finance Cockpit без очистки</a></p>
+  </div>
+</body>
+</html>
