@@ -6,69 +6,27 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Force Update V41</title>
+  <title>Force Update V43</title>
   <style>
-    :root{--bg:#f8fbff;--text:#0f172a;--muted:#64748b;--border:#dbeafe;--blue:#2563eb;--soft:#eff6ff;}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Manrope,Inter,Arial,sans-serif;background:linear-gradient(135deg,#f8fbff,#eef7ff);color:var(--text);padding:28px;min-height:100vh}
-    .card{max-width:820px;margin:0 auto;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:24px;padding:24px;box-shadow:0 20px 50px rgba(15,23,42,.08)}
-    h1{margin:0 0 10px;font-size:28px}.muted{color:var(--muted)}
-    pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:14px;min-height:110px;margin-top:16px;color:#334155}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:14px;background:var(--blue);color:#fff;font-weight:800;padding:12px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}.ghost{border:1px solid #dbeafe;background:#fff;color:#1e3a8a;border-radius:14px;font-weight:800;padding:12px 16px;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
+    :root{--bg:#f8fbff;--text:#0f172a;--muted:#64748b;--border:#dbeafe;--blue:#2563eb;}
+    *{box-sizing:border-box}body{margin:0;font-family:Manrope,Inter,Arial,sans-serif;background:linear-gradient(135deg,#f8fbff,#eef7ff);color:var(--text);padding:28px;min-height:100vh}.card{max-width:820px;margin:0 auto;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:24px;padding:24px;box-shadow:0 20px 50px rgba(15,23,42,.08)}h1{margin:0 0 10px;font-size:28px}.muted{color:var(--muted)}pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:14px;min-height:110px;margin-top:16px;color:#334155}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:14px;background:var(--blue);color:#fff;font-weight:800;padding:12px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}.ghost{border:1px solid #dbeafe;background:#fff;color:#1e3a8a;border-radius:14px;font-weight:800;padding:12px 16px;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
   </style>
 </head>
 <body>
   <main class="card">
-    <h1>Обновление V41</h1>
-    <p class="muted">Исправляю зависание страницы обновления, очищаю service worker и кэш, затем открываю Finance Cockpit.</p>
-    <div class="row">
-      <button class="btn" id="startBtn">Запустить очистку ещё раз</button>
-      <a class="ghost" id="openApp" href="./?v=second-brain-space-v41-force-update-hotfix-20260707#finance">Открыть приложение вручную</a>
-      <a class="ghost" href="./version-check.html?v=v41">Проверить версию</a>
-    </div>
+    <h1>Обновление V43</h1>
+    <p class="muted">Очищаю service worker и кэш, затем открываю страницу проверки категорий расходов.</p>
+    <div class="row"><button class="btn" id="startBtn">Запустить очистку ещё раз</button><a class="ghost" id="openApp" href="./?v=second-brain-space-v43-expense-category-review-20260707#expense-review">Открыть приложение вручную</a><a class="ghost" href="./version-check.html?v=v43">Проверить версию</a></div>
     <pre id="log">Стартую обновление…</pre>
   </main>
   <script>
     (function(){
-      var BUILD = 'second-brain-space-v41-force-update-hotfix-20260707';
-      var TARGET = './?v=' + encodeURIComponent(BUILD) + '#finance';
-      var log = document.getElementById('log');
-      var openApp = document.getElementById('openApp');
-      openApp.href = TARGET;
-      function w(text){ log.textContent += '\n' + text; }
-      async function run(){
-        try{
-          localStorage.setItem('secondBrainOS.currentBuild', BUILD);
-          w('BUILD записан: ' + BUILD);
-          if('serviceWorker' in navigator){
-            var regs = await navigator.serviceWorker.getRegistrations();
-            if(!regs.length) w('Service worker не найден — ок.');
-            for(var i=0;i<regs.length;i++){
-              await regs[i].unregister();
-              w('Service worker удалён.');
-            }
-          } else {
-            w('Service worker не поддерживается — ок.');
-          }
-          if('caches' in window){
-            var keys = await caches.keys();
-            if(!keys.length) w('Кэш пустой — ок.');
-            for(var j=0;j<keys.length;j++){
-              await caches.delete(keys[j]);
-              w('Кэш удалён: ' + keys[j]);
-            }
-          } else {
-            w('Cache API не поддерживается — ок.');
-          }
-          w('Готово. Открываю приложение через 1 секунду…');
-          setTimeout(function(){ window.location.replace(TARGET); }, 1000);
-        }catch(e){
-          w('Ошибка очистки: ' + (e && e.message ? e.message : e));
-          w('Открой приложение вручную кнопкой выше.');
-        }
-      }
-      document.getElementById('startBtn').addEventListener('click', function(){ log.textContent='Повторная очистка…'; run(); });
-      setTimeout(run, 200);
+      var BUILD='second-brain-space-v43-expense-category-review-20260707';
+      var TARGET='./?v='+encodeURIComponent(BUILD)+'#expense-review';
+      var log=document.getElementById('log');var openApp=document.getElementById('openApp');openApp.href=TARGET;
+      function w(t){log.textContent+='\n'+t;}
+      async function run(){try{localStorage.setItem('secondBrainOS.currentBuild',BUILD);w('BUILD записан: '+BUILD);if('serviceWorker' in navigator){var regs=await navigator.serviceWorker.getRegistrations();if(!regs.length)w('Service worker не найден — ок.');for(var i=0;i<regs.length;i++){await regs[i].unregister();w('Service worker удалён.');}}if('caches' in window){var keys=await caches.keys();if(!keys.length)w('Кэш пустой — ок.');for(var j=0;j<keys.length;j++){await caches.delete(keys[j]);w('Кэш удалён: '+keys[j]);}}w('Готово. Открываю страницу категорий через 1 секунду…');setTimeout(function(){window.location.replace(TARGET);},1000);}catch(e){w('Ошибка очистки: '+(e&&e.message?e.message:e));w('Открой приложение вручную кнопкой выше.');}}
+      document.getElementById('startBtn').addEventListener('click',function(){log.textContent='Повторная очистка…';run();});setTimeout(run,200);
     })();
   </script>
 </body>

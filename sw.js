@@ -1,4 +1,4 @@
-const CACHE_NAME='second-brain-space-v41-force-update-hotfix-20260707';
+const CACHE_NAME='second-brain-space-v43-expense-category-review-20260707';
 const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./offline.html'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS).catch(()=>{}))) });
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

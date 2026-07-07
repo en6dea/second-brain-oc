@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v40-finance-cockpit-alfa-20260707';
+const BUILD='second-brain-space-v43-expense-category-review-20260707';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -2648,7 +2648,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 /* ===== V41 Force Update Hotfix + V40 Finance Cockpit ===== */
 (function(){
-  const V40_BUILD='second-brain-space-v41-force-update-hotfix-20260707';
+  const V40_BUILD='second-brain-space-v43-expense-category-review-20260707';
   const V40_LABEL='V41 · ФИНАНСЫ · COCKPIT · HOTFIX';
   try{ localStorage.setItem('secondBrainOS.currentBuild',V40_BUILD); }catch(e){}
 
@@ -2750,4 +2750,239 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   const oldRenderV40=typeof render==='function'?render:null;
   if(oldRenderV40){render=function(){v40Ensure();const res=oldRenderV40();const v=document.querySelector('.version');if(v)v.textContent=V40_LABEL;return res;};}
   try{v40Ensure();save();render();}catch(e){console.error('[V40 init]',e)}
+})();
+
+
+/* ===== V43 Expense Category Review: separate page for checking CSV auto categories ===== */
+(function(){
+  const V43_BUILD='second-brain-space-v43-expense-category-review-20260707';
+  const V43_LABEL='V43 · РАСХОДЫ · ПРОВЕРКА КАТЕГОРИЙ';
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V43_BUILD); }catch(e){}
+
+  const V43_DEFAULT_CATEGORIES=[
+    'Продукты','Кафе / еда','Транспорт','АЗС / авто','Дом / быт','Связь / подписки','Здоровье','Одежда','Подарки','Полина','Развлечения','Долги / банк','Кредиты','Образование','Работа','Путешествия','Маркетплейсы','Банк','Прочее','Не определено'
+  ];
+
+  function v43Ensure(){
+    state.settings=state.settings||{};
+    state.settings.expenseReviewPeriod=state.settings.expenseReviewPeriod||'month';
+    state.settings.expenseReviewMode=state.settings.expenseReviewMode||'all';
+    state.settings.expenseReviewSearch=state.settings.expenseReviewSearch||'';
+    state.operations=Array.isArray(state.operations)?state.operations:[];
+  }
+
+  function v43AddSection(){
+    try{
+      if(!Array.isArray(SECTIONS)) return;
+      if(SECTIONS.some(s=>s.id==='expense-review')) return;
+      const idx=SECTIONS.findIndex(s=>s.id==='finance');
+      SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'expense-review',label:'Категории расходов',icon:'🧾',color:'#f97316',group:'ФИНАНСЫ'});
+    }catch(e){console.error('[V43 add section]',e)}
+  }
+
+  function v43Styles(){
+    if(document.getElementById('v43-expense-review-style')) return;
+    const st=document.createElement('style');
+    st.id='v43-expense-review-style';
+    st.textContent=`
+      .v43-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:0 0 14px}
+      .v43-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+      .v43-tab{border:1px solid #dbeafe;background:#fff;color:#334155;border-radius:999px;padding:9px 13px;font-weight:900;cursor:pointer;box-shadow:0 8px 20px rgba(15,23,42,.035)}
+      .v43-tab:hover{border-color:#93c5fd;color:#2563eb;background:#f8fbff}.v43-tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
+      .v43-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.v43-search input{height:42px;border:1px solid #dbeafe;background:#fff;border-radius:15px;padding:0 13px;min-width:260px;outline:0;font-weight:750;color:#0f172a}
+      .v43-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}.v43-kpi{border:1px solid #e5edf7;border-radius:22px;background:rgba(255,255,255,.92);padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.04)}.v43-kpi .label{font-size:12px;color:#64748b;font-weight:900;margin-bottom:7px}.v43-kpi .num{font-size:29px;font-weight:1000;letter-spacing:-.055em}.v43-kpi p{margin:5px 0 0}
+      .v43-layout{display:grid;grid-template-columns:minmax(280px,.34fr) minmax(0,1fr);gap:16px}.v43-side-stack{display:grid;gap:12px;align-content:start}.v43-panel{border:1px solid #e5edf7;border-radius:24px;background:rgba(255,255,255,.92);padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.04)}
+      .v43-cat-summary{display:grid;gap:10px}.v43-cat-btn{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:16px;padding:10px;text-align:left}.v43-cat-btn:hover{border-color:#bfdbfe;background:#f8fbff}.v43-cat-btn b{display:block;color:#0f172a}.v43-cat-btn .bar{height:7px;background:#edf4ff;border-radius:999px;overflow:hidden;margin-top:7px}.v43-cat-btn .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#f97316,#38bdf8)}
+      .v43-groups{display:grid;gap:14px}.v43-group{border:1px solid #dbeafe;border-radius:24px;background:rgba(255,255,255,.95);box-shadow:0 10px 26px rgba(15,23,42,.04);overflow:hidden}.v43-group summary{list-style:none;cursor:pointer;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.v43-group summary::-webkit-details-marker{display:none}.v43-group-title{display:flex;align-items:center;gap:10px;min-width:0}.v43-dot{width:38px;height:38px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#fff7ed,#eef5ff);font-weight:1000;color:#f97316}.v43-group-meta{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.v43-group-body{border-top:1px solid #eaf0f8;padding:12px 16px 16px;display:grid;gap:10px}.v43-group-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:end;border:1px dashed #dbeafe;background:#f8fbff;border-radius:18px;padding:12px}.v43-group-actions .field{min-width:220px;flex:1}.v43-group-actions input{height:40px;border:1px solid #dbeafe;border-radius:14px;padding:0 11px;background:#fff;font-weight:750;outline:0;width:100%}
+      .v43-op{display:grid;grid-template-columns:116px minmax(0,1fr) 150px 250px auto;gap:10px;align-items:center;border:1px solid #eaf0f8;background:#fbfdff;border-radius:18px;padding:11px}.v43-op:hover{background:#f8fbff;border-color:#bfdbfe}.v43-op-main b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v43-op-main .small{line-height:1.35}.v43-op-amount{font-weight:1000;color:#ef4444;text-align:right}.v43-op input{height:38px;border:1px solid #dbeafe;border-radius:13px;padding:0 10px;background:#fff;outline:0;font-weight:800;width:100%}.v43-op-actions{display:flex;gap:6px;justify-content:flex-end}.v43-review{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-weight:900;font-size:12px;border:1px solid #e5edf7;background:#f8fafc;color:#64748b}.v43-review.need{background:#fff7ed;color:#d97706;border-color:#fed7aa}.v43-review.ok{background:#ecfdf5;color:#059669;border-color:#bbf7d0}.v43-hint{border:1px solid #dbeafe;background:linear-gradient(135deg,#f8fbff,#fff);border-radius:22px;padding:14px;line-height:1.55}.v43-empty{border:1px dashed #dbeafe;background:#f8fbff;border-radius:22px;padding:18px;color:#64748b;font-weight:800}.v43-sticky-note{position:sticky;top:14px}
+      @media(max-width:1060px){.v43-layout{grid-template-columns:1fr}.v43-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v43-op{grid-template-columns:1fr}.v43-op-amount{text-align:left}.v43-op-actions{justify-content:flex-start}.v43-search input{min-width:0;width:100%}}
+      @media(max-width:720px){.v43-kpis{grid-template-columns:1fr}.v43-toolbar{align-items:stretch}.v43-search,.v43-tabs{width:100%}.v43-tab{flex:1;justify-content:center}.v43-op{padding:12px}.v43-group summary{grid-template-columns:1fr}.v43-group-meta{justify-content:flex-start}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v43Period(){
+    const kind=state.settings.expenseReviewPeriod||'month';
+    if(kind==='all') return {key:'all',title:'всё время',start:'',end:''};
+    if(kind==='unreviewed') return {key:'unreviewed',title:'к проверке',start:'',end:''};
+    return periodInfo(kind);
+  }
+  function v43InPeriod(o,p){
+    if(!p || p.key==='all' || p.key==='unreviewed') return true;
+    return (!p.start || String(o.date||'')>=p.start) && (!p.end || String(o.date||'')<=p.end);
+  }
+  function v43NeedReview(o){ return o && o.type==='expense' && o.categoryReviewed!==true; }
+  function v43AllCategories(){
+    const cats=new Set(V43_DEFAULT_CATEGORIES);
+    state.operations.forEach(o=>{ if(o.category) cats.add(String(o.category).trim()); });
+    return [...cats].filter(Boolean).sort((a,b)=>a.localeCompare(b,'ru'));
+  }
+  function v43Datalist(){return `<datalist id="v43CategoryList">${v43AllCategories().map(c=>`<option value="${esc(c)}"></option>`).join('')}</datalist>`;}
+  function v43Expenses(){
+    v43Ensure();
+    const p=v43Period();
+    const q=String(state.settings.expenseReviewSearch||'').toLowerCase().trim();
+    const mode=state.settings.expenseReviewMode||'all';
+    return state.operations.filter(o=>o.type==='expense').filter(o=>v43InPeriod(o,p)).filter(o=>{
+      if(p.key==='unreviewed' || mode==='review') return v43NeedReview(o);
+      return true;
+    }).filter(o=>{
+      if(!q) return true;
+      return [o.date,o.amount,o.category,o.note].some(v=>String(v||'').toLowerCase().includes(q));
+    }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || num(b.amount)-num(a.amount));
+  }
+  function v43Group(ops){
+    const map={};
+    ops.forEach(o=>{const c=String(o.category||'Не определено').trim()||'Не определено';(map[c]||(map[c]=[])).push(o);});
+    return Object.entries(map).map(([cat,items])=>({cat,items,total:items.reduce((s,o)=>s+num(o.amount),0),need:items.filter(v43NeedReview).length})).sort((a,b)=>b.total-a.total);
+  }
+  function v43AllExpenseStats(){
+    const all=state.operations.filter(o=>o.type==='expense');
+    const visible=v43Expenses();
+    const groups=v43Group(visible);
+    const total=visible.reduce((s,o)=>s+num(o.amount),0);
+    const need=all.filter(v43NeedReview).length;
+    const top=groups[0];
+    return {all,visible,groups,total,need,top};
+  }
+  function v43Pct(v,total){return total?Math.round(num(v)/Math.max(1,num(total))*100):0;}
+  function v43Trunc(s,n=74){s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s;}
+  function v43OpRow(o){
+    const need=v43NeedReview(o);
+    return `<div class="v43-op" data-op-id="${esc(o.id)}">
+      <div><b>${fmt(o.date)}</b><div class="small muted">${esc(o.date||'—')}</div></div>
+      <div class="v43-op-main"><b>${esc(v43Trunc(o.note||'Операция банка',86))}</b><div class="small muted">Текущая категория: ${esc(o.category||'Не определено')}</div></div>
+      <div class="v43-op-amount">−${money(o.amount)}</div>
+      <div><input list="v43CategoryList" data-v43-cat-input data-id="${esc(o.id)}" value="${esc(o.category||'Не определено')}" placeholder="Категория"></div>
+      <div class="v43-op-actions"><button class="mini blue" data-v43-action="saveExpenseCategory" data-id="${esc(o.id)}">Сохранить</button><button class="mini ${need?'green':'blue'}" data-v43-action="markExpenseReviewed" data-id="${esc(o.id)}">${need?'Проверено':'Ок'}</button></div>
+    </div>`;
+  }
+  function v43SummaryList(groups,total){
+    return `<div class="v43-cat-summary">${groups.slice(0,14).map(g=>`<button class="v43-cat-btn" data-v43-action="jumpCategory" data-cat="${esc(g.cat)}"><div><b>${esc(g.cat)}</b><div class="small muted">${g.items.length} операций · ${g.need} к проверке</div><div class="bar"><i style="width:${clamp(v43Pct(g.total,total),4,100)}%"></i></div></div><div><b>${money(g.total)}</b><div class="small muted">${v43Pct(g.total,total)}%</div></div></button>`).join('')||'<div class="v43-empty">За выбранный период расходов нет.</div>'}</div>`;
+  }
+  function v43GroupHtml(g,total,index){
+    const open=index<3 || g.need>0;
+    return `<details class="v43-group" ${open?'open':''} data-v43-category-block="${esc(g.cat)}">
+      <summary>
+        <div class="v43-group-title"><span class="v43-dot">🧾</span><div><h3 style="margin:0">${esc(g.cat)}</h3><div class="small muted">${g.items.length} операций · ${money(g.total)} · ${v43Pct(g.total,total)}% расходов</div></div></div>
+        <div class="v43-group-meta"><span class="pill amber">${g.need} к проверке</span><span class="pill blue">${money(g.total)}</span></div>
+      </summary>
+      <div class="v43-group-body">
+        <div class="v43-group-actions">
+          <div class="field"><label>Переименовать всю категорию</label><input list="v43CategoryList" data-v43-group-input="${esc(g.cat)}" value="${esc(g.cat)}"></div>
+          <div class="row-actions"><button class="ghost-btn" data-v43-action="moveGroupToCategory" data-cat="${esc(g.cat)}">Перенести все операции</button><button class="ghost-btn" data-v43-action="markGroupReviewed" data-cat="${esc(g.cat)}">Отметить всю категорию проверенной</button></div>
+        </div>
+        ${g.items.map(v43OpRow).join('')}
+      </div>
+    </details>`;
+  }
+  function v43Page(){
+    v43Ensure();v43AddSection();v43Styles();
+    const p=v43Period();const st=v43AllExpenseStats();const mode=state.settings.expenseReviewMode||'all';
+    const subtitle='Все расходы из CSV и ручных операций по категориям. Здесь можно быстро исправить неверную автокатегорию и отметить операции проверенными.';
+    return layout('Категории расходов',subtitle,`${v43Datalist()}
+      <section class="v43-toolbar">
+        <div class="v43-tabs">
+          ${[['month','Текущий месяц'],['last','Прошлый'],['quarter','3 месяца'],['year','Год'],['all','Всё время'],['unreviewed','К проверке']].map(([id,l])=>`<button class="v43-tab ${p.key===id?'active':''}" data-v43-action="setExpensePeriod" data-period="${id}">${l}</button>`).join('')}
+        </div>
+        <div class="v43-search"><input id="v43ExpenseSearch" value="${esc(state.settings.expenseReviewSearch||'')}" placeholder="Поиск: магазин, сумма, категория..."><button class="ghost-btn" data-v43-action="applyExpenseSearch">Найти</button><button class="ghost-btn" data-v43-action="clearExpenseSearch">Сбросить</button></div>
+      </section>
+      <section class="v43-toolbar" style="justify-content:flex-start">
+        <div class="v43-tabs"><button class="v43-tab ${mode==='all'?'active':''}" data-v43-action="setReviewMode" data-mode="all">Все операции</button><button class="v43-tab ${mode==='review'?'active':''}" data-v43-action="setReviewMode" data-mode="review">Только непроверенные</button></div>
+        <button class="btn" data-go="finance">← Вернуться в финансы</button>
+      </section>
+      <section class="v43-kpis">
+        <article class="v43-kpi"><div class="label">Расходы ${esc(p.title||'')}</div><div class="num red">${money(st.total)}</div><p class="small muted">видимых операций: ${st.visible.length}</p></article>
+        <article class="v43-kpi"><div class="label">К проверке</div><div class="num amber">${st.need}</div><p class="small muted">категория ещё не подтверждена</p></article>
+        <article class="v43-kpi"><div class="label">Категорий</div><div class="num blue">${st.groups.length}</div><p class="small muted">по выбранному фильтру</p></article>
+        <article class="v43-kpi"><div class="label">Самая большая</div><div class="num">${esc(st.top?st.top.cat:'—')}</div><p class="small muted">${st.top?money(st.top.total):'нет данных'}</p></article>
+      </section>
+      <section class="v43-layout">
+        <aside class="v43-side-stack"><article class="v43-panel v43-sticky-note"><div class="card-head"><h3>Сводка категорий</h3></div>${v43SummaryList(st.groups,st.total)}</article><article class="v43-hint"><b>Как пользоваться</b><div class="small muted">После импорта CSV открой эту страницу, пройди категории сверху вниз, исправь неверные названия и нажимай «Сохранить» или «Проверено». Так аналитика финансов станет точнее.</div></article></aside>
+        <main class="v43-groups">${st.groups.map((g,i)=>v43GroupHtml(g,st.total,i)).join('')||'<div class="v43-empty">Расходов за выбранный период нет. Импортируй CSV в финансах или добавь операцию вручную.</div>'}</main>
+      </section>`);
+  }
+
+  function v43ForcePage(){
+    try{
+      v43Ensure();v43AddSection();v43Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='expense-review'||page==='expense-review'){
+        const view=document.querySelector('#view'); if(view) view.innerHTML=v43Page().replace(/^<section[^>]*id="view"[^>]*>|<\/section>$/g,'');
+        const v=document.querySelector('.version'); if(v) v.textContent=V43_LABEL;
+      }
+    }catch(e){console.error('[V43 force page]',e);try{toast('Ошибка V43: '+(e.message||e))}catch(_){} }
+  }
+
+  function v43RenderDirect(){
+    const view=document.querySelector('#view');
+    if(view) view.innerHTML=v43Page().match(/<section class="page[\s\S]*<\/section>/)?.[0] || v43Page();
+  }
+
+  function v43FindOp(id){return state.operations.find(o=>String(o.id)===String(id));}
+  function v43InputForOp(id){return document.querySelector(`[data-v43-cat-input][data-id="${CSS.escape(String(id))}"]`);}
+  function v43SaveExpenseCategory(id){
+    const op=v43FindOp(id); if(!op) return toast('Операция не найдена');
+    const inp=v43InputForOp(id); const cat=String(inp?.value||'').trim();
+    if(!cat) return toast('Укажи категорию');
+    op.category=cat; op.categoryReviewed=true; op.categoryReviewedAt=new Date().toISOString();
+    save(); render(); toast('Категория сохранена');
+  }
+  function v43MarkExpenseReviewed(id){
+    const op=v43FindOp(id); if(!op) return toast('Операция не найдена');
+    op.categoryReviewed=true; op.categoryReviewedAt=new Date().toISOString();
+    save(); render(); toast('Операция отмечена проверенной');
+  }
+  function v43MoveGroup(cat){
+    const inp=document.querySelector(`[data-v43-group-input="${CSS.escape(String(cat))}"]`); const next=String(inp?.value||'').trim();
+    if(!next) return toast('Укажи новую категорию');
+    let n=0; state.operations.forEach(o=>{if(o.type==='expense' && String(o.category||'Не определено')===String(cat)){o.category=next;o.categoryReviewed=true;o.categoryReviewedAt=new Date().toISOString();n++;}});
+    save(); render(); toast(`Перенесено операций: ${n}`);
+  }
+  function v43MarkGroup(cat){
+    let n=0; state.operations.forEach(o=>{if(o.type==='expense' && String(o.category||'Не определено')===String(cat)){o.categoryReviewed=true;o.categoryReviewedAt=new Date().toISOString();n++;}});
+    save(); render(); toast(`Категория проверена: ${n} операций`);
+  }
+  function v43ApplySearch(){state.settings.expenseReviewSearch=document.getElementById('v43ExpenseSearch')?.value||'';save();render();}
+  function v43ClearSearch(){state.settings.expenseReviewSearch='';save();render();}
+  function v43JumpCategory(cat){
+    const box=[...document.querySelectorAll('[data-v43-category-block]')].find(x=>x.dataset.v43CategoryBlock===cat);
+    if(box){box.open=true; box.scrollIntoView({behavior:'smooth',block:'start'});}
+  }
+
+  const oldRenderV43=typeof render==='function'?render:null;
+  if(oldRenderV43){
+    render=function(){
+      v43Ensure();v43AddSection();v43Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='expense-review') page='expense-review';
+      const res=oldRenderV43();
+      setTimeout(v43ForcePage,0);
+      const v=document.querySelector('.version'); if(v) v.textContent=V43_LABEL;
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-v43-action]'); if(!el) return;
+    const a=el.dataset.v43Action;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    try{
+      if(a==='setExpensePeriod'){state.settings.expenseReviewPeriod=el.dataset.period||'month';save();render();return;}
+      if(a==='setReviewMode'){state.settings.expenseReviewMode=el.dataset.mode||'all';save();render();return;}
+      if(a==='applyExpenseSearch') return v43ApplySearch();
+      if(a==='clearExpenseSearch') return v43ClearSearch();
+      if(a==='saveExpenseCategory') return v43SaveExpenseCategory(el.dataset.id);
+      if(a==='markExpenseReviewed') return v43MarkExpenseReviewed(el.dataset.id);
+      if(a==='moveGroupToCategory') return v43MoveGroup(el.dataset.cat);
+      if(a==='markGroupReviewed') return v43MarkGroup(el.dataset.cat);
+      if(a==='jumpCategory') return v43JumpCategory(el.dataset.cat);
+    }catch(err){console.error('[V43 action]',err);try{toast('Ошибка категорий: '+(err.message||err))}catch(_){} }
+  },true);
+
+  window.addEventListener('keyup',function(e){
+    if(e.target && e.target.id==='v43ExpenseSearch' && e.key==='Enter'){e.preventDefault();v43ApplySearch();}
+  },true);
+  window.addEventListener('hashchange',()=>setTimeout(v43ForcePage,0));
+  try{v43Ensure();v43AddSection();v43Styles();save();render();}catch(e){console.error('[V43 init]',e)}
 })();
