@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v43-expense-category-review-20260707';
+const BUILD='second-brain-space-v44-system-core-20260707';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -2985,4 +2985,332 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
   window.addEventListener('hashchange',()=>setTimeout(v43ForcePage,0));
   try{v43Ensure();v43AddSection();v43Styles();save();render();}catch(e){console.error('[V43 init]',e)}
+})();
+
+
+/* ===== V44 System Core: global search, attention center, category learning ===== */
+(function(){
+  const V44_BUILD='second-brain-space-v44-system-core-20260707';
+  const V44_LABEL='V44 · SYSTEM CORE · ПОИСК + ВНИМАНИЕ';
+  try{ localStorage.setItem('secondBrainOS.currentBuild',V44_BUILD); }catch(e){}
+
+  function v44Ensure(){
+    state.settings=state.settings||{};
+    state.settings.categoryRules=Array.isArray(state.settings.categoryRules)?state.settings.categoryRules:[];
+    state.settings.globalSearchQuery=state.settings.globalSearchQuery||'';
+    state.settings.attentionMode=state.settings.attentionMode||'all';
+    const arrays=['operations','debts','tasks','purchases','wishes','notes','ideas','people','habits','goals','documents','books','films','trips','personal','archive','folders','events','polinaDays','subconsciousEntries'];
+    arrays.forEach(k=>{ if(!Array.isArray(state[k])) state[k]=[]; });
+    (state.operations||[]).forEach(o=>{
+      o.id=o.id||uid();
+      o.bankKey=o.bankKey||v44StableOpKey(o);
+      if(o.type==='expense' && typeof o.categoryReviewed==='undefined') o.categoryReviewed=false;
+    });
+  }
+  function v44AddSection(){
+    try{
+      if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='attention')){
+        const idx=SECTIONS.findIndex(s=>s.id==='dashboard');
+        SECTIONS.splice(idx>=0?idx+1:0,0,{id:'attention',label:'Центр внимания',icon:'🔔',color:'#f59e0b',group:'ПРОСТРАНСТВО'});
+      }
+      if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='global-search')){
+        const idx=SECTIONS.findIndex(s=>s.id==='diagnostics');
+        SECTIONS.splice(idx>=0?idx:SECTIONS.length,0,{id:'global-search',label:'Глобальный поиск',icon:'⌕',color:'#2563eb',group:'СЕРВИС'});
+      }
+    }catch(e){console.error('[V44 add section]',e)}
+  }
+  function v44Styles(){
+    if(document.getElementById('v44-system-core-style')) return;
+    const st=document.createElement('style');
+    st.id='v44-system-core-style';
+    st.textContent=`
+      .v44-hero-panel{border:1px solid #dbeafe;background:radial-gradient(circle at top left,rgba(37,99,235,.14),transparent 33%),linear-gradient(135deg,#fff,#f8fbff);border-radius:28px;padding:18px;box-shadow:0 22px 56px rgba(15,23,42,.07);margin-bottom:16px}
+      .v44-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}.v44-kpi{border:1px solid #e5edf7;background:#fff;border-radius:20px;padding:14px;box-shadow:0 10px 24px rgba(15,23,42,.035);min-height:110px}.v44-kpi .label{font-size:12px;color:#64748b;font-weight:900}.v44-kpi .num{font-size:28px;font-weight:1000;letter-spacing:-.04em;margin-top:6px}
+      .v44-attention-list{display:grid;gap:10px}.v44-attention-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:18px;padding:12px;box-shadow:0 8px 20px rgba(15,23,42,.03)}.v44-attention-row.critical{border-color:#fecaca;background:#fffafa}.v44-attention-row.warn{border-color:#fed7aa;background:#fffaf5}.v44-attention-row.ok{border-color:#bbf7d0;background:#f7fffb}.v44-attention-icon{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:#eef5ff;color:#2563eb;font-weight:900}.v44-attention-title{font-weight:1000;color:#0f172a}.v44-attention-sub{font-size:12px;color:#64748b;margin-top:3px}.v44-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.v44-tab{border:1px solid #dbeafe;background:#fff;border-radius:999px;padding:9px 13px;font-weight:900;color:#334155}.v44-tab.active{background:#2563eb;border-color:#2563eb;color:#fff}.v44-section-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.v44-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .v44-search-panel{border:1px solid #dbeafe;background:linear-gradient(135deg,#fff,#f8fbff);border-radius:24px;padding:16px;margin-bottom:16px}.v44-search-input{height:54px;border:1px solid #dbeafe;border-radius:18px;background:#fff;padding:0 16px;font-weight:850;width:100%;outline:0}.v44-search-results{display:grid;gap:10px}.v44-result{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:18px;padding:12px;text-align:left}.v44-result:hover{border-color:#bfdbfe;background:#f8fbff}.v44-result-type{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:#eef5ff;color:#2563eb;font-weight:900}.v44-result-title{font-weight:1000}.v44-result-text{font-size:12px;color:#64748b;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .v44-review-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#fff;border-radius:22px;padding:12px;margin-bottom:14px}.v44-rule{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:16px;padding:10px}.v44-op{display:grid;grid-template-columns:100px minmax(0,1fr) 120px 210px auto;gap:10px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:16px;padding:11px;margin-top:8px}.v44-op input,.v44-rule input,.v44-rule select{height:38px;border:1px solid #dbeafe;border-radius:12px;padding:0 10px;background:#fff}.v44-group{border:1px solid #e5edf7;background:#fff;border-radius:22px;margin-bottom:12px;overflow:hidden}.v44-group summary{cursor:pointer;padding:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}.v44-group-body{padding:0 14px 14px}.v44-learn-card{border:1px dashed #bfdbfe;background:#f8fbff;border-radius:20px;padding:14px}.v44-rule-list{display:grid;gap:8px;max-height:320px;overflow:auto}.v44-dashboard-insert{margin-bottom:16px}.v44-inspection-list{display:grid;gap:8px}.v44-check{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #eaf0f8;background:#fff;border-radius:14px;padding:10px}.v44-good{color:#10b981}.v44-warn{color:#f59e0b}.v44-bad{color:#ef4444}
+      @media(max-width:1180px){.v44-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v44-section-grid{grid-template-columns:1fr}.v44-op{grid-template-columns:1fr}.v44-op .row-actions{justify-content:flex-start}.v44-mini-grid{grid-template-columns:1fr}}
+      @media(max-width:760px){.v44-kpis{grid-template-columns:1fr}.v44-attention-row,.v44-result{grid-template-columns:auto minmax(0,1fr)}.v44-attention-row .row-actions,.v44-result .row-actions{grid-column:1/-1;justify-content:flex-start}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v44Date(d){return d?new Date(d+'T00:00:00'):null;}
+  function v44DaysUntil(d){const dt=v44Date(d); if(!dt) return 9999; const a=v44Date(today()); return Math.ceil((dt-a)/86400000);}
+  function v44Trunc(s,n=120){s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s;}
+  function v44Text(x){return Object.values(x||{}).filter(v=>['string','number','boolean'].includes(typeof v)).join(' · ');}
+  function v44StableOpKey(o){
+    const note=String(o.note||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,180);
+    return [o.date||'',o.type||'',Math.round(num(o.amount)*100)/100,note].join('|');
+  }
+  function v44MerchantPattern(note){
+    let s=String(note||'').toLowerCase();
+    s=s.replace(/\b\d{2,}\b/g,' ').replace(/[№#*]/g,' ').replace(/\s+/g,' ').trim();
+    const parts=s.split(/[·;|,]/).map(x=>x.trim()).filter(Boolean);
+    let pick=parts.find(x=>x.length>=4 && !/карта|счет|счёт|операц|платеж|покупка|списание|руб|rur|moscow|alfabank|альфа/i.test(x)) || parts[0] || s;
+    pick=pick.replace(/[^a-zа-яё0-9 ._-]/gi,' ').replace(/\s+/g,' ').trim();
+    return pick.slice(0,48) || 'операция';
+  }
+  function v44MatchRule(o,r){
+    const hay=String([o.note,o.category].join(' ')).toLowerCase();
+    const p=String(r.pattern||'').toLowerCase().trim();
+    return p && hay.includes(p);
+  }
+  function v44ApplyRules(showToast=false){
+    v44Ensure(); let changed=0;
+    const rules=state.settings.categoryRules||[];
+    (state.operations||[]).forEach(o=>{
+      if(o.type!=='expense' || o.categoryReviewed) return;
+      const r=rules.find(x=>v44MatchRule(o,x));
+      if(r && o.category!==r.category){o.category=r.category;o.categoryRuleId=r.id;r.hits=(num(r.hits)||0)+1;changed++;}
+    });
+    if(changed){save(); if(showToast) toast(`Правила применены: ${changed} операций`);}
+    else if(showToast) toast('Новых совпадений по правилам нет');
+    return changed;
+  }
+  function v44LearnRuleFromOp(o,cat){
+    if(!o||!cat) return null;
+    const pattern=v44MerchantPattern(o.note||o.category||'');
+    const rules=state.settings.categoryRules=state.settings.categoryRules||[];
+    let r=rules.find(x=>String(x.pattern).toLowerCase()===pattern.toLowerCase());
+    if(!r){r={id:uid(),pattern,category:cat,createdAt:new Date().toISOString(),hits:0};rules.unshift(r);}else{r.category=cat;r.updatedAt=new Date().toISOString();}
+    return r;
+  }
+  function v44DedupeOpsByStableKey(){
+    const seen=new Set(); let removed=0;
+    state.operations=(state.operations||[]).filter(o=>{const k=o.bankKey||v44StableOpKey(o);o.bankKey=k;if(seen.has(k)){removed++;return false;}seen.add(k);return true;});
+    return removed;
+  }
+  function v44ExpenseNeedReview(o){return o&&o.type==='expense' && !o.categoryReviewed;}
+  function v44UnreviewedCount(){return (state.operations||[]).filter(v44ExpenseNeedReview).length;}
+
+  function v44AttentionItems(){
+    v44Ensure();
+    const items=[];
+    const tdy=today();
+    (state.tasks||[]).filter(t=>t.status!=='Готово'&&t.date&&t.date<tdy).slice(0,8).forEach(t=>items.push({level:'critical',icon:'✅',title:`Просрочена задача: ${t.title||'Без названия'}`,sub:`${t.area||'Задачи'} · дата ${fmt(t.date)}`,go:'tasks'}));
+    (state.tasks||[]).filter(t=>t.status!=='Готово'&&t.date===tdy).slice(0,5).forEach(t=>items.push({level:'ok',icon:'☀️',title:`Сегодня: ${t.title||'Задача'}`,sub:`${t.time||'без времени'} · ${t.area||'Задачи'}`,go:'tasks'}));
+    (state.debts||[]).filter(d=>d.direction==='out'&&d.status!=='Закрыт').forEach(d=>{const days=v44DaysUntil(d.due); if(days<0)items.push({level:'critical',icon:'⚖️',title:`Просрочен долг: ${d.person} — ${money(d.amount)}`,sub:`срок был ${fmt(d.due)}`,go:'debts'}); else if(days<=7)items.push({level:'warn',icon:'⚖️',title:`Скоро платёж: ${d.person} — ${money(d.amount)}`,sub:`осталось дней: ${days}`,go:'debts'});});
+    const unchecked=v44UnreviewedCount(); if(unchecked) items.push({level:'warn',icon:'🧾',title:`Проверить категории расходов: ${unchecked}`,sub:'После CSV часть операций требует ручной проверки',go:'expense-review'});
+    const diary=(state.subconsciousEntries||[]).find(e=>e.date===tdy); if(!diary) items.push({level:'warn',icon:'🪞',title:'Дневник подсознания сегодня не заполнен',sub:'Ежедневный отклик себе занимает 2–3 минуты',go:'subconscious'});
+    (state.habits||[]).filter(h=>!(h.marks||{})[tdy]).slice(0,4).forEach(h=>items.push({level:'ok',icon:h.icon||'🎯',title:`Привычка сегодня: ${h.name||'Привычка'}`,sub:h.area||'Ритм дня',go:'habits'}));
+    (state.goals||[]).filter(g=>!(state.tasks||[]).some(t=>t.goalId===g.id&&t.status!=='Готово')).slice(0,4).forEach(g=>items.push({level:'warn',icon:'🚩',title:`Цель без следующего шага: ${g.title||'Цель'}`,sub:'Создай задачу недели, чтобы цель двигалась',go:'goals',goalId:g.id}));
+    (state.people||[]).filter(p=>p.birthday).forEach(p=>{const left=v44BirthdayDays(p.birthday); if(left>=0&&left<=14)items.push({level:left<=3?'warn':'ok',icon:'👥',title:`День рождения: ${p.name}`,sub:left===0?'сегодня':`через ${left} дн.`,go:'people'});});
+    (state.purchases||[]).filter(p=>p.includeInBudget!==false&&v44DaysUntil(p.date)>=0&&v44DaysUntil(p.date)<=14).slice(0,4).forEach(p=>items.push({level:'ok',icon:'🛒',title:`Плановая покупка: ${p.title} — ${money(p.amount)}`,sub:`дата ${fmt(p.date)} · влияет на бюджет`,go:'purchases'}));
+    return items.sort((a,b)=>({critical:0,warn:1,ok:2}[a.level]-{critical:0,warn:1,ok:2}[b.level]));
+  }
+  function v44BirthdayDays(birth){
+    const d=v44Date(birth); if(!d) return 9999; const now=new Date(); let next=new Date(now.getFullYear(),d.getMonth(),d.getDate()); if(next<new Date(now.getFullYear(),now.getMonth(),now.getDate())) next=new Date(now.getFullYear()+1,d.getMonth(),d.getDate()); return Math.ceil((next-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+  }
+  function v44AttentionRow(it){
+    const action=it.goalId?`<button class="mini green" data-action="createGoalWeeklyTask" data-id="${esc(it.goalId)}">Создать шаг</button>`:`<button class="mini blue" data-go="${esc(it.go||'dashboard')}">Открыть</button>`;
+    return `<div class="v44-attention-row ${esc(it.level)}"><div class="v44-attention-icon">${esc(it.icon||'•')}</div><div><div class="v44-attention-title">${esc(it.title)}</div><div class="v44-attention-sub">${esc(it.sub||'')}</div></div><div class="row-actions">${action}</div></div>`;
+  }
+  function v44AttentionPage(){
+    v44Ensure();v44Styles();
+    const items=v44AttentionItems(); const critical=items.filter(x=>x.level==='critical').length, warn=items.filter(x=>x.level==='warn').length;
+    const mode=state.settings.attentionMode||'all';
+    const filtered=mode==='critical'?items.filter(x=>x.level==='critical'):mode==='warn'?items.filter(x=>x.level==='warn'):items;
+    const unreviewed=v44UnreviewedCount();
+    const noGoalTasks=(state.goals||[]).filter(g=>!(state.tasks||[]).some(t=>t.goalId===g.id&&t.status!=='Готово')).length;
+    const diaryToday=Boolean((state.subconsciousEntries||[]).find(e=>e.date===today()));
+    return layout('Центр внимания','Главный экран того, что требует действия сегодня: задачи, деньги, долги, категории, дневник, цели и люди.',`
+      <section class="v44-hero-panel"><div class="card-head"><div><h3>Что важно сейчас</h3><p class="small muted">Система собирает сигналы из разных разделов и показывает только то, что требует внимания.</p></div><div class="row-actions"><button class="ghost-btn" data-go="global-search">Глобальный поиск</button><button class="btn" data-go="expense-review">Проверить расходы</button></div></div>
+        <div class="v44-kpis"><article class="v44-kpi"><div class="label">Критично</div><div class="num red">${critical}</div><p class="small muted">просрочки и риски</p></article><article class="v44-kpi"><div class="label">Предупреждения</div><div class="num amber">${warn}</div><p class="small muted">важно проверить</p></article><article class="v44-kpi"><div class="label">Категории CSV</div><div class="num blue">${unreviewed}</div><p class="small muted">не подтверждены</p></article><article class="v44-kpi"><div class="label">Дневник</div><div class="num ${diaryToday?'green':'amber'}">${diaryToday?'✓':'—'}</div><p class="small muted">отклик за сегодня</p></article></div></section>
+      <section class="v44-tabs"><button class="v44-tab ${mode==='all'?'active':''}" data-v44-action="attentionMode" data-mode="all">Все</button><button class="v44-tab ${mode==='critical'?'active':''}" data-v44-action="attentionMode" data-mode="critical">Критично</button><button class="v44-tab ${mode==='warn'?'active':''}" data-v44-action="attentionMode" data-mode="warn">Предупреждения</button></section>
+      <section class="v44-section-grid"><article class="card"><div class="card-head"><h3>Очередь внимания</h3><span class="pill blue">${filtered.length}</span></div><div class="v44-attention-list">${filtered.map(v44AttentionRow).join('')||empty('Сейчас ничего не горит. Хороший момент для планирования недели.')}</div></article><aside class="grid"><article class="card"><h3>Недельный вывод дневника</h3>${v44DiaryInsight()}</article><article class="card"><h3>Цели без движения</h3><p class="small muted">Целей без активного шага: <b>${noGoalTasks}</b></p><button class="ghost-btn" data-go="goals">Открыть SMART-цели</button></article></aside></section>`);
+  }
+  function v44DiaryInsight(){
+    const entries=(state.subconsciousEntries||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,7);
+    if(!entries.length) return `<p class="small muted">Пока нет записей. Заполни дневник 3–7 дней, и здесь появятся повторяющиеся темы.</p><button class="ghost-btn" data-go="subconscious">Открыть дневник</button>`;
+    const avgMood=Math.round(entries.reduce((s,e)=>s+num(e.mood),0)/Math.max(1,entries.filter(e=>num(e.mood)).length));
+    const avgEnergy=Math.round(entries.reduce((s,e)=>s+num(e.energy),0)/Math.max(1,entries.filter(e=>num(e.energy)).length));
+    const text=entries.map(e=>[e.body,e.summary,e.promise,e.signal].join(' ')).join(' ').toLowerCase();
+    const words=['устал','тревог','деньги','работ','сон','полина','семья','тело','страх','спокой','радость','злость','энерг','долг','фокус'].filter(w=>text.includes(w));
+    return `<div class="v44-mini-grid"><div class="record-card"><b>Среднее состояние</b><div class="value sm blue">${avgMood||'—'}/10</div></div><div class="record-card"><b>Средняя энергия</b><div class="value sm green">${avgEnergy||'—'}/10</div></div></div><p class="small muted" style="margin-top:12px">Повторяющиеся темы: ${words.length?words.map(esc).join(', '):'пока мало данных'}.</p><button class="ghost-btn" data-go="subconscious">Открыть дневник</button>`;
+  }
+
+  function v44SearchIndex(){
+    v44Ensure(); const rows=[]; const add=(type,icon,go,title,text,obj)=>rows.push({type,icon,go,title:title||'Без названия',text:text||'',obj});
+    (state.tasks||[]).forEach(x=>add('Задача','✅','tasks',x.title,`${x.area||''} ${x.date||''} ${x.note||''}`,x));
+    (state.operations||[]).forEach(x=>add(x.type==='income'?'Доход':'Расход',x.type==='income'?'↗':'↙',x.type==='expense'?'expense-review':'finance',`${x.category||'Операция'} · ${money(x.amount)}`,`${x.date||''} ${x.note||''}`,x));
+    (state.debts||[]).forEach(x=>add('Долг','⚖️','debts',`${x.person||'Долг'} · ${money(x.amount)}`,`${x.direction==='out'?'Я должен':'Мне должны'} ${x.due||''} ${x.note||''}`,x));
+    (state.purchases||[]).forEach(x=>add('Покупка','🛒','purchases',x.title,`${money(x.amount)} ${x.date||''} ${x.area||''} ${x.note||''}`,x));
+    (state.wishes||[]).forEach(x=>add('Желание','💗','wishes',x.title,`${money(x.amount)} ${x.area||''} ${x.note||''}`,x));
+    (state.notes||[]).forEach(x=>add('Заметка','📝','notes',x.title,`${x.folder||''} ${x.text||''}`,x));
+    (state.ideas||[]).forEach(x=>add('Идея','💡','ideas',x.title,x.text,x));
+    (state.people||[]).forEach(x=>add('Человек','👥','people',x.name,`${x.role||''} ${x.likes||''} ${x.talkIdeas||''} ${x.gifts||''} ${x.notes||''}`,x));
+    (state.habits||[]).forEach(x=>add('Привычка',x.icon||'🎯','habits',x.name,x.area,x));
+    (state.goals||[]).forEach(x=>add('Цель','🚩','goals',x.title,`${x.area||''} ${x.note||''} ${money(x.target||0)}`,x));
+    (state.documents||[]).forEach(x=>add('Документ','📄','documents',x.title,`${x.type||''} ${x.url||''} ${x.note||''}`,x));
+    (state.books||[]).forEach(x=>add('Книга','📚','books',x.title,`${x.author||''} ${x.note||''} ${x.quotes||''}`,x));
+    (state.films||[]).forEach(x=>add('Фильм','🎬','films',x.title,`${x.status||''} ${x.note||''}`,x));
+    (state.trips||[]).forEach(x=>add('Путешествие','✈️','trips',x.title||x.place,`${x.date||''} ${x.budget||''} ${x.note||''}`,x));
+    (state.subconsciousEntries||[]).forEach(x=>add('Дневник','🪞','subconscious',`Отклик ${fmt(x.date)}`,`${x.body||''} ${x.summary||''} ${x.promise||''} ${x.signal||''}`,x));
+    (state.polinaDays||[]).forEach(x=>add('Полина','🌸','polina',`Полина · ${fmt(x.date)}`,`${x.mood||''} ${x.comment||''}`,x));
+    (state.events||[]).forEach(x=>add('Календарь','📅','calendar',x.title,`${x.date||''} ${x.time||''} ${x.area||''} ${x.note||''}`,x));
+    return rows;
+  }
+  function v44SearchResults(q){
+    q=String(q||'').toLowerCase().trim();
+    const all=v44SearchIndex(); if(!q) return all.slice(0,40);
+    const terms=q.split(/\s+/).filter(Boolean);
+    return all.map(r=>{const hay=[r.type,r.title,r.text].join(' ').toLowerCase(); const score=terms.reduce((s,t)=>s+(hay.includes(t)?1:0),0)+(String(r.title).toLowerCase().includes(q)?2:0); return {...r,score};}).filter(r=>r.score>0).sort((a,b)=>b.score-a.score).slice(0,80);
+  }
+  function v44SearchPage(){
+    v44Ensure();v44Styles(); const q=state.settings.globalSearchQuery||''; const results=v44SearchResults(q);
+    return layout('Глобальный поиск','Быстрый поиск по задачам, финансам, людям, заметкам, целям, документам, Полине и дневнику.',`
+      <section class="v44-search-panel"><div class="card-head"><div style="width:100%"><input id="v44SearchInput" class="v44-search-input" value="${esc(q)}" placeholder="Введите запрос: человек, сумма, задача, магазин, цель..."></div><button class="btn" data-v44-action="runSearch">Найти</button></div><p class="small muted">Найдено: ${results.length}. Горячая клавиша: Ctrl/⌘ + K.</p></section>
+      <section class="v44-search-results">${results.map(r=>`<button class="v44-result" data-go="${esc(r.go)}"><span class="v44-result-type">${esc(r.icon)}</span><span><span class="v44-result-title">${esc(r.title)}</span><span class="v44-result-text">${esc(r.type)} · ${esc(v44Trunc(r.text,180))}</span></span><span class="pill blue">${esc(r.type)}</span></button>`).join('')||empty('Ничего не найдено. Попробуй другое слово или сумму.')}</section>`);
+  }
+
+  function v44Cats(){
+    const base=['Продукты','Кафе / еда','Транспорт','Дом','Здоровье','Связь','Одежда','Маркетплейсы','Подписки','Развлечения','Подарки','Полина','Долги / банк','Налоги','Работа','Личное','Прочее'];
+    const cats=new Set(base); (state.operations||[]).forEach(o=>{if(o.category) cats.add(o.category)}); (state.settings.categoryRules||[]).forEach(r=>{if(r.category) cats.add(r.category)});
+    return [...cats].sort((a,b)=>a.localeCompare(b,'ru'));
+  }
+  function v44ReviewOps(){
+    const mode=state.settings.expenseReviewMode||'all'; const q=String(state.settings.expenseReviewSearch||'').toLowerCase().trim();
+    let ops=(state.operations||[]).filter(o=>o.type==='expense');
+    if(mode==='review') ops=ops.filter(v44ExpenseNeedReview);
+    if(q) ops=ops.filter(o=>[o.date,o.amount,o.category,o.note].some(v=>String(v||'').toLowerCase().includes(q)));
+    return ops.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||num(b.amount)-num(a.amount));
+  }
+  function v44GroupOps(ops){
+    const m={}; ops.forEach(o=>{const c=o.category||'Не определено'; (m[c]||(m[c]=[])).push(o)});
+    return Object.entries(m).map(([cat,items])=>({cat,items,total:total(items),need:items.filter(v44ExpenseNeedReview).length})).sort((a,b)=>b.total-a.total);
+  }
+  function v44Datalist(){return `<datalist id="v44CatList">${v44Cats().map(c=>`<option value="${esc(c)}"></option>`).join('')}</datalist>`;}
+  function v44OpRow(o){
+    return `<div class="v44-op"><div><b>${fmt(o.date)}</b><div class="small muted">${esc(o.date||'')}</div></div><div><b>${esc(v44Trunc(o.note||'Операция банка',90))}</b><div class="small muted">${o.categoryReviewed?'Проверено':'К проверке'} · ключ дубля: ${esc(v44Trunc(o.bankKey||'',36))}</div></div><div><b class="red">−${money(o.amount)}</b></div><div><input data-v44-op-cat="${esc(o.id)}" list="v44CatList" value="${esc(o.category||'Не определено')}"></div><div class="row-actions"><button class="mini green" data-v44-action="saveCatLearn" data-id="${esc(o.id)}">Сохранить + запомнить</button><button class="mini blue" data-v44-action="saveCatOnly" data-id="${esc(o.id)}">Только сохранить</button><button class="mini" data-v44-action="markReviewed" data-id="${esc(o.id)}">Проверено</button></div></div>`;
+  }
+  function v44GroupHtml(g,i){
+    return `<details class="v44-group" ${i<3||g.need?'open':''}><summary><div><h3 style="margin:0">${esc(g.cat)}</h3><div class="small muted">${g.items.length} операций · ${money(g.total)} · ${g.need} к проверке</div></div><div class="row-actions"><span class="pill blue">${money(g.total)}</span><span class="pill amber">${g.need}</span></div></summary><div class="v44-group-body"><div class="v44-review-toolbar"><div class="field" style="margin:0;min-width:260px"><label>Перенести всю группу в категорию</label><input data-v44-group-cat="${esc(g.cat)}" list="v44CatList" value="${esc(g.cat)}"></div><div class="row-actions"><button class="ghost-btn" data-v44-action="moveGroupLearn" data-cat="${esc(g.cat)}">Перенести + запомнить</button><button class="ghost-btn" data-v44-action="markGroupReviewed" data-cat="${esc(g.cat)}">Вся группа проверена</button></div></div>${g.items.map(v44OpRow).join('')}</div></details>`;
+  }
+  function v44RuleList(){
+    const rules=state.settings.categoryRules||[];
+    return `<div class="v44-rule-list">${rules.map(r=>`<div class="v44-rule"><div><b>${esc(r.pattern)}</b><div class="small muted">→ ${esc(r.category)} · применений: ${num(r.hits)||0}</div></div><button class="mini blue" data-v44-action="applyOneRule" data-id="${esc(r.id)}">Применить</button><button class="mini red" data-v44-action="deleteRule" data-id="${esc(r.id)}">Удалить</button></div>`).join('')||'<p class="small muted">Правил пока нет. Исправь категорию и нажми «Сохранить + запомнить».</p>'}</div>`;
+  }
+  function v44ExpenseReviewPage(){
+    v44Ensure();v44Styles();v44ApplyRules(false);const removed=v44DedupeOpsByStableKey(); if(removed) save();
+    const ops=v44ReviewOps(); const groups=v44GroupOps(ops); const unchecked=v44UnreviewedCount();
+    const mode=state.settings.expenseReviewMode||'all';
+    return layout('Категории расходов','Проверка CSV после банка: исправляй категории, запоминай правила и приложение будет учиться на следующих выгрузках.',`${v44Datalist()}
+      <section class="v44-review-toolbar"><div><h3>Очередь проверки</h3><p class="small muted">К проверке: <b>${unchecked}</b>. Дубли считаются по стабильному ключу без категории, чтобы исправления не создавали повторные операции.</p></div><div class="row-actions"><button class="btn" data-v44-action="applyRules">Применить правила</button><button class="ghost-btn" data-go="finance">Финансы</button></div></section>
+      <section class="v44-tabs"><button class="v44-tab ${mode==='all'?'active':''}" data-v44-action="reviewMode" data-mode="all">Все операции</button><button class="v44-tab ${mode==='review'?'active':''}" data-v44-action="reviewMode" data-mode="review">Только к проверке</button></section>
+      <section class="v44-section-grid"><main>${groups.map(v44GroupHtml).join('')||empty('Нет расходов для проверки.')}</main><aside class="grid"><article class="v44-learn-card"><h3>Правила категорий</h3><p class="small muted">Когда ты исправляешь операцию и нажимаешь «запомнить», похожие операции в будущих CSV будут попадать в нужную категорию.</p>${v44RuleList()}</article><article class="card"><h3>Быстрый принцип</h3><p class="small muted">1) Исправь 5–10 самых частых магазинов. 2) Нажми «Сохранить + запомнить». 3) Следующая выгрузка будет значительно точнее.</p></article></aside></section>`);
+  }
+
+  function v44FindOp(id){return (state.operations||[]).find(o=>String(o.id)===String(id));}
+  function v44CatInput(id){return document.querySelector(`[data-v44-op-cat="${CSS.escape(String(id))}"]`);}
+  function v44SaveCategory(id,learn){
+    v44Ensure(); const op=v44FindOp(id); if(!op) return toast('Операция не найдена'); const cat=String(v44CatInput(id)?.value||'').trim(); if(!cat) return toast('Укажи категорию');
+    op.category=cat; op.categoryReviewed=true; op.categoryReviewedAt=new Date().toISOString();
+    let applied=0; if(learn){const r=v44LearnRuleFromOp(op,cat); applied=v44ApplyRules(false); if(r) r.hits=(num(r.hits)||0)+1;}
+    save(); render(); toast(learn?`Сохранено и запомнено. Похожих применено: ${applied}`:'Категория сохранена');
+  }
+  function v44MarkReviewed(id){const op=v44FindOp(id); if(!op)return toast('Операция не найдена'); op.categoryReviewed=true;op.categoryReviewedAt=new Date().toISOString();save();render();toast('Операция проверена');}
+  function v44MoveGroup(cat,learn){
+    const inp=document.querySelector(`[data-v44-group-cat="${CSS.escape(String(cat))}"]`); const next=String(inp?.value||'').trim(); if(!next)return toast('Укажи категорию'); let n=0, learned=0;
+    (state.operations||[]).forEach(o=>{if(o.type==='expense'&&String(o.category||'Не определено')===String(cat)){o.category=next;o.categoryReviewed=true;o.categoryReviewedAt=new Date().toISOString();n++; if(learn){v44LearnRuleFromOp(o,next); learned++;}}});
+    const applied=learn?v44ApplyRules(false):0; save(); render(); toast(`Перенесено: ${n}. Правил: ${learned}. Применено: ${applied}`);
+  }
+  function v44MarkGroup(cat){let n=0;(state.operations||[]).forEach(o=>{if(o.type==='expense'&&String(o.category||'Не определено')===String(cat)){o.categoryReviewed=true;o.categoryReviewedAt=new Date().toISOString();n++;}});save();render();toast(`Группа проверена: ${n}`);}
+  function v44ApplyOneRule(id){const rules=state.settings.categoryRules||[];const r=rules.find(x=>x.id===id); if(!r)return; let n=0;(state.operations||[]).forEach(o=>{if(o.type==='expense'&&!o.categoryReviewed&&v44MatchRule(o,r)){o.category=r.category;o.categoryRuleId=r.id;n++;}});r.hits=(num(r.hits)||0)+n;save();render();toast(`Правило применено: ${n}`);}
+  function v44DeleteRule(id){state.settings.categoryRules=(state.settings.categoryRules||[]).filter(r=>r.id!==id);save();render();toast('Правило удалено');}
+
+  function v44DashboardInsert(){
+    const view=document.querySelector('#view'); if(!view||document.querySelector('.v44-dashboard-insert')) return;
+    const pageEl=view.querySelector('.page'); const hero=view.querySelector('.hero'); if(!pageEl||!hero) return;
+    const items=v44AttentionItems(); const top=items.slice(0,4);
+    const box=document.createElement('section'); box.className='v44-dashboard-insert v44-hero-panel';
+    box.innerHTML=`<div class="card-head"><div><h3>Центр внимания</h3><p class="small muted">Самые важные сигналы из всех разделов на сегодня.</p></div><button class="ghost-btn" data-go="attention">Открыть центр</button></div><div class="v44-attention-list">${top.map(v44AttentionRow).join('')||'<div class="empty">Сейчас ничего не требует срочного внимания.</div>'}</div>`;
+    hero.insertAdjacentElement('afterend',box);
+  }
+  function v44DiagnosticsAudit(){
+    const checks=[
+      ['Страницы в меню',Array.isArray(SECTIONS)&&SECTIONS.length>10,'Проверяет наличие реестра разделов'],
+      ['Глобальный поиск',true,'Страница и горячая клавиша Ctrl/⌘+K'],
+      ['Центр внимания',true,'Собирает задачи, долги, CSV, дневник и цели'],
+      ['CSV категории',Array.isArray(state.operations),'Расходы можно проверять и обучать'],
+      ['Правила категорий',Array.isArray(state.settings.categoryRules),'Исправленные магазины запоминаются'],
+      ['Дневник подсознания',Array.isArray(state.subconsciousEntries),'Данные дневника читаются'],
+      ['Синхронизация',Boolean(state.settings.sync?.gistId || state.settings.syncGistId),'Gist может быть не настроен'],
+      ['Service Worker','serviceWorker' in navigator,'Доступен в браузере']
+    ];
+    return `<article class="card" data-v44-diagnostics><div class="card-head"><h3>V44 · инспекция системных функций</h3><span class="pill blue">${checks.filter(c=>c[1]).length}/${checks.length}</span></div><div class="v44-inspection-list">${checks.map(([name,ok,desc])=>`<div class="v44-check"><div><b>${esc(name)}</b><div class="small muted">${esc(desc)}</div></div><b class="${ok?'v44-good':'v44-warn'}">${ok?'OK':'Проверить'}</b></div>`).join('')}</div></article>`;
+  }
+  function v44PostRender(){
+    try{
+      v44Ensure();v44AddSection();v44Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const view=document.querySelector('#view');
+      if(!view) return;
+      if(current==='attention'||page==='attention'){view.innerHTML=v44AttentionPage();}
+      if(current==='global-search'||page==='global-search'){view.innerHTML=v44SearchPage(); setTimeout(()=>document.getElementById('v44SearchInput')?.focus(),20);}
+      if(current==='expense-review'||page==='expense-review'){view.innerHTML=v44ExpenseReviewPage();}
+      if(current==='dashboard'||page==='dashboard') v44DashboardInsert();
+      if(current==='diagnostics'||page==='diagnostics'){
+        if(!document.querySelector('[data-v44-diagnostics]')) view.querySelector('.page')?.insertAdjacentHTML('beforeend',`<section style="margin-top:16px">${v44DiagnosticsAudit()}</section>`);
+      }
+      const v=document.querySelector('.version'); if(v) v.textContent=V44_LABEL;
+      const g=document.getElementById('globalSearch'); if(g && document.activeElement!==g) g.value=state.settings.globalSearchQuery||'';
+    }catch(e){console.error('[V44 post render]',e);try{toast('Ошибка V44: '+(e.message||e))}catch(_){} }
+  }
+
+  const oldImportV44=typeof importBankCsv==='function'?importBankCsv:null;
+  if(oldImportV44){
+    importBankCsv=async function(){
+      v44Ensure(); const before=new Set((state.operations||[]).map(o=>o.id));
+      const res=await oldImportV44.apply(this,arguments);
+      v44Ensure(); let newCount=0; (state.operations||[]).forEach(o=>{if(!before.has(o.id)){newCount++; if(o.type==='expense') o.categoryReviewed=false; o.bankKey=o.bankKey||v44StableOpKey(o);}});
+      const removed=v44DedupeOpsByStableKey(); const applied=v44ApplyRules(false);
+      state.settings.expenseReviewMode='review'; save();
+      if(newCount||removed||applied){toast(`CSV обработан: новых ${newCount}, дублей удалено ${removed}, правил применено ${applied}`);}
+      page='expense-review'; location.hash='expense-review'; render();
+      return res;
+    };
+  }
+
+  const oldRenderV44=typeof render==='function'?render:null;
+  if(oldRenderV44){
+    render=function(){
+      v44Ensure();v44AddSection();v44Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(['attention','global-search','expense-review'].includes(current)) page=current;
+      const res=oldRenderV44();
+      setTimeout(v44PostRender,35);
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const bell=e.target.closest&&e.target.closest('.top-actions .icon-btn');
+    if(bell && !bell.dataset.action && /🔔/.test(bell.textContent||'')){e.preventDefault();e.stopPropagation();go('attention');return;}
+    const el=e.target.closest&&e.target.closest('[data-v44-action]'); if(!el) return;
+    const a=el.dataset.v44Action;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    try{
+      if(a==='attentionMode'){state.settings.attentionMode=el.dataset.mode||'all';save();render();return;}
+      if(a==='runSearch'){state.settings.globalSearchQuery=document.getElementById('v44SearchInput')?.value||document.getElementById('globalSearch')?.value||'';save();go('global-search');return;}
+      if(a==='reviewMode'){state.settings.expenseReviewMode=el.dataset.mode||'all';save();render();return;}
+      if(a==='saveCatLearn') return v44SaveCategory(el.dataset.id,true);
+      if(a==='saveCatOnly') return v44SaveCategory(el.dataset.id,false);
+      if(a==='markReviewed') return v44MarkReviewed(el.dataset.id);
+      if(a==='moveGroupLearn') return v44MoveGroup(el.dataset.cat,true);
+      if(a==='markGroupReviewed') return v44MarkGroup(el.dataset.cat);
+      if(a==='applyRules'){v44ApplyRules(true);render();return;}
+      if(a==='applyOneRule') return v44ApplyOneRule(el.dataset.id);
+      if(a==='deleteRule') return v44DeleteRule(el.dataset.id);
+    }catch(err){console.error('[V44 action]',err);try{toast('Ошибка V44: '+(err.message||err))}catch(_){} }
+  },true);
+  window.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='k'){e.preventDefault(); const g=document.getElementById('globalSearch')||document.getElementById('v44SearchInput'); if(g){g.focus();g.select?.();}else go('global-search');}
+    if(e.key==='Enter' && e.target && (e.target.id==='globalSearch'||e.target.id==='sideSearch'||e.target.id==='v44SearchInput')){e.preventDefault();state.settings.globalSearchQuery=e.target.value||'';save();go('global-search');}
+  },true);
+  window.addEventListener('input',function(e){
+    if(e.target && e.target.id==='globalSearch'){state.settings.globalSearchQuery=e.target.value||'';save();}
+  },true);
+  window.addEventListener('hashchange',()=>setTimeout(v44PostRender,45));
+  try{v44Ensure();v44AddSection();v44Styles();v44ApplyRules(false);save();render();}catch(e){console.error('[V44 init]',e)}
 })();
