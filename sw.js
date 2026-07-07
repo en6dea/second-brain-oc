@@ -1,5 +1,21 @@
-const CACHE_NAME='second-brain-space-v38-auto-sync-subconscious-20260706';
-const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./offline.html'];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS).catch(()=>{}))) });
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{const clone=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(event.request,clone)).catch(()=>{});return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./offline.html'))))});
+# Second Brain OS V40 — Finance Cockpit + Alfa Prep
+
+Сборка: `second-brain-space-v40-finance-cockpit-alfa-20260707`
+
+## Что изменено
+
+- Финансы превращены в активный cockpit без визуального перегруза.
+- Добавлены вкладки: Обзор, Действия, Долги, Расходы, Прогноз, Импорт / Альфа.
+- Добавлена аналитика действий и поведения, дневной лимит, главный риск, главное действие.
+- Встроены правила финансовой грамотности: резерв, дневной лимит, долги по приоритету, плановые покупки, импорт факта.
+- Подготовлен блок Альфа-Банк API для личной карты через Cloudflare Worker.
+- Сохранены CSV-импорт V39, автосинхронизация и дневник подсознания.
+
+## Файлы для GitHub
+
+Заменить в корне: `app.js`, `index.html`, `sw.js`, `force-update.html`, `version-check.html`.
+Добавлены шаблоны в папке `cloudflare-worker/`.
+
+## Альфа-Банк API
+
+Банковские токены нельзя хранить в `app.js` или GitHub Pages. Они должны лежать в секретах Cloudflare Worker. Приложение хранит только URL Worker и отдельный ключ доступа к Worker.
