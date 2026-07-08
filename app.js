@@ -4162,3 +4162,130 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{v56Styles();save();render();}catch(e){console.error('[V56 init]',e)}
 })();
+
+
+/* ===== V57 CALENDAR + SIDEBAR + AI FIX ===== */
+(function(){
+  const V57_BUILD='second-brain-space-v57-calendar-sidebar-ai-fix-20260708';
+  const V57_LABEL='V57 · CALENDAR + SIDEBAR + AI FIX';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V57_BUILD);}catch(e){}
+
+  function v57Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v57=Object.assign({calendarFilter:'all'},state.settings.v57||{});
+  }
+  function v57Styles(){
+    if(document.getElementById('v57-fix-style')) return;
+    const st=document.createElement('style');
+    st.id='v57-fix-style';
+    st.textContent=`
+      html,body,.app,.side,.v52-side,#view,.v52-view{overflow-anchor:none!important}
+      .side,.v52-side{scroll-behavior:auto!important;scrollbar-gutter:stable;overscroll-behavior:contain}
+      .nav-item{min-height:48px;flex-shrink:0}.side-section{min-height:22px;flex-shrink:0}
+      .forecast-list{display:grid;gap:12px!important}.forecast-list .row{display:flex!important;grid-template-columns:none!important;justify-content:space-between!important;align-items:center!important;gap:16px!important;min-height:66px;padding:14px 16px!important;border-radius:20px!important}.forecast-list .row>div{font-weight:900;line-height:1.28;max-width:70%;word-break:normal}.forecast-list .row>b{font-size:18px;white-space:nowrap;text-align:right}.record-card ul{line-height:1.55}
+      .v52-ai-card{cursor:pointer!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;position:relative}.v52-ai-card:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(37,99,235,.16);border-color:#bcd3ff!important;background:linear-gradient(135deg,#f8fbff,#eef6ff)!important}.v52-ai-card:after{content:'Открыть';position:absolute;right:12px;bottom:10px;font-size:10px;font-weight:1000;color:#2563eb;background:#eef6ff;border-radius:999px;padding:4px 7px}.v52-ai-card[data-v57-ready="true"] small{color:#2563eb!important;font-weight:900}.v57-ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.v57-ai-action{border:1px solid #dbe7f6;background:linear-gradient(180deg,#fff,#f8fbff);border-radius:20px;padding:16px;text-align:left;display:grid;gap:7px;color:#102044}.v57-ai-action b{font-size:15px}.v57-ai-action small{color:#64748b;font-weight:800;line-height:1.35}.v57-ai-action:hover{border-color:#bcd3ff;box-shadow:0 16px 34px rgba(37,99,235,.10);transform:translateY(-1px)}
+      .v57-calendar-load{border:1px solid #dbe7f6;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(247,251,255,.97));box-shadow:0 22px 54px rgba(37,99,235,.10);padding:18px;margin-bottom:16px;position:relative;overflow:hidden}.v57-calendar-load:before{content:'';position:absolute;right:-90px;top:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.10),transparent 68%);pointer-events:none}.v57-calendar-load>*{position:relative}.v57-load-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.v57-load-head h3{margin:0;font-size:22px;letter-spacing:-.045em}.v57-load-head p{margin:6px 0 0;color:#64748b;font-size:13px;font-weight:780}.v57-load-score{border-radius:999px;padding:8px 12px;font-weight:1000;border:1px solid #dbeafe;background:#eef6ff;color:#2563eb}.v57-load-score.red{background:#fff1f2;color:#ef4444;border-color:#fecdd3}.v57-load-score.amber{background:#fff7ed;color:#f97316;border-color:#fed7aa}.v57-load-score.green{background:#ecfdf5;color:#059669;border-color:#bbf7d0}.v57-load-meter{height:12px;background:#edf4ff;border-radius:999px;overflow:hidden;margin-bottom:14px}.v57-load-meter b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#10b981,#f59e0b,#ef4444)}.v57-load-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}.v57-filter-list{display:flex;flex-wrap:wrap;gap:8px}.v57-filter{border:1px solid #dbe7f6;background:#fff;border-radius:999px;padding:9px 12px;font-weight:950;color:#334155;display:inline-flex;gap:7px;align-items:center}.v57-filter i{width:9px;height:9px;border-radius:50%;display:inline-block}.v57-filter.active{background:linear-gradient(135deg,#155ee7,#2563eb);border-color:#2563eb;color:#fff;box-shadow:0 14px 30px rgba(37,99,235,.22)}.v57-filter.active i{background:#fff!important}.v57-load-bars{display:flex;align-items:end;gap:8px;height:112px;border:1px solid #e3ecf8;border-radius:20px;background:rgba(255,255,255,.72);padding:12px}.v57-load-day{flex:1;min-width:0;border:0;background:transparent;display:flex;flex-direction:column;gap:7px;align-items:center;color:#64748b;font-size:10px;font-weight:850}.v57-load-day b{width:100%;min-height:7px;border-radius:999px;background:linear-gradient(180deg,#38bdf8,#2563eb);transition:height .22s ease,transform .18s ease}.v57-load-day:hover b{transform:scaleY(1.05)}.v57-load-day.medium b{background:linear-gradient(180deg,#fbbf24,#f97316)}.v57-load-day.overload b{background:linear-gradient(180deg,#fb7185,#ef4444)}.v57-load-areas{display:grid;gap:8px;margin-top:12px}.v57-area-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e8eff8;padding:9px 0;font-weight:900}.v57-area-row span{color:#334155}.v57-area-row b{color:#2563eb}.v57-calendar-day{position:relative}.v57-calendar-day.dim{opacity:.38}.v57-calendar-day.match{box-shadow:inset 0 0 0 2px rgba(37,99,235,.22),0 14px 30px rgba(37,99,235,.10)!important}.v57-calendar-day.load-light{background:linear-gradient(135deg,#ecfdf5,#fff)!important}.v57-calendar-day.load-medium{background:linear-gradient(135deg,#fff7ed,#fff)!important}.v57-calendar-day.load-overload{background:linear-gradient(135deg,#fff1f2,#fff)!important;border-color:#fecdd3!important}.v57-calendar-note{margin-top:10px;border:1px dashed #cfe0f7;border-radius:18px;background:#f8fbff;padding:12px;color:#64748b;font-weight:800;font-size:13px;line-height:1.45}.v57-calendar-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr);gap:16px}.v57-calendar-side{display:grid;gap:16px}.v57-calendar-agenda .calendar-event-card{border-radius:18px}.v57-calendar-empty{opacity:.72}
+      @media(max-width:1180px){.v57-load-grid,.v57-calendar-grid{grid-template-columns:1fr}.v57-ai-grid{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(st);
+  }
+  function v57Entries(){try{return typeof calendarEntries==='function'?calendarEntries():[]}catch(e){return []}}
+  function v57EntriesOn(date){return v57Entries().filter(e=>e.date===date)}
+  function v57DayLevel(date){const c=v57EntriesOn(date).length;return c>=7?'overload':c>=3?'medium':c>0?'light':'empty'}
+  function v57MatchEntry(e,filter){
+    if(filter==='all') return true;
+    const text=[e.title,e.area,e.type,e.note,e.source].map(x=>String(x||'').toLowerCase()).join(' ');
+    if(filter==='finance') return /финанс|долг|кредит|банк|оплат/.test(text)||e.source==='debt';
+    if(filter==='personal') return /личн|дом|семь|здоров|покупк|желан/.test(text)||e.source==='purchase';
+    if(filter==='polina') return /полин/.test(text);
+    if(filter==='important') return e.source==='debt'||e.type==='Дедлайн'||e.type==='Напоминание'||e.priority==='A'||/срочно|важн|дедлайн|просроч/.test(text);
+    return true;
+  }
+  function v57FilteredEntriesOn(date){
+    v57Ensure(); const f=state.settings.v57.calendarFilter||'all'; const level=v57DayLevel(date);
+    if(['light','medium','overload'].includes(f)) return level===f?v57EntriesOn(date):[];
+    return v57EntriesOn(date).filter(e=>v57MatchEntry(e,f));
+  }
+  function v57FilterLabel(f){return {all:'все записи',light:'лёгкие дни',medium:'средняя нагрузка',overload:'перегруз',finance:'финансы',personal:'личное',polina:'Полина',important:'важное'}[f]||'все'}
+  function v57LoadPanel(){
+    v57Ensure();
+    const days=Array.from({length:7},(_,i)=>iso(addDays(new Date(),i)));
+    const counts=days.map(d=>v57EntriesOn(d).length);
+    const totalWeek=counts.reduce((a,b)=>a+b,0);
+    const percent=clamp(Math.round(totalWeek/21*100));
+    const max=Math.max(1,...counts);
+    const filter=state.settings.v57.calendarFilter||'all';
+    const byArea={}; v57Entries().filter(e=>e.date>=today()&&e.date<=iso(addDays(new Date(),7))).forEach(e=>byArea[e.area||'Личное']=(byArea[e.area||'Личное']||0)+1);
+    const filters=[['all','Все','#2563eb'],['light','Лёгкие дни','#10b981'],['medium','Средняя','#f59e0b'],['overload','Перегруз','#ef4444'],['important','Важное','#2563eb'],['finance','Финансы','#14b8a6'],['personal','Личное','#7c3aed'],['polina','Полина','#ec4899']];
+    return `<section class="v57-calendar-load" data-v57-load-panel><div class="v57-load-head"><div><h3>Цветовая нагрузка недели</h3><p>Теперь блок рабочий: кликай по фильтрам или столбикам, чтобы увидеть нужные дни и записи.</p></div><span class="v57-load-score ${percent>75?'red':percent>45?'amber':'green'}">${percent}%</span></div><div class="v57-load-meter"><b style="width:${percent}%"></b></div><div class="v57-load-grid"><article><h4 style="margin:0 0 10px">Фильтр календаря</h4><div class="v57-filter-list">${filters.map(([id,label,color])=>`<button class="v57-filter ${filter===id?'active':''}" data-v57-filter="${id}"><i style="background:${color}"></i>${label}</button>`).join('')}</div><div class="v57-calendar-note">Активно: <b>${v57FilterLabel(filter)}</b>. Дни без совпадений приглушаются, совпадающие подсвечиваются.</div></article><article><h4 style="margin:0 0 10px">Следующие 7 дней</h4><div class="v57-load-bars">${days.map((d,i)=>`<button class="v57-load-day ${v57DayLevel(d)}" data-v57-day="${d}" title="${fmt(d)}: ${counts[i]} записей"><b style="height:${Math.max(8,counts[i]/max*100)}%"></b><span>${new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</span></button>`).join('')}</div><div class="v57-load-areas">${Object.entries(byArea).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`<div class="v57-area-row"><span>${esc(k)}</span><b>${v}</b></div>`).join('')||'<div class="v57-calendar-note">На неделю нагрузка не запланирована.</div>'}</div></article></div></section>`;
+  }
+  function v57CalendarDayCell(date,inMonth){
+    const es=v57EntriesOn(date), filtered=v57FilteredEntriesOn(date); const level=v57DayLevel(date); const f=state.settings.v57?.calendarFilter||'all'; const match=f==='all'||filtered.length>0;
+    return `<button class="calendar-day v57-calendar-day ${!inMonth?'empty':''} ${date===today()?'today':''} load-${level} ${match?'match':'dim'}" data-action="selectCalendarDay" data-date="${date}"><div class="calendar-day-num">${new Date(date).getDate()}</div><div class="calendar-dots">${es.slice(0,8).map(e=>`<span class="calendar-dot ${typeof entryCss==='function'?entryCss(e):'event'}"></span>`).join('')}</div><div class="calendar-chipline">${(f==='all'?es:filtered).slice(0,2).map(e=>`<span class="calendar-mini-chip">${esc(e.title)}</span>`).join('')}</div><div class="calendar-load ${es.length>=5?'high':''}"><b style="width:${Math.min(100,es.length*18)}%"></b></div><div class="small muted">${es.length?`${es.length} записей`:'свободно'}</div></button>`;
+  }
+  function v57CalendarMonthGrid(){
+    const m=monthRange(); const cells=[]; const startPad=(m.start.getDay()+6)%7;
+    for(let i=startPad;i>0;i--) cells.push({d:iso(addDays(m.start,-i)),inMonth:false});
+    for(let d=new Date(m.start);d<=m.end;d=addDays(d,1)) cells.push({d:iso(d),inMonth:true});
+    while(cells.length%7!==0) cells.push({d:iso(addDays(new Date(cells[cells.length-1].d),1)),inMonth:false});
+    const weekdays=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    return `<div class="calendar-month">${weekdays.map(w=>`<div class="calendar-weekday">${w}</div>`).join('')}${cells.map(c=>v57CalendarDayCell(c.d,c.inMonth)).join('')}</div>`;
+  }
+  function v57CalendarAgenda(date=state.settings.calendarDate||today()){
+    const es=v57FilteredEntriesOn(date);
+    const f=state.settings.v57?.calendarFilter||'all';
+    return `<div class="calendar-agenda v57-calendar-agenda">${f!=='all'?`<div class="v57-calendar-note">Показан фильтр: <b>${v57FilterLabel(f)}</b>. <button class="mini blue" data-v57-filter="all">Сбросить</button></div>`:''}${es.map(e=>`<article class="calendar-event-card ${typeof entryCss==='function'?entryCss(e):'event'}"><div class="calendar-event-icon">${typeof entryIcon==='function'?entryIcon(e):'•'}</div><div style="flex:1;min-width:0"><div class="card-head" style="margin-bottom:3px"><div><h3>${esc(e.title)}</h3><p class="small muted">${esc(e.area)} · ${esc(e.type)} ${e.time?`· ${esc(e.time)}`:''}</p></div><span class="pill ${e.source==='debt'?'red':e.google?'green':'blue'}">${e.source==='task'?'задача':e.source==='event'?'событие':e.source==='debt'?'долг':'покупка'}</span></div>${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}<div class="row-actions" style="margin-top:10px">${e.source==='task'?`<button class="mini blue" data-action="editRecord" data-type="task" data-id="${e.id}">Ред.</button><button class="mini green" data-action="googleTask" data-id="${e.id}">Google</button><button class="mini red" data-action="deleteRecord" data-type="task" data-id="${e.id}">Удалить</button>`:''}${e.source==='event'?`<button class="mini blue" data-action="editRecord" data-type="event" data-id="${e.id}">Ред.</button><button class="mini green" data-action="googleEvent" data-id="${e.id}">Google</button><button class="mini red" data-action="deleteRecord" data-type="event" data-id="${e.id}">Удалить</button>`:''}${e.source==='debt'?`<button class="mini blue" data-action="editRecord" data-type="debt" data-id="${e.id}">Долг</button><button class="mini green" data-action="debtReminder" data-id="${e.id}">Напомнить</button>`:''}${e.source==='purchase'?`<button class="mini blue" data-action="editRecord" data-type="purchase" data-id="${e.id}">Покупка</button>`:''}</div></div></article>`).join('')||empty('На выбранный день нет записей по текущему фильтру.')}</div>`;
+  }
+  function v57CalendarPage(){
+    v57Ensure(); if(typeof ensureCalendarV28==='function') ensureCalendarV28(); if(typeof ensureCalendarStylesV28==='function') ensureCalendarStylesV28();
+    const selected=state.settings.calendarDate||today();
+    return layout('Календарь','События, напоминания, задачи и рабочая цветовая нагрузка по дням.',`${typeof calendarKpis==='function'?calendarKpis():''}${v57LoadPanel()}<section class="v57-calendar-grid"><article class="card"><div class="card-head"><div><h3>Календарь месяца</h3><p class="small muted">Цвета теперь связаны с реальными записями и фильтрами нагрузки.</p></div><div class="row-actions"><button class="ghost-btn" data-action="openRecordForm" data-type="event">＋ Событие</button><button class="ghost-btn" data-action="openRecordForm" data-type="task">＋ Задача</button></div></div>${v57CalendarMonthGrid()}</article><div class="v57-calendar-side"><article class="card"><div class="card-head"><div><h3>День: ${fmt(selected)}</h3><p class="small muted">События, напоминания, задачи и дедлайны.</p></div><button class="btn" data-action="openRecordForm" data-type="event">＋ Добавить</button></div>${v57CalendarAgenda(selected)}</article><article class="card"><div class="card-head"><h3>Нагрузка по сферам</h3><span class="pill blue">14 дней</span></div>${typeof calendarAreasLoad==='function'?calendarAreasLoad():''}${typeof calendarLoadBars==='function'?calendarLoadBars():''}</article></div></section>`);
+  }
+  if(typeof calendarPage==='function') calendarPage=v57CalendarPage;
+
+  function v57OpenAI(){
+    if(typeof openModal!=='function') return;
+    openModal('Нейро-помощник Second Brain OS',`<p class="muted" style="margin-top:0">Это быстрый помощник по разделам: открывает нужное место и помогает быстрее принять решение. Полноценный чат можно добавить следующим модулем.</p><div class="v57-ai-grid"><button class="v57-ai-action" data-go="focus-path"><b>🎯 Собрать фокус дня</b><small>Открыть маршрут дня и выбрать главное действие.</small></button><button class="v57-ai-action" data-go="tasks"><b>✅ Разобрать задачи</b><small>Перейти к задачам, срокам и недельным шагам.</small></button><button class="v57-ai-action" data-go="finance"><b>💸 Проверить финансы</b><small>Открыть финансовый контроль, лимит и прогноз.</small></button><button class="v57-ai-action" data-go="debts"><b>⚖️ Разложить долги</b><small>Посмотреть приоритеты, сроки и ближайшие выплаты.</small></button><button class="v57-ai-action" data-go="calendar"><b>🗓️ Проверить нагрузку</b><small>Открыть календарь с цветовой нагрузкой недели.</small></button><button class="v57-ai-action" data-go="habits"><b>🌿 Посмотреть привычки</b><small>Оценить ритм и слабые места недели.</small></button></div>`);
+  }
+  function v57PostRender(){
+    try{
+      v57Ensure(); v57Styles();
+      document.querySelectorAll('[data-v37-addon="calendar"]').forEach(x=>x.remove());
+      const ai=document.querySelector('.v52-ai-card');
+      if(ai){ai.dataset.v57Ready='true';ai.setAttribute('role','button');ai.setAttribute('tabindex','0');ai.setAttribute('title','Открыть нейро-помощника');}
+      const version=document.querySelector('.version'); if(version) version.textContent=V57_LABEL;
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V57_BUILD);
+    }catch(e){console.error('[V57 post render]',e)}
+  }
+
+  const oldRenderV57=typeof render==='function'?render:null;
+  if(oldRenderV57){
+    render=function(){
+      v57Ensure(); v57Styles();
+      const side=document.querySelector('.side,.v52-side');
+      const sideTop=side?side.scrollTop:0;
+      const mainTop=window.scrollY||document.documentElement.scrollTop||0;
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const res=oldRenderV57.apply(this,arguments);
+      [0,60,160,320].forEach(t=>setTimeout(()=>{
+        const nextSide=document.querySelector('.side,.v52-side');
+        if(nextSide) nextSide.scrollTop=sideTop;
+        const next=(location.hash||'').replace('#','')||page||'dashboard';
+        if(next===current) window.scrollTo(0,mainTop);
+        v57PostRender();
+      },t));
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const ai=e.target.closest&&e.target.closest('.v52-ai-card');
+    if(ai){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return v57OpenAI();}
+    const filter=e.target.closest&&e.target.closest('[data-v57-filter]');
+    if(filter){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();v57Ensure();state.settings.v57.calendarFilter=filter.dataset.v57Filter||'all';save();render();return;}
+    const day=e.target.closest&&e.target.closest('[data-v57-day]');
+    if(day){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();state.settings.calendarDate=day.dataset.v57Day||today();save();render();return;}
+  },true);
+  window.addEventListener('keydown',function(e){const ai=e.target&&e.target.closest&&e.target.closest('.v52-ai-card'); if(ai&&(e.key==='Enter'||e.key===' ')){e.preventDefault();v57OpenAI();}},true);
+  try{v57Ensure();v57Styles();save();render();}catch(e){console.error('[V57 init]',e)}
+})();
