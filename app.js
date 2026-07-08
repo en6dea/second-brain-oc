@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v44-system-core-20260707';
+const BUILD='second-brain-space-v49-focus-path-goals-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -3313,4 +3313,344 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
   window.addEventListener('hashchange',()=>setTimeout(v44PostRender,45));
   try{v44Ensure();v44AddSection();v44Styles();v44ApplyRules(false);save();render();}catch(e){console.error('[V44 init]',e)}
+})();
+
+/* ===== V49 Focus Path Goals: clean additive integration, no data removal ===== */
+(function(){
+  'use strict';
+  const V49_LABEL='V49 · FOCUS PATH GOALS';
+  const V49_BUILD='second-brain-space-v49-focus-path-goals-20260708';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V49_BUILD)}catch(e){}
+
+  function v49Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v49=Object.assign({
+      taskView:'today',
+      goalView:'active',
+      routeStep:'morning',
+      focusMode:'standard',
+      activeGoalId:'',
+      morningFocus:'',
+      dailyWin:'',
+      eveningNote:'',
+      lastRouteDate:today()
+    },state.settings.v49||{});
+    if(state.settings.v49.lastRouteDate!==today()){
+      state.settings.v49.lastRouteDate=today();
+      state.settings.v49.morningFocus='';
+      state.settings.v49.dailyWin='';
+      state.settings.v49.eveningNote='';
+    }
+    state.inbox=Array.isArray(state.inbox)?state.inbox:[];
+    state.reviews=Array.isArray(state.reviews)?state.reviews:[];
+    state.goals=(state.goals||[]).map(g=>{
+      g.subgoals=Array.isArray(g.subgoals)?g.subgoals:[];
+      g.steps=Array.isArray(g.steps)?g.steps:[];
+      g.weeklyQuestion=g.weeklyQuestion||'';
+      g.activeStepId=g.activeStepId||'';
+      g.why=g.why||'';
+      g.successCriteria=g.successCriteria||'';
+      g.obstacle=g.obstacle||'';
+      return g;
+    });
+    state.tasks=(state.tasks||[]).map(t=>{
+      t.energy=t.energy||'Средне';
+      t.duration=t.duration||'';
+      t.weekStep=Boolean(t.weekStep);
+      t.waiting=Boolean(t.waiting);
+      return t;
+    });
+  }
+
+  function v49AddSections(){
+    if(!Array.isArray(SECTIONS)) return;
+    if(!SECTIONS.some(s=>s.id==='focus-path')) SECTIONS.splice(1,0,{id:'focus-path',label:'Фокус дня',icon:'🧭',color:'#2563eb',group:'ПРОСТРАНСТВО'});
+    if(!SECTIONS.some(s=>s.id==='inbox')) SECTIONS.splice(2,0,{id:'inbox',label:'Входящие',icon:'📥',color:'#0ea5e9',group:'ПРОСТРАНСТВО'});
+    if(!SECTIONS.some(s=>s.id==='reviews')) SECTIONS.splice(3,0,{id:'reviews',label:'Обзоры',icon:'🔎',color:'#14b8a6',group:'ПРОСТРАНСТВО'});
+  }
+
+  function v49Styles(){
+    if(document.getElementById('v49-focus-path-styles')) return;
+    const css=`
+      body{background:radial-gradient(circle at 15% 0%,rgba(37,99,235,.11),transparent 26%),radial-gradient(circle at 88% 0%,rgba(14,165,233,.13),transparent 28%),linear-gradient(180deg,#ffffff 0%,#f6fbff 44%,#eef7ff 100%)!important}.main{padding-top:18px!important}.page{width:100%;max-width:1500px!important}.wide-page{max-width:1520px!important}.card{overflow:visible}.row{grid-template-columns:44px minmax(0,1fr) auto!important;align-items:center!important}.row-title{line-height:1.25}.row-sub{line-height:1.35}.row-actions{min-width:max-content}.list{align-content:start}.cols-2{align-items:start}.version{background:linear-gradient(135deg,#0f172a,#2563eb)!important}.nav-item[data-go="focus-path"] .nav-ico{box-shadow:0 12px 22px rgba(37,99,235,.2)}
+      .v49-route-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.8fr);gap:16px;margin-bottom:16px}.v49-hero-card{border:1px solid rgba(191,219,254,.95);background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(239,247,255,.92));border-radius:28px;padding:20px;box-shadow:0 24px 60px rgba(37,99,235,.08)}.v49-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#eef5ff;color:#2563eb;font-size:12px;font-weight:900;margin-bottom:12px}.v49-hero-title{font-size:34px;letter-spacing:-.06em;line-height:1.02;margin:0}.v49-hero-text{color:#64748b;font-weight:700;line-height:1.5;max-width:820px}.v49-route-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}.v49-step{border:1px solid #e5edf7;background:#fff;border-radius:18px;padding:12px;text-align:left;display:grid;gap:6px;min-height:98px}.v49-step.active{border-color:#93c5fd;background:linear-gradient(180deg,#eef6ff,#fff);box-shadow:0 14px 28px rgba(37,99,235,.09)}.v49-step.done{border-color:#bbf7d0;background:#f0fdf4}.v49-step b{font-size:13px}.v49-step span{font-size:24px}.v49-step small{color:#64748b;font-weight:700}.v49-focus-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(340px,.82fr);gap:16px}.v49-panel{background:#fff;border:1px solid #e6edf7;border-radius:24px;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.04)}.v49-panel h3{margin:0 0 8px}.v49-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.v49-kpi{background:#fff;border:1px solid #e6edf7;border-radius:22px;padding:15px;box-shadow:0 10px 26px rgba(15,23,42,.04)}.v49-kpi .num{font-size:28px;font-weight:900;letter-spacing:-.06em}.v49-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.v49-tab{border:1px solid #dbe7f6;background:#fff;border-radius:999px;padding:10px 13px;font-weight:900;color:#475569}.v49-tab.active{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 12px 26px rgba(37,99,235,.22)}.v49-task-list{display:grid;gap:10px}.v49-task{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:start;border:1px solid #e6edf7;background:rgba(255,255,255,.9);border-radius:20px;padding:12px}.v49-task:hover{border-color:#bfdbfe;background:#f8fbff}.v49-task.done{opacity:.65}.v49-task-check{width:38px;height:38px;border:0;border-radius:14px;background:#eef5ff;color:#2563eb;font-weight:900}.v49-task.done .v49-task-check{background:#dcfce7;color:#16a34a}.v49-task-title{font-weight:900;line-height:1.25}.v49-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.v49-meta span{font-size:11px;font-weight:850;color:#64748b;background:#f4f7fb;border:1px solid #e8eef7;border-radius:999px;padding:5px 7px}.v49-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:390px}.v49-mini{height:30px;border:1px solid #e1eaf5;background:#fff;border-radius:10px;padding:0 9px;font-size:11px;font-weight:900;color:#334155}.v49-mini.blue{color:#2563eb;background:#f4f8ff}.v49-mini.green{color:#059669;background:#ecfdf5}.v49-mini.red{color:#dc2626;background:#fff7f7}.v49-mini.amber{color:#d97706;background:#fff7ed}.v49-question{display:grid;gap:8px}.v49-question textarea,.v49-question input{border:1px solid #dfe7f2;border-radius:16px;padding:12px;background:#fff;outline:0;width:100%;font-weight:700}.v49-question textarea{min-height:90px;resize:vertical}.v49-goal-card{border:1px solid #e5edf7;background:rgba(255,255,255,.94);border-radius:26px;padding:16px;box-shadow:0 12px 30px rgba(15,23,42,.045);display:grid;gap:14px}.v49-goal-top{display:flex;justify-content:space-between;gap:14px}.v49-progress-duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v49-progress-box{background:#fbfdff;border:1px solid #eaf0f8;border-radius:18px;padding:12px;display:grid;gap:8px}.v49-subgoal{border:1px solid #eaf0f8;background:#fbfdff;border-radius:20px;padding:12px;display:grid;gap:9px}.v49-sub-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}.v49-step-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid #edf2f7;border-radius:14px;background:#fff}.v49-check{width:26px;height:26px;border:0;border-radius:9px;background:#eef5ff;color:#2563eb;font-weight:900}.v49-check.on{background:#dcfce7;color:#059669}.v49-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:18px;background:#f8fbff;color:#64748b;font-weight:800}.v49-inbox-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.7fr);gap:16px}.v49-inbox-capture{display:grid;gap:10px}.v49-inbox-capture textarea{min-height:120px;border:1px solid #dfe7f2;border-radius:18px;padding:14px;resize:vertical;font-weight:750}.v49-type-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v49-type{border:1px solid #e5edf7;background:#fff;border-radius:16px;padding:12px;font-weight:900;text-align:center}.v49-type.active{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v49-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.v49-review-card{min-height:260px}.v49-life-wheel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v49-wheel-item{border:1px solid #eaf0f8;border-radius:16px;padding:10px;background:#fff}.v49-fix-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.v49-system-check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #eaf0f8;border-radius:16px;padding:10px;background:#fff}.v49-good{color:#059669}.v49-warn{color:#d97706}.v49-builder-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v49-builder-grid .span-2{grid-column:1/-1}.v49-builder-field{display:grid;gap:6px}.v49-builder-field label{font-size:12px;color:#475569;font-weight:900}.v49-builder-field input,.v49-builder-field textarea,.v49-builder-field select{border:1px solid #dfe7f2;border-radius:16px;padding:12px;background:#fff;outline:0;font-weight:750}.v49-builder-field textarea{min-height:90px}.v49-route-mini{display:grid;gap:9px}.v49-route-mini .v49-system-check{background:#fbfdff}.v49-quick-line{display:flex;flex-wrap:wrap;gap:8px}.v49-highlight{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#fff);border-radius:20px;padding:14px}.v49-calendar-card{min-height:100%;}.v49-date-column{display:grid;gap:9px}.v49-day-box{border:1px solid #eaf0f8;background:#fff;border-radius:18px;padding:12px}.v49-day-box h4{margin:0 0 8px}.v49-compact-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;border:1px solid #edf2f7;background:#fbfdff;border-radius:14px;padding:8px;margin-top:6px}.v49-compact-row b{font-size:13px;line-height:1.25}.v49-compact-row small{color:#64748b;font-weight:700}.v49-pill{display:inline-flex;padding:6px 9px;border-radius:999px;background:#eef5ff;color:#2563eb;font-weight:900;font-size:12px}.v49-division{height:1px;background:#eef2f7;margin:10px 0}.v49-task-list .empty,.v49-goal-card .empty{padding:16px;border-radius:18px}.v49-anti-card{border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)}
+      @media(max-width:1180px){.v49-route-hero,.v49-focus-grid,.v49-inbox-grid{grid-template-columns:1fr}.v49-route-steps{grid-template-columns:repeat(3,1fr)}.v49-kpi-grid,.v49-review-grid{grid-template-columns:repeat(2,1fr)}.v49-task{grid-template-columns:40px minmax(0,1fr)}.v49-actions{grid-column:1/-1;justify-content:flex-start;max-width:none}.v49-type-grid{grid-template-columns:repeat(2,1fr)}}
+      @media(max-width:760px){.v49-route-steps,.v49-kpi-grid,.v49-review-grid,.v49-fix-grid,.v49-progress-duo,.v49-builder-grid,.v49-life-wheel{grid-template-columns:1fr}.v49-hero-title{font-size:28px}.v49-type-grid{grid-template-columns:1fr}.row-actions,.v49-actions{justify-content:flex-start}.row{grid-template-columns:40px minmax(0,1fr)!important}.row .row-actions{grid-column:1/-1}.debt-top{grid-template-columns:auto minmax(0,1fr)!important}.debt-top>div:last-child{grid-column:1/-1}.purchase-month-grid{grid-template-columns:1fr!important}.top-actions{gap:6px}.top-actions .ghost-btn:nth-child(2){display:none}}
+    `;
+    const style=document.createElement('style');style.id='v49-focus-path-styles';style.textContent=css;document.head.appendChild(style);
+  }
+
+  function v49ActiveTasks(){return (state.tasks||[]).filter(t=>t.status!=='Готово');}
+  function v49CompletedTasks(){return (state.tasks||[]).filter(t=>t.status==='Готово');}
+  function v49WeekEnd(){return iso(addDays(new Date(),6));}
+  function v49WeekTasks(){const t=today(), end=v49WeekEnd(); return v49ActiveTasks().filter(x=>(x.date||t)>=t && (x.date||t)<=end);}
+  function v49FastTasks(){return v49ActiveTasks().filter(t=>/5|10|15/.test(String(t.duration||'')) || /быстро|позвон|напис|провер/i.test(t.title||''));}
+  function v49WaitingTasks(){return v49ActiveTasks().filter(t=>t.waiting||/ожида|жду|контроль|напомнить/i.test((t.title||'')+' '+(t.note||'')));}
+  function v49SomedayTasks(){return v49ActiveTasks().filter(t=>!t.date || t.priority==='D' || /когда-нибудь|потом|идея/i.test((t.area||'')+' '+(t.note||'')));}
+  function v49GoalTasks(goalId){return v49ActiveTasks().filter(t=>String(t.goalId||'')===String(goalId||''));}
+  function v49GoalProgress(g){
+    const metric=g.target?num(g.current)/Math.max(1,num(g.target))*100:0;
+    const steps=[];
+    (g.subgoals||[]).forEach(sg=>(sg.steps||[]).forEach(st=>steps.push(st)));
+    (g.steps||[]).forEach(st=>steps.push(st));
+    const action=steps.length?steps.filter(s=>s.done).length/steps.length*100:(v49GoalTasks(g.id).length?20:0);
+    const sub=g.subgoals?.length?g.subgoals.filter(sg=>sg.done || ((sg.steps||[]).length && sg.steps.every(st=>st.done))).length/g.subgoals.length*100:action;
+    return {metric:clamp(metric),actions:clamp(action),sub:clamp(sub),overall:clamp(Math.round((metric*.45)+(action*.35)+(sub*.2)))};
+  }
+  function v49MainGoal(){
+    v49Ensure();
+    let g=(state.goals||[]).find(x=>x.id===state.settings.v49.activeGoalId);
+    if(!g) g=(state.goals||[]).find(x=>v49GoalTasks(x.id).some(t=>t.weekStep)) || (state.goals||[])[0];
+    if(g && !state.settings.v49.activeGoalId){state.settings.v49.activeGoalId=g.id;}
+    return g;
+  }
+  function v49MoneySnapshot(){try{return financeTotals(periodInfo('month'))}catch(e){return {inc:0,exp:0,planned:0,net:0}}}
+  function v49TodayHabits(){return (state.habits||[]).map(h=>({h,done:Boolean(h.marks?.[today()])}));}
+  function v49MarkDone(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.status=t.status==='Готово'?'Активно':'Готово'; save(); render(); toast(t.status==='Готово'?'Задача выполнена':'Задача возвращена');}
+  function v49SetTaskView(view){state.settings.v49.taskView=view||'today'; save(); render();}
+  function v49SetGoalView(view){state.settings.v49.goalView=view||'active'; save(); render();}
+  function v49SetRouteStep(step){state.settings.v49.routeStep=step||'morning'; save(); render();}
+  function v49SetActiveGoal(id){state.settings.v49.activeGoalId=id||''; save(); render(); toast('Фокусная цель обновлена');}
+  function v49TaskDate(id,date){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.date=date||today(); save(); render(); toast('Дата задачи обновлена');}
+  function v49WeekStep(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.weekStep=!t.weekStep; t.goalId=t.goalId||state.settings.v49.activeGoalId||''; save(); render(); toast(t.weekStep?'Назначено шагом недели':'Шаг недели снят');}
+  function v49Waiting(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.waiting=!t.waiting; save(); render(); toast(t.waiting?'Перенесено в ожидание':'Снято с ожидания');}
+
+  function v49TaskRow(t){
+    const goal=(state.goals||[]).find(g=>g.id===t.goalId);
+    return `<article class="v49-task ${t.status==='Готово'?'done':''}">
+      <button class="v49-task-check" data-v49-action="toggleTaskDone" data-id="${esc(t.id)}">${t.status==='Готово'?'✓':'○'}</button>
+      <div><div class="v49-task-title">${esc(t.title||'Задача')}</div><div class="row-sub">${fmt(t.date)} · ${esc(t.time||'без времени')} · ${esc(t.area||'Личное')}</div>
+        <div class="v49-meta">${goal?`<span>🚩 ${esc(goal.title)}</span>`:''}${t.weekStep?'<span>⭐ шаг недели</span>':''}${t.duration?`<span>⏱ ${esc(t.duration)}</span>`:''}${t.energy?`<span>⚡ ${esc(t.energy)}</span>`:''}${t.waiting?'<span>⏳ ожидание</span>':''}${t.google?'<span>Google</span>':''}</div></div>
+      <div class="v49-actions"><button class="v49-mini blue" data-v49-action="openTaskBreakdown" data-id="${esc(t.id)}">Разбить</button><button class="v49-mini green" data-v49-action="weekStep" data-id="${esc(t.id)}">Шаг недели</button><button class="v49-mini" data-v49-action="taskTomorrow" data-id="${esc(t.id)}">Завтра</button><button class="v49-mini amber" data-v49-action="waiting" data-id="${esc(t.id)}">Ожидаю</button><button class="v49-mini blue" data-action="googleTask" data-id="${esc(t.id)}">Google</button><button class="v49-mini blue" data-action="editRecord" data-type="task" data-id="${esc(t.id)}">Ред.</button><button class="v49-mini red" data-action="deleteRecord" data-type="task" data-id="${esc(t.id)}">Удалить</button></div>
+    </article>`;
+  }
+  function v49TaskCalendar(){
+    const days=[0,1,2,3].map(n=>iso(addDays(new Date(),n)));
+    return `<div class="v49-date-column">${days.map(d=>`<div class="v49-day-box"><h4>${fmt(d)}</h4>${v49ActiveTasks().filter(t=>t.date===d).slice(0,5).map(t=>`<div class="v49-compact-row"><span class="avatar" style="width:32px;height:32px;border-radius:12px">${t.weekStep?'⭐':'✓'}</span><span><b>${esc(t.title)}</b><small>${esc(t.time||'без времени')}</small></span></div>`).join('')||'<div class="v49-empty">Пусто</div>'}</div>`).join('')}</div>`;
+  }
+  function v49TasksForView(view){
+    const active=v49ActiveTasks().slice().sort((a,b)=>String((a.date||'9999')+(a.time||'')).localeCompare(String((b.date||'9999')+(b.time||''))));
+    if(view==='today') return active.filter(t=>t.date===today() || (t.date&&t.date<today()));
+    if(view==='week') return v49WeekTasks();
+    if(view==='goals') return active.filter(t=>t.goalId);
+    if(view==='fast') return v49FastTasks();
+    if(view==='waiting') return v49WaitingTasks();
+    if(view==='someday') return v49SomedayTasks();
+    return active;
+  }
+  function v49TaskKpis(){
+    const todayCount=v49ActiveTasks().filter(t=>t.date===today()).length;
+    const overdue=v49ActiveTasks().filter(t=>t.date&&t.date<today()).length;
+    const week=v49WeekTasks().length;
+    const goalLinked=v49ActiveTasks().filter(t=>t.goalId).length;
+    return `<section class="v49-kpi-grid"><article class="v49-kpi"><div class="small muted">Сегодня</div><div class="num blue">${todayCount}</div></article><article class="v49-kpi"><div class="small muted">Просрочено</div><div class="num red">${overdue}</div></article><article class="v49-kpi"><div class="small muted">Эта неделя</div><div class="num green">${week}</div></article><article class="v49-kpi"><div class="small muted">Связано с целями</div><div class="num violet">${goalLinked}</div></article></section>`;
+  }
+  function v49TasksPage(){
+    v49Ensure();v49Styles();
+    const view=state.settings.v49.taskView||'today';
+    const rows=v49TasksForView(view);
+    const tabs=[['today','Сегодня'],['week','Эта неделя'],['goals','По целям'],['fast','Быстрые'],['waiting','Ожидаю'],['someday','Когда-нибудь'],['all','Все']];
+    return layout('Задачи','Лента исполнения: сначала главное, потом недельные шаги, быстрые дела и контроль ожиданий.',`${v49TaskKpis()}<section class="grid cols-2" style="margin-top:16px"><article class="card"><div class="card-head"><div><h3>Лента задач</h3><p class="small muted">Выбери режим, чтобы не тонуть во всём списке сразу.</p></div><button class="btn" data-action="openRecordForm" data-type="task">＋ Новая задача</button></div><div class="v49-tabs">${tabs.map(([id,l])=>`<button class="v49-tab ${view===id?'active':''}" data-v49-action="taskView" data-view="${id}">${l}</button>`).join('')}</div><div class="v49-task-list">${rows.map(v49TaskRow).join('')||'<div class="v49-empty">В этом режиме задач нет.</div>'}</div></article><aside class="card v49-calendar-card"><div class="card-head"><div><h3>Календарь задач</h3><p class="small muted">Ближайшие 4 дня без перегруза.</p></div><button class="ghost-btn" data-action="openRecordForm" data-type="task">＋ Добавить</button></div>${v49TaskCalendar()}</aside></section>`);
+  }
+
+  function v49GoalStepRows(g,sg){
+    const list=sg?(sg.steps||[]):(g.steps||[]);
+    return list.map(st=>`<div class="v49-step-row"><button class="v49-check ${st.done?'on':''}" data-v49-action="toggleGoalStep" data-goal="${esc(g.id)}" data-sub="${esc(sg?.id||'')}" data-step="${esc(st.id)}">${st.done?'✓':'○'}</button><span><b>${esc(st.title||'Шаг')}</b><div class="small muted">${esc(st.note||'')}</div></span><button class="v49-mini blue" data-v49-action="makeStepTask" data-goal="${esc(g.id)}" data-sub="${esc(sg?.id||'')}" data-step="${esc(st.id)}">В задачу</button></div>`).join('') || '<div class="v49-empty">Шагов пока нет.</div>';
+  }
+  function v49GoalCard(g){
+    const p=v49GoalProgress(g), task=v49GoalTasks(g.id).find(t=>t.weekStep)||v49GoalTasks(g.id)[0];
+    return `<article class="v49-goal-card"><div class="v49-goal-top"><div><h3>${esc(g.title||'Цель')}</h3><p class="small muted">${esc(g.kind||'Цель')} · ${esc(g.area||'')} · срок ${fmt(g.deadline)}</p></div><div class="row-actions"><button class="v49-mini ${state.settings.v49.activeGoalId===g.id?'green':'blue'}" data-v49-action="setActiveGoal" data-id="${esc(g.id)}">В фокус</button><span class="pill blue">${p.overall}%</span></div></div>
+      <div class="v49-progress-duo"><div class="v49-progress-box"><b>Прогресс результата</b>${prog(p.metric,'green')}<p class="small muted">${money(g.current||0)} из ${money(g.target||0)}</p></div><div class="v49-progress-box"><b>Прогресс действий</b>${prog(p.actions,'green')}<p class="small muted">шаги и подцели</p></div></div>
+      <div class="v49-highlight"><b>Вопрос недели</b><p class="small muted">Что я могу сделать на этой неделе, чтобы приблизиться к этой цели?</p><div class="row-actions"><button class="v49-mini green" data-v49-action="openWeeklyQuestion" data-id="${esc(g.id)}">Ответить</button><button class="v49-mini blue" data-v49-action="openGoalBuilder" data-id="${esc(g.id)}">Разбить цель</button><button class="v49-mini blue" data-action="editRecord" data-type="goal" data-id="${esc(g.id)}">Ред.</button></div></div>
+      <div class="record-card"><b>Активная задача недели</b>${task?v49TaskRow(task):'<p class="small muted">Нет активной задачи. Создай шаг недели.</p>'}<div class="row-actions"><button class="v49-mini green" data-action="createGoalWeeklyTask" data-id="${esc(g.id)}">Создать шаг недели</button></div></div>
+      <div><b>Подцели</b><div class="list" style="margin-top:9px">${(g.subgoals||[]).map(sg=>`<div class="v49-subgoal"><div class="v49-sub-head"><button class="v49-check ${sg.done?'on':''}" data-v49-action="toggleSubgoal" data-goal="${esc(g.id)}" data-sub="${esc(sg.id)}">${sg.done?'✓':'○'}</button><span><b>${esc(sg.title||'Подцель')}</b><div class="small muted">${esc(sg.note||'')}</div></span><button class="v49-mini blue" data-v49-action="addStepToSubgoal" data-goal="${esc(g.id)}" data-sub="${esc(sg.id)}">＋ шаг</button></div>${v49GoalStepRows(g,sg)}</div>`).join('')||'<div class="v49-empty">Подцелей пока нет. Нажми «Разбить цель».</div>'}</div></div>
+      <div class="row-actions"><button class="v49-mini green" data-v49-action="addSubgoal" data-id="${esc(g.id)}">＋ Подцель</button><button class="v49-mini blue" data-v49-action="addRootGoalStep" data-id="${esc(g.id)}">＋ Шаг</button><button class="v49-mini red" data-action="deleteRecord" data-type="goal" data-id="${esc(g.id)}">Удалить</button></div>
+    </article>`;
+  }
+  function v49GoalsPage(){
+    v49Ensure();v49Styles();
+    const view=state.settings.v49.goalView||'active';
+    const active=v49MainGoal();
+    const goals=view==='active'&&active?[active]:state.goals;
+    return layout('SMART-цели','Цели теперь не просто список: цель → подцели → шаги → шаг недели → задача дня.',`<section class="v49-route-hero"><article class="v49-hero-card"><span class="v49-eyebrow">🚩 Помощник по целям</span><h2 class="v49-hero-title">Разложи большую цель на понятные действия</h2><p class="v49-hero-text">Главное правило: одна цель в фокусе, один шаг недели, одна задача дня. Так приложение ведёт тебя без перегруза и прокрастинации.</p><div class="v49-quick-line"><button class="btn" data-v49-action="openGoalBuilder">＋ Мастер цели</button><button class="ghost-btn" data-action="openRecordForm" data-type="goal">Обычная цель</button><button class="ghost-btn" data-action="addFinancialGoal">Финансовая цель</button></div></article><aside class="v49-panel"><h3>Формула движения</h3><div class="v49-route-mini"><div class="v49-system-check"><span>Цель</span><b>смысл</b></div><div class="v49-system-check"><span>Подцели</span><b>этапы</b></div><div class="v49-system-check"><span>Шаг недели</span><b>фокус</b></div><div class="v49-system-check"><span>Задача дня</span><b>действие</b></div></div></aside></section><div class="v49-tabs"><button class="v49-tab ${view==='active'?'active':''}" data-v49-action="goalView" data-view="active">Фокусная цель</button><button class="v49-tab ${view==='all'?'active':''}" data-v49-action="goalView" data-view="all">Все цели</button></div><section class="grid cols-2">${goals.map(v49GoalCard).join('')||'<div class="v49-empty">Целей пока нет.</div>'}</section>`);
+  }
+
+  function v49FocusPage(){
+    v49Ensure();v49Styles();
+    const v=state.settings.v49, goal=v49MainGoal(), gp=goal?v49GoalProgress(goal):null, f=v49MoneySnapshot();
+    const habits=v49TodayHabits(), doneHabits=habits.filter(x=>x.done).length;
+    const step=v.routeStep||'morning';
+    const weekTask=goal?(v49GoalTasks(goal.id).find(t=>t.weekStep)||v49GoalTasks(goal.id)[0]):null;
+    const focusTasks=[weekTask,...v49ActiveTasks().filter(t=>t.date===today()&&(!weekTask||t.id!==weekTask.id)).slice(0,3)].filter(Boolean);
+    const steps=[['morning','☀️','Утренний фокус'],['goals','🚩','Цель'],['tasks','✅','Задачи'],['habits','🎯','Привычки'],['finance','💸','Финансы'],['evening','🌙','Закрытие']];
+    const body={
+      morning:`<div class="v49-question"><h3>Утренний фокус</h3><p class="small muted">Ответь коротко. Не надо идеально — надо начать.</p><label class="small muted">Что сегодня самое важное?</label><textarea id="v49MorningFocus">${esc(v.morningFocus||'')}</textarea><label class="small muted">Какая маленькая победа сделает день хорошим?</label><input id="v49DailyWin" value="${esc(v.dailyWin||'')}"><div class="row-actions"><button class="btn" data-v49-action="saveMorningFocus">Сохранить фокус</button><button class="ghost-btn" data-v49-action="routeStep" data-step="goals">Дальше: цель →</button></div></div>`,
+      goals:`<div><h3>Цель в фокусе</h3>${goal?`<div class="v49-highlight"><h3>${esc(goal.title)}</h3><p class="small muted">${esc(goal.area||'')} · общий прогресс ${gp.overall}%</p>${prog(gp.overall,'green')}<div class="v49-division"></div><p><b>Вопрос:</b> что я могу сделать на этой неделе, чтобы приблизиться?</p><div class="row-actions"><button class="btn" data-v49-action="openWeeklyQuestion" data-id="${esc(goal.id)}">Ответить и создать шаг</button><button class="ghost-btn" data-go="goals">Открыть цели</button></div></div>`:'<div class="v49-empty">Создай первую цель, чтобы появился маршрут.</div>'}<div class="row-actions" style="margin-top:12px"><button class="ghost-btn" data-v49-action="routeStep" data-step="tasks">Дальше: задачи →</button></div></div>`,
+      tasks:`<div><h3>Что реально сделать сегодня</h3><p class="small muted">Не больше 3–4 действий. Остальное не должно давить.</p><div class="v49-task-list">${focusTasks.map(v49TaskRow).join('')||'<div class="v49-empty">Нет задач на сегодня. Создай маленький шаг.</div>'}</div><div class="row-actions" style="margin-top:12px"><button class="btn" data-action="openRecordForm" data-type="task">＋ Добавить задачу</button><button class="ghost-btn" data-go="tasks">Открыть ленту</button><button class="ghost-btn" data-v49-action="routeStep" data-step="habits">Дальше: привычки →</button></div></div>`,
+      habits:`<div><h3>Привычки сегодня</h3><p class="small muted">Поддерживающая система, не экзамен.</p><div class="v49-kpi"><div class="small muted">Выполнено</div><div class="num green">${doneHabits}/${habits.length}</div>${prog(habits.length?doneHabits/habits.length*100:0,'green')}</div><div class="list" style="margin-top:12px">${habits.slice(0,6).map(({h,done})=>`<div class="v49-step-row"><button class="v49-check ${done?'on':''}" data-action="toggleHabitDay" data-id="${esc(h.id)}" data-date="${today()}">${done?'✓':'○'}</button><span><b>${esc(h.name)}</b><div class="small muted">${esc(h.area||'')}</div></span></div>`).join('')}</div><div class="row-actions" style="margin-top:12px"><button class="ghost-btn" data-go="habits">Открыть трекер</button><button class="ghost-btn" data-v49-action="routeStep" data-step="finance">Дальше: финансы →</button></div></div>`,
+      finance:`<div><h3>Финансовая проверка 2 минуты</h3><div class="v49-kpi-grid"><article class="v49-kpi"><div class="small muted">Доходы</div><div class="num green">${money(f.inc)}</div></article><article class="v49-kpi"><div class="small muted">Расходы</div><div class="num red">${money(f.exp)}</div></article><article class="v49-kpi"><div class="small muted">План покупок</div><div class="num blue">${money(f.planned)}</div></article><article class="v49-kpi"><div class="small muted">Прогноз</div><div class="num ${f.net>=0?'green':'red'}">${money(f.net)}</div></article></div><div class="row-actions"><button class="btn" data-go="finance">Открыть финансы</button><button class="ghost-btn" data-go="expense-review">Категории расходов</button><button class="ghost-btn" data-v49-action="routeStep" data-step="evening">Дальше: закрытие →</button></div></div>`,
+      evening:`<div class="v49-question"><h3>Вечернее закрытие</h3><p class="small muted">Закрой день без самокритики. Только факты и следующий шаг.</p><label class="small muted">Что получилось сегодня?</label><textarea id="v49EveningNote">${esc(v.eveningNote||'')}</textarea><div class="row-actions"><button class="btn" data-v49-action="saveEvening">Сохранить итог</button><button class="ghost-btn" data-v49-action="routeStep" data-step="morning">Вернуться в начало</button></div></div>`
+    }[step]||'';
+    return layout('Фокус дня','Пошаговый маршрут, чтобы не прокрастинировать: сначала фокус, потом цели, задачи, привычки, финансы и закрытие дня.',`<section class="v49-route-hero"><article class="v49-hero-card"><span class="v49-eyebrow">🧭 Маршрут дня</span><h2 class="v49-hero-title">Не думай, с чего начать — иди по шагам</h2><p class="v49-hero-text">Эта страница не заменяет старые разделы. Она связывает их в правильную последовательность: цель → шаг недели → задачи → привычки → финансы → итоги.</p><div class="v49-route-steps">${steps.map(([id,ico,label])=>`<button class="v49-step ${step===id?'active':''}" data-v49-action="routeStep" data-step="${id}"><span>${ico}</span><b>${label}</b><small>${id==='goals'&&goal?esc(goal.title.slice(0,34)):'открыть шаг'}</small></button>`).join('')}</div></article><aside class="v49-panel"><h3>Пульс дня</h3><div class="v49-route-mini"><div class="v49-system-check"><span>Фокусная цель</span><b>${goal?esc(goal.title.slice(0,24)):'нет'}</b></div><div class="v49-system-check"><span>Задачи сегодня</span><b>${v49ActiveTasks().filter(t=>t.date===today()).length}</b></div><div class="v49-system-check"><span>Привычки</span><b>${doneHabits}/${habits.length}</b></div><div class="v49-system-check"><span>Финансы</span><b class="${f.net>=0?'v49-good':'v49-warn'}">${money(f.net)}</b></div></div></aside></section><section class="v49-focus-grid"><article class="card">${body}</article><aside class="grid"><article class="card v49-anti-card"><h3>Антипрокрастинация</h3><p class="small muted">Если завис — не ругай себя. Выбери одно действие.</p><div class="row-actions" style="justify-content:flex-start"><button class="v49-mini blue" data-v49-action="makeTinyTask">Сделать шаг на 15 минут</button><button class="v49-mini green" data-go="tasks">Открыть быстрые задачи</button><button class="v49-mini amber" data-v49-action="openInboxCapture">Сбросить мысль</button></div></article><article class="card"><h3>Сегодняшние 3 действия</h3><div class="v49-task-list">${focusTasks.slice(0,3).map(v49TaskRow).join('')||'<div class="v49-empty">Выбери шаг цели или добавь задачу.</div>'}</div></article></aside></section>`);
+  }
+
+  function v49InboxPage(){
+    v49Ensure();v49Styles();
+    const type=state.settings.v49.inboxType||'task';
+    const types=[['task','✅','Задача'],['note','📝','Заметка'],['idea','💡','Идея'],['debt','⚖️','Долг'],['purchase','🛒','Покупка'],['wish','💗','Желание'],['person','👥','Человек'],['finance','💸','Финансы']];
+    return layout('Входящие','Быстрый захват мыслей без перегруза. Сначала складывай сюда, потом разбирай по системе.',`<section class="v49-inbox-grid"><article class="card"><div class="card-head"><div><h3>Быстрый сброс</h3><p class="small muted">Запиши как есть. Потом можно превратить в задачу, заметку, покупку или цель.</p></div><span class="pill blue">${state.inbox.length}</span></div><div class="v49-inbox-capture"><div class="v49-type-grid">${types.map(([id,ico,l])=>`<button class="v49-type ${type===id?'active':''}" data-v49-action="inboxType" data-type="${id}">${ico}<br>${l}</button>`).join('')}</div><textarea id="v49InboxText" placeholder="Что нужно не забыть?"></textarea><div class="row-actions"><button class="btn" data-v49-action="saveInbox">Сохранить во входящие</button><button class="ghost-btn" data-v49-action="processInboxAll">Разобрать автоматически</button></div></div></article><aside class="card"><h3>Правило Inbox</h3><p class="small muted">Входящие нужны, чтобы мозг не держал всё внутри. Не надо сразу идеально раскладывать — сначала зафиксируй.</p><div class="v49-route-mini"><div class="v49-system-check"><span>1. Захватить</span><b>10 сек.</b></div><div class="v49-system-check"><span>2. Разобрать</span><b>вечером</b></div><div class="v49-system-check"><span>3. Превратить</span><b>в действие</b></div></div></aside></section><section class="card" style="margin-top:16px"><div class="card-head"><h3>Очередь входящих</h3><button class="ghost-btn" data-v49-action="processInboxAll">Разобрать всё</button></div><div class="v49-task-list">${state.inbox.map(x=>`<article class="v49-task"><span class="avatar">${esc((types.find(t=>t[0]===x.type)||['','📥'])[1])}</span><div><div class="v49-task-title">${esc(x.text)}</div><div class="row-sub">${fmt(x.date)} · ${esc((types.find(t=>t[0]===x.type)||['','','Запись'])[2])}</div></div><div class="v49-actions"><button class="v49-mini green" data-v49-action="processInbox" data-id="${esc(x.id)}">В систему</button><button class="v49-mini red" data-v49-action="deleteInbox" data-id="${esc(x.id)}">Удалить</button></div></article>`).join('')||'<div class="v49-empty">Входящие пусты.</div>'}</div></section>`);
+  }
+
+  function v49ReviewsPage(){
+    v49Ensure();v49Styles();
+    const f=v49MoneySnapshot();
+    const areas=[['Финансы',f.net>=0?70:35],['Цели',state.goals.length?60:15],['Задачи',v49CompletedTasks().length?55:30],['Привычки',state.habits.length?Math.round(v49TodayHabits().filter(x=>x.done).length/Math.max(1,state.habits.length)*100):0],['Личное',state.personal?.length?55:20],['Порядок',state.inbox.length?35:70]];
+    return layout('Обзоры','День, неделя и месяц: не для контроля ради контроля, а чтобы видеть движение жизни.',`<section class="v49-review-grid"><article class="card v49-review-card"><h3>Ежедневное закрытие</h3><p class="small muted">Что сделал, что перенести, какой первый шаг завтра?</p><div class="v49-question"><textarea id="v49DailyReview" placeholder="Итог дня...">${esc(state.settings.v49.eveningNote||'')}</textarea><button class="btn" data-v49-action="saveDailyReview">Сохранить</button></div></article><article class="card v49-review-card"><h3>Недельный обзор</h3><div class="v49-route-mini"><div class="v49-system-check"><span>Задач выполнено</span><b>${v49CompletedTasks().length}</b></div><div class="v49-system-check"><span>Шагов недели</span><b>${v49ActiveTasks().filter(t=>t.weekStep).length}</b></div><div class="v49-system-check"><span>Входящие</span><b>${state.inbox.length}</b></div><div class="v49-system-check"><span>Целей</span><b>${state.goals.length}</b></div></div></article><article class="card v49-review-card"><h3>Колесо жизни</h3><div class="v49-life-wheel">${areas.map(([n,p])=>`<div class="v49-wheel-item"><b>${n}</b>${prog(p,p>60?'green':p>35?'amber':'red')}<div class="small muted">${p}%</div></div>`).join('')}</div></article></section><section class="card" style="margin-top:16px"><h3>Что проверить раз в неделю</h3><div class="v49-fix-grid"><div class="v49-system-check"><span>1. Все входящие разобраны?</span><b>${state.inbox.length?'нет':'да'}</b></div><div class="v49-system-check"><span>2. У каждой цели есть шаг недели?</span><b>${state.goals.filter(g=>v49GoalTasks(g.id).length).length}/${state.goals.length}</b></div><div class="v49-system-check"><span>3. Финансы сверены?</span><b>${money(f.net)}</b></div><div class="v49-system-check"><span>4. Привычки поддерживают цели?</span><b>${state.habits.length}</b></div></div></section>`);
+  }
+
+  function v49PromptSteps(title){
+    const t=String(title||'цель').toLowerCase();
+    if(/доход|деньг|финанс|руб|₽|зараб/i.test(t)) return ['Посчитать текущий доход и обязательные платежи','Найти 1 источник роста дохода','Определить первый платный продукт / услугу / сделку','Запланировать 3 действия на неделю','Проверить результат и скорректировать план'];
+    if(/здоров|вес|тело|спорт|сон/i.test(t)) return ['Зафиксировать текущую точку','Выбрать минимальную привычку на каждый день','Запланировать 2–3 тренировки / прогулки','Убрать один очевидный вредный фактор','Проверить самочувствие через неделю'];
+    return ['Описать точный результат','Разбить на 3–5 этапов','Выбрать первый маленький шаг на 15 минут','Назначить шаг недели','Проверить прогресс в конце недели'];
+  }
+  function v49OpenGoalBuilder(id=''){
+    v49Ensure(); const g=id?(state.goals||[]).find(x=>x.id===id):null;
+    const suggestions=v49PromptSteps(g?.title||'');
+    openModal(g?'Разбить цель на подцели':'Мастер новой цели',`<div class="v49-builder-grid"><div class="v49-builder-field span-2"><label>Цель</label><input id="v49GoalTitle" value="${esc(g?.title||'')}"></div><div class="v49-builder-field"><label>Сфера</label><input id="v49GoalArea" value="${esc(g?.area||'Финансы')}"></div><div class="v49-builder-field"><label>Срок</label><input id="v49GoalDeadline" type="date" value="${esc(g?.deadline||'')}"></div><div class="v49-builder-field"><label>Текущая цифра</label><input id="v49GoalCurrent" inputmode="decimal" value="${esc(g?.current||'')}"></div><div class="v49-builder-field"><label>Целевая цифра</label><input id="v49GoalTarget" inputmode="decimal" value="${esc(g?.target||'')}"></div><div class="v49-builder-field span-2"><label>Почему это важно?</label><textarea id="v49GoalWhy">${esc(g?.why||'')}</textarea></div><div class="v49-builder-field span-2"><label>Как пойму, что цель достигнута?</label><textarea id="v49GoalSuccess">${esc(g?.successCriteria||'')}</textarea></div><div class="v49-builder-field span-2"><label>Что может помешать?</label><textarea id="v49GoalObstacle">${esc(g?.obstacle||'')}</textarea></div><div class="v49-builder-field span-2"><label>Предложенные этапы / подцели</label><textarea id="v49GoalSubgoals">${esc((g?.subgoals?.length?g.subgoals.map(x=>x.title):suggestions).join('\n'))}</textarea></div><div class="v49-builder-field span-2"><label>Первый шаг недели</label><textarea id="v49GoalWeekly">${esc(g?.weeklyQuestion||g?.note||suggestions[2]||'')}</textarea></div></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v49-action="saveGoalBuilder" ${g?`data-id="${esc(g.id)}"`:''}>Сохранить и создать шаг</button><button class="ghost-btn" data-action="closeModal">Отмена</button></div>`);
+  }
+  function v49SaveGoalBuilder(id){
+    const title=$('#v49GoalTitle')?.value?.trim(); if(!title) return toast('Назови цель');
+    let g=id?(state.goals||[]).find(x=>x.id===id):null;
+    if(!g){g={id:uid(),title,kind:/доход|деньг|финанс|руб|₽/i.test(title)?'Финансовая':'Личная',area:'Финансы',target:0,current:0,deadline:'',note:'',subgoals:[],steps:[]}; state.goals.unshift(g);}
+    g.title=title; g.area=$('#v49GoalArea')?.value||g.area||'Цели'; g.deadline=$('#v49GoalDeadline')?.value||g.deadline||''; g.current=num($('#v49GoalCurrent')?.value||g.current); g.target=num($('#v49GoalTarget')?.value||g.target); g.why=$('#v49GoalWhy')?.value||''; g.successCriteria=$('#v49GoalSuccess')?.value||''; g.obstacle=$('#v49GoalObstacle')?.value||''; g.weeklyQuestion=$('#v49GoalWeekly')?.value||''; g.note=g.weeklyQuestion||g.note||'';
+    const lines=($('#v49GoalSubgoals')?.value||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+    if(lines.length){
+      const old=g.subgoals||[];
+      g.subgoals=lines.map((line,i)=>old[i]?Object.assign(old[i],{title:line}):{id:uid(),title:line,note:'',done:false,steps:[]});
+    }
+    state.settings.v49.activeGoalId=g.id;
+    if(g.weeklyQuestion){state.tasks.unshift({id:uid(),goalId:g.id,title:`Шаг недели: ${g.weeklyQuestion}`,area:g.area||'Цели',date:today(),time:'09:00',priority:'B',status:'Активно',google:false,reminder:'',duration:'15–40 минут',energy:'Средне',weekStep:true});}
+    closeModal(); save(); render(); toast('Цель сохранена и связана с шагом недели');
+  }
+  function v49OpenWeeklyQuestion(id){
+    const g=(state.goals||[]).find(x=>x.id===id); if(!g) return;
+    openModal('Шаг недели по цели',`<div class="v49-question"><h3>${esc(g.title)}</h3><p class="small muted">Что я могу сделать на этой неделе, чтобы приблизиться к цели?</p><textarea id="v49WeeklyAnswer">${esc(g.weeklyQuestion||g.note||'')}</textarea><label class="small muted">Сколько времени займёт?</label><input id="v49WeeklyDuration" value="15–40 минут"></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v49-action="saveWeeklyQuestion" data-id="${esc(g.id)}">Создать задачу недели</button><button class="ghost-btn" data-action="closeModal">Отмена</button></div>`);
+  }
+  function v49SaveWeeklyQuestion(id){
+    const g=(state.goals||[]).find(x=>x.id===id); if(!g) return;
+    const txt=$('#v49WeeklyAnswer')?.value?.trim(); if(!txt) return toast('Напиши шаг недели');
+    g.weeklyQuestion=txt; g.note=txt;
+    state.tasks.unshift({id:uid(),goalId:g.id,title:`Шаг недели: ${txt}`,area:g.area||'Цели',date:today(),time:'09:00',priority:'B',status:'Активно',google:false,reminder:'',duration:$('#v49WeeklyDuration')?.value||'15–40 минут',energy:'Средне',weekStep:true});
+    closeModal(); save(); render(); toast('Шаг недели создан');
+  }
+  function v49AddSubgoal(id){
+    const g=(state.goals||[]).find(x=>x.id===id); if(!g) return;
+    openModal('Новая подцель',`<div class="field"><label>Название подцели</label><input id="v49SubgoalTitle" placeholder="Например: навести порядок в финансах"></div><div class="field" style="margin-top:10px"><label>Комментарий</label><textarea id="v49SubgoalNote"></textarea></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v49-action="saveSubgoal" data-id="${esc(id)}">Сохранить</button></div>`);
+  }
+  function v49SaveSubgoal(id){const g=(state.goals||[]).find(x=>x.id===id); if(!g) return; const title=$('#v49SubgoalTitle')?.value?.trim(); if(!title) return toast('Назови подцель'); g.subgoals=g.subgoals||[]; g.subgoals.push({id:uid(),title,note:$('#v49SubgoalNote')?.value||'',done:false,steps:[]}); closeModal(); save(); render(); toast('Подцель добавлена');}
+  function v49AddStep(goalId,subId=''){
+    const g=(state.goals||[]).find(x=>x.id===goalId); if(!g) return;
+    openModal('Новый шаг',`<div class="field"><label>Шаг</label><input id="v49StepTitle" placeholder="Например: проверить расходы за неделю"></div><div class="field" style="margin-top:10px"><label>Комментарий</label><textarea id="v49StepNote"></textarea></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v49-action="saveGoalStep" data-goal="${esc(goalId)}" data-sub="${esc(subId)}">Сохранить</button></div>`);
+  }
+  function v49SaveStep(goalId,subId=''){
+    const g=(state.goals||[]).find(x=>x.id===goalId); if(!g) return; const title=$('#v49StepTitle')?.value?.trim(); if(!title) return toast('Назови шаг');
+    const st={id:uid(),title,note:$('#v49StepNote')?.value||'',done:false};
+    if(subId){const sg=(g.subgoals||[]).find(x=>x.id===subId); if(sg){sg.steps=sg.steps||[]; sg.steps.push(st);}}
+    else {g.steps=g.steps||[]; g.steps.push(st);}
+    closeModal(); save(); render(); toast('Шаг добавлен');
+  }
+  function v49FindStep(g,subId,stepId){const list=subId?((g.subgoals||[]).find(s=>s.id===subId)?.steps||[]):(g.steps||[]); return list.find(st=>st.id===stepId);}
+  function v49ToggleSubgoal(goalId,subId){const g=(state.goals||[]).find(x=>x.id===goalId); const sg=g?.subgoals?.find(x=>x.id===subId); if(!sg) return; sg.done=!sg.done; save(); render();}
+  function v49ToggleGoalStep(goalId,subId,stepId){const g=(state.goals||[]).find(x=>x.id===goalId); const st=g&&v49FindStep(g,subId,stepId); if(!st) return; st.done=!st.done; save(); render();}
+  function v49MakeStepTask(goalId,subId,stepId){const g=(state.goals||[]).find(x=>x.id===goalId); const st=g&&v49FindStep(g,subId,stepId); if(!g||!st) return; state.tasks.unshift({id:uid(),goalId:g.id,title:st.title,area:g.area||'Цели',date:today(),time:'09:00',priority:'B',status:'Активно',google:false,reminder:'',duration:'15–40 минут',energy:'Средне',weekStep:false,note:st.note||''}); save(); render(); toast('Шаг превращён в задачу');}
+  function v49OpenTaskBreakdown(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t)return; openModal('Разбить задачу',`<div class="v49-question"><h3>${esc(t.title)}</h3><p class="small muted">Какие 2–5 маленьких действия помогут начать?</p><textarea id="v49TaskBreakdown">Открыть нужные материалы\nСделать первый шаг на 15 минут\nПроверить результат</textarea></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v49-action="saveTaskBreakdown" data-id="${esc(id)}">Создать подзадачи</button></div>`);}
+  function v49SaveTaskBreakdown(id){const parent=(state.tasks||[]).find(x=>x.id===id); if(!parent)return; const lines=($('#v49TaskBreakdown')?.value||'').split(/\n+/).map(x=>x.trim()).filter(Boolean); lines.reverse().forEach(line=>state.tasks.unshift({id:uid(),parentId:id,goalId:parent.goalId||'',title:line,area:parent.area||'Задачи',date:today(),time:'',priority:parent.priority||'B',status:'Активно',google:false,reminder:'',duration:'15 минут',energy:'Легко'})); closeModal(); save(); render(); toast('Подзадачи созданы');}
+  function v49MakeTinyTask(){const g=v49MainGoal(); state.tasks.unshift({id:uid(),goalId:g?.id||'',title:g?`15 минут для цели: ${g.title}`:'Маленький шаг на 15 минут',area:g?.area||'Фокус',date:today(),time:'',priority:'B',status:'Активно',duration:'15 минут',energy:'Легко',weekStep:Boolean(g)}); save(); render(); toast('Маленький шаг создан');}
+  function v49OpenInboxCapture(){go('inbox'); setTimeout(()=>document.getElementById('v49InboxText')?.focus(),80);}
+  function v49InboxType(type){state.settings.v49.inboxType=type||'task'; save(); render();}
+  function v49SaveInbox(){const txt=$('#v49InboxText')?.value?.trim(); if(!txt)return toast('Напиши мысль'); state.inbox.unshift({id:uid(),type:state.settings.v49.inboxType||'task',text:txt,date:today(),createdAt:new Date().toISOString()}); save(); render(); toast('Сохранено во входящие');}
+  function v49DeleteInbox(id){state.inbox=(state.inbox||[]).filter(x=>x.id!==id); save(); render();}
+  function v49ProcessInbox(id){const x=(state.inbox||[]).find(i=>i.id===id); if(!x)return; const txt=x.text||''; if(x.type==='task'||x.type==='finance') state.tasks.unshift({id:uid(),title:txt,area:x.type==='finance'?'Финансы':'Inbox',date:today(),time:'',priority:'B',status:'Активно'}); else if(x.type==='note') state.notes.unshift({id:uid(),title:txt.slice(0,60),text:txt,folder:'Inbox',date:today()}); else if(x.type==='idea') state.ideas.unshift({id:uid(),title:txt.slice(0,60),text:txt,date:today()}); else if(x.type==='purchase') state.purchases.unshift({id:uid(),title:txt,amount:0,date:today(),area:'Inbox',includeInBudget:true,note:''}); else if(x.type==='wish') state.wishes.unshift({id:uid(),title:txt,amount:0,date:today(),area:'Inbox',includeInBudget:false,note:''}); else if(x.type==='debt') state.debts.unshift({id:uid(),direction:'out',person:txt,amount:0,due:today(),status:'Ожидает',note:'из Inbox'}); else if(x.type==='person') state.people.unshift({id:uid(),name:txt,role:'Inbox',birthday:'',phone:'',email:'',photo:'',links:'',likes:'',talkIdeas:'',gifts:'',notes:''}); v49DeleteInbox(id); toast('Запись перенесена в систему');}
+  function v49ProcessInboxAll(){[...(state.inbox||[])].forEach(x=>v49ProcessInbox(x.id)); save(); render(); toast('Входящие разобраны');}
+  function v49SaveMorningFocus(){state.settings.v49.morningFocus=$('#v49MorningFocus')?.value||''; state.settings.v49.dailyWin=$('#v49DailyWin')?.value||''; state.settings.v49.routeStep='goals'; save(); render(); toast('Фокус сохранён');}
+  function v49SaveEvening(){state.settings.v49.eveningNote=$('#v49EveningNote')?.value||''; state.reviews.unshift({id:uid(),type:'daily',date:today(),text:state.settings.v49.eveningNote}); save(); render(); toast('Итог дня сохранён');}
+  function v49SaveDailyReview(){state.settings.v49.eveningNote=$('#v49DailyReview')?.value||''; state.reviews.unshift({id:uid(),type:'daily',date:today(),text:state.settings.v49.eveningNote}); save(); render(); toast('Обзор сохранён');}
+
+  const oldTasksPageV49=typeof tasksPage==='function'?tasksPage:null;
+  const oldGoalsPageV49=typeof goalsPage==='function'?goalsPage:null;
+  if(oldTasksPageV49) tasksPage=v49TasksPage;
+  if(oldGoalsPageV49) goalsPage=v49GoalsPage;
+  const oldOpenQuickV49=typeof openQuick==='function'?openQuick:null;
+  if(oldOpenQuickV49){openQuick=function(){openModal('Быстро создать',`<div class="grid cols-3"><button class="btn" data-go="focus-path">🧭 Фокус дня</button><button class="btn" data-v49-action="openGoalBuilder">🚩 Мастер цели</button><button class="btn" data-go="inbox">📥 Входящие</button><button class="ghost-btn" data-action="openRecordForm" data-type="task">Задача</button><button class="ghost-btn" data-action="openRecordForm" data-type="note">Заметка</button><button class="ghost-btn" data-action="openRecordForm" data-type="idea">Идея</button><button class="ghost-btn" data-action="openRecordForm" data-type="debt">Долг</button><button class="ghost-btn" data-action="openRecordForm" data-type="purchase">Покупка</button><button class="ghost-btn" data-action="openRecordForm" data-type="wish">Желание</button><button class="ghost-btn" data-action="openRecordForm" data-type="habit">Привычка</button><button class="ghost-btn" data-action="openRecordForm" data-type="person">Человек</button><button class="ghost-btn" data-action="openRecordForm" data-type="goal">Цель</button></div>`)};}
+
+  const oldRenderV49=typeof render==='function'?render:null;
+  if(oldRenderV49){
+    render=function(){
+      v49Ensure();v49AddSections();v49Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(['focus-path','inbox','reviews'].includes(current)) page=current;
+      const res=oldRenderV49();
+      setTimeout(()=>{
+        try{
+          const cur=(location.hash||'').replace('#','')||page||'dashboard';
+          const view=document.querySelector('#view');
+          if(view && cur==='focus-path') view.innerHTML=v49FocusPage();
+          if(view && cur==='inbox') view.innerHTML=v49InboxPage();
+          if(view && cur==='reviews') view.innerHTML=v49ReviewsPage();
+          if(cur==='dashboard'){
+            const pageEl=view?.querySelector('.page'); const hero=view?.querySelector('.hero');
+            if(pageEl && hero && !view.querySelector('.v49-dashboard-route')){
+              hero.insertAdjacentHTML('afterend',`<section class="v49-dashboard-route v49-hero-card" style="margin-bottom:16px"><div class="card-head"><div><span class="v49-eyebrow">🧭 Новый маршрут</span><h3>Фокус дня: цели, задачи, привычки и финансы в правильной последовательности</h3><p class="small muted">Старые разделы сохранены. Эта панель просто ведёт тебя пошагово.</p></div><button class="btn" data-go="focus-path">Открыть маршрут</button></div></section>`);
+            }
+          }
+          const badge=document.querySelector('.version'); if(badge) badge.textContent=V49_LABEL;
+          document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V49_BUILD);
+        }catch(e){console.error('[V49 post render]',e)}
+      },45);
+      return res;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-v49-action]'); if(!el) return;
+    const a=el.dataset.v49Action;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    try{
+      if(a==='taskView') return v49SetTaskView(el.dataset.view);
+      if(a==='goalView') return v49SetGoalView(el.dataset.view);
+      if(a==='routeStep') return v49SetRouteStep(el.dataset.step);
+      if(a==='toggleTaskDone') return v49MarkDone(el.dataset.id);
+      if(a==='taskTomorrow') return v49TaskDate(el.dataset.id,iso(addDays(new Date(),1)));
+      if(a==='weekStep') return v49WeekStep(el.dataset.id);
+      if(a==='waiting') return v49Waiting(el.dataset.id);
+      if(a==='setActiveGoal') return v49SetActiveGoal(el.dataset.id);
+      if(a==='openGoalBuilder') return v49OpenGoalBuilder(el.dataset.id||'');
+      if(a==='saveGoalBuilder') return v49SaveGoalBuilder(el.dataset.id||'');
+      if(a==='openWeeklyQuestion') return v49OpenWeeklyQuestion(el.dataset.id);
+      if(a==='saveWeeklyQuestion') return v49SaveWeeklyQuestion(el.dataset.id);
+      if(a==='addSubgoal') return v49AddSubgoal(el.dataset.id);
+      if(a==='saveSubgoal') return v49SaveSubgoal(el.dataset.id);
+      if(a==='addStepToSubgoal') return v49AddStep(el.dataset.goal,el.dataset.sub);
+      if(a==='addRootGoalStep') return v49AddStep(el.dataset.id,'');
+      if(a==='saveGoalStep') return v49SaveStep(el.dataset.goal,el.dataset.sub||'');
+      if(a==='toggleSubgoal') return v49ToggleSubgoal(el.dataset.goal,el.dataset.sub);
+      if(a==='toggleGoalStep') return v49ToggleGoalStep(el.dataset.goal,el.dataset.sub||'',el.dataset.step);
+      if(a==='makeStepTask') return v49MakeStepTask(el.dataset.goal,el.dataset.sub||'',el.dataset.step);
+      if(a==='openTaskBreakdown') return v49OpenTaskBreakdown(el.dataset.id);
+      if(a==='saveTaskBreakdown') return v49SaveTaskBreakdown(el.dataset.id);
+      if(a==='makeTinyTask') return v49MakeTinyTask();
+      if(a==='openInboxCapture') return v49OpenInboxCapture();
+      if(a==='inboxType') return v49InboxType(el.dataset.type);
+      if(a==='saveInbox') return v49SaveInbox();
+      if(a==='deleteInbox') return v49DeleteInbox(el.dataset.id);
+      if(a==='processInbox') return v49ProcessInbox(el.dataset.id);
+      if(a==='processInboxAll') return v49ProcessInboxAll();
+      if(a==='saveMorningFocus') return v49SaveMorningFocus();
+      if(a==='saveEvening') return v49SaveEvening();
+      if(a==='saveDailyReview') return v49SaveDailyReview();
+    }catch(err){console.error('[V49 action]',err);try{toast('Ошибка V49: '+(err.message||err))}catch(_){} }
+  },true);
+
+  try{v49Ensure();v49AddSections();v49Styles();save();render();}catch(e){console.error('[V49 init]',e)}
 })();
