@@ -3818,8 +3818,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 /* ===== V52 Living Premium UI: smooth whole-app visual system, stable clicks ===== */
 (function(){
   'use strict';
-  const V52_BUILD='second-brain-space-v52-living-premium-ui-20260708';
-  const V52_LABEL='V52 · LIVING PREMIUM UI';
+  const V52_BUILD='second-brain-space-v52-3-safe-stable-premium-ui-20260708';
+  const V52_LABEL='V52.3 · LIVING PREMIUM UI';
   try{localStorage.setItem('secondBrainOS.currentBuild',V52_BUILD)}catch(e){}
 
   function v52Ensure(){
@@ -3958,63 +3958,29 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 
 
-/* ===== V52.2 SAFE LOAD HOTFIX: badge lock without MutationObserver/infinite loops ===== */
+/* ===== V52.3 SAFE STABLE BADGE: no render override, no observer, no loop ===== */
 (function(){
   'use strict';
-  const V522_BUILD='second-brain-space-v52-2-safe-load-hotfix-20260708';
-  const V522_LABEL='V52.2 · LIVING PREMIUM UI';
-  try{localStorage.setItem('secondBrainOS.currentBuild',V522_BUILD)}catch(e){}
-  function v522Badge(){
+  const BUILD='second-brain-space-v52-3-safe-stable-premium-ui-20260708';
+  const LABEL='V52.3 · LIVING PREMIUM UI';
+  function setStableBadge(){
     try{
       const badge=document.querySelector('.version');
       if(badge){
-        if(badge.textContent!==V522_LABEL) badge.textContent=V522_LABEL;
-        badge.classList.add('v52-version','v522-version-lock');
-        badge.setAttribute('data-build',V522_BUILD);
+        badge.textContent=LABEL;
+        badge.classList.add('v52-version');
+        badge.setAttribute('data-build',BUILD);
+        badge.style.opacity='1';
+        badge.style.visibility='visible';
       }
       const meta=document.querySelector('meta[name="second-brain-build"]');
-      if(meta) meta.setAttribute('content',V522_BUILD);
-      if(document.body) document.body.setAttribute('data-sbos-build',V522_BUILD);
-    }catch(e){console.warn('[V52.2 badge]',e)}
+      if(meta) meta.setAttribute('content',BUILD);
+      if(document.body) document.body.setAttribute('data-sbos-build',BUILD);
+      try{localStorage.setItem('secondBrainOS.currentBuild',BUILD)}catch(_){ }
+    }catch(e){console.warn('[V52.3 badge]',e)}
   }
-  function v522Styles(){
-    if(document.getElementById('v522-safe-load-styles')) return;
-    const st=document.createElement('style');
-    st.id='v522-safe-load-styles';
-    st.textContent=`
-      .version.v522-version-lock{background:linear-gradient(135deg,#0f172a,#1d4ed8,#7c3aed)!important;color:#fff!important;box-shadow:0 18px 44px rgba(37,99,235,.28)!important;opacity:1!important;visibility:visible!important;letter-spacing:.02em!important}
-      html{scroll-behavior:auto!important}
-      #view{transition:opacity .18s cubic-bezier(.2,.8,.2,1),transform .18s cubic-bezier(.2,.8,.2,1)}
-      body.v522-soft-render #view{opacity:.992;transform:translateY(0)}
-      button,.btn,.ghost-btn,.icon-btn,.chip-btn,.nav-item,.v52-tab,.v49-step,.v50-lesson-tab,.v52-action-line{will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
-      button:active,.btn:active,.ghost-btn:active,.icon-btn:active,.chip-btn:active,.nav-item:active,.v52-tab:active,.v49-step:active,.v50-lesson-tab:active,.v52-action-line:active{transform:translateY(1px) scale(.992)!important}
-      .v52-finance-hero,.v52-panel,.v52-metric,.v52-discipline,.v49-route-hero,.v50-learn-card{backface-visibility:hidden;transform:translateZ(0)}
-    `;
-    document.head.appendChild(st);
-  }
-  const previousRender=typeof render==='function'?render:null;
-  if(previousRender){
-    render=function(){
-      const beforeY=window.scrollY||0;
-      document.body?.classList.add('v522-soft-render');
-      let result;
-      try{ result=previousRender.apply(this,arguments); }
-      catch(e){
-        document.body?.classList.remove('v522-soft-render');
-        console.error('[V52.2 render guard]',e);
-        throw e;
-      }
-      requestAnimationFrame(()=>{
-        v522Badge();
-        const current=(location.hash||'').replace('#','')||page||'dashboard';
-        if(current===((window.__sbosLastStablePage)||current) && Math.abs((window.scrollY||0)-beforeY)>40) window.scrollTo(0,beforeY);
-        window.__sbosLastStablePage=current;
-        setTimeout(()=>{v522Badge();document.body?.classList.remove('v522-soft-render');},120);
-        setTimeout(v522Badge,320);
-      });
-      return result;
-    };
-  }
-  function boot(){v522Styles();v522Badge();}
-  try{boot(); setTimeout(v522Badge,80); setTimeout(v522Badge,260); setTimeout(v522Badge,800);}catch(e){console.error('[V52.2 init]',e)}
+  function scheduleBadge(){[40,160,420,1000,1800].forEach(ms=>setTimeout(setStableBadge,ms));}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',scheduleBadge,{once:true});
+  else scheduleBadge();
+  window.addEventListener('hashchange',scheduleBadge);
 })();
