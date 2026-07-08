@@ -3956,3 +3956,64 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   try{v52Ensure();v52Styles();save();render();}catch(e){console.error('[V52 init]',e)}
 })();
 
+
+
+/* ===== V52.1 Version Badge Lock + Smooth Render Guard ===== */
+(function(){
+  'use strict';
+  const V521_BUILD='second-brain-space-v52-1-badge-smooth-hotfix-20260708';
+  const V521_LABEL='V52.1 · LIVING PREMIUM UI';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V521_BUILD)}catch(e){}
+  function lockBadge(){
+    try{
+      const badge=document.querySelector('.version');
+      if(badge){
+        badge.textContent=V521_LABEL;
+        badge.classList.add('v52-version','v521-version-lock');
+        badge.setAttribute('data-build',V521_BUILD);
+      }
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V521_BUILD);
+      document.body?.setAttribute('data-sbos-build',V521_BUILD);
+    }catch(_){ }
+  }
+  function v521Styles(){
+    if(document.getElementById('v521-version-lock-styles')) return;
+    const st=document.createElement('style');
+    st.id='v521-version-lock-styles';
+    st.textContent=`
+      .v521-version-lock{background:linear-gradient(135deg,#0f172a,#1d4ed8,#7c3aed)!important;color:#fff!important;letter-spacing:.02em!important;box-shadow:0 18px 44px rgba(37,99,235,.28)!important;opacity:1!important;visibility:visible!important}
+      html{scroll-behavior:auto!important}
+      body.v52-rendering #view{transition:opacity .16s ease,transform .16s ease;opacity:.985;transform:translateY(0)}
+      .v52-view,.v52-finance-page,.v49-focus-grid,.v50-learn-grid{contain:layout style paint;}
+      button,.btn,.ghost-btn,.icon-btn,.nav-item,.v52-tab,.v49-step,.v50-lesson-tab,.v52-action-line{will-change:transform;backface-visibility:hidden;}
+    `;
+    document.head.appendChild(st);
+  }
+  const oldRenderV521=typeof render==='function'?render:null;
+  if(oldRenderV521){
+    render=function(){
+      const y=window.scrollY;
+      const res=oldRenderV521.apply(this,arguments);
+      requestAnimationFrame(()=>{lockBadge(); if(Math.abs(window.scrollY-y)>24) window.scrollTo(0,y);});
+      setTimeout(()=>{lockBadge();},80);
+      setTimeout(()=>{lockBadge();},260);
+      return res;
+    };
+  }
+  const oldRenderShellV521=typeof renderShell==='function'?renderShell:null;
+  if(oldRenderShellV521){
+    renderShell=function(content){
+      const res=oldRenderShellV521.apply(this,arguments);
+      lockBadge();
+      return res;
+    };
+  }
+  function boot(){v521Styles();lockBadge();}
+  try{
+    boot();
+    const mo=new MutationObserver(()=>lockBadge());
+    mo.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+    setInterval(lockBadge,700);
+    render();
+  }catch(e){console.error('[V52.1 badge lock]',e)}
+})();
