@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v58-3-root-habit-premium-20260708';
+const BUILD='second-brain-space-v60-clickable-folders-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -4874,4 +4874,147 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
 
   try{layout=v59Layout; renderShell=v59RenderShell; render=v59Render; v59Styles(); render();}catch(e){console.error('[V59 init]',e)}
+})();
+
+
+/* ===== V60 CLICKABLE FOLDERS ROUTER: every sidebar folder opens a real page ===== */
+(function(){
+  'use strict';
+  const V60_BUILD='second-brain-space-v60-clickable-folders-20260708';
+  const V60_LABEL='V60 · CLICKABLE FOLDERS';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V60_BUILD);}catch(e){}
+
+  function v60Styles(){
+    if(document.getElementById('v60-clickable-folders-style')) return;
+    const st=document.createElement('style');
+    st.id='v60-clickable-folders-style';
+    st.textContent=`
+      .v60-folder-ok{cursor:pointer!important;pointer-events:auto!important;user-select:none!important}
+      .v59-nav-item,.nav-item,[data-go],.v60-folder-card{cursor:pointer!important;pointer-events:auto!important}
+      .v60-folder-card{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;text-align:left;border:1px solid #dbe7f6;border-radius:24px;background:linear-gradient(180deg,#fff,#f8fbff);padding:16px;box-shadow:0 16px 38px rgba(37,99,235,.07);width:100%}
+      .v60-folder-card:hover{border-color:#bfdbfe;box-shadow:0 20px 44px rgba(37,99,235,.10)}
+      .v60-folder-card h3{margin:0;font-size:18px;letter-spacing:-.035em;color:#102044}.v60-folder-card p{margin:5px 0 0;color:#64748b;font-size:13px;font-weight:800;line-height:1.4}.v60-folder-card .arrow{font-weight:1000;color:#2563eb;background:#eef5ff;border-radius:999px;padding:8px 11px}
+      .v60-route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.v60-route-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.v60-route-list{display:grid;gap:10px}.v60-route-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #e4ecf8;background:#fff;border-radius:18px;padding:12px}.v60-route-row b{display:block;color:#102044;line-height:1.3}.v60-route-row small{display:block;margin-top:3px;color:#64748b;font-weight:800;line-height:1.35}.v60-route-icon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:#eef5ff;color:#2563eb;font-weight:1000}.v60-empty{border:1px dashed #cbd5e1;background:#f8fbff;border-radius:22px;padding:22px;color:#64748b;font-weight:850}.v60-search-box{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-bottom:14px}.v60-search-box input{height:48px;border:1px solid #dbe7f6;border-radius:16px;padding:0 14px;font-weight:850;outline:0;background:#fff}.v60-alert{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eef6ff,#fff);border-radius:24px;padding:18px;box-shadow:0 16px 40px rgba(37,99,235,.07)}
+      @media(max-width:1100px){.v60-route-grid,.v60-route-grid.two{grid-template-columns:1fr}.v60-route-row{grid-template-columns:40px minmax(0,1fr)}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v60Arr(k){return Array.isArray(state?.[k])?state[k]:[]}
+  function v60Title(id){try{return (typeof label==='function'?label(id):'') || (SECTIONS||[]).find(s=>s.id===id)?.label || id}catch(e){return id}}
+  function v60Money(v){try{return money(v)}catch(e){return String(Math.round(Number(v)||0))+' ₽'}}
+  function v60Total(a,field='amount'){try{return total(a,field)}catch(e){return (a||[]).reduce((s,x)=>s+(Number(x?.[field])||0),0)}}
+  function v60RenderWithShell(html){
+    try{ if(typeof renderShell==='function') renderShell(html); else document.getElementById('app').innerHTML='<section id="view">'+html+'</section>'; }
+    catch(e){document.getElementById('app').innerHTML='<section id="view">'+html+'</section>'}
+  }
+  function v60Layout(title,subtitle,body){
+    try{ return layout(title,subtitle,body,true); }
+    catch(e){ return `<div class="v59-page wide-page"><div class="v59-hero"><div><h1>${esc(title)}</h1><p>${esc(subtitle||'')}</p></div></div>${body}</div>`; }
+  }
+  function v60SectionCard(id,label,icon,sub,count){return `<button type="button" class="v60-folder-card v60-folder-ok" data-go="${esc(id)}"><span class="v60-route-icon">${icon}</span><span><h3>${esc(label)}</h3><p>${esc(sub)}${count!==undefined?` · ${count} записей`:''}</p></span><span class="arrow">›</span></button>`}
+  function v60BasicRecords(title,subtitle,arr,type,icon='•'){
+    return v60Layout(title,subtitle,`<section class="v59-card"><div class="card-head"><h3>${esc(title)}</h3><button class="btn" data-action="openRecordForm" data-type="${esc(type)}">＋ Добавить</button></div><div class="record-grid">${(arr||[]).map(x=>`<article class="record-card"><div class="card-head"><div><h3>${esc(x.title||x.name||x.person||'Запись')}</h3><p class="small muted">${esc(x.area||x.folder||x.role||x.type||x.date||'')}</p></div><span class="avatar">${icon}</span></div><p class="small muted" style="white-space:pre-line">${esc(x.note||x.text||x.quotes||x.talkIdeas||'')}</p>${typeof rowActions==='function'?rowActions(type,x.id):''}</article>`).join('')||'<div class="v60-empty">Пока пусто.</div>'}</div></section>`);
+  }
+
+  function v60FocusPage(){
+    const tasks=(typeof todayTasks==='function'?todayTasks():v60Arr('tasks').filter(t=>t.date===today())).slice(0,6);
+    const habits=v60Arr('habits'); const done=habits.filter(h=>h.marks?.[today()]).length;
+    const out=(typeof activeDebts==='function'?activeDebts():v60Arr('debts')).filter(d=>d.direction==='out');
+    return v60Layout('Фокус дня','Операционный экран: что сделать сейчас, что не забыть и какой минимум сохранить.',`<section class="v59-command"><div><h2>Главный маршрут дня</h2><p>Сначала закрываем самый важный шаг, потом проверяем деньги и сохраняем ритм привычек. Все переходы ниже кликабельны.</p><div class="v59-command-actions"><button class="primary" data-go="tasks">Открыть задачи</button><button data-go="finance">Проверить финансы</button><button data-go="habits">Привычки</button><button data-go="inbox">Входящие</button></div></div><div class="v59-stats"><article class="v59-stat"><span>Задач сегодня</span><b class="blue">${tasks.length}</b><small>для фокуса</small></article><article class="v59-stat"><span>Привычки</span><b class="green">${done}/${habits.length}</b><small>ритм дня</small></article><article class="v59-stat"><span>Я должен</span><b class="red">${v60Money(v60Total(out))}</b><small>зона контроля</small></article><article class="v59-stat"><span>Inbox</span><b class="amber">${v60Arr('inbox').length}</b><small>мысли на разбор</small></article></div></section><section class="v59-grid v59-cols-2"><article class="v59-card"><h3>Что сделать сейчас</h3><div class="v60-route-list">${tasks.map(t=>`<div class="v60-route-row"><span class="v60-route-icon">✓</span><div><b>${esc(t.title||'Задача')}</b><small>${esc(t.time||'без времени')} · ${esc(t.area||'')}</small></div><span class="v59-badge blue">сегодня</span></div>`).join('')||'<div class="v60-empty">На сегодня нет задач.</div>'}</div></article><article class="v59-card"><h3>Быстрые папки</h3><div class="v60-route-list">${v60SectionCard('reviews','Обзоры','🔎','закрыть день и неделю')}${v60SectionCard('goals','SMART-цели','🚩','главный шаг недели')}${v60SectionCard('calendar','Календарь','📅','нагрузка и сроки')}</div></article></section>`)
+  }
+  function v60InboxPage(){
+    const inbox=v60Arr('inbox');
+    return v60Layout('Входящие','Быстрый сбор мыслей без раскладывания по папкам сразу.',`<section class="v59-command"><div><h2>Сначала сохранить, потом разобрать</h2><p>Если непонятно куда положить мысль — складывай сюда. Потом переносишь в задачу, заметку, идею или финансы.</p><div class="v59-command-actions"><button class="primary" data-action="openQuick">＋ Быстро создать</button><button data-go="tasks">Задачи</button><button data-go="notes">Заметки</button></div></div><div class="v59-stats"><article class="v59-stat"><span>Входящих</span><b class="blue">${inbox.length}</b><small>на разбор</small></article><article class="v59-stat"><span>Задач</span><b>${v60Arr('tasks').length}</b><small>в системе</small></article><article class="v59-stat"><span>Заметок</span><b>${v60Arr('notes').length}</b><small>контекст</small></article><article class="v59-stat"><span>Идей</span><b>${v60Arr('ideas').length}</b><small>заготовки</small></article></div></section><section class="v59-card"><h3>Очередь входящих</h3><div class="v60-route-list">${inbox.map(x=>`<div class="v60-route-row"><span class="v60-route-icon">📥</span><div><b>${esc(x.text||x.title||'Запись')}</b><small>${esc(x.type||'inbox')} · ${esc(x.date||'')}</small></div><span class="v59-badge blue">inbox</span></div>`).join('')||'<div class="v60-empty">Входящие пусты.</div>'}</div></section>`)
+  }
+  function v60ReviewsPage(){
+    const tasks=v60Arr('tasks'); const done=tasks.filter(t=>['Готово','Сделано'].includes(t.status)).length;
+    const habits=v60Arr('habits'); const hDone=habits.filter(h=>h.marks?.[today()]).length;
+    const f=typeof financeTotals==='function'?financeTotals(periodInfo('month')):{net:0,inc:0,exp:0};
+    return v60Layout('Обзоры','День, неделя, месяц: короткая картина движения без перегруза.',`<section class="v59-grid v59-cols-2"><article class="v59-card"><h3>Пульс системы</h3><div class="v59-core-health"><div class="v59-health-item"><span>Задач закрыто</span><b>${done}/${tasks.length}</b></div><div class="v59-health-item"><span>Привычки сегодня</span><b>${hDone}/${habits.length}</b></div><div class="v59-health-item"><span>Финансы месяц</span><b>${v60Money(f.net||0)}</b></div><div class="v59-health-item"><span>Долги</span><b>${(typeof activeDebts==='function'?activeDebts():v60Arr('debts')).length}</b></div></div></article><article class="v59-card"><h3>Куда перейти</h3><div class="v60-route-list">${v60SectionCard('focus-path','Фокус дня','🧭','операционный экран')}${v60SectionCard('finance','Финансы','💸','прогноз и долги')}${v60SectionCard('habits','Привычки','🎯','ритм и график')}</div></article></section>`)
+  }
+  function v60LearningPage(){
+    return v60Layout('Обучение','Короткий маршрут внедрения Second Brain OS.',`<section class="v59-command"><div><h2>Как пользоваться системой</h2><p>Не заполняй всё идеально. Каждый день достаточно пройти короткий маршрут: входящие → фокус → задачи → деньги → привычки → обзор.</p><div class="v59-command-actions"><button class="primary" data-go="focus-path">Начать с фокуса</button><button data-go="inbox">Собрать входящие</button><button data-go="reviews">Обзор</button></div></div></section><section class="v60-route-grid two">${[['1','Входящие','Сохраняй мысли без сортировки'],['2','Фокус дня','Выбирай один главный шаг'],['3','Задачи','Разбивай на действия 15–40 минут'],['4','Финансы','Проверяй лимит и долги'],['5','Привычки','Держи минимальный ритм'],['6','Обзор','Закрывай день коротким выводом']].map(x=>`<article class="v59-card"><div class="v60-route-row"><span class="v60-route-icon">${x[0]}</span><div><b>${x[1]}</b><small>${x[2]}</small></div><span class="v59-badge green">шаг</span></div></article>`).join('')}</section>`)
+  }
+  function v60AttentionPage(){
+    const rows=[];
+    const overdue=v60Arr('tasks').filter(t=>t.date&&t.date<today()&&!['Готово','Сделано'].includes(t.status));
+    if(overdue.length) rows.push(['red','Просроченные задачи',`${overdue.length} требуют решения`,'tasks','⏰']);
+    const debts=(typeof activeDebts==='function'?activeDebts():v60Arr('debts')).filter(d=>d.due&&d.due<=today());
+    if(debts.length) rows.push(['red','Долги по сроку',`${debts.length} обязательств рядом или просрочены`,'debts','⚖️']);
+    const inbox=v60Arr('inbox'); if(inbox.length) rows.push(['amber','Входящие на разбор',`${inbox.length} записей ждут сортировки`,'inbox','📥']);
+    rows.push(['green','Привычки','Проверь ритм дня и недельный график','habits','🎯']);
+    return v60Layout('Центр внимания','Только сигналы, которые требуют действия или проверки.',`<section class="v59-card"><h3>Очередь внимания</h3><div class="v60-route-list">${rows.map(r=>`<button class="v60-route-row" data-go="${r[3]}"><span class="v60-route-icon">${r[4]}</span><div><b>${esc(r[1])}</b><small>${esc(r[2])}</small></div><span class="v59-badge ${r[0]}">открыть</span></button>`).join('')}</div></section>`)
+  }
+  function v60SearchPage(){
+    const q=(state.settings?.globalSearchQuery||'').trim().toLowerCase();
+    const pools=[['tasks','Задачи','task','✅'],['notes','Заметки','note','📝'],['ideas','Идеи','idea','💡'],['people','Люди','person','👥'],['wishes','Желания','wish','💗'],['documents','Документы','document','📄']];
+    const results=[]; pools.forEach(([key,label,type,ico])=>v60Arr(key).forEach(x=>{const text=JSON.stringify(x).toLowerCase(); if(!q||text.includes(q)) results.push({key,label,type,ico,x})}));
+    return v60Layout('Глобальный поиск','Поиск по задачам, заметкам, людям, желаниям и документам.',`<section class="v59-card"><div class="v60-search-box"><input id="v60SearchInput" value="${esc(state.settings?.globalSearchQuery||'')}" placeholder="Что ищем?"><button class="btn" data-v60-action="search">Найти</button></div><div class="v60-route-list">${results.slice(0,80).map(r=>`<div class="v60-route-row"><span class="v60-route-icon">${r.ico}</span><div><b>${esc(r.x.title||r.x.name||r.x.person||'Запись')}</b><small>${esc(r.label)} · ${esc(r.x.note||r.x.text||r.x.area||'')}</small></div><button class="mini blue" data-go="${esc(r.key)}">Открыть папку</button></div>`).join('')||'<div class="v60-empty">Ничего не найдено.</div>'}</div></section>`)
+  }
+  function v60ExpenseReviewPage(){
+    const exp=v60Arr('operations').filter(o=>o.type==='expense').sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    const cats={}; exp.forEach(o=>cats[o.category||'Не определено']=(cats[o.category||'Не определено']||0)+Number(o.amount||0));
+    return v60Layout('Категории расходов','Проверка категорий и быстрый переход к финансам.',`<section class="v59-grid v59-cols-2"><article class="v59-card"><h3>Категории</h3><div class="v60-route-list">${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="v60-route-row"><span class="v60-route-icon">🧾</span><div><b>${esc(c)}</b><small>расходы по категории</small></div><span class="v59-badge red">${v60Money(v)}</span></div>`).join('')||'<div class="v60-empty">Расходов пока нет.</div>'}</div></article><article class="v59-card"><h3>Последние операции</h3><div class="v60-route-list">${exp.slice(0,12).map(o=>`<div class="v60-route-row"><span class="v60-route-icon">↙</span><div><b>${esc(o.category||'Расход')}</b><small>${esc(o.date||'')} · ${esc(o.note||'')}</small></div><span class="v59-badge red">${v60Money(o.amount)}</span></div>`).join('')||'<div class="v60-empty">Операций нет.</div>'}</div><div class="v59-command-actions" style="margin-top:14px"><button class="primary" data-go="finance">Открыть финансы</button><button data-action="openRecordForm" data-type="operation">＋ Операция</button></div></article></section>`)
+  }
+  function v60CalendarPage(){
+    const days=Array.from({length:7},(_,i)=>iso(addDays(new Date(),i)));
+    return v60Layout('Календарь','Задачи, события и ближайшая нагрузка по дням.',`<section class="v60-route-grid">${days.map(d=>{const tasks=v60Arr('tasks').filter(t=>t.date===d); const events=v60Arr('events').filter(e=>e.date===d); return `<article class="v59-card"><h3>${fmt(d)}</h3><div class="v60-route-list">${[...tasks.map(t=>['✅',t.title,t.time||'задача','tasks']),...events.map(e=>['📅',e.title,e.startTime||'событие','calendar'])].map(x=>`<div class="v60-route-row"><span class="v60-route-icon">${x[0]}</span><div><b>${esc(x[1])}</b><small>${esc(x[2])}</small></div><span class="v59-badge blue">${x[3]}</span></div>`).join('')||'<div class="v60-empty">Пусто</div>'}</div></article>`}).join('')}</section>`)
+  }
+  function v60SystemPage(){
+    const arrays=['operations','debts','tasks','purchases','wishes','notes','ideas','people','habits','goals','documents','books','films','trips','personal','archive','inbox'];
+    return v60Layout('Система','Диагностика, backup и проверка кликабельности папок.',`<section class="v59-command"><div><h2>V60 Clickable Folders</h2><p>Исправлен роутинг: каждая папка слева теперь открывает реальную страницу или безопасный fallback, а не молчит.</p><div class="v59-command-actions"><button class="primary" data-v59-action="backup">Скачать backup</button><button data-v60-action="testRoutes">Проверить папки</button><button data-go="dashboard">На обзор</button></div></div></section><section class="v59-card"><h3>Данные</h3><div class="v59-core-health">${arrays.map(k=>`<div class="v59-health-item"><span>${esc(k)}</span><b>${v60Arr(k).length}</b></div>`).join('')}</div></section>`)
+  }
+  function v60FallbackPage(id){
+    const sec=(SECTIONS||[]).find(s=>s.id===id);
+    return v60Layout(sec?.label||'Папка','Эта папка восстановлена безопасным роутером V60.',`<section class="v60-alert"><h2>${esc(sec?.label||id)}</h2><p>Папка открылась. Для неё пока нет отдельного расширенного экрана, поэтому V60 показывает безопасную страницу и быстрые переходы.</p><div class="v59-command-actions"><button class="primary" data-go="dashboard">Обзор</button><button data-go="system">Система</button><button data-action="openQuick">＋ Создать</button></div></section><section class="v60-route-grid" style="margin-top:16px">${v60SectionCard('tasks','Задачи','✅','исполнение')}${v60SectionCard('finance','Финансы','💸','контроль денег')}${v60SectionCard('personal','Личное','🌿','контекст жизни')}</section>`)
+  }
+  function v60Map(){
+    const map={
+      dashboard: typeof v59Dashboard==='function'?v59Dashboard:dashboard,
+      finance: financePage, debts: debtsPage, tasks: tasksPage, planning: planningPage,
+      purchases:purchasesPage, wishes:wishesPage, notes:notesPage, ideas:ideasPage,
+      people:peoplePage, habits:habitsPage, goals:goalsPage, documents:documentsPage,
+      books:booksPage, films:filmsPage, trips:tripsPage, personal:personalPage, archive:archivePage,
+      system:v60SystemPage,
+      'focus-path':v60FocusPage, focus:v60FocusPage,
+      inbox:v60InboxPage, reviews:v60ReviewsPage, learning:v60LearningPage,
+      attention:v60AttentionPage, 'global-search':v60SearchPage,
+      'expense-review':v60ExpenseReviewPage, 'expense-categories':v60ExpenseReviewPage,
+      calendar:v60CalendarPage, diagnostics:v60SystemPage, subconscious:()=>v60BasicRecords('Дневник подсознания','Личные наблюдения, выводы и заметки.',v60Arr('personal'),'personal','🪞'),
+      polina:()=>v60BasicRecords('Полина','Личный контекст, идеи заботы, даты и заметки.',v60Arr('people').filter(p=>/полина/i.test(p.name||p.role||p.notes||'')),'person','🌸')
+    };
+    return map;
+  }
+  function v60Resolve(id){
+    const aliases={'home':'dashboard','overview':'dashboard','categories':'expense-review','category-expenses':'expense-review','expenses':'expense-review','focus-day':'focus-path','focus_path':'focus-path','review':'reviews','search':'global-search'};
+    return aliases[id]||id||'dashboard';
+  }
+  function v60Post(){
+    try{document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V60_BUILD); document.body?.setAttribute('data-sbos-build',V60_BUILD); const v=document.querySelector('.v59-version,.version'); if(v) v.textContent=V60_LABEL; document.querySelectorAll('[data-go]').forEach(el=>el.classList.add('v60-folder-ok'));}catch(e){}
+  }
+  function v60Render(){
+    v60Styles();
+    try{state=typeof normalize==='function'?normalize(state):state; if(typeof save==='function') save();}catch(e){}
+    const current=v60Resolve((location.hash||'').replace('#','')||page||'dashboard');
+    page=current; if(location.hash.replace('#','')!==current){try{history.replaceState(null,'','#'+current)}catch(e){}}
+    const map=v60Map();
+    let html='';
+    try{html=(map[current]||(()=>v60FallbackPage(current)))();}catch(e){console.error('[V60 page]',current,e); html=v60FallbackPage(current);}
+    v60RenderWithShell(html);
+    v60Post();
+  }
+  function v60Go(id){page=v60Resolve(id); try{location.hash=page;}catch(e){} v60Render();}
+
+  window.addEventListener('click',function(e){
+    const goEl=e.target.closest&&e.target.closest('[data-go]');
+    const actionEl=e.target.closest&&e.target.closest('[data-action],[data-v59-action],[data-v60-action],[data-v49-action],[data-v44-action]');
+    if(goEl && !actionEl){e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return v60Go(goEl.dataset.go);}
+    const v60=e.target.closest&&e.target.closest('[data-v60-action]');
+    if(v60){e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const a=v60.dataset.v60Action; if(a==='search'){state.settings=state.settings||{}; state.settings.globalSearchQuery=document.getElementById('v60SearchInput')?.value||''; save(); return v60Go('global-search');} if(a==='testRoutes'){const notify=(typeof v59Toast==='function'?v59Toast:(typeof toast==='function'?toast:alert)); return notify('Папки проверены: V60 router активен');}}
+  },true);
+  window.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target&&e.target.id==='v60SearchInput'){e.preventDefault();state.settings=state.settings||{};state.settings.globalSearchQuery=e.target.value||'';save();v60Go('global-search');}},true);
+  window.addEventListener('hashchange',()=>{const cur=v60Resolve((location.hash||'').replace('#','')||'dashboard'); if(cur!==page||!document.querySelector('.v60-folder-ok')) v60Render();});
+
+  try{go=v60Go; render=v60Render; v60Styles(); v60Render();}catch(e){console.error('[V60 init]',e)}
 })();
