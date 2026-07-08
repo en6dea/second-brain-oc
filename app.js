@@ -3812,3 +3812,235 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
   try{v50Ensure();v50AddSection();v50Styles();save();render();}catch(e){console.error('[V50 init]',e)}
 })();
+
+
+
+/* ==== V51 PREMIUM VISUAL UPGRADE ==== */
+(function(){
+  const V51_LABEL='V51 · PREMIUM VISUAL UPGRADE';
+  const V51_BUILD='second-brain-space-v51-premium-visual-upgrade-20260708';
+  function v51Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v51=state.settings.v51||{theme:'executive',density:'comfortable'};
+  }
+  function v51SafeTasks(){return (state.tasks||[]).filter(t=>String(t.status||'')!=='Готово');}
+  function v51SafeTodayTasks(){const t=today?today():new Date().toISOString().slice(0,10);return v51SafeTasks().filter(x=>String(x.date||'')===t);}
+  function v51SafeGoal(){
+    const goals=state.goals||[];
+    const activeId=state.settings?.v49?.activeGoalId;
+    return goals.find(g=>String(g.id)===String(activeId)) || goals[0] || null;
+  }
+  function v51Metrics(){
+    const habits=(state.habits||[]).length;
+    const habitsDone=(typeof v49TodayHabits==='function'?v49TodayHabits().filter(x=>x.done).length:(state.habits||[]).length);
+    const ops=(state.operations||[]);
+    const net=(typeof v49MoneySnapshot==='function'?v49MoneySnapshot().net:(ops.reduce((a,o)=>a+((o.type==='income'?1:-1)*(+o.amount||0)),0)));
+    return {
+      tasksToday:v51SafeTodayTasks().length,
+      goals:(state.goals||[]).length,
+      habitsDone,
+      habits,
+      net,
+      inbox:(state.inbox||[]).length,
+      debtsOpen:(state.debts||[]).filter(d=>d.status!=='Закрыт').length,
+      notes:(state.notes||[]).length,
+      people:(state.people||[]).length,
+      purchases:(state.purchases||[]).length,
+      wishes:(state.wishes||[]).length
+    };
+  }
+  function v51Art(type='orbit'){
+    return `<div class="v51-art v51-art-${type}">
+      <div class="v51-orb orb-a"></div>
+      <div class="v51-orb orb-b"></div>
+      <div class="v51-orb orb-c"></div>
+      <div class="v51-floating-card fc-a"><span></span><b></b></div>
+      <div class="v51-floating-card fc-b"><span></span><b></b></div>
+      <div class="v51-line l1"></div>
+      <div class="v51-line l2"></div>
+      <div class="v51-line l3"></div>
+    </div>`;
+  }
+  function v51MetricChip(label,value,tone='blue',sub=''){
+    return `<div class="v51-chip-card ${tone}"><span>${esc(label)}</span><b>${esc(String(value))}</b>${sub?`<small>${esc(sub)}</small>`:''}</div>`;
+  }
+  function v51SectionRibbon(title, text, actionLabel, goTo, type='orbit'){
+    return `<section class="v51-premium-ribbon"><div class="v51-premium-copy"><span class="v51-kicker">${esc(title)}</span><h3>${esc(text)}</h3><div class="row-actions"><button class="btn" data-go="${esc(goTo)}">${esc(actionLabel)}</button></div></div>${v51Art(type)}</section>`;
+  }
+  function v51DashboardBand(){
+    const m=v51Metrics();
+    const goal=v51SafeGoal();
+    return `<section class="v51-dashboard-band">
+      <article class="v51-showcase-card">
+        <div class="v51-showcase-copy">
+          <span class="v51-kicker">Executive workspace</span>
+          <h2>Second Brain OS в дорогом light-tech оформлении</h2>
+          <p>Содержимое и логика приложения сохранены. Усилен визуальный уровень: больше глубины, навигационных акцентов, премиальных карточек и иллюстративных блоков.</p>
+          <div class="v51-chip-grid">
+            ${v51MetricChip('Задачи на сегодня', m.tasksToday, 'blue', 'фокус дня')}
+            ${v51MetricChip('Активная цель', goal?goal.title.slice(0,28):'не выбрана', 'violet', 'маршрут и цели')}
+            ${v51MetricChip('Привычки', `${m.habitsDone}/${m.habits}`, 'green', 'ритм дня')}
+            ${v51MetricChip('Финансы', typeof money==='function'?money(m.net):String(m.net), m.net>=0?'green':'amber', 'баланс периода')}
+          </div>
+        </div>
+        ${v51Art('dashboard')}
+      </article>
+      <div class="v51-mini-ribbon-grid">
+        <div class="v51-mini-ribbon"><span>Inbox</span><b>${m.inbox}</b><small>мысли и входящие</small></div>
+        <div class="v51-mini-ribbon"><span>Заметки</span><b>${m.notes}</b><small>база знаний</small></div>
+        <div class="v51-mini-ribbon"><span>Люди</span><b>${m.people}</b><small>контакты и связи</small></div>
+        <div class="v51-mini-ribbon"><span>Покупки</span><b>${m.purchases}</b><small>планы бюджета</small></div>
+      </div>
+    </section>`;
+  }
+  function v51FocusBand(){
+    const m=v51Metrics(); const goal=v51SafeGoal();
+    return `<section class="v51-focus-band">
+      <div class="v51-focus-copy"><span class="v51-kicker">Premium route</span><h3>Пошаговый маршрут стал нагляднее и дороже</h3><p>Акцент на главной цели, быстрых шагах, режиме дня и визуальном фокусе без потери текущего наполнения.</p><div class="v51-inline-stats"><div><b>${m.tasksToday}</b><span>задач сегодня</span></div><div><b>${m.habitsDone}/${m.habits}</b><span>привычки</span></div><div><b>${goal?esc(goal.title.slice(0,26)):'нет цели'}</b><span>главный вектор</span></div></div></div>
+      ${v51Art('route')}
+    </section>`;
+  }
+  function v51LearningBand(){
+    const m=v51Metrics();
+    return `<section class="v51-learning-band"><article><span class="v51-kicker">Learning system</span><h3>Обучение теперь выглядит как полноценный premium-модуль</h3><p>Добавлен более выразительный визуальный ритм: стеклянные секции, иллюстративные акценты, карточки-программы и executive-подача.</p><div class="v51-learning-stats"><span>Маршрут</span><span>Чек-лист</span><span>${m.goals} целей</span><span>${m.tasksToday} задач сегодня</span></div></article>${v51Art('learn')}</section>`;
+  }
+  function v51FinanceBand(){
+    const m=v51Metrics();
+    return `<section class="v51-finance-band"><div><span class="v51-kicker">Finance clarity</span><h3>Финансы оформлены как премиальный контрольный центр</h3><p>Глубже визуальная иерархия, чище разделение смысловых блоков и сильнее акцент на чистом остатке, долгах и планируемых покупках.</p></div><div class="v51-finance-pills">${v51MetricChip('Баланс', typeof money==='function'?money(m.net):String(m.net), m.net>=0?'green':'amber')} ${v51MetricChip('Открытые долги', m.debtsOpen, 'amber')} ${v51MetricChip('Желания', m.wishes, 'violet')}</div></section>`;
+  }
+  function v51GoalsBand(){
+    const goal=v51SafeGoal();
+    return `<section class="v51-goals-band"><div><span class="v51-kicker">Goals cockpit</span><h3>Цели получили более дорогой визуальный фокус</h3><p>Подчёркнуты этапы, недельный шаг и связь с задачами — как у дорогого продукта личной эффективности.</p><div class="row-actions"><button class="btn" data-go="focus-path">Открыть маршрут дня</button><button class="ghost-btn" data-v49-action="openGoalBuilder">Создать цель</button></div></div><div class="v51-goal-spotlight"><small>Главная цель</small><b>${esc(goal?goal.title:'Пока не выбрана')}</b></div></section>`;
+  }
+  function v51AddCardAccents(scope){
+    scope.querySelectorAll('.card, .table-card, .v50-learn-card, .v49-hero-card, .v49-panel').forEach((card,idx)=>{
+      card.classList.add('v51-cardized');
+      if(!card.querySelector(':scope > .v51-card-shine')) card.insertAdjacentHTML('afterbegin','<div class="v51-card-shine"></div>');
+      if(!card.dataset.v51Tone) card.dataset.v51Tone=['blue','violet','teal','amber'][idx%4];
+    });
+    scope.querySelectorAll('.ghost-btn,.icon-btn,.btn,.chip-btn,.v49-mini').forEach(btn=>btn.classList.add('v51-control'));
+  }
+  function v51PostRender(){
+    try{
+      v51Ensure(); v51Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const view=document.querySelector('#view'); if(!view) return;
+      document.body.classList.add('v51-premium-body');
+      document.querySelector('.topbar')?.classList.add('v51-topbar');
+      document.querySelector('.side')?.classList.add('v51-sidebar');
+      document.querySelector('.main')?.classList.add('v51-main');
+      document.querySelector('.version')?.classList.add('v51-version');
+      const version=document.querySelector('.version'); if(version) version.textContent=V51_LABEL;
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V51_BUILD);
+      const hero=view.querySelector('.hero'); if(hero) hero.classList.add('v51-page-hero');
+      const pageEl=view.querySelector('.page'); if(pageEl) pageEl.classList.add('v51-page-shell');
+      v51AddCardAccents(view);
+      const side=document.querySelector('.side');
+      if(side && !side.querySelector('.v51-side-promo')){
+        side.insertAdjacentHTML('beforeend', `<div class="v51-side-promo"><div><span class="v51-kicker">Design upgrade</span><h4>Premium визуал без потери логики</h4><p>Система стала дороже по ощущениям: больше глубины, света, ритма и исполнительской ясности.</p></div>${v51Art('sidebar')}</div>`);
+      }
+      if(current==='dashboard' && !view.querySelector('.v51-dashboard-band')){
+        const host=hero||pageEl?.firstElementChild||view.firstElementChild;
+        host?.insertAdjacentHTML('afterend', v51DashboardBand());
+      }
+      if(current==='focus-path' && !view.querySelector('.v51-focus-band')){
+        const routeHero=view.querySelector('.v49-route-hero');
+        routeHero?.insertAdjacentHTML('afterend', v51FocusBand());
+      }
+      if(current==='learning' && !view.querySelector('.v51-learning-band')){
+        const learn=view.querySelector('.v50-learn-hero');
+        learn?.insertAdjacentHTML('afterend', v51LearningBand());
+      }
+      if(current==='finance' && !view.querySelector('.v51-finance-band')){
+        const host=hero||pageEl?.firstElementChild;
+        host?.insertAdjacentHTML('afterend', v51FinanceBand());
+      }
+      if(current==='goals' && !view.querySelector('.v51-goals-band')){
+        const host=hero||pageEl?.firstElementChild;
+        host?.insertAdjacentHTML('afterend', v51GoalsBand());
+      }
+      if(current==='dashboard'){
+        const firstGrid=view.querySelector('.grid');
+        if(firstGrid && !view.querySelector('.v51-premium-ribbon')) firstGrid.insertAdjacentHTML('beforebegin', v51SectionRibbon('Curated workflow','Дорогой визуальный ритм: карты, статусы, метрики и быстрый обзор в одном стиле.','Открыть фокус дня','focus-path','orbit'));
+      }
+    }catch(e){console.error('[V51 post render]',e);}
+  }
+  function v51Styles(){
+    if(document.getElementById('v51-premium-styles')) return;
+    const css=`
+    body.v51-premium-body{
+      background:
+        radial-gradient(circle at 12% 0%, rgba(37,99,235,.15), transparent 22%),
+        radial-gradient(circle at 84% 0%, rgba(14,165,233,.18), transparent 24%),
+        radial-gradient(circle at 78% 26%, rgba(124,58,237,.10), transparent 18%),
+        linear-gradient(180deg,#fbfdff 0%,#f4f9ff 44%,#eef5ff 100%) !important;
+    }
+    .v51-topbar{background:rgba(255,255,255,.64);backdrop-filter:blur(18px);border:1px solid rgba(221,231,245,.9);padding:10px 14px;border-radius:24px;box-shadow:0 22px 44px rgba(15,23,42,.08)}
+    .v51-sidebar{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,251,255,.9));box-shadow:inset -1px 0 0 rgba(226,232,240,.8)}
+    .v51-main{padding-top:18px}
+    .v51-page-hero h1{font-size:38px;letter-spacing:-.06em}
+    .v51-page-hero p{max-width:840px;font-size:14px}
+    .v51-cardized{position:relative;overflow:hidden;border:1px solid rgba(228,236,248,.98)!important;background:linear-gradient(180deg,rgba(255,255,255,.93),rgba(251,253,255,.98))!important;box-shadow:0 22px 48px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.7)!important}
+    .v51-cardized[data-v51-tone="blue"]{--v51-accent:rgba(37,99,235,.12)}
+    .v51-cardized[data-v51-tone="violet"]{--v51-accent:rgba(124,58,237,.12)}
+    .v51-cardized[data-v51-tone="teal"]{--v51-accent:rgba(20,184,166,.12)}
+    .v51-cardized[data-v51-tone="amber"]{--v51-accent:rgba(245,158,11,.12)}
+    .v51-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,var(--v51-accent,rgba(37,99,235,.10)),transparent 42%,rgba(255,255,255,.32) 76%,transparent 100%);pointer-events:none;z-index:0}
+    .v51-cardized>*{position:relative;z-index:1}
+    .v51-control{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
+    .v51-control:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(15,23,42,.08)}
+    .v51-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.72);border:1px solid rgba(219,234,254,.95);color:#2563eb;font-size:11px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+    .v51-dashboard-band,.v51-focus-band,.v51-learning-band,.v51-finance-band,.v51-goals-band,.v51-premium-ribbon,.v51-side-promo{position:relative;display:grid;gap:16px;border:1px solid rgba(224,232,245,.95);border-radius:28px;padding:20px;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(248,252,255,.9));box-shadow:0 24px 50px rgba(15,23,42,.08);overflow:hidden}
+    .v51-dashboard-band::before,.v51-focus-band::before,.v51-learning-band::before,.v51-finance-band::before,.v51-goals-band::before,.v51-premium-ribbon::before,.v51-side-promo::before{content:"";position:absolute;inset:auto -10% 64% auto;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);pointer-events:none}
+    .v51-dashboard-band,.v51-focus-band,.v51-learning-band{margin:0 0 16px 0}
+    .v51-showcase-card{display:grid;grid-template-columns:minmax(0,1.18fr) 320px;gap:18px;align-items:center}
+    .v51-showcase-copy h2{margin:12px 0 10px;font-size:34px;line-height:1.02;letter-spacing:-.06em}
+    .v51-showcase-copy p,.v51-focus-copy p,.v51-learning-band p,.v51-finance-band p,.v51-goals-band p,.v51-premium-copy p,.v51-side-promo p{margin:0;color:#5b6b82;font-weight:700;line-height:1.6}
+    .v51-chip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+    .v51-chip-card{position:relative;padding:14px;border-radius:20px;border:1px solid rgba(228,236,248,.96);background:rgba(255,255,255,.72);backdrop-filter:blur(8px);display:grid;gap:4px}
+    .v51-chip-card span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:1000;color:#6b7a90}
+    .v51-chip-card b{font-size:16px;line-height:1.28;letter-spacing:-.03em}
+    .v51-chip-card small{color:#64748b;font-weight:800}
+    .v51-chip-card.blue b{color:#1d4ed8}.v51-chip-card.green b{color:#059669}.v51-chip-card.violet b{color:#7c3aed}.v51-chip-card.amber b{color:#d97706}
+    .v51-mini-ribbon-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .v51-mini-ribbon{padding:14px 16px;border-radius:20px;border:1px solid rgba(228,236,248,.94);background:linear-gradient(180deg,#fff,#fbfdff);display:grid;gap:2px}
+    .v51-mini-ribbon span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:1000}.v51-mini-ribbon b{font-size:26px;letter-spacing:-.06em}.v51-mini-ribbon small{color:#7b8797;font-weight:800}
+    .v51-focus-band{grid-template-columns:minmax(0,1fr) 280px;align-items:center}
+    .v51-focus-copy h3,.v51-learning-band h3,.v51-finance-band h3,.v51-goals-band h3,.v51-premium-copy h3{margin:10px 0 8px;font-size:28px;line-height:1.06;letter-spacing:-.05em}
+    .v51-inline-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.v51-inline-stats div{padding:14px;border-radius:18px;border:1px solid rgba(228,236,248,.95);background:rgba(255,255,255,.72)}.v51-inline-stats b{display:block;font-size:18px;letter-spacing:-.04em}.v51-inline-stats span{display:block;margin-top:4px;font-size:12px;color:#64748b;font-weight:900}
+    .v51-learning-band{grid-template-columns:minmax(0,1fr) 280px;align-items:center}.v51-learning-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.v51-learning-stats span{padding:8px 11px;border-radius:999px;background:#fff;border:1px solid #e4ecf6;color:#475569;font-size:12px;font-weight:900}
+    .v51-finance-band,.v51-goals-band{grid-template-columns:minmax(0,1fr) minmax(280px,420px);align-items:center;margin-bottom:16px}.v51-finance-pills{display:grid;gap:10px}.v51-goal-spotlight{padding:18px 20px;border-radius:24px;background:linear-gradient(135deg,#eff6ff,#f8faff);border:1px solid #dbeafe;display:grid;gap:6px}.v51-goal-spotlight small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;font-weight:1000}.v51-goal-spotlight b{font-size:22px;line-height:1.18;letter-spacing:-.04em}
+    .v51-premium-ribbon{grid-template-columns:minmax(0,1fr) 240px;align-items:center;margin-bottom:16px}.v51-premium-copy .row-actions{margin-top:14px}
+    .v51-side-promo{margin-top:18px;padding:16px;min-height:260px;align-content:space-between}.v51-side-promo h4{margin:10px 0 8px;font-size:20px;line-height:1.05;letter-spacing:-.04em}
+    .v51-art{position:relative;min-height:180px;height:100%;border-radius:24px;background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(124,58,237,.08),rgba(14,165,233,.10));border:1px solid rgba(219,234,254,.92);overflow:hidden}
+    .v51-art .v51-orb{position:absolute;border-radius:50%;filter:blur(.2px)}
+    .v51-art .orb-a{width:110px;height:110px;right:24px;top:18px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.92),rgba(59,130,246,.4));box-shadow:0 16px 36px rgba(37,99,235,.18)}
+    .v51-art .orb-b{width:64px;height:64px;left:28px;bottom:28px;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(124,58,237,.44))}
+    .v51-art .orb-c{width:34px;height:34px;left:106px;top:34px;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(14,165,233,.45))}
+    .v51-floating-card{position:absolute;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.84);background:rgba(255,255,255,.74);backdrop-filter:blur(12px);box-shadow:0 12px 26px rgba(15,23,42,.08)}
+    .v51-floating-card span{display:block;width:58px;height:8px;border-radius:999px;background:linear-gradient(90deg,#93c5fd,#c4b5fd);margin-bottom:8px}.v51-floating-card b{display:block;width:86px;height:10px;border-radius:999px;background:#e2e8f0}
+    .v51-floating-card.fc-a{left:20px;top:22px}.v51-floating-card.fc-b{right:18px;bottom:22px}
+    .v51-line{position:absolute;height:2px;border-radius:999px;background:linear-gradient(90deg,rgba(37,99,235,0),rgba(37,99,235,.72),rgba(124,58,237,0));opacity:.72}.v51-line.l1{left:24px;right:70px;top:76px}.v51-line.l2{left:74px;right:26px;top:112px}.v51-line.l3{left:46px;right:112px;bottom:64px}
+    .v49-route-hero,.v50-learn-hero{margin-bottom:16px}
+    .v49-route-steps .v49-step,.v50-lessons .v50-lesson-tab{box-shadow:0 10px 22px rgba(15,23,42,.04)}
+    .v49-route-steps .v49-step:hover,.v50-lessons .v50-lesson-tab:hover{transform:translateY(-1px)}
+    .top-actions .row{background:rgba(255,255,255,.72);border:1px solid rgba(228,236,248,.9);box-shadow:0 12px 24px rgba(15,23,42,.06)}
+    .date-pill{background:rgba(255,255,255,.85)}
+    .version.v51-version{background:linear-gradient(135deg,#0f172a,#1d4ed8,#0ea5e9)!important;color:#fff;box-shadow:0 18px 34px rgba(15,23,42,.22)}
+    @media(max-width:1100px){.v51-showcase-card,.v51-focus-band,.v51-learning-band,.v51-finance-band,.v51-goals-band,.v51-premium-ribbon{grid-template-columns:1fr}.v51-chip-grid,.v51-mini-ribbon-grid,.v51-inline-stats{grid-template-columns:1fr 1fr}.v51-art{min-height:160px}}
+    @media(max-width:760px){.v51-showcase-copy h2{font-size:28px}.v51-focus-copy h3,.v51-learning-band h3,.v51-finance-band h3,.v51-goals-band h3,.v51-premium-copy h3{font-size:24px}.v51-chip-grid,.v51-mini-ribbon-grid,.v51-inline-stats{grid-template-columns:1fr}.v51-side-promo{min-height:unset}}
+    `;
+    const style=document.createElement('style'); style.id='v51-premium-styles'; style.textContent=css; document.head.appendChild(style);
+  }
+  const oldRender=typeof render==='function'?render:null;
+  if(oldRender){
+    render=function(){
+      v51Ensure();
+      const res=oldRender.apply(this,arguments);
+      setTimeout(v51PostRender,55);
+      return res;
+    }
+  }
+  try{v51Ensure();v51Styles();save();render();}catch(e){console.error('[V51 init]',e)}
+})();
+
