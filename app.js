@@ -3958,62 +3958,63 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 
 
-/* ===== V52.1 Version Badge Lock + Smooth Render Guard ===== */
+/* ===== V52.2 SAFE LOAD HOTFIX: badge lock without MutationObserver/infinite loops ===== */
 (function(){
   'use strict';
-  const V521_BUILD='second-brain-space-v52-1-badge-smooth-hotfix-20260708';
-  const V521_LABEL='V52.1 · LIVING PREMIUM UI';
-  try{localStorage.setItem('secondBrainOS.currentBuild',V521_BUILD)}catch(e){}
-  function lockBadge(){
+  const V522_BUILD='second-brain-space-v52-2-safe-load-hotfix-20260708';
+  const V522_LABEL='V52.2 · LIVING PREMIUM UI';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V522_BUILD)}catch(e){}
+  function v522Badge(){
     try{
       const badge=document.querySelector('.version');
       if(badge){
-        badge.textContent=V521_LABEL;
-        badge.classList.add('v52-version','v521-version-lock');
-        badge.setAttribute('data-build',V521_BUILD);
+        if(badge.textContent!==V522_LABEL) badge.textContent=V522_LABEL;
+        badge.classList.add('v52-version','v522-version-lock');
+        badge.setAttribute('data-build',V522_BUILD);
       }
-      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V521_BUILD);
-      document.body?.setAttribute('data-sbos-build',V521_BUILD);
-    }catch(_){ }
+      const meta=document.querySelector('meta[name="second-brain-build"]');
+      if(meta) meta.setAttribute('content',V522_BUILD);
+      if(document.body) document.body.setAttribute('data-sbos-build',V522_BUILD);
+    }catch(e){console.warn('[V52.2 badge]',e)}
   }
-  function v521Styles(){
-    if(document.getElementById('v521-version-lock-styles')) return;
+  function v522Styles(){
+    if(document.getElementById('v522-safe-load-styles')) return;
     const st=document.createElement('style');
-    st.id='v521-version-lock-styles';
+    st.id='v522-safe-load-styles';
     st.textContent=`
-      .v521-version-lock{background:linear-gradient(135deg,#0f172a,#1d4ed8,#7c3aed)!important;color:#fff!important;letter-spacing:.02em!important;box-shadow:0 18px 44px rgba(37,99,235,.28)!important;opacity:1!important;visibility:visible!important}
+      .version.v522-version-lock{background:linear-gradient(135deg,#0f172a,#1d4ed8,#7c3aed)!important;color:#fff!important;box-shadow:0 18px 44px rgba(37,99,235,.28)!important;opacity:1!important;visibility:visible!important;letter-spacing:.02em!important}
       html{scroll-behavior:auto!important}
-      body.v52-rendering #view{transition:opacity .16s ease,transform .16s ease;opacity:.985;transform:translateY(0)}
-      .v52-view,.v52-finance-page,.v49-focus-grid,.v50-learn-grid{contain:layout style paint;}
-      button,.btn,.ghost-btn,.icon-btn,.nav-item,.v52-tab,.v49-step,.v50-lesson-tab,.v52-action-line{will-change:transform;backface-visibility:hidden;}
+      #view{transition:opacity .18s cubic-bezier(.2,.8,.2,1),transform .18s cubic-bezier(.2,.8,.2,1)}
+      body.v522-soft-render #view{opacity:.992;transform:translateY(0)}
+      button,.btn,.ghost-btn,.icon-btn,.chip-btn,.nav-item,.v52-tab,.v49-step,.v50-lesson-tab,.v52-action-line{will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
+      button:active,.btn:active,.ghost-btn:active,.icon-btn:active,.chip-btn:active,.nav-item:active,.v52-tab:active,.v49-step:active,.v50-lesson-tab:active,.v52-action-line:active{transform:translateY(1px) scale(.992)!important}
+      .v52-finance-hero,.v52-panel,.v52-metric,.v52-discipline,.v49-route-hero,.v50-learn-card{backface-visibility:hidden;transform:translateZ(0)}
     `;
     document.head.appendChild(st);
   }
-  const oldRenderV521=typeof render==='function'?render:null;
-  if(oldRenderV521){
+  const previousRender=typeof render==='function'?render:null;
+  if(previousRender){
     render=function(){
-      const y=window.scrollY;
-      const res=oldRenderV521.apply(this,arguments);
-      requestAnimationFrame(()=>{lockBadge(); if(Math.abs(window.scrollY-y)>24) window.scrollTo(0,y);});
-      setTimeout(()=>{lockBadge();},80);
-      setTimeout(()=>{lockBadge();},260);
-      return res;
+      const beforeY=window.scrollY||0;
+      document.body?.classList.add('v522-soft-render');
+      let result;
+      try{ result=previousRender.apply(this,arguments); }
+      catch(e){
+        document.body?.classList.remove('v522-soft-render');
+        console.error('[V52.2 render guard]',e);
+        throw e;
+      }
+      requestAnimationFrame(()=>{
+        v522Badge();
+        const current=(location.hash||'').replace('#','')||page||'dashboard';
+        if(current===((window.__sbosLastStablePage)||current) && Math.abs((window.scrollY||0)-beforeY)>40) window.scrollTo(0,beforeY);
+        window.__sbosLastStablePage=current;
+        setTimeout(()=>{v522Badge();document.body?.classList.remove('v522-soft-render');},120);
+        setTimeout(v522Badge,320);
+      });
+      return result;
     };
   }
-  const oldRenderShellV521=typeof renderShell==='function'?renderShell:null;
-  if(oldRenderShellV521){
-    renderShell=function(content){
-      const res=oldRenderShellV521.apply(this,arguments);
-      lockBadge();
-      return res;
-    };
-  }
-  function boot(){v521Styles();lockBadge();}
-  try{
-    boot();
-    const mo=new MutationObserver(()=>lockBadge());
-    mo.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
-    setInterval(lockBadge,700);
-    render();
-  }catch(e){console.error('[V52.1 badge lock]',e)}
+  function boot(){v522Styles();v522Badge();}
+  try{boot(); setTimeout(v522Badge,80); setTimeout(v522Badge,260); setTimeout(v522Badge,800);}catch(e){console.error('[V52.2 init]',e)}
 })();
