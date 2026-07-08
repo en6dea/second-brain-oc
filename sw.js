@@ -1,6 +1,4 @@
-const CACHE_NAME='second-brain-space-v54-self-contained-living-ui-20260708';
-self.addEventListener('install', event => { self.skipWaiting(); });
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.registration.unregister()).then(() => self.clients.claim()));
-});
-self.addEventListener('fetch', event => { return; });
+const CACHE_NAME='second-brain-space-v55-emergency-restore-v50-1-20260708';
+self.addEventListener('install',event=>self.skipWaiting());
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>self.registration.unregister()).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',event=>{});
