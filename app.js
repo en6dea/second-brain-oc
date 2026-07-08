@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v50-1-learning-stability-hotfix-20260708';
+const BUILD='second-brain-space-v53-safe-recovery-living-ui-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -3818,8 +3818,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 /* ===== V52 Living Premium UI: smooth whole-app visual system, stable clicks ===== */
 (function(){
   'use strict';
-  const V52_BUILD='second-brain-space-v52-3-safe-stable-premium-ui-20260708';
-  const V52_LABEL='V52.3 · LIVING PREMIUM UI';
+  const V52_BUILD='second-brain-space-v53-safe-recovery-living-ui-20260708';
+  const V52_LABEL='V53 · SAFE RECOVERY + LIVING UI';
   try{localStorage.setItem('secondBrainOS.currentBuild',V52_BUILD)}catch(e){}
 
   function v52Ensure(){
@@ -3934,6 +3934,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
       const after=()=>{
         const version=document.querySelector('.version'); if(version) version.textContent=V52_LABEL;
         document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V52_BUILD);
+        [80,180,420,900].forEach(ms=>setTimeout(()=>{const v=document.querySelector('.version'); if(v) v.textContent=V52_LABEL; document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V52_BUILD);},ms));
         if(same) window.scrollTo(0,restoreScrollY); else window.scrollTo(0,0);
         setTimeout(()=>{if(same) window.scrollTo(0,restoreScrollY); document.body.classList.remove('v52-rendering'); document.body.style.minHeight='';},180);
         setTimeout(()=>{if(same) window.scrollTo(0,restoreScrollY);},360);
@@ -3958,29 +3959,17 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 
 
-/* ===== V52.3 SAFE STABLE BADGE: no render override, no observer, no loop ===== */
+/* ===== V53 SAFE LOAD GUARD: no observers, no render wrapping ===== */
 (function(){
-  'use strict';
-  const BUILD='second-brain-space-v52-3-safe-stable-premium-ui-20260708';
-  const LABEL='V52.3 · LIVING PREMIUM UI';
-  function setStableBadge(){
+  const BUILD='second-brain-space-v53-safe-recovery-living-ui-20260708';
+  const LABEL='V53 · SAFE RECOVERY + LIVING UI';
+  function setBadge(){try{const v=document.querySelector('.version'); if(v){v.textContent=LABEL;v.style.opacity='1';v.style.visibility='visible';} const m=document.querySelector('meta[name="second-brain-build"]'); if(m)m.setAttribute('content',BUILD); localStorage.setItem('secondBrainOS.currentBuild',BUILD);}catch(_ ){}}
+  [60,180,420,1000,1800].forEach(ms=>setTimeout(setBadge,ms));
+  window.addEventListener('error',function(e){
     try{
-      const badge=document.querySelector('.version');
-      if(badge){
-        badge.textContent=LABEL;
-        badge.classList.add('v52-version');
-        badge.setAttribute('data-build',BUILD);
-        badge.style.opacity='1';
-        badge.style.visibility='visible';
+      if(document.getElementById('app') && !document.getElementById('app').innerHTML.trim()){
+        document.body.innerHTML='<main style="max-width:760px;margin:40px auto;padding:24px;border:1px solid #dbeafe;border-radius:24px;background:#fff;font-family:system-ui"><h1>Second Brain OS: ошибка загрузки</h1><p>Сработал безопасный экран. Очисти кэш через force-update.html и открой приложение снова.</p><pre style="white-space:pre-wrap;background:#f8fafc;border-radius:16px;padding:14px">'+String((e.error&&e.error.stack)||e.message||e)+'</pre><a style="display:inline-flex;margin-top:12px;background:#2563eb;color:#fff;padding:12px 16px;border-radius:14px;text-decoration:none;font-weight:800" href="./force-update.html?v=second-brain-space-v53-safe-recovery-living-ui-20260708">Очистить кэш и перезапустить</a></main>';
       }
-      const meta=document.querySelector('meta[name="second-brain-build"]');
-      if(meta) meta.setAttribute('content',BUILD);
-      if(document.body) document.body.setAttribute('data-sbos-build',BUILD);
-      try{localStorage.setItem('secondBrainOS.currentBuild',BUILD)}catch(_){ }
-    }catch(e){console.warn('[V52.3 badge]',e)}
-  }
-  function scheduleBadge(){[40,160,420,1000,1800].forEach(ms=>setTimeout(setStableBadge,ms));}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',scheduleBadge,{once:true});
-  else scheduleBadge();
-  window.addEventListener('hashchange',scheduleBadge);
+    }catch(_){}
+  });
 })();
