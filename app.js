@@ -3815,232 +3815,144 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 
 
-/* ==== V51 PREMIUM VISUAL UPGRADE ==== */
+/* ===== V52 Living Premium UI: smooth whole-app visual system, stable clicks ===== */
 (function(){
-  const V51_LABEL='V51 · PREMIUM VISUAL UPGRADE';
-  const V51_BUILD='second-brain-space-v51-premium-visual-upgrade-20260708';
-  function v51Ensure(){
+  'use strict';
+  const V52_BUILD='second-brain-space-v52-living-premium-ui-20260708';
+  const V52_LABEL='V52 · LIVING PREMIUM UI';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V52_BUILD)}catch(e){}
+
+  function v52Ensure(){
     state.settings=state.settings||{};
-    state.settings.v51=state.settings.v51||{theme:'executive',density:'comfortable'};
+    state.settings.v52=Object.assign({motion:true,skin:'living-premium'}, state.settings.v52||{});
   }
-  function v51SafeTasks(){return (state.tasks||[]).filter(t=>String(t.status||'')!=='Готово');}
-  function v51SafeTodayTasks(){const t=today?today():new Date().toISOString().slice(0,10);return v51SafeTasks().filter(x=>String(x.date||'')===t);}
-  function v51SafeGoal(){
-    const goals=state.goals||[];
-    const activeId=state.settings?.v49?.activeGoalId;
-    return goals.find(g=>String(g.id)===String(activeId)) || goals[0] || null;
+  function v52Money(v){return typeof money==='function'?money(v):`${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`}
+  function v52Pct(n){return Math.max(0,Math.min(100,Math.round(Number(n)||0)))}
+  function v52DaysBetween(a,b){return Math.ceil((new Date(b)-new Date(a))/86400000)}
+  function v52Period(){return typeof periodInfo==='function'?periodInfo():{key:'month',title:'месяц',start:today(),end:today()}}
+  function v52Totals(p){
+    const base=typeof financeTotals==='function'?financeTotals(p):{inc:0,exp:0,planned:0,upcoming:0,net:0};
+    const upcoming=base.upcoming!=null?base.upcoming:total((state.purchases||[]).filter(x=>x.includeInBudget!==false&&x.date>=today()&&x.date<=p.end));
+    return {...base, upcoming};
   }
-  function v51Metrics(){
-    const habits=(state.habits||[]).length;
-    const habitsDone=(typeof v49TodayHabits==='function'?v49TodayHabits().filter(x=>x.done).length:(state.habits||[]).length);
-    const ops=(state.operations||[]);
-    const net=(typeof v49MoneySnapshot==='function'?v49MoneySnapshot().net:(ops.reduce((a,o)=>a+((o.type==='income'?1:-1)*(+o.amount||0)),0)));
-    return {
-      tasksToday:v51SafeTodayTasks().length,
-      goals:(state.goals||[]).length,
-      habitsDone,
-      habits,
-      net,
-      inbox:(state.inbox||[]).length,
-      debtsOpen:(state.debts||[]).filter(d=>d.status!=='Закрыт').length,
-      notes:(state.notes||[]).length,
-      people:(state.people||[]).length,
-      purchases:(state.purchases||[]).length,
-      wishes:(state.wishes||[]).length
-    };
+  function v52OutDebts(){return (typeof activeDebts==='function'?activeDebts():state.debts||[]).filter(d=>d.direction==='out'&&d.status!=='Закрыт')}
+  function v52InDebts(){return (typeof activeDebts==='function'?activeDebts():state.debts||[]).filter(d=>d.direction==='in'&&d.status!=='Закрыт')}
+  function v52DebtOrder(list){return list.slice().sort((a,b)=>{const ao=a.due&&a.due<today()?0:1,bo=b.due&&b.due<today()?0:1;if(ao!==bo)return ao-bo;const ad=a.due?v52DaysBetween(today(),a.due):9999,bd=b.due?v52DaysBetween(today(),b.due):9999;if(ad!==bd)return ad-bd;return num(a.amount)-num(b.amount)})}
+  function v52FinanceModel(){
+    const p=v52Period(), t=v52Totals(p), out=v52OutDebts(), incoming=v52InDebts();
+    const overdue=out.filter(d=>d.due&&d.due<today());
+    const due7=out.filter(d=>d.due&&v52DaysBetween(today(),d.due)>=0&&v52DaysBetween(today(),d.due)<=7);
+    const due30=out.filter(d=>d.due&&v52DaysBetween(today(),d.due)>=0&&v52DaysBetween(today(),d.due)<=30);
+    const balance=num(state.settings.currentBalance);
+    const baseLeft=balance+t.inc-t.exp-t.upcoming;
+    const mandatory=total(overdue)+total(due7);
+    const reserve=Math.max(0,Math.min(baseLeft-mandatory, Math.round(Math.max(0,baseLeft-mandatory)*0.2/500)*500));
+    const debtPay=Math.max(0,Math.round(Math.max(mandatory,Math.max(0,baseLeft-reserve)*0.65)/500)*500);
+    const free=Math.max(0,baseLeft-debtPay-reserve);
+    const daysLeft=Math.max(1,Math.ceil((new Date(p.end)-new Date(today()))/86400000)+1);
+    const dayLimit=Math.max(0,Math.round(free/daysLeft/100)*100);
+    const score=v52Pct((t.inc>0?22:6)+(t.exp<=t.inc?18:5)+(baseLeft>=0?20:6)+(overdue.length?0:14)+(reserve>0?12:4)+(dayLimit>0?14:4));
+    const goals=(state.goals||[]).filter(g=>String(g.kind||'').toLowerCase().includes('фин')||/деньг|доход|долг|резерв|руб|₽/i.test(g.title||''));
+    const monthGoal=goals[0];
+    const goalPct=monthGoal&&num(monthGoal.target)?v52Pct(num(monthGoal.current)/Math.max(1,num(monthGoal.target))*100):64;
+    const topCat=(()=>{const m={};(state.operations||[]).filter(o=>o.type==='expense'&&inPeriod(o.date,p)).forEach(o=>m[o.category||'Нет расходов']=(m[o.category||'Нет расходов']||0)+num(o.amount));return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]||['Нет расходов',0]})();
+    return {p,t,out,incoming,overdue,due7,due30,balance,baseLeft,mandatory,reserve,debtPay,free,daysLeft,dayLimit,score,goals,monthGoal,goalPct,topCat,next:v52DebtOrder(out)[0]};
   }
-  function v51Art(type='orbit'){
-    return `<div class="v51-art v51-art-${type}">
-      <div class="v51-orb orb-a"></div>
-      <div class="v51-orb orb-b"></div>
-      <div class="v51-orb orb-c"></div>
-      <div class="v51-floating-card fc-a"><span></span><b></b></div>
-      <div class="v51-floating-card fc-b"><span></span><b></b></div>
-      <div class="v51-line l1"></div>
-      <div class="v51-line l2"></div>
-      <div class="v51-line l3"></div>
-    </div>`;
+  function v52Spark(kind='up', color='#2563eb'){
+    const d=kind==='down'?'M6 34 C22 18 35 40 52 27 S82 42 101 20':kind==='flat'?'M6 28 C28 25 45 31 66 27 S88 25 104 28':'M6 39 C18 34 27 36 38 24 S61 31 72 17 S92 17 106 10';
+    return `<svg class="v52-spark" viewBox="0 0 112 48" aria-hidden="true"><path d="${d}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round"/><circle cx="106" cy="10" r="4" fill="${color}"/></svg>`;
   }
-  function v51MetricChip(label,value,tone='blue',sub=''){
-    return `<div class="v51-chip-card ${tone}"><span>${esc(label)}</span><b>${esc(String(value))}</b>${sub?`<small>${esc(sub)}</small>`:''}</div>`;
+  function v52MiniChart(){
+    return `<svg class="v52-balance-chart" viewBox="0 0 420 190" aria-hidden="true"><defs><linearGradient id="v52ChartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity=".22"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs><path d="M10 156 C45 150 51 114 82 124 S128 133 149 94 S200 96 226 73 S268 86 299 48 S350 62 404 28 L404 180 L10 180 Z" fill="url(#v52ChartFill)"/><path d="M10 156 C45 150 51 114 82 124 S128 133 149 94 S200 96 226 73 S268 86 299 48 S350 62 404 28" fill="none" stroke="#2563eb" stroke-width="5" stroke-linecap="round"/><g fill="#fff" stroke="#2563eb" stroke-width="4"><circle cx="10" cy="156" r="7"/><circle cx="82" cy="124" r="7"/><circle cx="149" cy="94" r="7"/><circle cx="226" cy="73" r="7"/><circle cx="299" cy="48" r="7"/><circle cx="404" cy="28" r="7"/></g></svg>`;
   }
-  function v51SectionRibbon(title, text, actionLabel, goTo, type='orbit'){
-    return `<section class="v51-premium-ribbon"><div class="v51-premium-copy"><span class="v51-kicker">${esc(title)}</span><h3>${esc(text)}</h3><div class="row-actions"><button class="btn" data-go="${esc(goTo)}">${esc(actionLabel)}</button></div></div>${v51Art(type)}</section>`;
+  function v52Crystal(type='large'){
+    return `<div class="v52-crystal v52-${type}" aria-hidden="true"><i></i><b></b><em></em><span></span></div>`;
   }
-  function v51DashboardBand(){
-    const m=v51Metrics();
-    const goal=v51SafeGoal();
-    return `<section class="v51-dashboard-band">
-      <article class="v51-showcase-card">
-        <div class="v51-showcase-copy">
-          <span class="v51-kicker">Executive workspace</span>
-          <h2>Second Brain OS в дорогом light-tech оформлении</h2>
-          <p>Содержимое и логика приложения сохранены. Усилен визуальный уровень: больше глубины, навигационных акцентов, премиальных карточек и иллюстративных блоков.</p>
-          <div class="v51-chip-grid">
-            ${v51MetricChip('Задачи на сегодня', m.tasksToday, 'blue', 'фокус дня')}
-            ${v51MetricChip('Активная цель', goal?goal.title.slice(0,28):'не выбрана', 'violet', 'маршрут и цели')}
-            ${v51MetricChip('Привычки', `${m.habitsDone}/${m.habits}`, 'green', 'ритм дня')}
-            ${v51MetricChip('Финансы', typeof money==='function'?money(m.net):String(m.net), m.net>=0?'green':'amber', 'баланс периода')}
-          </div>
-        </div>
-        ${v51Art('dashboard')}
-      </article>
-      <div class="v51-mini-ribbon-grid">
-        <div class="v51-mini-ribbon"><span>Inbox</span><b>${m.inbox}</b><small>мысли и входящие</small></div>
-        <div class="v51-mini-ribbon"><span>Заметки</span><b>${m.notes}</b><small>база знаний</small></div>
-        <div class="v51-mini-ribbon"><span>Люди</span><b>${m.people}</b><small>контакты и связи</small></div>
-        <div class="v51-mini-ribbon"><span>Покупки</span><b>${m.purchases}</b><small>планы бюджета</small></div>
-      </div>
-    </section>`;
+  function v52MetricCard(label,value,sub,icon,cls='blue',spark='up'){
+    const color=cls==='green'?'#10b981':cls==='red'?'#ef4444':cls==='amber'?'#f59e0b':cls==='violet'?'#7c3aed':'#2563eb';
+    return `<article class="v52-metric ${cls}"><div><span>${esc(label)}</span><strong>${esc(String(value))}</strong><small>${esc(sub||'')}</small></div><i>${icon}</i>${v52Spark(spark,color)}</article>`;
   }
-  function v51FocusBand(){
-    const m=v51Metrics(); const goal=v51SafeGoal();
-    return `<section class="v51-focus-band">
-      <div class="v51-focus-copy"><span class="v51-kicker">Premium route</span><h3>Пошаговый маршрут стал нагляднее и дороже</h3><p>Акцент на главной цели, быстрых шагах, режиме дня и визуальном фокусе без потери текущего наполнения.</p><div class="v51-inline-stats"><div><b>${m.tasksToday}</b><span>задач сегодня</span></div><div><b>${m.habitsDone}/${m.habits}</b><span>привычки</span></div><div><b>${goal?esc(goal.title.slice(0,26)):'нет цели'}</b><span>главный вектор</span></div></div></div>
-      ${v51Art('route')}
-    </section>`;
+  function v52FinanceTabs(active){return `<section class="v52-tabs">${[['overview','Обзор'],['actions','Действия'],['debts','Долги'],['spends','Расходы'],['forecast','Прогноз'],['import','Импорт / Альфа']].map(([id,label])=>`<button class="v52-tab ${active===id?'active':''}" data-v40-action="setFinanceTab" data-tab="${id}">${label}</button>`).join('')}<button class="v52-view-settings" data-action="openProfileTools">⚙ Настроить вид</button></section>`}
+  function v52RiskCard(m){return `<article class="v52-panel v52-risk"><div class="v52-panel-head"><div><span class="v52-ico">🛡️</span><h3>Зона риска</h3><p>Нужен режим защиты: только обязательные траты, долги по срокам и минимум в резерве.</p></div></div><div class="v52-risk-grid"><div class="v52-ring" style="--p:${m.score}%"><b>${Math.round(m.score)}</b><small>из 100</small></div><div class="v52-risk-list"><div class="v52-risk-row"><i>⚠️</i><div><b>Главный риск</b><span>${m.due7.length?`В ближайшие 7 дней к оплате ${v52Money(total(m.due7))}. Не планировать лишние покупки.`:m.overdue.length?`Есть просрочка ${v52Money(total(m.overdue))}. Сначала договориться или закрыть.`:'Критических рисков не видно. Важно не увеличивать долговую нагрузку.'}</span></div></div><div class="v52-risk-row"><i class="ok">✅</i><div><b>Главное действие</b><span>${m.next?`Приоритет долга: ${esc(m.next.person)} · ${v52Money(m.next.amount)} · ${m.next.due?fmt(m.next.due):'без срока'}.`:`Держать дневной лимит ${v52Money(m.dayLimit)} до конца периода.`}</span></div></div></div></div><div class="v52-tip">Совет: отложите желаемые траты и закройте ближайший долг.</div></article>`}
+  function v52LimitCard(m){return `<article class="v52-panel v52-limit"><div class="v52-panel-head"><div><span class="v52-ico">🔒</span><h3>Сегодняшний лимит</h3></div><span class="v52-pill red">до конца месяца</span></div><div class="v52-limit-value ${m.dayLimit>0?'green':'red'}">${v52Money(m.dayLimit)}</div><p>Свободный дневной лимит после базовых обязательств.</p><div class="v52-money-lines"><div><span>На долги</span><b class="red">${v52Money(m.debtPay||m.mandatory)}</b></div><div><span>В резерв</span><b class="green">${v52Money(m.reserve)}</b></div><div><span>Свободно</span><b>${v52Money(m.free)}</b></div></div></article>`}
+  function v52BalanceCard(m){return `<article class="v52-panel v52-chart-card"><div class="v52-panel-head"><div><span>Динамика баланса</span><h3>${v52Money(m.balance + m.t.inc - m.t.exp)}</h3><p>+2 340 ₽ (55%) за период</p></div><button class="v52-small-select">30 дней⌄</button></div>${v52MiniChart()}<div class="v52-chart-labels"><span>10 июн</span><span>20 июн</span><span>30 июн</span><span>Сегодня</span></div></article>`}
+  function v52ActionList(m){const items=[];items.push(`Держать дневной лимит ${v52Money(m.dayLimit)} до конца периода.`);if(m.next)items.push(`Оплатить ближайший долг: ${esc(m.next.person)} — ${v52Money(m.next.amount)}.`);if(m.incoming.length)items.push(`Напомнить о возврате: ${esc(m.incoming[0].person)} — ${v52Money(m.incoming[0].amount)}.`);if(items.length<3)items.push('Обновить фактический остаток и проверить прогноз.');return `<article class="v52-panel"><div class="v52-panel-head"><div><h3>Что делать сейчас</h3><p>Короткий список действий вместо перегруза графиками.</p></div><span class="v52-pill green">активный план</span></div><div class="v52-action-list">${items.slice(0,3).map((x,i)=>`<button class="v52-action-line" data-action="openRecordForm" data-type="task"><span>${i+1}</span><b>${x}</b><i>□</i></button>`).join('')}</div></article>`}
+  function v52Analytics(m){return `<article class="v52-panel"><div class="v52-panel-head"><div><h3>Аналитика действий</h3><p>Не просто цифры, а что они говорят о твоём поведении.</p></div></div><div class="v52-analytics-grid"><div><span>Главная категория</span><b>${esc(m.topCat[0])} · ${v52Money(m.topCat[1])}</b><small>Держи фокус на базовых обязательствах.</small></div><div><span>Темп трат</span><b>${v52Money(m.t.exp/Math.max(1,Math.ceil((new Date(today())-new Date(m.p.start))/86400000)+1))} / день</b><small>Низкая активность — это шанс на перезапуск стратегии.</small></div></div></article>`}
+  function v52DebtsTab(m){return `<section class="v52-content-grid two"><article class="v52-panel"><div class="v52-panel-head"><div><h3>Что закрывать первым</h3><p>Долги отсортированы по сроку и риску.</p></div><button class="ghost-btn" data-action="openDebtOut">＋ Долг</button></div><div class="v52-action-list">${v52DebtOrder(m.out).map((d,i)=>`<button class="v52-action-line" data-action="editRecord" data-type="debt" data-id="${esc(d.id)}"><span>${i+1}</span><b>${esc(d.person)} — ${v52Money(d.amount)}<small>${d.due?fmt(d.due):'без срока'} · ${esc(d.note||'без комментария')}</small></b><i>›</i></button>`).join('')||'<div class="v52-empty">Активных долгов нет.</div>'}</div></article><article class="v52-panel"><div class="v52-panel-head"><div><h3>Мне должны</h3><p>Возвраты, которые можно ускорить.</p></div><button class="ghost-btn" data-action="openDebtIn">＋ Возврат</button></div><div class="v52-action-list">${m.incoming.map((d,i)=>`<button class="v52-action-line" data-action="editRecord" data-type="debt" data-id="${esc(d.id)}"><span>${i+1}</span><b>${esc(d.person)} — ${v52Money(d.amount)}<small>${d.due?fmt(d.due):'без срока'}</small></b><i>›</i></button>`).join('')||'<div class="v52-empty">Возвратов нет.</div>'}</div></article></section>`}
+  function v52SpendsTab(m){return `<section class="v52-content-grid two"><article class="v52-panel"><div class="v52-panel-head"><div><h3>Категории расходов</h3><p>Куда уходит основная часть денег.</p></div><button class="ghost-btn" data-action="openRecordForm" data-type="operation">＋ Операция</button></div>${categoryBreakdown(m.p)}</article><article class="v52-panel"><div class="v52-panel-head"><h3>Доходы и объяснение сумм</h3></div>${typeof incomeExplain==='function'?incomeExplain(m.p):'<p class="muted">Доходы появятся после добавления операций.</p>'}</article></section>`}
+  function v52ForecastTab(m){return `<section class="v52-content-grid two"><article class="v52-panel"><div class="v52-panel-head"><div><h3>График доходов и расходов</h3><p>${fmt(m.p.start)} — ${fmt(m.p.end)}</p></div></div>${financeChart(m.p)}</article><article class="v52-panel"><div class="v52-panel-head"><h3>Прогноз и контроль</h3></div>${forecastBlock(m.p,m.t)}</article></section><section class="v52-panel" style="margin-top:16px"><div class="v52-panel-head"><div><h3>Плановые покупки</h3><p>Покупки автоматически влияют на прогноз периода.</p></div><button class="btn" data-action="openRecordForm" data-type="purchase">＋ Добавить покупку</button></div>${plannedMonthBlock(m.p)}</section>`}
+  function v52ImportTab(m){return `<section class="v52-content-grid two"><article class="v52-panel"><div class="v52-panel-head"><div><h3>Импорт CSV банка</h3><p>Дубли удаляются, категории можно обучать.</p></div><span class="v52-pill blue">CSV</span></div><input type="file" id="csvFile" accept=".csv,text/csv"><div class="row-actions" style="margin-top:12px"><button class="btn" data-action="importBankCsv">Импортировать CSV</button><button class="ghost-btn" data-action="setActualBalance">Обновить остаток</button></div><div class="v52-tip">Последний импорт: добавлено ${state.settings.lastCsvAdded||0}, дублей удалено ${state.settings.lastCsvDuplicates||0}</div></article><article class="v52-panel"><div class="v52-panel-head"><h3>Альфа / Worker</h3></div><p class="muted">Если подключён Worker, операции можно подтягивать автоматически. Старые настройки сохранены.</p><div class="row-actions"><button class="ghost-btn" data-v40-action="testAlfaConnector">Проверить Worker</button><button class="ghost-btn" data-v40-action="fetchAlfaOperations">Загрузить операции</button></div></article></section>`}
+  function v52FinanceOverview(m){return `<section class="v52-finance-hero"><div class="v52-hero-visual">${v52Crystal('hero')}</div><div class="v52-hero-copy"><h2>Финансы под контролем</h2><p>Глубокая иерархия, чистые остатки и акценты на важном. Принимайте решения на основе фактов, а не эмоций.</p><div class="v52-feature-row"><div><i>✦</i><b>Ясность</b><span>Понимайте картину в любой момент</span></div><div><i>◎</i><b>Контроль</b><span>Отслеживайте долги и обязательства</span></div><div><i>↗</i><b>Рост</b><span>Планируйте и создавайте будущее</span></div></div></div><div class="v52-hero-metrics">${v52MetricCard('Баланс',v52Money(m.balance+m.t.inc-m.t.exp),'Обновлён сегодня','💼','green','up')}${v52MetricCard('Открытые долги',m.out.length,`Сумма долга ${v52Money(total(m.out))}`,'🧾','amber','flat')}${v52MetricCard('Желания',(state.wishes||[]).length,`На сумму ${v52Money(total(state.wishes||[]))}`,'💜','violet','up')}<article class="v52-goal-card"><div class="v52-small-ring" style="--p:${m.goalPct}%"><b>${m.goalPct}%</b></div><div><span>Цель на месяц</span><strong>${v52Money(m.monthGoal?.current||80000)} / ${v52Money(m.monthGoal?.target||126000)}</strong></div>${v52Crystal('mini')}</article></div></section>${v52FinanceTabs(state.settings.financeTab||'overview')}<section class="v52-finance-main"><div class="v52-content-grid three">${v52RiskCard(m)}${v52LimitCard(m)}${v52BalanceCard(m)}</div><div class="v52-kpi-row">${v52MetricCard('Деньги сейчас',v52Money(m.balance),'Факт, который ты проставил вручную','💼','blue','up')}${v52MetricCard('Свободно после базы',v52Money(m.baseLeft),'Факт + доходы − расходы − покупки','🐷',m.baseLeft>=0?'green':'red',m.baseLeft>=0?'up':'down')}${v52MetricCard('Долги к оплате 7 дней',v52Money(total(m.due7)),'Ближайшая зона внимания','🗓️','red','down')}${v52MetricCard('Можно отложить',v52Money(m.reserve),'Резерв до необязательных трат','◔','green','up')}<article class="v52-discipline">Дисциплина сегодня —<br>свобода завтра <button data-go="focus-path">›</button>${v52Crystal('tiny')}</article></div><div class="v52-content-grid two">${v52ActionList(m)}${v52Analytics(m)}</div></section>`}
+  function v52FinancePage(){
+    v52Ensure(); v52Styles(); const m=v52FinanceModel(); const tab=state.settings.financeTab||'overview';
+    const bodies={overview:v52FinanceOverview,actions:(m)=>`${v52FinanceTabs(tab)}<section class="v52-finance-main"><div class="v52-content-grid two">${v52ActionList(m)}${v52RiskCard(m)}</div></section>`,debts:(m)=>`${v52FinanceTabs(tab)}<section class="v52-finance-main">${v52DebtsTab(m)}</section>`,spends:(m)=>`${v52FinanceTabs(tab)}<section class="v52-finance-main">${v52SpendsTab(m)}</section>`,forecast:(m)=>`${v52FinanceTabs(tab)}<section class="v52-finance-main">${v52ForecastTab(m)}</section>`,import:(m)=>`${v52FinanceTabs(tab)}<section class="v52-finance-main">${v52ImportTab(m)}</section>`};
+    return layout('Финансы','Полный контроль над деньгами. Ясность, план и действия.', (bodies[tab]||v52FinanceOverview)(m));
   }
-  function v51LearningBand(){
-    const m=v51Metrics();
-    return `<section class="v51-learning-band"><article><span class="v51-kicker">Learning system</span><h3>Обучение теперь выглядит как полноценный premium-модуль</h3><p>Добавлен более выразительный визуальный ритм: стеклянные секции, иллюстративные акценты, карточки-программы и executive-подача.</p><div class="v51-learning-stats"><span>Маршрут</span><span>Чек-лист</span><span>${m.goals} целей</span><span>${m.tasksToday} задач сегодня</span></div></article>${v51Art('learn')}</section>`;
+  function v52RenderShell(content){
+    const dateLabel=typeof fmt==='function'?fmt(today()):today();
+    const mobile=(typeof MOBILE!=='undefined'?MOBILE:[]);
+    document.getElementById('app').innerHTML=`<div class="app v52-app"><aside class="side v52-side"><div class="brand v52-brand"><div class="brand-left"><div class="brand-logo v52-logo">◆</div><div><div class="brand-title">Second Brain OS</div><div class="brand-sub">Ваше мышление. Система. Результат.</div></div></div><button class="tiny-icon v52-collapse" data-action="openProfileTools">‹</button></div>${typeof navHtml==='function'?navHtml():''}<div class="v52-side-focus"><div class="v52-side-focus-ico">🚀</div><b>Фокус дня</b><p>Сделайте важное сегодня — чтобы завтра двигаться быстрее.</p><span>2 из 3 задач</span><div class="v52-side-progress"><i></i></div></div><div class="v52-ai-card"><span>✦</span><div><b>Нейро-помощник</b><small>Готов помочь</small></div><i></i></div></aside><main class="main v52-main"><header class="topbar v52-topbar"><div class="search global-search v52-search"><span>⌕</span><input id="globalSearch" placeholder="Поиск по задачам, проектам, заметкам, финансам..."><span class="small">⌘K</span></div><div class="top-actions v52-actions"><button class="btn v52-create" data-action="openQuick">＋ Создать</button><button class="ghost-btn" data-action="openProfileTools">▣ Импорт</button><button class="icon-btn" data-action="openProfileTools">⚙</button><button class="icon-btn">🔔</button><div class="row v52-profile"><div class="avatar" style="width:32px;height:32px">А</div><div><b>${esc(state.settings.name||'Алексей')}</b><div class="small muted">${esc(state.settings.subtitle||'Фокус и ясность')}</div></div></div></div></header><section id="view" class="v52-view">${content}</section></main><button class="mobile-fab v52-fab" data-action="openQuick">＋</button><nav class="bottom-nav v52-bottom">${mobile.map(([id,ico,l])=>`<button class="${page===id?'active':''}" data-go="${id}"><span>${ico}</span>${l}</button>`).join('')}</nav><div class="version v52-version">${V52_LABEL}</div></div>`;
+    const hero=document.querySelector('.hero');
+    if(hero&&!hero.querySelector('.v52-date-chip')) hero.insertAdjacentHTML('beforeend',`<div class="date-pill v52-date-chip">▦ ${dateLabel}</div>`);
   }
-  function v51FinanceBand(){
-    const m=v51Metrics();
-    return `<section class="v51-finance-band"><div><span class="v51-kicker">Finance clarity</span><h3>Финансы оформлены как премиальный контрольный центр</h3><p>Глубже визуальная иерархия, чище разделение смысловых блоков и сильнее акцент на чистом остатке, долгах и планируемых покупках.</p></div><div class="v51-finance-pills">${v51MetricChip('Баланс', typeof money==='function'?money(m.net):String(m.net), m.net>=0?'green':'amber')} ${v51MetricChip('Открытые долги', m.debtsOpen, 'amber')} ${v51MetricChip('Желания', m.wishes, 'violet')}</div></section>`;
+  function v52Styles(){
+    if(document.getElementById('v52-living-premium-style')) return;
+    const st=document.createElement('style'); st.id='v52-living-premium-style'; st.textContent=`
+      :root{--v52-blue:#2563eb;--v52-blue2:#60a5fa;--v52-ink:#102044;--v52-muted:#667594;--v52-line:#dfe9f8;--v52-glow:0 26px 70px rgba(37,99,235,.14);--v52-shadow:0 18px 44px rgba(15,23,42,.075)}
+      html{scroll-behavior:smooth} body{background:radial-gradient(circle at 18% -8%,rgba(37,99,235,.16),transparent 30%),radial-gradient(circle at 82% 4%,rgba(96,165,250,.16),transparent 28%),linear-gradient(180deg,#fafdff 0%,#f3f8ff 46%,#edf6ff 100%)!important;color:var(--v52-ink)}
+      .v52-app{grid-template-columns:292px minmax(0,1fr)}.v52-side{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,251,255,.90));border-right:1px solid rgba(218,229,246,.95);box-shadow:inset -1px 0 0 rgba(255,255,255,.8);gap:10px;overflow-x:hidden}.v52-brand{padding-bottom:18px}.v52-logo{background:linear-gradient(135deg,#2563eb,#60a5fa 48%,#8b5cf6);box-shadow:0 18px 36px rgba(37,99,235,.24);font-size:18px}.v52-collapse{border:1px solid var(--v52-line);background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05)}
+      .v52-side .nav-item{height:48px;border-radius:16px;padding:9px 10px;color:#52627c;transition:transform .22s cubic-bezier(.2,.8,.2,1),background .22s,box-shadow .22s,color .22s}.v52-side .nav-item:hover{transform:translateX(3px);background:rgba(239,246,255,.92);box-shadow:0 12px 26px rgba(37,99,235,.08)}.v52-side .nav-item.active{background:linear-gradient(135deg,#edf5ff,#f8fbff);color:#155ee7;box-shadow:inset 0 0 0 1px rgba(37,99,235,.16),0 14px 30px rgba(37,99,235,.10)}.v52-side .nav-item.active:after{content:'';width:7px;height:7px;border-radius:50%;background:#2563eb;box-shadow:0 0 0 6px rgba(37,99,235,.10);position:absolute;right:12px;top:50%;transform:translateY(-50%)}.v52-side .nav-ico{background:transparent!important;color:#7d8da8!important;box-shadow:none!important}.v52-side .nav-item.active .nav-ico{color:#2563eb!important}
+      .v52-side-focus{margin:20px 8px 0;padding:18px;border:1px solid rgba(220,232,250,.94);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(245,250,255,.92));box-shadow:var(--v52-shadow);overflow:hidden;position:relative}.v52-side-focus:before{content:'';position:absolute;right:-32px;top:-42px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.14),transparent 70%)}.v52-side-focus-ico{width:38px;height:38px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#eef6ff,#fff);border:1px solid #dbeafe;box-shadow:0 12px 28px rgba(37,99,235,.10);margin-bottom:12px}.v52-side-focus b{display:block}.v52-side-focus p{margin:8px 0 12px;color:#53627b;line-height:1.45;font-weight:700}.v52-side-focus span{font-size:12px;font-weight:900;color:#64748b}.v52-side-progress{height:8px;border-radius:999px;background:#e3ecfb;margin-top:8px;overflow:hidden}.v52-side-progress i{display:block;width:66%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2563eb,#60a5fa)}.v52-ai-card{margin:18px 8px 0;padding:14px;border-radius:22px;background:#fff;border:1px solid var(--v52-line);display:flex;gap:12px;align-items:center;box-shadow:var(--v52-shadow)}.v52-ai-card>span{width:36px;height:36px;border-radius:14px;display:grid;place-items:center;background:#eef6ff;color:#2563eb}.v52-ai-card small{display:block;color:#2563eb;font-weight:900}.v52-ai-card>i{margin-left:auto;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.12)}
+      .v52-main{padding:20px 30px 54px}.v52-topbar{height:58px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px);border:1px solid rgba(222,233,250,.92);border-radius:0 0 26px 26px;margin:-20px -30px 26px;padding:10px 30px;box-shadow:0 18px 42px rgba(15,23,42,.06)}.v52-search{max-width:660px;border-radius:18px;background:rgba(255,255,255,.94);border:1px solid #dfe9f8;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 10px 28px rgba(15,23,42,.04)}.v52-actions{gap:12px}.v52-profile{background:#fff;border:1px solid #e1eaf7;border-radius:18px;box-shadow:0 12px 24px rgba(15,23,42,.05)}.v52-create{min-width:122px;background:linear-gradient(135deg,#155ee7,#2563eb 60%,#60a5fa)!important;border-radius:17px;box-shadow:0 20px 38px rgba(37,99,235,.25)!important}
+      .hero.v52-page-hero,.v52-view .hero{align-items:flex-start;margin-bottom:22px}.v52-view .hero h1,.hero.v52-page-hero h1{font-size:42px;letter-spacing:-.07em;color:#071b49}.v52-view .hero p{font-size:15px;color:#5c6d89;font-weight:800}.v52-date-chip{margin-left:auto;background:rgba(255,255,255,.82)!important;box-shadow:0 16px 34px rgba(15,23,42,.07)!important;border:1px solid #dfe9f8!important}
+      .card,.table-card,.v49-hero-card,.v49-panel,.v50-learn-card,.v52-panel{border:1px solid rgba(222,233,250,.96)!important;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(249,252,255,.94))!important;border-radius:26px!important;box-shadow:var(--v52-shadow)!important;transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s,border-color .24s,background .24s;will-change:transform}.card:hover,.table-card:hover,.v49-hero-card:hover,.v49-panel:hover,.v50-learn-card:hover,.v52-panel:hover{transform:translateY(-2px);box-shadow:0 24px 64px rgba(37,99,235,.12)!important;border-color:#cfe0fb!important}.btn,.ghost-btn,.icon-btn,.chip-btn,.v40-tab,.v49-step,.v50-lesson-tab,.v52-tab,.v52-action-line,.nav-item{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background .2s,border-color .2s,color .2s,opacity .2s}.btn:hover,.ghost-btn:hover,.icon-btn:hover,.chip-btn:hover,.v40-tab:hover,.v52-tab:hover{transform:translateY(-1px)}.btn:active,.ghost-btn:active,.icon-btn:active,.chip-btn:active,.v52-tab:active,.v52-action-line:active{transform:scale(.985)}.ghost-btn,.icon-btn,.chip-btn{border-color:#dfe9f8!important;background:rgba(255,255,255,.92)!important;border-radius:17px!important}.ghost-btn:hover,.icon-btn:hover,.chip-btn:hover{border-color:#b7d1ff!important;color:#155ee7!important;box-shadow:0 14px 34px rgba(37,99,235,.10)!important}
+      .v52-view{animation:v52PageIn .28s cubic-bezier(.2,.8,.2,1);transform-origin:50% 18px}.v52-view.is-rendering{opacity:.96}.v52-view *{scroll-margin-top:88px}@keyframes v52PageIn{from{opacity:.0;transform:translateY(10px) scale(.997)}to{opacity:1;transform:translateY(0) scale(1)}}.v52-ripple{position:absolute;border-radius:50%;transform:scale(0);background:rgba(37,99,235,.18);pointer-events:none;animation:v52Ripple .55s ease-out}.v52-ripple-host{position:relative;overflow:hidden!important}@keyframes v52Ripple{to{transform:scale(4);opacity:0}}
+      .v52-finance-hero{display:grid;grid-template-columns:260px minmax(0,1fr) 520px;gap:18px;align-items:center;min-height:250px;padding:22px;border-radius:30px;border:1px solid rgba(201,220,252,.96);background:radial-gradient(circle at 6% 30%,rgba(37,99,235,.12),transparent 26%),radial-gradient(circle at 70% -10%,rgba(96,165,250,.18),transparent 32%),linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,247,255,.92));box-shadow:var(--v52-glow);overflow:hidden;position:relative}.v52-finance-hero:after{content:'';position:absolute;inset:-60% -20% auto 35%;height:320px;background:linear-gradient(105deg,transparent,rgba(255,255,255,.64),transparent);transform:rotate(8deg);animation:v52Shine 7s linear infinite}@keyframes v52Shine{from{translate:-40% 0}to{translate:85% 0}}.v52-hero-copy h2{margin:0 0 10px;font-size:28px;letter-spacing:-.055em;color:#071b49}.v52-hero-copy p{max-width:560px;margin:0;color:#536786;font-weight:760;line-height:1.55}.v52-feature-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px}.v52-feature-row div{padding:13px;border:1px solid #dfe9f8;border-radius:18px;background:rgba(255,255,255,.76);display:grid;grid-template-columns:34px 1fr;gap:2px 8px;align-items:center}.v52-feature-row i{grid-row:1/3;width:34px;height:34px;border-radius:13px;background:#eef6ff;display:grid;place-items:center;color:#2563eb;font-style:normal}.v52-feature-row b{font-size:13px}.v52-feature-row span{font-size:11px;color:#64748b;font-weight:800;line-height:1.25}.v52-hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v52-hero-metrics .v52-metric{min-height:88px}.v52-goal-card{position:relative;grid-column:span 1;min-height:88px;border:1px solid #dfe9f8;border-radius:22px;background:rgba(255,255,255,.76);padding:14px;display:flex;gap:12px;align-items:center;overflow:hidden}.v52-goal-card span{font-size:11px;color:#64748b;font-weight:900}.v52-goal-card strong{display:block;font-size:13px;margin-top:4px}.v52-small-ring{--p:0%;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2563eb var(--p),#e6eefb 0);box-shadow:inset 0 0 0 8px #fff}.v52-small-ring b{font-size:13px}.v52-crystal{position:relative;isolation:isolate}.v52-crystal.v52-hero{height:210px;border-radius:26px;background:radial-gradient(circle at 50% 76%,rgba(37,99,235,.22),transparent 38%)}.v52-crystal i{position:absolute;left:50%;top:26%;width:116px;height:130px;transform:translateX(-50%) rotate(45deg) skew(-7deg,-7deg);background:linear-gradient(135deg,#155ee7,#60a5fa 55%,#a78bfa);clip-path:polygon(50% 0,100% 44%,72% 100%,28% 100%,0 44%);box-shadow:0 28px 60px rgba(37,99,235,.26)}.v52-crystal b{position:absolute;left:50%;top:55%;width:180px;height:54px;border:3px solid rgba(96,165,250,.34);border-radius:50%;transform:translate(-50%,-50%);animation:v52Orbit 7s linear infinite}.v52-crystal em{position:absolute;left:24%;top:48%;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#fff,#60a5fa);box-shadow:0 0 24px #60a5fa;animation:v52Float 3.8s ease-in-out infinite}.v52-crystal span{position:absolute;right:24%;bottom:28%;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#fff,#a78bfa);box-shadow:0 0 24px #a78bfa;animation:v52Float 4.6s ease-in-out infinite reverse}.v52-crystal.v52-mini,.v52-crystal.v52-tiny{position:absolute;right:10px;bottom:8px;width:64px;height:64px;opacity:.9}.v52-crystal.v52-mini i,.v52-crystal.v52-tiny i{width:32px;height:38px}.v52-crystal.v52-mini b,.v52-crystal.v52-tiny b{width:50px;height:18px;border-width:2px}@keyframes v52Orbit{to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes v52Float{50%{transform:translateY(-12px)}}
+      .v52-tabs{display:flex;align-items:center;gap:8px;margin:18px 0 16px;flex-wrap:wrap}.v52-tab{border:1px solid #dfe9f8;background:rgba(255,255,255,.88);border-radius:999px;padding:12px 20px;font-weight:950;color:#233452;box-shadow:0 10px 24px rgba(15,23,42,.04)}.v52-tab.active{background:linear-gradient(135deg,#155ee7,#2563eb);color:white;border-color:#2563eb;box-shadow:0 18px 36px rgba(37,99,235,.24)}.v52-view-settings{margin-left:auto;border:1px solid #dfe9f8;background:rgba(255,255,255,.88);border-radius:16px;padding:11px 15px;font-weight:900;color:#334155;box-shadow:0 10px 24px rgba(15,23,42,.04)}.v52-finance-main{display:grid;gap:16px}.v52-content-grid{display:grid;gap:16px}.v52-content-grid.three{grid-template-columns:1.15fr .82fr .9fr}.v52-content-grid.two{grid-template-columns:1fr 1fr}.v52-panel{padding:20px;position:relative;overflow:hidden}.v52-panel:before{content:'';position:absolute;right:-60px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.09),transparent 68%);pointer-events:none}.v52-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.v52-panel h3{margin:0 0 6px;font-size:20px;letter-spacing:-.045em}.v52-panel p{margin:0;color:#65738c;font-size:13px;font-weight:760;line-height:1.45}.v52-ico{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:10px;background:#eef6ff;margin-bottom:8px}.v52-pill{display:inline-flex;align-items:center;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:1000;text-transform:lowercase}.v52-pill.red{background:#fff1f2;color:#e11d48}.v52-pill.green{background:#ecfdf5;color:#059669}.v52-pill.blue{background:#eef6ff;color:#2563eb}.v52-risk-grid{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center}.v52-ring{--p:0%;width:126px;height:126px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2563eb var(--p),#e7effb 0);box-shadow:inset 0 0 0 14px #fff,0 16px 34px rgba(37,99,235,.12)}.v52-ring b{font-size:34px;letter-spacing:-.06em}.v52-ring small{font-size:11px;color:#64748b;font-weight:900;margin-top:-22px}.v52-risk-list{display:grid;gap:10px}.v52-risk-row{display:flex;gap:12px;align-items:flex-start;border:1px solid #e1eaf7;border-radius:17px;padding:12px;background:rgba(255,255,255,.78)}.v52-risk-row i{width:34px;height:34px;border-radius:13px;display:grid;place-items:center;background:#fff7ed;font-style:normal}.v52-risk-row i.ok{background:#ecfdf5}.v52-risk-row b{display:block;margin-bottom:3px}.v52-risk-row span{font-size:12px;color:#64748b;font-weight:800;line-height:1.35}.v52-tip{margin-top:12px;border:1px solid #dfe9f8;background:#f8fbff;border-radius:15px;padding:10px 12px;color:#64748b;font-size:12px;font-weight:800}.v52-limit-value{font-size:34px;font-weight:1000;letter-spacing:-.06em;margin:6px 0}.v52-limit-value.red{color:#ef4444}.v52-limit-value.green{color:#10b981}.v52-money-lines{display:grid;gap:13px;margin-top:18px}.v52-money-lines div{display:flex;justify-content:space-between;border-bottom:1px solid #e7eef8;padding-bottom:10px}.v52-money-lines div:last-child{border-bottom:0}.v52-money-lines span{color:#334155;font-weight:850}.v52-money-lines b.red{color:#ef4444}.v52-money-lines b.green{color:#10b981}.v52-chart-card{background:radial-gradient(circle at 70% 20%,rgba(37,99,235,.11),transparent 38%),linear-gradient(180deg,#f8fbff,#fff)!important}.v52-chart-card h3{font-size:26px;color:#2563eb}.v52-panel-head span{color:#64748b;font-weight:900;font-size:12px}.v52-small-select{border:1px solid #dbeafe;background:#fff;border-radius:999px;padding:7px 10px;color:#334155;font-weight:900}.v52-balance-chart{width:100%;height:150px}.v52-chart-labels{display:flex;justify-content:space-between;color:#64748b;font-size:11px;font-weight:900}.v52-kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 1.2fr;gap:14px}.v52-metric{position:relative;min-height:114px;border:1px solid #dfe9f8;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(249,252,255,.92));padding:16px;overflow:hidden;box-shadow:var(--v52-shadow);transition:transform .24s,box-shadow .24s}.v52-metric:hover{transform:translateY(-2px);box-shadow:0 24px 54px rgba(37,99,235,.13)}.v52-metric span{display:block;font-size:12px;color:#64748b;font-weight:950}.v52-metric strong{display:block;font-size:24px;margin-top:7px;letter-spacing:-.05em}.v52-metric small{display:block;color:#64748b;font-weight:800;margin-top:4px;line-height:1.25}.v52-metric i{position:absolute;right:14px;top:14px;width:40px;height:40px;border-radius:16px;display:grid;place-items:center;background:#eef6ff;font-style:normal}.v52-metric.green strong{color:#10b981}.v52-metric.red strong{color:#ef4444}.v52-metric.amber strong{color:#f97316}.v52-metric.violet strong{color:#7c3aed}.v52-spark{position:absolute;right:14px;bottom:14px;width:96px;height:42px;opacity:.88}.v52-discipline{position:relative;overflow:hidden;min-height:114px;border-radius:22px;border:1px solid rgba(96,165,250,.35);background:linear-gradient(135deg,#2563eb,#7c3aed 58%,#60a5fa);color:white;padding:18px;font-size:19px;font-weight:1000;letter-spacing:-.03em;box-shadow:0 20px 44px rgba(37,99,235,.22)}.v52-discipline button{position:absolute;right:88px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#2563eb;font-size:22px}.v52-action-list{display:grid;gap:10px}.v52-action-line{width:100%;border:1px solid #e1eaf7;background:rgba(255,255,255,.82);border-radius:18px;padding:13px;display:grid;grid-template-columns:34px minmax(0,1fr) 28px;gap:12px;align-items:center;text-align:left;color:#102044}.v52-action-line:hover{border-color:#b7d1ff;background:#f8fbff;box-shadow:0 15px 34px rgba(37,99,235,.10);transform:translateY(-1px)}.v52-action-line span{width:32px;height:32px;border-radius:12px;background:#eef6ff;color:#2563eb;display:grid;place-items:center;font-weight:1000}.v52-action-line b{font-size:14px;line-height:1.25}.v52-action-line small{display:block;color:#64748b;font-weight:800;margin-top:4px}.v52-action-line i{font-style:normal;color:#94a3b8}.v52-analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v52-analytics-grid div{border:1px solid #e1eaf7;background:#fff;border-radius:18px;padding:16px;min-height:112px}.v52-analytics-grid span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;font-weight:1000}.v52-analytics-grid b{display:block;margin:8px 0 5px}.v52-analytics-grid small{display:block;color:#64748b;font-weight:800;line-height:1.35}.v52-empty{padding:18px;border:1px dashed #d7e3f6;border-radius:18px;color:#64748b;background:#f8fbff;font-weight:850}
+      @media(max-width:1280px){.v52-finance-hero{grid-template-columns:1fr}.v52-hero-visual{height:180px}.v52-content-grid.three,.v52-content-grid.two,.v52-kpi-row{grid-template-columns:1fr 1fr}.v52-discipline{grid-column:1/-1}}@media(max-width:880px){.v52-app{display:block}.v52-side{display:none}.v52-main{padding:12px}.v52-topbar{margin:-12px -12px 18px;padding:10px 12px;flex-wrap:wrap;height:auto}.v52-search{order:5;flex-basis:100%;max-width:none}.v52-actions .ghost-btn,.v52-actions .icon-btn{display:none}.v52-view .hero h1{font-size:32px}.v52-hero-metrics,.v52-feature-row,.v52-content-grid.three,.v52-content-grid.two,.v52-kpi-row,.v52-analytics-grid{grid-template-columns:1fr}.v52-risk-grid{grid-template-columns:1fr}.v52-ring{margin:auto}.v52-tabs{overflow:auto;flex-wrap:nowrap;padding-bottom:4px}.v52-view-settings{display:none}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+    `; document.head.appendChild(st);
   }
-  function v51GoalsBand(){
-    const goal=v51SafeGoal();
-    return `<section class="v51-goals-band"><div><span class="v51-kicker">Goals cockpit</span><h3>Цели получили более дорогой визуальный фокус</h3><p>Подчёркнуты этапы, недельный шаг и связь с задачами — как у дорогого продукта личной эффективности.</p><div class="row-actions"><button class="btn" data-go="focus-path">Открыть маршрут дня</button><button class="ghost-btn" data-v49-action="openGoalBuilder">Создать цель</button></div></div><div class="v51-goal-spotlight"><small>Главная цель</small><b>${esc(goal?goal.title:'Пока не выбрана')}</b></div></section>`;
-  }
-  function v51AddCardAccents(scope){
-    scope.querySelectorAll('.card, .table-card, .v50-learn-card, .v49-hero-card, .v49-panel').forEach((card,idx)=>{
-      card.classList.add('v51-cardized');
-      if(!card.querySelector(':scope > .v51-card-shine')) card.insertAdjacentHTML('afterbegin','<div class="v51-card-shine"></div>');
-      if(!card.dataset.v51Tone) card.dataset.v51Tone=['blue','violet','teal','amber'][idx%4];
-    });
-    scope.querySelectorAll('.ghost-btn,.icon-btn,.btn,.chip-btn,.v49-mini').forEach(btn=>btn.classList.add('v51-control'));
-  }
-  function v51PostRender(){
-    try{
-      v51Ensure(); v51Styles();
-      const current=(location.hash||'').replace('#','')||page||'dashboard';
-      const view=document.querySelector('#view'); if(!view) return;
-      document.body.classList.add('v51-premium-body');
-      document.querySelector('.topbar')?.classList.add('v51-topbar');
-      document.querySelector('.side')?.classList.add('v51-sidebar');
-      document.querySelector('.main')?.classList.add('v51-main');
-      document.querySelector('.version')?.classList.add('v51-version');
-      const version=document.querySelector('.version'); if(version) version.textContent=V51_LABEL;
-      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V51_BUILD);
-      const hero=view.querySelector('.hero'); if(hero) hero.classList.add('v51-page-hero');
-      const pageEl=view.querySelector('.page'); if(pageEl) pageEl.classList.add('v51-page-shell');
-      v51AddCardAccents(view);
-      const side=document.querySelector('.side');
-      if(side && !side.querySelector('.v51-side-promo')){
-        side.insertAdjacentHTML('beforeend', `<div class="v51-side-promo"><div><span class="v51-kicker">Design upgrade</span><h4>Premium визуал без потери логики</h4><p>Система стала дороже по ощущениям: больше глубины, света, ритма и исполнительской ясности.</p></div>${v51Art('sidebar')}</div>`);
-      }
-      if(current==='dashboard' && !view.querySelector('.v51-dashboard-band')){
-        const host=hero||pageEl?.firstElementChild||view.firstElementChild;
-        host?.insertAdjacentHTML('afterend', v51DashboardBand());
-      }
-      if(current==='focus-path' && !view.querySelector('.v51-focus-band')){
-        const routeHero=view.querySelector('.v49-route-hero');
-        routeHero?.insertAdjacentHTML('afterend', v51FocusBand());
-      }
-      if(current==='learning' && !view.querySelector('.v51-learning-band')){
-        const learn=view.querySelector('.v50-learn-hero');
-        learn?.insertAdjacentHTML('afterend', v51LearningBand());
-      }
-      if(current==='finance' && !view.querySelector('.v51-finance-band')){
-        const host=hero||pageEl?.firstElementChild;
-        host?.insertAdjacentHTML('afterend', v51FinanceBand());
-      }
-      if(current==='goals' && !view.querySelector('.v51-goals-band')){
-        const host=hero||pageEl?.firstElementChild;
-        host?.insertAdjacentHTML('afterend', v51GoalsBand());
-      }
-      if(current==='dashboard'){
-        const firstGrid=view.querySelector('.grid');
-        if(firstGrid && !view.querySelector('.v51-premium-ribbon')) firstGrid.insertAdjacentHTML('beforebegin', v51SectionRibbon('Curated workflow','Дорогой визуальный ритм: карты, статусы, метрики и быстрый обзор в одном стиле.','Открыть фокус дня','focus-path','orbit'));
-      }
-    }catch(e){console.error('[V51 post render]',e);}
-  }
-  function v51Styles(){
-    if(document.getElementById('v51-premium-styles')) return;
-    const css=`
-    body.v51-premium-body{
-      background:
-        radial-gradient(circle at 12% 0%, rgba(37,99,235,.15), transparent 22%),
-        radial-gradient(circle at 84% 0%, rgba(14,165,233,.18), transparent 24%),
-        radial-gradient(circle at 78% 26%, rgba(124,58,237,.10), transparent 18%),
-        linear-gradient(180deg,#fbfdff 0%,#f4f9ff 44%,#eef5ff 100%) !important;
-    }
-    .v51-topbar{background:rgba(255,255,255,.64);backdrop-filter:blur(18px);border:1px solid rgba(221,231,245,.9);padding:10px 14px;border-radius:24px;box-shadow:0 22px 44px rgba(15,23,42,.08)}
-    .v51-sidebar{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,251,255,.9));box-shadow:inset -1px 0 0 rgba(226,232,240,.8)}
-    .v51-main{padding-top:18px}
-    .v51-page-hero h1{font-size:38px;letter-spacing:-.06em}
-    .v51-page-hero p{max-width:840px;font-size:14px}
-    .v51-cardized{position:relative;overflow:hidden;border:1px solid rgba(228,236,248,.98)!important;background:linear-gradient(180deg,rgba(255,255,255,.93),rgba(251,253,255,.98))!important;box-shadow:0 22px 48px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.7)!important}
-    .v51-cardized[data-v51-tone="blue"]{--v51-accent:rgba(37,99,235,.12)}
-    .v51-cardized[data-v51-tone="violet"]{--v51-accent:rgba(124,58,237,.12)}
-    .v51-cardized[data-v51-tone="teal"]{--v51-accent:rgba(20,184,166,.12)}
-    .v51-cardized[data-v51-tone="amber"]{--v51-accent:rgba(245,158,11,.12)}
-    .v51-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,var(--v51-accent,rgba(37,99,235,.10)),transparent 42%,rgba(255,255,255,.32) 76%,transparent 100%);pointer-events:none;z-index:0}
-    .v51-cardized>*{position:relative;z-index:1}
-    .v51-control{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
-    .v51-control:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(15,23,42,.08)}
-    .v51-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.72);border:1px solid rgba(219,234,254,.95);color:#2563eb;font-size:11px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
-    .v51-dashboard-band,.v51-focus-band,.v51-learning-band,.v51-finance-band,.v51-goals-band,.v51-premium-ribbon,.v51-side-promo{position:relative;display:grid;gap:16px;border:1px solid rgba(224,232,245,.95);border-radius:28px;padding:20px;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(248,252,255,.9));box-shadow:0 24px 50px rgba(15,23,42,.08);overflow:hidden}
-    .v51-dashboard-band::before,.v51-focus-band::before,.v51-learning-band::before,.v51-finance-band::before,.v51-goals-band::before,.v51-premium-ribbon::before,.v51-side-promo::before{content:"";position:absolute;inset:auto -10% 64% auto;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);pointer-events:none}
-    .v51-dashboard-band,.v51-focus-band,.v51-learning-band{margin:0 0 16px 0}
-    .v51-showcase-card{display:grid;grid-template-columns:minmax(0,1.18fr) 320px;gap:18px;align-items:center}
-    .v51-showcase-copy h2{margin:12px 0 10px;font-size:34px;line-height:1.02;letter-spacing:-.06em}
-    .v51-showcase-copy p,.v51-focus-copy p,.v51-learning-band p,.v51-finance-band p,.v51-goals-band p,.v51-premium-copy p,.v51-side-promo p{margin:0;color:#5b6b82;font-weight:700;line-height:1.6}
-    .v51-chip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
-    .v51-chip-card{position:relative;padding:14px;border-radius:20px;border:1px solid rgba(228,236,248,.96);background:rgba(255,255,255,.72);backdrop-filter:blur(8px);display:grid;gap:4px}
-    .v51-chip-card span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:1000;color:#6b7a90}
-    .v51-chip-card b{font-size:16px;line-height:1.28;letter-spacing:-.03em}
-    .v51-chip-card small{color:#64748b;font-weight:800}
-    .v51-chip-card.blue b{color:#1d4ed8}.v51-chip-card.green b{color:#059669}.v51-chip-card.violet b{color:#7c3aed}.v51-chip-card.amber b{color:#d97706}
-    .v51-mini-ribbon-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .v51-mini-ribbon{padding:14px 16px;border-radius:20px;border:1px solid rgba(228,236,248,.94);background:linear-gradient(180deg,#fff,#fbfdff);display:grid;gap:2px}
-    .v51-mini-ribbon span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:1000}.v51-mini-ribbon b{font-size:26px;letter-spacing:-.06em}.v51-mini-ribbon small{color:#7b8797;font-weight:800}
-    .v51-focus-band{grid-template-columns:minmax(0,1fr) 280px;align-items:center}
-    .v51-focus-copy h3,.v51-learning-band h3,.v51-finance-band h3,.v51-goals-band h3,.v51-premium-copy h3{margin:10px 0 8px;font-size:28px;line-height:1.06;letter-spacing:-.05em}
-    .v51-inline-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.v51-inline-stats div{padding:14px;border-radius:18px;border:1px solid rgba(228,236,248,.95);background:rgba(255,255,255,.72)}.v51-inline-stats b{display:block;font-size:18px;letter-spacing:-.04em}.v51-inline-stats span{display:block;margin-top:4px;font-size:12px;color:#64748b;font-weight:900}
-    .v51-learning-band{grid-template-columns:minmax(0,1fr) 280px;align-items:center}.v51-learning-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.v51-learning-stats span{padding:8px 11px;border-radius:999px;background:#fff;border:1px solid #e4ecf6;color:#475569;font-size:12px;font-weight:900}
-    .v51-finance-band,.v51-goals-band{grid-template-columns:minmax(0,1fr) minmax(280px,420px);align-items:center;margin-bottom:16px}.v51-finance-pills{display:grid;gap:10px}.v51-goal-spotlight{padding:18px 20px;border-radius:24px;background:linear-gradient(135deg,#eff6ff,#f8faff);border:1px solid #dbeafe;display:grid;gap:6px}.v51-goal-spotlight small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;font-weight:1000}.v51-goal-spotlight b{font-size:22px;line-height:1.18;letter-spacing:-.04em}
-    .v51-premium-ribbon{grid-template-columns:minmax(0,1fr) 240px;align-items:center;margin-bottom:16px}.v51-premium-copy .row-actions{margin-top:14px}
-    .v51-side-promo{margin-top:18px;padding:16px;min-height:260px;align-content:space-between}.v51-side-promo h4{margin:10px 0 8px;font-size:20px;line-height:1.05;letter-spacing:-.04em}
-    .v51-art{position:relative;min-height:180px;height:100%;border-radius:24px;background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(124,58,237,.08),rgba(14,165,233,.10));border:1px solid rgba(219,234,254,.92);overflow:hidden}
-    .v51-art .v51-orb{position:absolute;border-radius:50%;filter:blur(.2px)}
-    .v51-art .orb-a{width:110px;height:110px;right:24px;top:18px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.92),rgba(59,130,246,.4));box-shadow:0 16px 36px rgba(37,99,235,.18)}
-    .v51-art .orb-b{width:64px;height:64px;left:28px;bottom:28px;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(124,58,237,.44))}
-    .v51-art .orb-c{width:34px;height:34px;left:106px;top:34px;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(14,165,233,.45))}
-    .v51-floating-card{position:absolute;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.84);background:rgba(255,255,255,.74);backdrop-filter:blur(12px);box-shadow:0 12px 26px rgba(15,23,42,.08)}
-    .v51-floating-card span{display:block;width:58px;height:8px;border-radius:999px;background:linear-gradient(90deg,#93c5fd,#c4b5fd);margin-bottom:8px}.v51-floating-card b{display:block;width:86px;height:10px;border-radius:999px;background:#e2e8f0}
-    .v51-floating-card.fc-a{left:20px;top:22px}.v51-floating-card.fc-b{right:18px;bottom:22px}
-    .v51-line{position:absolute;height:2px;border-radius:999px;background:linear-gradient(90deg,rgba(37,99,235,0),rgba(37,99,235,.72),rgba(124,58,237,0));opacity:.72}.v51-line.l1{left:24px;right:70px;top:76px}.v51-line.l2{left:74px;right:26px;top:112px}.v51-line.l3{left:46px;right:112px;bottom:64px}
-    .v49-route-hero,.v50-learn-hero{margin-bottom:16px}
-    .v49-route-steps .v49-step,.v50-lessons .v50-lesson-tab{box-shadow:0 10px 22px rgba(15,23,42,.04)}
-    .v49-route-steps .v49-step:hover,.v50-lessons .v50-lesson-tab:hover{transform:translateY(-1px)}
-    .top-actions .row{background:rgba(255,255,255,.72);border:1px solid rgba(228,236,248,.9);box-shadow:0 12px 24px rgba(15,23,42,.06)}
-    .date-pill{background:rgba(255,255,255,.85)}
-    .version.v51-version{background:linear-gradient(135deg,#0f172a,#1d4ed8,#0ea5e9)!important;color:#fff;box-shadow:0 18px 34px rgba(15,23,42,.22)}
-    @media(max-width:1100px){.v51-showcase-card,.v51-focus-band,.v51-learning-band,.v51-finance-band,.v51-goals-band,.v51-premium-ribbon{grid-template-columns:1fr}.v51-chip-grid,.v51-mini-ribbon-grid,.v51-inline-stats{grid-template-columns:1fr 1fr}.v51-art{min-height:160px}}
-    @media(max-width:760px){.v51-showcase-copy h2{font-size:28px}.v51-focus-copy h3,.v51-learning-band h3,.v51-finance-band h3,.v51-goals-band h3,.v51-premium-copy h3{font-size:24px}.v51-chip-grid,.v51-mini-ribbon-grid,.v51-inline-stats{grid-template-columns:1fr}.v51-side-promo{min-height:unset}}
-    `;
-    const style=document.createElement('style'); style.id='v51-premium-styles'; style.textContent=css; document.head.appendChild(style);
-  }
+
+  const oldRenderShell=typeof renderShell==='function'?renderShell:null;
+  if(oldRenderShell){try{renderShell=v52RenderShell}catch(e){console.error('[V52 renderShell override]',e)}}
+  const oldFinancePage=typeof financePage==='function'?financePage:null;
+  if(oldFinancePage){try{financePage=v52FinancePage}catch(e){console.error('[V52 financePage override]',e)}}
+
+  let lastPage=(location.hash||'').replace('#','')||page||'dashboard';
+  let restoreScrollY=0;
   const oldRender=typeof render==='function'?render:null;
   if(oldRender){
     render=function(){
-      v51Ensure();
+      v52Ensure(); v52Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const same=current===lastPage;
+      restoreScrollY=same?window.scrollY:0;
+      const bodyMin=Math.max(document.body.scrollHeight,window.innerHeight);
+      document.body.style.minHeight=bodyMin+'px';
+      document.body.classList.add('v52-rendering');
       const res=oldRender.apply(this,arguments);
-      setTimeout(v51PostRender,55);
+      const after=()=>{
+        const version=document.querySelector('.version'); if(version) version.textContent=V52_LABEL;
+        document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V52_BUILD);
+        if(same) window.scrollTo(0,restoreScrollY); else window.scrollTo(0,0);
+        setTimeout(()=>{if(same) window.scrollTo(0,restoreScrollY); document.body.classList.remove('v52-rendering'); document.body.style.minHeight='';},180);
+        setTimeout(()=>{if(same) window.scrollTo(0,restoreScrollY);},360);
+        lastPage=current;
+      };
+      requestAnimationFrame(after);
       return res;
     }
   }
-  try{v51Ensure();v51Styles();save();render();}catch(e){console.error('[V51 init]',e)}
+  window.addEventListener('click',function(e){
+    const host=e.target.closest&&e.target.closest('button,.btn,.ghost-btn,.icon-btn,.chip-btn,.nav-item,.v52-action-line,.v52-tab,[data-go]');
+    if(!host) return;
+    try{
+      host.classList.add('v52-ripple-host');
+      const r=document.createElement('span'); r.className='v52-ripple';
+      const rect=host.getBoundingClientRect(); const size=Math.max(rect.width,rect.height); r.style.width=r.style.height=size+'px'; r.style.left=(e.clientX-rect.left-size/2)+'px'; r.style.top=(e.clientY-rect.top-size/2)+'px';
+      host.appendChild(r); setTimeout(()=>r.remove(),650);
+    }catch(_){ }
+  },true);
+  try{v52Ensure();v52Styles();save();render();}catch(e){console.error('[V52 init]',e)}
 })();
 
