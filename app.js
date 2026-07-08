@@ -3956,3 +3956,209 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   try{v52Ensure();v52Styles();save();render();}catch(e){console.error('[V52 init]',e)}
 })();
 
+
+
+/* ===== V56 UNIFIED VISUAL UI: global visual rollout, categories, planning, tracker ===== */
+(function(){
+  const V56_BUILD='second-brain-space-v56-unified-visual-ui-20260708';
+  const V56_LABEL='V56 · UNIFIED VISUAL UI';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V56_BUILD);}catch(e){}
+
+  function v56Styles(){
+    if(document.getElementById('v56-unified-style')) return;
+    const st=document.createElement('style');
+    st.id='v56-unified-style';
+    st.textContent=`
+      .card,.folder-pane,.habit-table,.record-card,.module-card,.debt-col,.debt-card,.v44-learn-card,.v44-group,.v43-panel,.v43-group,.v50-side-note,.v50-read-card{border-color:rgba(219,231,246,.92)!important;box-shadow:0 18px 44px rgba(37,99,235,.08)!important;background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,251,255,.96))!important}
+      .row{background:linear-gradient(180deg,#ffffff,#f8fbff)!important;border-color:#dde8f6!important}
+      .row:hover,.folder-item:hover,.record-card:hover{box-shadow:0 16px 34px rgba(37,99,235,.08)}
+      .folder-pane{position:sticky;top:94px;max-height:calc(100vh - 118px);overflow:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
+      .folder-item{margin-bottom:10px;border-radius:18px;padding:12px 12px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease}
+      .folder-item:hover{transform:translateY(-1px);border-color:#c7ddff;background:#f8fbff}
+      .folder-item.active{background:linear-gradient(135deg,#edf4ff,#ffffff)!important;border-color:#b6d2ff!important;box-shadow:0 16px 32px rgba(37,99,235,.10)}
+      .v56-plan-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px}
+      .v56-folder-side{display:grid;gap:12px;align-self:start}
+      .v56-folder-card{padding:18px}
+      .v56-folder-card h3{margin:0 0 6px;font-size:20px;letter-spacing:-.04em}
+      .v56-folder-card p{margin:0;color:#64748b;font-size:13px;font-weight:760;line-height:1.45}
+      .v56-folder-main{display:grid;gap:16px;align-self:start}
+      .v56-folder-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+      .v56-mini-stat{border:1px solid #dbe7f6;border-radius:18px;padding:14px;background:linear-gradient(180deg,#fff,#f8fbff)}
+      .v56-mini-stat span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7b8aa4;font-weight:1000}
+      .v56-mini-stat b{display:block;margin-top:8px;font-size:20px;letter-spacing:-.04em}
+      .v56-expense-shell{display:grid;gap:16px}
+      .v56-expense-top{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:stretch}
+      .v56-expense-queue,.v56-expense-side-card,.v56-expense-main,.v56-expense-group,.v56-habit-panel{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(247,250,255,.97));box-shadow:0 22px 48px rgba(37,99,235,.09)}
+      .v56-expense-queue:before,.v56-expense-side-card:before,.v56-expense-main:before,.v56-expense-group:before,.v56-habit-panel:before{content:'';position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.08),transparent 70%);pointer-events:none}
+      .v56-expense-queue,.v56-expense-side-card,.v56-expense-main,.v56-expense-group,.v56-habit-panel,.v56-folder-card{padding:18px}
+      .v56-expense-top h3,.v56-expense-main h3,.v56-expense-side-card h3,.v56-expense-group h3,.v56-habit-panel h3{margin:0;font-size:20px;letter-spacing:-.04em}
+      .v56-expense-top p,.v56-expense-main p,.v56-expense-side-card p,.v56-expense-group p,.v56-habit-panel p{margin:6px 0 0;color:#64748b;font-size:13px;font-weight:760;line-height:1.5}
+      .v56-expense-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+      .v56-expense-kpi{border:1px solid #dbe7f6;border-radius:20px;padding:14px;background:linear-gradient(180deg,#fff,#f8fbff)}
+      .v56-expense-kpi span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7b8aa4;font-weight:1000}
+      .v56-expense-kpi b{display:block;font-size:23px;letter-spacing:-.05em;margin-top:9px}
+      .v56-expense-kpi small{display:block;margin-top:6px;color:#64748b;font-weight:800;line-height:1.35}
+      .v56-expense-tabs{display:flex;flex-wrap:wrap;gap:8px}
+      .v56-expense-tab{border:1px solid #dbe7f6;background:#fff;border-radius:999px;padding:10px 14px;font-weight:950;color:#334155}
+      .v56-expense-tab.active{background:linear-gradient(135deg,#155ee7,#2563eb);border-color:#2563eb;color:#fff;box-shadow:0 16px 32px rgba(37,99,235,.22)}
+      .v56-expense-layout{display:grid;grid-template-columns:minmax(0,1.5fr) 410px;gap:16px;align-items:start}
+      .v56-expense-main{display:grid;gap:14px}
+      .v56-expense-group{padding:16px}
+      .v56-group-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+      .v56-group-head .meta{color:#64748b;font-size:13px;font-weight:800;margin-top:4px;line-height:1.4}
+      .v56-group-actions{display:grid;grid-template-columns:minmax(220px,340px) auto;gap:12px;align-items:end;border:1px solid #e4ecf8;border-radius:20px;padding:14px;background:rgba(255,255,255,.78)}
+      .v56-op-list{display:grid;gap:12px}
+      .v56-op-row{display:grid;grid-template-columns:110px minmax(200px,1.2fr) 120px minmax(170px,220px) auto;gap:12px;align-items:center;border:1px solid #e4ecf8;border-radius:20px;padding:14px;background:linear-gradient(180deg,#fff,#f8fbff)}
+      .v56-op-date{align-self:start}
+      .v56-op-date b{display:block;font-size:14px;line-height:1.2}
+      .v56-op-title b{display:block;font-size:15px;line-height:1.32}
+      .v56-op-title .small{margin-top:4px;line-height:1.38;word-break:break-word}
+      .v56-op-amount{font-weight:1000;font-size:18px;white-space:nowrap;text-align:right}
+      .v56-op-row input,.v56-group-actions input{width:100%;height:44px;border:1px solid #d9e5f7;background:#fff;border-radius:14px;padding:0 12px;outline:0;font-weight:850;color:#233452}
+      .v56-op-row .row-actions,.v56-group-actions .row-actions{justify-content:flex-start;align-items:center}
+      .v56-op-row .mini{height:34px;border-radius:12px;padding:0 10px}
+      .v56-expense-side-stack{display:grid;gap:16px;position:sticky;top:94px}
+      .v56-rule-list{display:grid;gap:10px;margin-top:12px}
+      .v56-rule{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #e4ecf8;border-radius:18px;padding:12px;background:#fff}
+      .v56-rule .row-actions{justify-content:flex-end}
+      .v56-help-steps{display:grid;gap:10px;margin-top:10px}
+      .v56-help-step{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #e8eff8}
+      .v56-help-step:last-child{border-bottom:0}
+      .v56-help-step b{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#eef6ff;color:#2563eb;font-size:14px}
+      .v56-habit-layout{display:grid;grid-template-columns:minmax(0,1.25fr) 360px;gap:16px;align-items:start;margin-top:16px}
+      .v56-habit-panel{display:grid;gap:14px}
+      .v56-habit-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+      .v56-habit-chart-wrap{position:relative;border:1px solid #dbe7f6;border-radius:24px;background:linear-gradient(180deg,#ffffff,#f6fbff);padding:16px;overflow:hidden}
+      .v56-habit-chart-wrap:before{content:'';position:absolute;inset:auto -20px -40px auto;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.14),transparent 70%)}
+      .v56-habit-chart-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+      .v56-habit-chart-svg{width:100%;height:220px;display:block}
+      .v56-habit-legend{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#64748b;font-size:12px;font-weight:850}
+      .v56-habit-legend b{color:#102044}
+      .v56-habit-insight{display:grid;gap:12px}
+      .v56-habit-insight .v56-expense-kpi{min-height:auto}
+      .v56-habit-table .habit-title,.v56-habit-table .habit-actions{background:rgba(255,255,255,.96)}
+      .v56-habit-table .habit-day-head.weekend{background:#f4f8ff}
+      .v56-habit-table .day-check{border-radius:9px}
+      .v56-soft-note{border:1px solid #dce8f7;border-radius:18px;padding:13px;background:#f8fbff;color:#55657f;font-size:13px;font-weight:800;line-height:1.45}
+      @media(max-width:1380px){.v56-expense-layout{grid-template-columns:1fr}.v56-expense-side-stack{position:static}.v56-habit-layout{grid-template-columns:1fr}.v56-plan-layout{grid-template-columns:1fr}.folder-pane{position:relative;top:auto;max-height:none}.v56-expense-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v56-folder-mini{grid-template-columns:1fr 1fr 1fr}}
+      @media(max-width:980px){.v56-op-row{grid-template-columns:1fr;align-items:start}.v56-op-amount{text-align:left}.v56-group-actions{grid-template-columns:1fr}.v56-expense-kpis,.v56-folder-mini{grid-template-columns:1fr 1fr}.v56-expense-top{grid-template-columns:1fr}.v56-habit-toolbar{align-items:flex-start}}
+      @media(max-width:760px){.v56-expense-kpis,.v56-folder-mini{grid-template-columns:1fr}.v56-expense-tabs{overflow:auto;flex-wrap:nowrap;padding-bottom:4px}.v56-op-row .row-actions{flex-wrap:wrap}.v56-habit-chart-svg{height:190px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v56CategoryList(){
+    const base=['Еда','Кафе / рестораны','Транспорт','Авто','Дом','Коммунальные услуги','Связь','Подписки','Здоровье','Красота','Одежда','Подарки','Развлечения','Путешествия','Образование','Работа','Семья','Долг / возврат','Переводы','Наличные','Другое'];
+    const set=new Set(base);
+    (state.operations||[]).forEach(o=>{if(o.category) set.add(o.category)});
+    ((state.settings||{}).categoryRules||[]).forEach(r=>{if(r.category) set.add(r.category)});
+    return [...set].sort((a,b)=>String(a).localeCompare(String(b),'ru'));
+  }
+  function v56NeedReview(o){return o && o.type==='expense' && !o.categoryReviewed;}
+  function v56ReviewOps(){
+    const mode=(state.settings||{}).expenseReviewMode||'all';
+    let ops=(state.operations||[]).filter(o=>o.type==='expense');
+    if(mode==='review') ops=ops.filter(v56NeedReview);
+    return ops.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||num(b.amount)-num(a.amount));
+  }
+  function v56GroupOps(ops){
+    const map={};
+    ops.forEach(o=>{const cat=o.category||'Не определено'; (map[cat]||(map[cat]=[])).push(o)});
+    return Object.entries(map).map(([cat,items])=>({cat,items,total:total(items),need:items.filter(v56NeedReview).length})).sort((a,b)=>b.total-a.total);
+  }
+  function v56RuleList(){
+    const rules=((state.settings||{}).categoryRules||[]).slice().sort((a,b)=>(num(b.hits)||0)-(num(a.hits)||0));
+    return `<div class="v56-rule-list">${rules.map(r=>`<div class="v56-rule"><div><b>${esc(r.pattern)}</b><div class="small muted">→ ${esc(r.category)} · применений: ${num(r.hits)||0}</div></div><div class="row-actions"><button class="mini blue" data-v44-action="applyOneRule" data-id="${esc(r.id)}">Применить</button><button class="mini red" data-v44-action="deleteRule" data-id="${esc(r.id)}">Удалить</button></div></div>`).join('')||'<p class="small muted">Правил пока нет. Исправь категорию и нажми «Сохранить + запомнить».</p>'}</div>`;
+  }
+  function v56OpRow(o){
+    return `<div class="v56-op-row"><div class="v56-op-date"><b>${fmt(o.date)}</b><div class="small muted">${esc(o.date||'')}</div></div><div class="v56-op-title"><b>${esc((o.note||'Операция банка').slice(0,120))}</b><div class="small muted">${o.categoryReviewed?'Проверено':'К проверке'} · ключ: ${esc(String(o.bankKey||'').slice(0,42)||'—')}</div></div><div class="v56-op-amount red">−${money(o.amount)}</div><div><input data-v44-op-cat="${esc(o.id)}" list="v44CatList" value="${esc(o.category||'Не определено')}"></div><div class="row-actions"><button class="mini green" data-v44-action="saveCatLearn" data-id="${esc(o.id)}">Сохранить + запомнить</button><button class="mini blue" data-v44-action="saveCatOnly" data-id="${esc(o.id)}">Только сохранить</button><button class="mini" data-v44-action="markReviewed" data-id="${esc(o.id)}">Проверено</button></div></div>`;
+  }
+  function v56GroupHtml(g,i){
+    return `<article class="v56-expense-group"><div class="v56-group-head"><div><h3>${esc(g.cat)}</h3><div class="meta">${g.items.length} операций · ${money(g.total)} · ${g.need} к проверке</div></div><div class="row-actions"><span class="pill blue">${money(g.total)}</span><span class="pill amber">${g.need}</span></div></div><div class="v56-group-actions"><div class="field" style="margin:0"><label>Перенести всю группу в категорию</label><input data-v44-group-cat="${esc(g.cat)}" list="v44CatList" value="${esc(g.cat)}"></div><div class="row-actions"><button class="ghost-btn" data-v44-action="moveGroupLearn" data-cat="${esc(g.cat)}">Перенести + запомнить</button><button class="ghost-btn" data-v44-action="markGroupReviewed" data-cat="${esc(g.cat)}">Вся группа проверена</button></div></div><div class="v56-op-list" style="margin-top:12px">${g.items.map(v56OpRow).join('')}</div></article>`;
+  }
+  function v56ExpenseReviewPage(){
+    const ops=v56ReviewOps();
+    const groups=v56GroupOps(ops);
+    const unchecked=(state.operations||[]).filter(v56NeedReview).length;
+    const mode=(state.settings||{}).expenseReviewMode||'all';
+    const totalVisible=total(ops);
+    const top=groups[0];
+    return layout('Категории расходов','Проверка CSV после банка: исправляй категории, запоминай правила и приложение будет учиться на следующих выгрузках.',`<datalist id="v44CatList">${v56CategoryList().map(c=>`<option value="${esc(c)}"></option>`).join('')}</datalist><section class="v56-expense-shell"><section class="v56-expense-top"><article class="v56-expense-queue"><div class="card-head" style="margin-bottom:0"><div><h3>Очередь проверки</h3><p>К проверке: <b>${unchecked}</b>. Дубли считаются по стабильному ключу без категории, чтобы исправления не создавали повторные операции.</p></div><div class="row-actions"><button class="btn" data-v44-action="applyRules">Применить правила</button><button class="ghost-btn" data-go="finance">Финансы</button></div></div><div class="v56-expense-kpis"><div class="v56-expense-kpi"><span>Видимых расходов</span><b class="red">${money(totalVisible)}</b><small>${ops.length} операций в текущем фильтре</small></div><div class="v56-expense-kpi"><span>К проверке</span><b class="amber">${unchecked}</b><small>операции ещё не подтверждены вручную</small></div><div class="v56-expense-kpi"><span>Категорий</span><b class="blue">${groups.length}</b><small>групп для просмотра и обучения</small></div><div class="v56-expense-kpi"><span>Главная категория</span><b>${esc(top?top.cat:'—')}</b><small>${top?money(top.total):'нет данных'}</small></div></div></article><div class="v56-expense-tabs"><button class="v56-expense-tab ${mode==='all'?'active':''}" data-v44-action="reviewMode" data-mode="all">Все операции</button><button class="v56-expense-tab ${mode==='review'?'active':''}" data-v44-action="reviewMode" data-mode="review">Только к проверке</button></div></section><section class="v56-expense-layout"><main class="v56-expense-main">${groups.map(v56GroupHtml).join('')||empty('Нет расходов для проверки.')}</main><aside class="v56-expense-side-stack"><article class="v56-expense-side-card"><h3>Правила категорий</h3><p>Когда ты исправляешь операцию и нажимаешь «запомнить», похожие операции в будущих CSV будут сразу попадать в нужную категорию.</p>${v56RuleList()}</article><article class="v56-expense-side-card"><h3>Как проходить быстрее</h3><div class="v56-help-steps"><div class="v56-help-step"><b>1</b><div><strong>Исправь частые магазины</strong><div class="small muted">Начни с самых повторяющихся списаний — это даёт максимальный эффект.</div></div></div><div class="v56-help-step"><b>2</b><div><strong>Жми «Сохранить + запомнить»</strong><div class="small muted">Так правило создаётся сразу и следующая выгрузка будет чище.</div></div></div><div class="v56-help-step"><b>3</b><div><strong>Отмечай всю группу</strong><div class="small muted">Если внутри категории всё верно, закрывай её одним действием.</div></div></div></div></article></aside></section></section>`);
+  }
+
+  function v56PlanningPage(){
+    const folder=state.settings.planningFolder||'focus';
+    const items=[['focus','Фокус дня','🎯',todayTasks().length],['areas','Папки сфер','📁',new Set((state.tasks||[]).map(t=>t.area||'Личное')).size],['priorities','Приоритеты','🚩',(state.tasks||[]).length],['deadlines','Сроки','🗓️',(state.tasks||[]).filter(t=>t.date).length],['purchases','Покупки','🛒',(state.purchases||[]).length],['wishes','Желания','💗',(state.wishes||[]).length]];
+    const totalTasks=(state.tasks||[]).length;
+    const dueSoon=(state.tasks||[]).filter(t=>t.date && t.date<=iso(addDays(new Date(),7)) && t.status!=='Сделано').length;
+    const focused=todayTasks().length;
+    return layout('Планирование','Единый premium-визуал для папок: спокойная навигация слева, подробный контент справа и без дёргания при переключении.',`<section class="v56-plan-layout"><aside class="folder-pane v56-folder-side"><article class="v56-folder-card"><h3>Папки планирования</h3><p>Переключай контексты без потери позиции. Навигация остаётся стабильной, а контент меняется справа.</p></article>${items.map(([id,n,ico,c])=>`<button class="folder-item ${folder===id?'active':''}" data-action="setPlanningFolder" data-id="${id}"><span class="avatar">${ico}</span><span><b>${n}</b><div class="small muted">${c} записей</div></span><span>›</span></button>`).join('')}</aside><main class="v56-folder-main"><section class="v56-folder-mini"><article class="v56-mini-stat"><span>Фокус сегодня</span><b>${focused}</b></article><article class="v56-mini-stat"><span>Всего задач</span><b>${totalTasks}</b></article><article class="v56-mini-stat"><span>Сроки 7 дней</span><b>${dueSoon}</b></article></section>${planningContent()}</main></section>`);
+  }
+
+  function v56HabitTrend(days){
+    const max=Math.max(1,(state.habits||[]).length);
+    const vals=days.map(d=>(state.habits||[]).filter(h=>h.marks?.[d]).length);
+    const totalMarks=vals.reduce((a,b)=>a+b,0);
+    const avgDay=vals.length?Math.round(totalMarks/vals.length):0;
+    const best=Math.max(0,...vals);
+    const width=100, height=180;
+    const step=days.length>1?width/(days.length-1):width;
+    const points=vals.map((v,i)=>`${(i*step).toFixed(2)},${(height-18)-((height-36)*(v/max)).toFixed(2)}`).join(' ');
+    const area=`0,${height-18} ${points} ${width},${height-18}`;
+    const last=vals[vals.length-1]||0;
+    const firstLabel=days[0]?new Date(days[0]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const midLabel=days[Math.floor(days.length/2)]?new Date(days[Math.floor(days.length/2)]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const lastLabel=days[days.length-1]?new Date(days[days.length-1]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    return `<article class="v56-habit-panel"><div class="v56-habit-chart-wrap"><div class="v56-habit-chart-head"><div><h3>Тренд привычек по дням</h3><p>Чем выше линия, тем больше привычек было выполнено в день.</p></div><span class="pill green">сегодня ${last}/${max}</span></div><svg class="v56-habit-chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Тренд привычек">${[.25,.5,.75,1].map(p=>`<line x1="0" y1="${(height-18)-((height-36)*p).toFixed(2)}" x2="${width}" y2="${(height-18)-((height-36)*p).toFixed(2)}" stroke="rgba(148,163,184,.25)" stroke-dasharray="2 3"/>`).join('')}<polyline fill="rgba(16,185,129,.16)" stroke="none" points="${area}"/><polyline fill="none" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>${vals.map((v,i)=>{const x=(i*step).toFixed(2),y=(height-18)-((height-36)*(v/max)).toFixed(2);return `<circle cx="${x}" cy="${y}" r="${i===vals.length-1?2.8:1.7}" fill="#ffffff" stroke="#10b981" stroke-width="${i===vals.length-1?2.2:1.5}"><title>${fmt(days[i])}: ${v}/${max}</title></circle>`}).join('')}</svg><div class="v56-habit-legend"><span><b>${firstLabel}</b> старт периода</span><span><b>${midLabel}</b> середина</span><span><b>${lastLabel}</b> сегодня</span></div></div><div class="v56-habit-insight"><div class="v56-expense-kpis" style="margin-top:0"><div class="v56-expense-kpi"><span>Среднее / день</span><b class="green">${avgDay}</b><small>из ${max} привычек</small></div><div class="v56-expense-kpi"><span>Лучший день</span><b>${best}</b><small>максимум отметок за период</small></div><div class="v56-expense-kpi"><span>Всего отметок</span><b class="blue">${totalMarks}</b><small>суммарная активность</small></div><div class="v56-expense-kpi"><span>Ритм сегодня</span><b>${last}/${max}</b><small>${last>=avgDay?'выше среднего':'ниже среднего'}</small></div></div></div></article>`;
+  }
+
+  function v56HabitsPage(){
+    const range=num(state.settings.habitRange)||28;
+    const days=Array.from({length:range},(_,i)=>iso(addDays(new Date(),-(range-1-i))));
+    const avg=(state.habits||[]).length?Math.round((state.habits||[]).reduce((s,h)=>s+habitPct(h,days),0)/(state.habits||[]).length):0;
+    const done=(state.habits||[]).filter(h=>h.marks?.[today()]).length;
+    const best=Math.max(0,...(state.habits||[]).map(streak));
+    const consistency=(state.habits||[]).length?Math.round(((state.habits||[]).filter(h=>habitPct(h,days)>=70).length/(state.habits||[]).length)*100):0;
+    return layout('Привычки','Трекер в едином light-tech стиле: сильный тренд, понятные цифры и спокойная таблица повторений.',`<section class="grid cols-4"><article class="card"><h3>Ритм привычек</h3><div class="value sm">${avg}%</div>${prog(avg)}</article><article class="card"><h3>Выполнено сегодня</h3><div class="value sm">${done}/${(state.habits||[]).length}</div>${prog((state.habits||[]).length?done/(state.habits||[]).length*100:0,'green')}</article><article class="card"><h3>Активные привычки</h3><div class="value sm">${(state.habits||[]).length}</div></article><article class="card"><h3>Лучший стрик</h3><div class="value sm">${best} дней</div></article></section><div class="habit-toolbar v56-habit-toolbar"><div class="seg">${[7,14,28].map(n=>`<button data-action="setHabitRange" data-range="${n}" class="${range===n?'active':''}">${n} дней</button>`).join('')}</div><div class="row-actions"><button class="ghost-btn">Стабильность: ${consistency}%</button><button class="btn" data-action="openRecordForm" data-type="habit">＋ Новая привычка</button></div></div><section class="v56-habit-layout"><div>${v56HabitTrend(days)}</div><aside class="v56-habit-panel"><div><h3>Что показывает график</h3><p>Теперь график читает не просто столбцы, а общий темп: когда привычки росли, где просели и какой уровень удалось удержать.</p></div><div class="v56-soft-note">Совет: держи 2–3 якорные привычки, которые проще всего выполнить даже в тяжёлый день. Именно они стабилизируют линию графика.</div><div class="v56-expense-kpis" style="margin-top:0;grid-template-columns:1fr"><div class="v56-expense-kpi"><span>Стабильные привычки</span><b>${(state.habits||[]).filter(h=>habitPct(h,days)>=70).length}</b><small>выполнение не ниже 70% за период</small></div><div class="v56-expense-kpi"><span>Нужны в фокусе</span><b class="amber">${(state.habits||[]).filter(h=>habitPct(h,days)<40).length}</b><small>привычки с низким процентом выполнения</small></div></div></aside></section><section class="habit-table v56-habit-table" style="margin-top:16px"><div class="habit-grid" style="grid-template-columns:280px repeat(${range},32px) 116px"><div class="habit-head"><div class="habit-title"><b>Привычка</b></div>${days.map(d=>`<div class="habit-day-head ${[0,6].includes(new Date(d).getDay())?'weekend':''}">${new Date(d).getDate()}<br>${new Date(d).toLocaleDateString('ru-RU',{weekday:'short'}).slice(0,2)}</div>`).join('')}<div class="habit-actions"><b>Действия</b></div></div>${(state.habits||[]).map(h=>habitRow(h,days)).join('')}</div></section>`);
+  }
+
+  const oldSetPlanningFolder=typeof setPlanningFolder==='function'?setPlanningFolder:null;
+  if(oldSetPlanningFolder){
+    setPlanningFolder=function(el){
+      const pageY=window.scrollY||document.documentElement.scrollTop||0;
+      const pane=document.querySelector('.v56-folder-side,.folder-pane');
+      const paneY=pane?pane.scrollTop:0;
+      state.settings.planningFolder=el.dataset.id;
+      save();
+      render();
+      [0,80,220].forEach(t=>setTimeout(()=>{window.scrollTo(0,pageY); const next=document.querySelector('.v56-folder-side,.folder-pane'); if(next) next.scrollTop=paneY;},t));
+    };
+  }
+
+  if(typeof planningPage==='function'){ planningPage=v56PlanningPage; }
+  if(typeof habitsPage==='function'){ habitsPage=v56HabitsPage; }
+  if(typeof habitTrend==='function'){ habitTrend=v56HabitTrend; }
+
+  function v56PostRender(){
+    try{
+      v56Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      const view=document.querySelector('#view');
+      if(view && (current==='expense-review' || page==='expense-review')) view.innerHTML=v56ExpenseReviewPage();
+      const version=document.querySelector('.version'); if(version) version.textContent=V56_LABEL;
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V56_BUILD);
+    }catch(e){console.error('[V56 post render]',e)}
+  }
+
+  const oldRenderV56=typeof render==='function'?render:null;
+  if(oldRenderV56){
+    render=function(){
+      v56Styles();
+      const res=oldRenderV56.apply(this,arguments);
+      setTimeout(v56PostRender,60);
+      return res;
+    };
+  }
+
+  try{v56Styles();save();render();}catch(e){console.error('[V56 init]',e)}
+})();
