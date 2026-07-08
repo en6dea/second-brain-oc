@@ -3654,3 +3654,133 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{v49Ensure();v49AddSections();v49Styles();save();render();}catch(e){console.error('[V49 init]',e)}
 })();
+
+/* ===== V50 Learning Guide: additive tutorial page, no data removal ===== */
+(function(){
+  'use strict';
+  const V50_LABEL='V50 · ОБУЧЕНИЕ + МАРШРУТЫ';
+  const V50_BUILD='second-brain-space-v50-learning-guide-20260708';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V50_BUILD)}catch(e){}
+
+  const LESSONS=[
+    ['start','🚀','Быстрый старт','Собери основу за 10 минут: Inbox, Фокус дня, первая цель и первый шаг.'],
+    ['day','🧭','Как вести день','Утро → цель → 3 задачи → привычки → финансы → вечернее закрытие.'],
+    ['goals','🚩','Как работать с целями','Разложи цель на подцели, шаги недели и задачи дня.'],
+    ['finance','💸','Как вести финансы','Разнос расходов, долги, бюджет, покупки и ежедневный финансовый чек.'],
+    ['review','🔎','Обзоры и порядок','Ежедневное закрытие, недельный обзор, чистка входящих и корректировка целей.']
+  ];
+  const CHECKLIST=[
+    ['inbox','Открыть Входящие и сбросить всё, что держишь в голове','Записать задачи, мысли, покупки, долги, идеи без сортировки.','inbox'],
+    ['focus','Открыть Фокус дня','Пройти маршрут: утро, цель, задачи, привычки, финансы, вечер.','focus-path'],
+    ['goal','Выбрать одну главную цель','Не все цели сразу. Одна цель должна вести неделю.','goals'],
+    ['week','Создать шаг недели','Ответить: что я могу сделать на этой неделе, чтобы приблизиться?','goals'],
+    ['tasks','Оставить 3 действия на сегодня','Остальное убрать в неделю, ожидание или когда-нибудь.','tasks'],
+    ['habits','Отметить поддерживающие привычки','Привычки должны помогать целям, а не быть отдельным наказанием.','habits'],
+    ['money','Проверить финансы 2 минуты','Расходы, долги, лимит, ближайшие покупки.','finance'],
+    ['review','Закрыть день','Что сделано, что перенести, какой первый шаг завтра.','reviews']
+  ];
+
+  function v50Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v50=Object.assign({lesson:'start',done:{},mode:'normal',firstOpen:true},state.settings.v50||{});
+  }
+  function v50AddSection(){
+    if(!Array.isArray(SECTIONS)) return;
+    if(!SECTIONS.some(s=>s.id==='learning')){
+      const idx=SECTIONS.findIndex(s=>s.id==='focus-path');
+      SECTIONS.splice(idx>=0?idx+1:1,0,{id:'learning',label:'Обучение',icon:'🎓',color:'#7c3aed',group:'ПРОСТРАНСТВО'});
+    }
+  }
+  function v50Styles(){
+    if(document.getElementById('v50-learning-styles')) return;
+    const css=`
+      .v50-learn-hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.75fr);gap:16px;margin-bottom:16px}.v50-learn-card{border:1px solid rgba(196,181,253,.9);background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(245,243,255,.9));border-radius:30px;padding:22px;box-shadow:0 24px 60px rgba(124,58,237,.08)}.v50-learn-title{font-size:36px;line-height:1.02;letter-spacing:-.065em;margin:0}.v50-learn-text{color:#64748b;font-weight:700;line-height:1.55;max-width:820px}.v50-learn-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,.72fr);gap:16px;align-items:start}.v50-lessons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:16px}.v50-lesson-tab{border:1px solid #e5edf7;background:#fff;border-radius:18px;padding:12px;text-align:left;display:grid;gap:6px;min-height:112px}.v50-lesson-tab.active{border-color:#c4b5fd;background:linear-gradient(180deg,#f5f3ff,#fff);box-shadow:0 14px 28px rgba(124,58,237,.1)}.v50-lesson-tab span{font-size:24px}.v50-lesson-tab b{font-size:13px;line-height:1.2}.v50-lesson-tab small{color:#64748b;font-weight:700;line-height:1.3}.v50-check-list{display:grid;gap:10px}.v50-check-row{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;align-items:start;border:1px solid #e6edf7;background:#fff;border-radius:20px;padding:12px}.v50-check-row.done{background:#f0fdf4;border-color:#bbf7d0}.v50-check-btn{width:38px;height:38px;border:0;border-radius:14px;background:#eef5ff;color:#2563eb;font-weight:900}.v50-check-row.done .v50-check-btn{background:#dcfce7;color:#059669}.v50-check-row h4{margin:0;font-size:14px;line-height:1.25}.v50-check-row p{margin:4px 0 0;color:#64748b;font-size:12px;font-weight:700;line-height:1.4}.v50-path-map{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.v50-path-step{border:1px solid #e6edf7;background:#fff;border-radius:18px;padding:12px;min-height:112px;display:grid;gap:6px}.v50-path-step span{font-size:25px}.v50-path-step b{font-size:13px;line-height:1.2}.v50-path-step small{color:#64748b;font-weight:700;line-height:1.3}.v50-script{display:grid;gap:10px}.v50-script-block{border:1px solid #eaf0f8;background:#fbfdff;border-radius:20px;padding:14px}.v50-script-block h4{margin:0 0 6px}.v50-script-block ul{margin:8px 0 0;padding-left:18px;color:#475569;font-weight:700;line-height:1.55}.v50-command{border:1px solid #dbeafe;background:#f8fbff;border-radius:18px;padding:12px;display:grid;gap:9px}.v50-command textarea{width:100%;min-height:82px;border:1px solid #dfe7f2;background:#fff;border-radius:15px;padding:11px;resize:vertical;font-weight:750;outline:0}.v50-day-plan{display:grid;gap:8px}.v50-day{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:start;border:1px solid #eaf0f8;background:#fff;border-radius:18px;padding:11px}.v50-day .num{width:34px;height:34px;border-radius:13px;background:#eef5ff;color:#2563eb;display:grid;place-items:center;font-weight:900}.v50-side-note{border:1px solid #fed7aa;background:linear-gradient(135deg,#fff7ed,#fff);border-radius:22px;padding:15px}.v50-guide-mini{display:grid;gap:8px}.v50-guide-mini .v49-system-check{background:#fff}.v50-progress-ring{width:118px;height:118px;border-radius:50%;background:conic-gradient(#7c3aed var(--p,0%),#eef2f7 0);display:grid;place-items:center;margin:auto}.v50-progress-ring b{width:86px;height:86px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:22px}.v50-mode{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.v50-mode button{border:1px solid #e5edf7;background:#fff;border-radius:999px;padding:9px 12px;font-weight:900;color:#475569}.v50-mode button.active{background:#7c3aed;color:#fff;border-color:#7c3aed}.v50-read-card{border:1px solid #e5edf7;background:#fff;border-radius:22px;padding:15px;display:grid;gap:8px}.v50-read-card h3{margin:0}.v50-read-card p{margin:0;color:#64748b;font-weight:700;line-height:1.5}.v50-learning-link{margin-top:10px}.v50-learning-link .btn{white-space:nowrap}
+      @media(max-width:1180px){.v50-learn-hero,.v50-learn-grid{grid-template-columns:1fr}.v50-lessons,.v50-path-map{grid-template-columns:repeat(3,1fr)}}
+      @media(max-width:760px){.v50-learn-title{font-size:29px}.v50-lessons,.v50-path-map{grid-template-columns:1fr}.v50-check-row{grid-template-columns:38px minmax(0,1fr)}.v50-check-row .row-actions{grid-column:1/-1;justify-content:flex-start}}
+    `;
+    const style=document.createElement('style');style.id='v50-learning-styles';style.textContent=css;document.head.appendChild(style);
+  }
+  function v50DoneCount(){v50Ensure();return Object.values(state.settings.v50.done||{}).filter(Boolean).length;}
+  function v50Pct(){return Math.round(v50DoneCount()/CHECKLIST.length*100);}
+  function v50LessonContent(id){
+    if(id==='day') return `<div class="v50-script"><div class="v50-script-block"><h4>Утро: 5 минут</h4><ul><li>Открой «Фокус дня».</li><li>Запиши один главный фокус.</li><li>Выбери одну цель, которая сегодня важнее остальных.</li></ul></div><div class="v50-script-block"><h4>Рабочий блок: 10 минут</h4><ul><li>Оставь максимум 3 задачи.</li><li>Большие задачи разбей на шаги 15 минут.</li><li>Всё лишнее перенеси в «Эта неделя» или «Когда-нибудь».</li></ul></div><div class="v50-script-block"><h4>Вечер: 3 минуты</h4><ul><li>Отметь сделанное.</li><li>Перенеси зависшее без чувства вины.</li><li>Запиши первый шаг на завтра.</li></ul></div></div>`;
+    if(id==='goals') return `<div class="v50-script"><div class="v50-script-block"><h4>Формула цели</h4><ul><li>Цель → 3–5 подцелей.</li><li>Подцель → 3–7 маленьких шагов.</li><li>Неделя → один главный шаг.</li><li>День → одна конкретная задача.</li></ul></div><div class="v50-command"><b>Главный вопрос недели</b><textarea id="v50GoalQuestion">Что я могу сделать на этой неделе, чтобы приблизиться к главной цели?</textarea><div class="row-actions"><button class="btn" data-v50-action="createQuestionTask" data-kind="goal">Сделать задачей</button><button class="ghost-btn" data-go="goals">Открыть цели</button></div></div><div class="v50-script-block"><h4>Когда цель кажется слишком большой</h4><ul><li>Спроси: какой самый маленький видимый шаг?</li><li>Спроси: что можно сделать за 15 минут?</li><li>Спроси: что мешает прямо сейчас?</li></ul></div></div>`;
+    if(id==='finance') return `<div class="v50-script"><div class="v50-script-block"><h4>Ежедневный финансовый чек</h4><ul><li>Добавить новые расходы.</li><li>Проверить долги и сроки.</li><li>Посмотреть ближайшие покупки.</li><li>Понять: сегодня я в лимите или нет?</li></ul></div><div class="v50-command"><b>Финансовый вопрос дня</b><textarea id="v50FinanceQuestion">Что сегодня может незаметно увести деньги, и какое одно решение поможет сохранить контроль?</textarea><div class="row-actions"><button class="btn" data-v50-action="createQuestionTask" data-kind="finance">Сделать задачей</button><button class="ghost-btn" data-go="finance">Открыть финансы</button></div></div><div class="v50-script-block"><h4>Раз в неделю</h4><ul><li>Проверить категории расходов.</li><li>Сверить фактический остаток.</li><li>Обновить план покупок.</li></ul></div></div>`;
+    if(id==='review') return `<div class="v50-script"><div class="v50-script-block"><h4>Ежедневное закрытие</h4><ul><li>Что я сделал сегодня?</li><li>Что нужно перенести?</li><li>Что было лишним?</li><li>Какой первый шаг завтра?</li></ul></div><div class="v50-script-block"><h4>Недельный обзор</h4><ul><li>Разобрать Inbox.</li><li>Посмотреть прогресс целей.</li><li>Выбрать шаг недели.</li><li>Проверить финансы и привычки.</li></ul></div><div class="row-actions" style="justify-content:flex-start"><button class="btn" data-go="reviews">Открыть обзоры</button><button class="ghost-btn" data-v50-action="createStarterTasks">Создать задачи обучения</button></div></div>`;
+    return `<div class="v50-script"><div class="v50-script-block"><h4>Минимальный сценарий на сегодня</h4><ul><li>Сбрось мысли во «Входящие».</li><li>Открой «Фокус дня».</li><li>Выбери одну цель.</li><li>Сделай один шаг на 15 минут.</li><li>Вечером закрой день.</li></ul></div><div class="v50-day-plan">${['День 1: входящие и фокус','День 2: одна главная цель','День 3: разложить цель на подцели','День 4: финансы и долги','День 5: привычки под цели','День 6: чистка задач','День 7: недельный обзор'].map((x,i)=>`<div class="v50-day"><div class="num">${i+1}</div><div><b>${x}</b><div class="small muted">Не больше 10–20 минут. Система должна помогать, а не давить.</div></div></div>`).join('')}</div><div class="row-actions" style="justify-content:flex-start"><button class="btn" data-v50-action="createStarterTasks">Создать задачи на 7 дней</button><button class="ghost-btn" data-go="focus-path">Открыть Фокус дня</button></div></div>`;
+  }
+  function v50TrainingPage(){
+    v50Ensure();
+    const lesson=state.settings.v50.lesson||'start';
+    const pct=v50Pct();
+    const mode=state.settings.v50.mode||'normal';
+    const paths=[['🧠','Сбросить','Входящие'],['🎯','Выбрать','Цель'],['🧩','Разбить','Шаг недели'],['✅','Сделать','3 задачи'],['🌿','Поддержать','Привычки'],['🌙','Закрыть','День']];
+    return layout('Обучение','Отдельный лист с понятной инструкцией: как пользоваться приложением каждый день, без перегруза и прокрастинации.',`<section class="v50-learn-hero"><article class="v50-learn-card"><span class="v49-eyebrow">🎓 Обучение Second Brain OS</span><h2 class="v50-learn-title">Приложение должно вести тебя, а не грузить</h2><p class="v50-learn-text">Здесь собрана инструкция по работе с системой: как начинать день, как разбирать цели, как не тонуть в задачах, как вести финансы и как закрывать неделю. Текущие разделы сохранены — этот лист просто учит пользоваться ими в правильной последовательности.</p><div class="v50-lessons">${LESSONS.map(([id,ico,t,txt])=>`<button class="v50-lesson-tab ${lesson===id?'active':''}" data-v50-action="lesson" data-lesson="${id}"><span>${ico}</span><b>${t}</b><small>${txt}</small></button>`).join('')}</div></article><aside class="v50-learn-card"><div class="v50-progress-ring" style="--p:${pct}%"><b>${pct}%</b></div><h3 style="text-align:center;margin:12px 0 4px">Освоение системы</h3><p class="small muted" style="text-align:center">Отмечай шаги по мере внедрения. Не надо идеально — нужна регулярность.</p><div class="v50-mode"><button class="${mode==='minimal'?'active':''}" data-v50-action="mode" data-mode="minimal">Минимум</button><button class="${mode==='normal'?'active':''}" data-v50-action="mode" data-mode="normal">Стандарт</button><button class="${mode==='deep'?'active':''}" data-v50-action="mode" data-mode="deep">Глубоко</button></div></aside></section><section class="v50-learn-grid"><main class="grid"><article class="card"><div class="card-head"><div><h3>Учебный блок: ${(LESSONS.find(x=>x[0]===lesson)||LESSONS[0])[2]}</h3><p class="small muted">Работай маленькими шагами. Лучше 10 минут каждый день, чем идеальная система раз в месяц.</p></div><button class="ghost-btn" data-go="focus-path">К маршруту</button></div>${v50LessonContent(lesson)}</article><article class="card"><div class="card-head"><div><h3>Карта ежедневного маршрута</h3><p class="small muted">Вот правильная последовательность, чтобы не зависать перед выбором.</p></div></div><div class="v50-path-map">${paths.map(([ico,a,b])=>`<div class="v50-path-step"><span>${ico}</span><b>${a}</b><small>${b}</small></div>`).join('')}</div></article><article class="card"><div class="card-head"><div><h3>Чек-лист внедрения</h3><p class="small muted">Отмечай, что уже стало частью твоей системы.</p></div><span class="pill violet">${v50DoneCount()}/${CHECKLIST.length}</span></div><div class="v50-check-list">${CHECKLIST.map(([id,title,txt,go])=>`<div class="v50-check-row ${state.settings.v50.done[id]?'done':''}"><button class="v50-check-btn" data-v50-action="toggle" data-id="${id}">${state.settings.v50.done[id]?'✓':'○'}</button><div><h4>${title}</h4><p>${txt}</p></div><div class="row-actions"><button class="v49-mini blue" data-go="${go}">Открыть</button></div></div>`).join('')}</div></article></main><aside class="grid"><article class="v50-side-note"><h3>Когда начинается прокрастинация</h3><p class="small muted">Не спрашивай «как сделать всё?». Спроси: «какой следующий шаг на 15 минут?»</p><div class="row-actions" style="justify-content:flex-start"><button class="btn" data-v49-action="makeTinyTask">Создать шаг 15 минут</button><button class="ghost-btn" data-go="inbox">Сбросить мысль</button></div></article><article class="card"><h3>Три режима работы</h3><div class="v50-guide-mini"><div class="v49-system-check"><span>Минимум</span><b>Inbox + 1 шаг</b></div><div class="v49-system-check"><span>Стандарт</span><b>Фокус + 3 задачи</b></div><div class="v49-system-check"><span>Глубоко</span><b>Цели + обзор</b></div></div></article><article class="v50-read-card"><h3>Главное правило</h3><p>Second Brain OS — это не место, где нужно всё идеально заполнить. Это система, которая помогает каждый день возвращаться к важному: деньги, цели, задачи, привычки, люди, заметки и спокойствие.</p></article><article class="card"><h3>Быстрые переходы</h3><div class="list"><button class="ghost-btn" data-go="focus-path">🧭 Фокус дня</button><button class="ghost-btn" data-go="goals">🚩 SMART-цели</button><button class="ghost-btn" data-go="tasks">✅ Задачи</button><button class="ghost-btn" data-go="finance">💸 Финансы</button><button class="ghost-btn" data-go="reviews">🔎 Обзоры</button></div></article></aside></section>`);
+  }
+  function v50SetLesson(id){state.settings.v50.lesson=id||'start';save();render();}
+  function v50SetMode(id){state.settings.v50.mode=id||'normal';save();render();toast('Режим обучения обновлён');}
+  function v50Toggle(id){state.settings.v50.done=state.settings.v50.done||{};state.settings.v50.done[id]=!state.settings.v50.done[id];save();render();}
+  function v50CreateStarterTasks(){
+    const t=today();
+    const items=[
+      ['День 1: разобрать Входящие 10 минут','Inbox',0],
+      ['День 2: выбрать одну главную цель','Цели',1],
+      ['День 3: разбить цель на подцели','Цели',2],
+      ['День 4: проверить финансы и долги','Финансы',3],
+      ['День 5: выбрать привычки, которые поддерживают цели','Привычки',4],
+      ['День 6: почистить ленту задач','Задачи',5],
+      ['День 7: сделать недельный обзор','Обзоры',6]
+    ];
+    items.reverse().forEach(([title,area,delta])=>state.tasks.unshift({id:uid(),title,area,date:iso(addDays(new Date(t),delta)),time:'10:00',priority:'B',status:'Активно',duration:'10–20 минут',energy:'Легко',note:'Создано из раздела Обучение'}));
+    save();render();toast('Созданы задачи обучения на 7 дней');
+  }
+  function v50CreateQuestionTask(kind){
+    const val=(kind==='finance'?document.getElementById('v50FinanceQuestion'):document.getElementById('v50GoalQuestion'))?.value?.trim();
+    const title=val|| (kind==='finance'?'Финансовый вопрос дня':'Вопрос недели по цели');
+    state.tasks.unshift({id:uid(),title,area:kind==='finance'?'Финансы':'Цели',date:today(),time:'',priority:'B',status:'Активно',duration:'15 минут',energy:'Легко',note:'Создано из обучения'});
+    save();render();toast('Вопрос превращён в задачу');
+  }
+
+  const oldOpenQuickV50=typeof openQuick==='function'?openQuick:null;
+  if(oldOpenQuickV50){openQuick=function(){openModal('Быстро создать',`<div class="grid cols-3"><button class="btn" data-go="focus-path">🧭 Фокус дня</button><button class="btn" data-go="learning">🎓 Обучение</button><button class="btn" data-v49-action="openGoalBuilder">🚩 Мастер цели</button><button class="btn" data-go="inbox">📥 Входящие</button><button class="ghost-btn" data-action="openRecordForm" data-type="task">Задача</button><button class="ghost-btn" data-action="openRecordForm" data-type="note">Заметка</button><button class="ghost-btn" data-action="openRecordForm" data-type="idea">Идея</button><button class="ghost-btn" data-action="openRecordForm" data-type="debt">Долг</button><button class="ghost-btn" data-action="openRecordForm" data-type="purchase">Покупка</button><button class="ghost-btn" data-action="openRecordForm" data-type="wish">Желание</button><button class="ghost-btn" data-action="openRecordForm" data-type="habit">Привычка</button><button class="ghost-btn" data-action="openRecordForm" data-type="person">Человек</button><button class="ghost-btn" data-action="openRecordForm" data-type="goal">Цель</button></div>`)};}
+
+  const oldRenderV50=typeof render==='function'?render:null;
+  if(oldRenderV50){
+    render=function(){
+      v50Ensure();v50AddSection();v50Styles();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='learning') page=current;
+      const res=oldRenderV50();
+      setTimeout(()=>{
+        try{
+          v50Ensure();v50AddSection();v50Styles();
+          const cur=(location.hash||'').replace('#','')||page||'dashboard';
+          const view=document.querySelector('#view');
+          if(view && cur==='learning') view.innerHTML=v50TrainingPage();
+          if(cur==='dashboard'){
+            const hero=view?.querySelector('.hero');
+            if(hero && !view.querySelector('.v50-learning-link')){
+              hero.insertAdjacentHTML('afterend',`<section class="v50-learning-link v50-learn-card" style="margin-bottom:16px"><div class="card-head"><div><span class="v49-eyebrow">🎓 Обучение</span><h3>Как пользоваться Second Brain OS без прокрастинации</h3><p class="small muted">Новый отдельный лист: ежедневный маршрут, чек-лист внедрения, работа с целями, финансами и обзорами.</p></div><button class="btn" data-go="learning">Открыть обучение</button></div></section>`);
+            }
+          }
+          const badge=document.querySelector('.version'); if(badge) badge.textContent=V50_LABEL;
+          document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V50_BUILD);
+        }catch(e){console.error('[V50 post render]',e)}
+      },60);
+      return res;
+    };
+  }
+  window.addEventListener('click',function(e){
+    const el=e.target.closest&&e.target.closest('[data-v50-action]'); if(!el) return;
+    const a=el.dataset.v50Action;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    try{
+      if(a==='lesson') return v50SetLesson(el.dataset.lesson);
+      if(a==='mode') return v50SetMode(el.dataset.mode);
+      if(a==='toggle') return v50Toggle(el.dataset.id);
+      if(a==='createStarterTasks') return v50CreateStarterTasks();
+      if(a==='createQuestionTask') return v50CreateQuestionTask(el.dataset.kind);
+    }catch(err){console.error('[V50 action]',err);try{toast('Ошибка V50: '+(err.message||err))}catch(_){} }
+  },true);
+  try{v50Ensure();v50AddSection();v50Styles();save();render();}catch(e){console.error('[V50 init]',e)}
+})();
