@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v49-focus-path-goals-20260708';
+const BUILD='second-brain-space-v50-1-learning-stability-hotfix-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -3374,6 +3374,12 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     const css=`
       body{background:radial-gradient(circle at 15% 0%,rgba(37,99,235,.11),transparent 26%),radial-gradient(circle at 88% 0%,rgba(14,165,233,.13),transparent 28%),linear-gradient(180deg,#ffffff 0%,#f6fbff 44%,#eef7ff 100%)!important}.main{padding-top:18px!important}.page{width:100%;max-width:1500px!important}.wide-page{max-width:1520px!important}.card{overflow:visible}.row{grid-template-columns:44px minmax(0,1fr) auto!important;align-items:center!important}.row-title{line-height:1.25}.row-sub{line-height:1.35}.row-actions{min-width:max-content}.list{align-content:start}.cols-2{align-items:start}.version{background:linear-gradient(135deg,#0f172a,#2563eb)!important}.nav-item[data-go="focus-path"] .nav-ico{box-shadow:0 12px 22px rgba(37,99,235,.2)}
       .v49-route-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.8fr);gap:16px;margin-bottom:16px}.v49-hero-card{border:1px solid rgba(191,219,254,.95);background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(239,247,255,.92));border-radius:28px;padding:20px;box-shadow:0 24px 60px rgba(37,99,235,.08)}.v49-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#eef5ff;color:#2563eb;font-size:12px;font-weight:900;margin-bottom:12px}.v49-hero-title{font-size:34px;letter-spacing:-.06em;line-height:1.02;margin:0}.v49-hero-text{color:#64748b;font-weight:700;line-height:1.5;max-width:820px}.v49-route-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}.v49-step{border:1px solid #e5edf7;background:#fff;border-radius:18px;padding:12px;text-align:left;display:grid;gap:6px;min-height:98px}.v49-step.active{border-color:#93c5fd;background:linear-gradient(180deg,#eef6ff,#fff);box-shadow:0 14px 28px rgba(37,99,235,.09)}.v49-step.done{border-color:#bbf7d0;background:#f0fdf4}.v49-step b{font-size:13px}.v49-step span{font-size:24px}.v49-step small{color:#64748b;font-weight:700}.v49-focus-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(340px,.82fr);gap:16px}.v49-panel{background:#fff;border:1px solid #e6edf7;border-radius:24px;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.04)}.v49-panel h3{margin:0 0 8px}.v49-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.v49-kpi{background:#fff;border:1px solid #e6edf7;border-radius:22px;padding:15px;box-shadow:0 10px 26px rgba(15,23,42,.04)}.v49-kpi .num{font-size:28px;font-weight:900;letter-spacing:-.06em}.v49-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.v49-tab{border:1px solid #dbe7f6;background:#fff;border-radius:999px;padding:10px 13px;font-weight:900;color:#475569}.v49-tab.active{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 12px 26px rgba(37,99,235,.22)}.v49-task-list{display:grid;gap:10px}.v49-task{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:start;border:1px solid #e6edf7;background:rgba(255,255,255,.9);border-radius:20px;padding:12px}.v49-task:hover{border-color:#bfdbfe;background:#f8fbff}.v49-task.done{opacity:.65}.v49-task-check{width:38px;height:38px;border:0;border-radius:14px;background:#eef5ff;color:#2563eb;font-weight:900}.v49-task.done .v49-task-check{background:#dcfce7;color:#16a34a}.v49-task-title{font-weight:900;line-height:1.25}.v49-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.v49-meta span{font-size:11px;font-weight:850;color:#64748b;background:#f4f7fb;border:1px solid #e8eef7;border-radius:999px;padding:5px 7px}.v49-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:390px}.v49-mini{height:30px;border:1px solid #e1eaf5;background:#fff;border-radius:10px;padding:0 9px;font-size:11px;font-weight:900;color:#334155}.v49-mini.blue{color:#2563eb;background:#f4f8ff}.v49-mini.green{color:#059669;background:#ecfdf5}.v49-mini.red{color:#dc2626;background:#fff7f7}.v49-mini.amber{color:#d97706;background:#fff7ed}.v49-question{display:grid;gap:8px}.v49-question textarea,.v49-question input{border:1px solid #dfe7f2;border-radius:16px;padding:12px;background:#fff;outline:0;width:100%;font-weight:700}.v49-question textarea{min-height:90px;resize:vertical}.v49-goal-card{border:1px solid #e5edf7;background:rgba(255,255,255,.94);border-radius:26px;padding:16px;box-shadow:0 12px 30px rgba(15,23,42,.045);display:grid;gap:14px}.v49-goal-top{display:flex;justify-content:space-between;gap:14px}.v49-progress-duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v49-progress-box{background:#fbfdff;border:1px solid #eaf0f8;border-radius:18px;padding:12px;display:grid;gap:8px}.v49-subgoal{border:1px solid #eaf0f8;background:#fbfdff;border-radius:20px;padding:12px;display:grid;gap:9px}.v49-sub-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}.v49-step-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid #edf2f7;border-radius:14px;background:#fff}.v49-check{width:26px;height:26px;border:0;border-radius:9px;background:#eef5ff;color:#2563eb;font-weight:900}.v49-check.on{background:#dcfce7;color:#059669}.v49-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:18px;background:#f8fbff;color:#64748b;font-weight:800}.v49-inbox-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.7fr);gap:16px}.v49-inbox-capture{display:grid;gap:10px}.v49-inbox-capture textarea{min-height:120px;border:1px solid #dfe7f2;border-radius:18px;padding:14px;resize:vertical;font-weight:750}.v49-type-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v49-type{border:1px solid #e5edf7;background:#fff;border-radius:16px;padding:12px;font-weight:900;text-align:center}.v49-type.active{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v49-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.v49-review-card{min-height:260px}.v49-life-wheel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v49-wheel-item{border:1px solid #eaf0f8;border-radius:16px;padding:10px;background:#fff}.v49-fix-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.v49-system-check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #eaf0f8;border-radius:16px;padding:10px;background:#fff}.v49-good{color:#059669}.v49-warn{color:#d97706}.v49-builder-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v49-builder-grid .span-2{grid-column:1/-1}.v49-builder-field{display:grid;gap:6px}.v49-builder-field label{font-size:12px;color:#475569;font-weight:900}.v49-builder-field input,.v49-builder-field textarea,.v49-builder-field select{border:1px solid #dfe7f2;border-radius:16px;padding:12px;background:#fff;outline:0;font-weight:750}.v49-builder-field textarea{min-height:90px}.v49-route-mini{display:grid;gap:9px}.v49-route-mini .v49-system-check{background:#fbfdff}.v49-quick-line{display:flex;flex-wrap:wrap;gap:8px}.v49-highlight{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#fff);border-radius:20px;padding:14px}.v49-calendar-card{min-height:100%;}.v49-date-column{display:grid;gap:9px}.v49-day-box{border:1px solid #eaf0f8;background:#fff;border-radius:18px;padding:12px}.v49-day-box h4{margin:0 0 8px}.v49-compact-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;border:1px solid #edf2f7;background:#fbfdff;border-radius:14px;padding:8px;margin-top:6px}.v49-compact-row b{font-size:13px;line-height:1.25}.v49-compact-row small{color:#64748b;font-weight:700}.v49-pill{display:inline-flex;padding:6px 9px;border-radius:999px;background:#eef5ff;color:#2563eb;font-weight:900;font-size:12px}.v49-division{height:1px;background:#eef2f7;margin:10px 0}.v49-task-list .empty,.v49-goal-card .empty{padding:16px;border-radius:18px}.v49-anti-card{border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)}
+      .v49-focus-grid>aside .v49-task{grid-template-columns:40px minmax(0,1fr)!important;align-items:start!important}
+      .v49-focus-grid>aside .v49-actions{grid-column:1/-1;justify-content:flex-start;max-width:none!important}
+      .v49-focus-grid>aside .v49-task-title{font-size:14px;line-height:1.28;word-break:normal;overflow-wrap:anywhere}
+      .v49-focus-grid>aside .v49-meta span{font-size:10.5px;padding:4px 7px}
+      .v49-step,.v50-lesson-tab,.v50-path-step{will-change:auto;transform:none!important}
+      @media(max-width:1380px){.v49-focus-grid{grid-template-columns:minmax(0,1fr) minmax(430px,.65fr)}.v49-route-hero{grid-template-columns:minmax(0,1fr) minmax(360px,.55fr)}}
       @media(max-width:1180px){.v49-route-hero,.v49-focus-grid,.v49-inbox-grid{grid-template-columns:1fr}.v49-route-steps{grid-template-columns:repeat(3,1fr)}.v49-kpi-grid,.v49-review-grid{grid-template-columns:repeat(2,1fr)}.v49-task{grid-template-columns:40px minmax(0,1fr)}.v49-actions{grid-column:1/-1;justify-content:flex-start;max-width:none}.v49-type-grid{grid-template-columns:repeat(2,1fr)}}
       @media(max-width:760px){.v49-route-steps,.v49-kpi-grid,.v49-review-grid,.v49-fix-grid,.v49-progress-duo,.v49-builder-grid,.v49-life-wheel{grid-template-columns:1fr}.v49-hero-title{font-size:28px}.v49-type-grid{grid-template-columns:1fr}.row-actions,.v49-actions{justify-content:flex-start}.row{grid-template-columns:40px minmax(0,1fr)!important}.row .row-actions{grid-column:1/-1}.debt-top{grid-template-columns:auto minmax(0,1fr)!important}.debt-top>div:last-child{grid-column:1/-1}.purchase-month-grid{grid-template-columns:1fr!important}.top-actions{gap:6px}.top-actions .ghost-btn:nth-child(2){display:none}}
     `;
@@ -3409,7 +3415,13 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   function v49MarkDone(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.status=t.status==='Готово'?'Активно':'Готово'; save(); render(); toast(t.status==='Готово'?'Задача выполнена':'Задача возвращена');}
   function v49SetTaskView(view){state.settings.v49.taskView=view||'today'; save(); render();}
   function v49SetGoalView(view){state.settings.v49.goalView=view||'active'; save(); render();}
-  function v49SetRouteStep(step){state.settings.v49.routeStep=step||'morning'; save(); render();}
+  function v49SetRouteStep(step){
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    state.settings.v49.routeStep=step||'morning';
+    save();
+    render();
+    requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'}));
+  }
   function v49SetActiveGoal(id){state.settings.v49.activeGoalId=id||''; save(); render(); toast('Фокусная цель обновлена');}
   function v49TaskDate(id,date){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.date=date||today(); save(); render(); toast('Дата задачи обновлена');}
   function v49WeekStep(id){const t=(state.tasks||[]).find(x=>x.id===id); if(!t) return; t.weekStep=!t.weekStep; t.goalId=t.goalId||state.settings.v49.activeGoalId||''; save(); render(); toast(t.weekStep?'Назначено шагом недели':'Шаг недели снят');}
@@ -3589,15 +3601,20 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     render=function(){
       v49Ensure();v49AddSections();v49Styles();
       const current=(location.hash||'').replace('#','')||page||'dashboard';
-      if(['focus-path','inbox','reviews'].includes(current)) page=current;
+      if(['focus-path','inbox','reviews'].includes(current)){
+        page=current;
+        state=normalize(state); save();
+        const content=current==='focus-path'?v49FocusPage():(current==='inbox'?v49InboxPage():v49ReviewsPage());
+        renderShell(content);
+        const badge=document.querySelector('.version'); if(badge) badge.textContent=V49_LABEL;
+        document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V49_BUILD);
+        return;
+      }
       const res=oldRenderV49();
       setTimeout(()=>{
         try{
           const cur=(location.hash||'').replace('#','')||page||'dashboard';
           const view=document.querySelector('#view');
-          if(view && cur==='focus-path') view.innerHTML=v49FocusPage();
-          if(view && cur==='inbox') view.innerHTML=v49InboxPage();
-          if(view && cur==='reviews') view.innerHTML=v49ReviewsPage();
           if(cur==='dashboard'){
             const pageEl=view?.querySelector('.page'); const hero=view?.querySelector('.hero');
             if(pageEl && hero && !view.querySelector('.v49-dashboard-route')){
@@ -3658,8 +3675,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 /* ===== V50 Learning Guide: additive tutorial page, no data removal ===== */
 (function(){
   'use strict';
-  const V50_LABEL='V50 · ОБУЧЕНИЕ + МАРШРУТЫ';
-  const V50_BUILD='second-brain-space-v50-learning-guide-20260708';
+  const V50_LABEL='V50.1 · ОБУЧЕНИЕ + СТАБИЛЬНЫЕ ПЛАШКИ';
+  const V50_BUILD='second-brain-space-v50-1-learning-stability-hotfix-20260708';
   try{localStorage.setItem('secondBrainOS.currentBuild',V50_BUILD)}catch(e){}
 
   const LESSONS=[
@@ -3717,9 +3734,14 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     const paths=[['🧠','Сбросить','Входящие'],['🎯','Выбрать','Цель'],['🧩','Разбить','Шаг недели'],['✅','Сделать','3 задачи'],['🌿','Поддержать','Привычки'],['🌙','Закрыть','День']];
     return layout('Обучение','Отдельный лист с понятной инструкцией: как пользоваться приложением каждый день, без перегруза и прокрастинации.',`<section class="v50-learn-hero"><article class="v50-learn-card"><span class="v49-eyebrow">🎓 Обучение Second Brain OS</span><h2 class="v50-learn-title">Приложение должно вести тебя, а не грузить</h2><p class="v50-learn-text">Здесь собрана инструкция по работе с системой: как начинать день, как разбирать цели, как не тонуть в задачах, как вести финансы и как закрывать неделю. Текущие разделы сохранены — этот лист просто учит пользоваться ими в правильной последовательности.</p><div class="v50-lessons">${LESSONS.map(([id,ico,t,txt])=>`<button class="v50-lesson-tab ${lesson===id?'active':''}" data-v50-action="lesson" data-lesson="${id}"><span>${ico}</span><b>${t}</b><small>${txt}</small></button>`).join('')}</div></article><aside class="v50-learn-card"><div class="v50-progress-ring" style="--p:${pct}%"><b>${pct}%</b></div><h3 style="text-align:center;margin:12px 0 4px">Освоение системы</h3><p class="small muted" style="text-align:center">Отмечай шаги по мере внедрения. Не надо идеально — нужна регулярность.</p><div class="v50-mode"><button class="${mode==='minimal'?'active':''}" data-v50-action="mode" data-mode="minimal">Минимум</button><button class="${mode==='normal'?'active':''}" data-v50-action="mode" data-mode="normal">Стандарт</button><button class="${mode==='deep'?'active':''}" data-v50-action="mode" data-mode="deep">Глубоко</button></div></aside></section><section class="v50-learn-grid"><main class="grid"><article class="card"><div class="card-head"><div><h3>Учебный блок: ${(LESSONS.find(x=>x[0]===lesson)||LESSONS[0])[2]}</h3><p class="small muted">Работай маленькими шагами. Лучше 10 минут каждый день, чем идеальная система раз в месяц.</p></div><button class="ghost-btn" data-go="focus-path">К маршруту</button></div>${v50LessonContent(lesson)}</article><article class="card"><div class="card-head"><div><h3>Карта ежедневного маршрута</h3><p class="small muted">Вот правильная последовательность, чтобы не зависать перед выбором.</p></div></div><div class="v50-path-map">${paths.map(([ico,a,b])=>`<div class="v50-path-step"><span>${ico}</span><b>${a}</b><small>${b}</small></div>`).join('')}</div></article><article class="card"><div class="card-head"><div><h3>Чек-лист внедрения</h3><p class="small muted">Отмечай, что уже стало частью твоей системы.</p></div><span class="pill violet">${v50DoneCount()}/${CHECKLIST.length}</span></div><div class="v50-check-list">${CHECKLIST.map(([id,title,txt,go])=>`<div class="v50-check-row ${state.settings.v50.done[id]?'done':''}"><button class="v50-check-btn" data-v50-action="toggle" data-id="${id}">${state.settings.v50.done[id]?'✓':'○'}</button><div><h4>${title}</h4><p>${txt}</p></div><div class="row-actions"><button class="v49-mini blue" data-go="${go}">Открыть</button></div></div>`).join('')}</div></article></main><aside class="grid"><article class="v50-side-note"><h3>Когда начинается прокрастинация</h3><p class="small muted">Не спрашивай «как сделать всё?». Спроси: «какой следующий шаг на 15 минут?»</p><div class="row-actions" style="justify-content:flex-start"><button class="btn" data-v49-action="makeTinyTask">Создать шаг 15 минут</button><button class="ghost-btn" data-go="inbox">Сбросить мысль</button></div></article><article class="card"><h3>Три режима работы</h3><div class="v50-guide-mini"><div class="v49-system-check"><span>Минимум</span><b>Inbox + 1 шаг</b></div><div class="v49-system-check"><span>Стандарт</span><b>Фокус + 3 задачи</b></div><div class="v49-system-check"><span>Глубоко</span><b>Цели + обзор</b></div></div></article><article class="v50-read-card"><h3>Главное правило</h3><p>Second Brain OS — это не место, где нужно всё идеально заполнить. Это система, которая помогает каждый день возвращаться к важному: деньги, цели, задачи, привычки, люди, заметки и спокойствие.</p></article><article class="card"><h3>Быстрые переходы</h3><div class="list"><button class="ghost-btn" data-go="focus-path">🧭 Фокус дня</button><button class="ghost-btn" data-go="goals">🚩 SMART-цели</button><button class="ghost-btn" data-go="tasks">✅ Задачи</button><button class="ghost-btn" data-go="finance">💸 Финансы</button><button class="ghost-btn" data-go="reviews">🔎 Обзоры</button></div></article></aside></section>`);
   }
-  function v50SetLesson(id){state.settings.v50.lesson=id||'start';save();render();}
-  function v50SetMode(id){state.settings.v50.mode=id||'normal';save();render();toast('Режим обучения обновлён');}
-  function v50Toggle(id){state.settings.v50.done=state.settings.v50.done||{};state.settings.v50.done[id]=!state.settings.v50.done[id];save();render();}
+  function v50StableRender(){
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    render();
+    requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'}));
+  }
+  function v50SetLesson(id){state.settings.v50.lesson=id||'start';save();v50StableRender();}
+  function v50SetMode(id){state.settings.v50.mode=id||'normal';save();v50StableRender();toast('Режим обучения обновлён');}
+  function v50Toggle(id){state.settings.v50.done=state.settings.v50.done||{};state.settings.v50.done[id]=!state.settings.v50.done[id];save();v50StableRender();}
   function v50CreateStarterTasks(){
     const t=today();
     const items=[
@@ -3749,14 +3771,20 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     render=function(){
       v50Ensure();v50AddSection();v50Styles();
       const current=(location.hash||'').replace('#','')||page||'dashboard';
-      if(current==='learning') page=current;
+      if(current==='learning'){
+        page=current;
+        state=normalize(state); save();
+        renderShell(v50TrainingPage());
+        const badge=document.querySelector('.version'); if(badge) badge.textContent=V50_LABEL;
+        document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V50_BUILD);
+        return;
+      }
       const res=oldRenderV50();
       setTimeout(()=>{
         try{
           v50Ensure();v50AddSection();v50Styles();
           const cur=(location.hash||'').replace('#','')||page||'dashboard';
           const view=document.querySelector('#view');
-          if(view && cur==='learning') view.innerHTML=v50TrainingPage();
           if(cur==='dashboard'){
             const hero=view?.querySelector('.hero');
             if(hero && !view.querySelector('.v50-learning-link')){
@@ -3766,7 +3794,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
           const badge=document.querySelector('.version'); if(badge) badge.textContent=V50_LABEL;
           document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V50_BUILD);
         }catch(e){console.error('[V50 post render]',e)}
-      },60);
+      },40);
       return res;
     };
   }
