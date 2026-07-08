@@ -4166,8 +4166,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 /* ===== V57 CALENDAR + SIDEBAR + AI FIX ===== */
 (function(){
-  const V57_BUILD='second-brain-space-v57-calendar-sidebar-ai-fix-20260708';
-  const V57_LABEL='V57 · CALENDAR + SIDEBAR + AI FIX';
+  const V57_BUILD='second-brain-space-v58-sidebar-nojump-20260708';
+  const V57_LABEL='V58 · SIDEBAR NO-JUMP FIX';
   try{localStorage.setItem('secondBrainOS.currentBuild',V57_BUILD);}catch(e){}
 
   function v57Ensure(){
@@ -4288,4 +4288,106 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
   window.addEventListener('keydown',function(e){const ai=e.target&&e.target.closest&&e.target.closest('.v52-ai-card'); if(ai&&(e.key==='Enter'||e.key===' ')){e.preventDefault();v57OpenAI();}},true);
   try{v57Ensure();v57Styles();save();render();}catch(e){console.error('[V57 init]',e)}
+})();
+
+
+/* ===== V58 SIDEBAR NO-JUMP FIX ===== */
+(function(){
+  const V58_BUILD='second-brain-space-v58-sidebar-nojump-20260708';
+  const V58_LABEL='V58 · SIDEBAR NO-JUMP FIX';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V58_BUILD);}catch(e){}
+  let v58NavScroll=Number(sessionStorage.getItem('sbos.v58.navScroll')||0)||0;
+  let v58FolderScroll=Number(sessionStorage.getItem('sbos.v58.folderScroll')||0)||0;
+
+  function v58Styles(){
+    if(document.getElementById('v58-sidebar-nojump-style')) return;
+    const st=document.createElement('style');
+    st.id='v58-sidebar-nojump-style';
+    st.textContent=`
+      html,body,.app,.side,.v52-side,.v58-nav-scroll,.folder-pane,.v56-folder-side{overflow-anchor:none!important;scroll-behavior:auto!important}
+      .side.v52-side,.side{overflow:hidden!important;display:flex!important;flex-direction:column!important;height:100vh!important;min-height:100vh!important;max-height:100vh!important;gap:0!important;padding-bottom:12px!important;contain:layout style!important}
+      .v52-brand,.brand{flex:0 0 auto!important;margin-bottom:8px!important}
+      .v58-nav-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important;overscroll-behavior:contain!important;padding:0 0 12px!important;display:block!important;contain:layout paint!important}
+      .v58-side-bottom{flex:0 0 auto!important;display:grid!important;gap:10px!important;padding-top:8px!important;background:linear-gradient(180deg,rgba(247,251,255,.65),rgba(247,251,255,.96))!important;border-top:1px solid rgba(219,231,246,.78)!important;position:relative!important;z-index:4!important}
+      .v58-side-bottom .v52-side-focus{margin:0 8px!important;max-height:118px!important;padding:12px 14px!important;border-radius:20px!important;overflow:hidden!important}
+      .v58-side-bottom .v52-side-focus p{display:none!important}.v58-side-bottom .v52-side-focus-ico{width:30px!important;height:30px!important;margin-bottom:6px!important}.v58-side-bottom .v52-side-focus span{font-size:11px!important}.v58-side-bottom .v52-side-progress{height:6px!important;margin-top:6px!important}
+      .v58-side-bottom .v52-ai-card{margin:0 8px!important;min-height:58px!important;padding:12px!important;flex:0 0 auto!important}
+      .v58-side-bottom .side-card{margin:0 8px!important;flex:0 0 auto!important}
+      .v52-side .nav-item,.nav-item,.folder-item{transform:none!important;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease!important;will-change:auto!important;outline:none!important}
+      .v52-side .nav-item:hover,.nav-item:hover,.folder-item:hover{transform:none!important}
+      .v52-side .nav-list,.nav-list{display:grid!important;gap:4px!important;min-height:auto!important}.side-section{margin-top:10px!important;margin-bottom:4px!important;flex:0 0 auto!important}.nav-item{min-height:46px!important;height:46px!important;flex:0 0 46px!important}.nav-tools{flex:0 0 auto!important}
+      .folder-pane,.v56-folder-side{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important;overscroll-behavior:contain!important;contain:layout paint!important;scroll-behavior:auto!important}.folder-item{min-height:64px!important;flex:0 0 auto!important}.folder-item:focus,.nav-item:focus{box-shadow:inset 0 0 0 1px rgba(37,99,235,.20),0 10px 24px rgba(37,99,235,.08)!important}
+      .v52-version,.version{z-index:120!important;pointer-events:none!important}
+      @media(max-height:820px){.v58-side-bottom .v52-side-focus{display:none!important}.v58-side-bottom .v52-ai-card{min-height:52px!important}.v58-side-bottom .v52-ai-card:after{display:none!important}}
+      @media(max-width:880px){.side.v52-side,.side{display:none!important}.v58-nav-scroll,.v58-side-bottom{display:none!important}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v58WrapSidebar(){
+    const side=document.querySelector('.side.v52-side,.side');
+    if(!side || side.dataset.v58Ready==='true') return;
+    side.dataset.v58Ready='true';
+    const children=[...side.children];
+    const bottomNames=new Set(['v52-side-focus','v52-ai-card','side-card']);
+    const navWrap=document.createElement('div');
+    navWrap.className='v58-nav-scroll';
+    const bottomWrap=document.createElement('div');
+    bottomWrap.className='v58-side-bottom';
+    children.forEach(ch=>{
+      const isBrand=ch.classList.contains('brand')||ch.classList.contains('v52-brand');
+      const isBottom=[...bottomNames].some(c=>ch.classList.contains(c));
+      if(isBrand){return;}
+      if(isBottom){bottomWrap.appendChild(ch);return;}
+      navWrap.appendChild(ch);
+    });
+    const brand=side.querySelector('.brand,.v52-brand');
+    side.innerHTML='';
+    if(brand) side.appendChild(brand);
+    side.appendChild(navWrap);
+    if(bottomWrap.children.length) side.appendChild(bottomWrap);
+    navWrap.scrollTop=v58NavScroll;
+    navWrap.addEventListener('scroll',()=>{v58NavScroll=navWrap.scrollTop;try{sessionStorage.setItem('sbos.v58.navScroll',String(v58NavScroll));}catch(e){}},{passive:true});
+  }
+
+  function v58RestorePositions(){
+    v58Styles();
+    v58WrapSidebar();
+    const nav=document.querySelector('.v58-nav-scroll');
+    if(nav) nav.scrollTop=v58NavScroll;
+    const folder=document.querySelector('.folder-pane,.v56-folder-side');
+    if(folder) folder.scrollTop=v58FolderScroll;
+    const version=document.querySelector('.version'); if(version) version.textContent=V58_LABEL;
+    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V58_BUILD);
+  }
+
+  function v58CapturePositions(){
+    const nav=document.querySelector('.v58-nav-scroll')||document.querySelector('.side,.v52-side');
+    if(nav){v58NavScroll=nav.scrollTop;try{sessionStorage.setItem('sbos.v58.navScroll',String(v58NavScroll));}catch(e){}}
+    const folder=document.querySelector('.folder-pane,.v56-folder-side');
+    if(folder){v58FolderScroll=folder.scrollTop;try{sessionStorage.setItem('sbos.v58.folderScroll',String(v58FolderScroll));}catch(e){}}
+  }
+
+  const oldRenderV58=typeof render==='function'?render:null;
+  if(oldRenderV58){
+    render=function(){
+      v58CapturePositions();
+      const active=document.activeElement;
+      if(active && active.blur && (active.closest?.('.side,.v52-side,.folder-pane,.v56-folder-side'))) active.blur();
+      v58Styles();
+      const res=oldRenderV58.apply(this,arguments);
+      [0,30,80,180,360,650].forEach(t=>setTimeout(v58RestorePositions,t));
+      return res;
+    };
+  }
+
+  window.addEventListener('pointerdown',function(e){
+    if(e.target.closest&&e.target.closest('.side,.v52-side,.folder-pane,.v56-folder-side')) v58CapturePositions();
+  },true);
+  window.addEventListener('click',function(e){
+    const inside=e.target.closest&&e.target.closest('.side,.v52-side,.folder-pane,.v56-folder-side');
+    if(inside){v58CapturePositions(); if(e.target.blur) setTimeout(()=>{try{e.target.blur()}catch(_){ }},0);}
+  },true);
+  window.addEventListener('scroll',()=>{const nav=document.querySelector('.v58-nav-scroll'); if(nav) nav.scrollTop=v58NavScroll;},{passive:true});
+  try{v58Styles();v58RestorePositions();save();render();}catch(e){console.error('[V58 init]',e)}
 })();
