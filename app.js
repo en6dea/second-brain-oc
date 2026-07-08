@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v50-1-learning-stability-hotfix-20260708';
+const BUILD='second-brain-space-v58-3-root-habit-premium-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -4390,4 +4390,345 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
   window.addEventListener('scroll',()=>{const nav=document.querySelector('.v58-nav-scroll'); if(nav) nav.scrollTop=v58NavScroll;},{passive:true});
   try{v58Styles();v58RestorePositions();save();render();}catch(e){console.error('[V58 init]',e)}
+})();
+
+
+/* ===== V58.1 TRACKER POLISH: premium habit chart visual ===== */
+(function(){
+  const V581_BUILD='second-brain-space-v58-1-tracker-polish-20260708';
+  const V581_LABEL='V58.1 · TRACKER POLISH';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V581_BUILD);}catch(e){}
+
+  function v581Styles(){
+    if(document.getElementById('v581-tracker-polish-style')) return;
+    const st=document.createElement('style');
+    st.id='v581-tracker-polish-style';
+    st.textContent=`
+      .v581-habit-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+      .v581-kpi{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.98));box-shadow:0 18px 44px rgba(37,99,235,.08);padding:18px;min-height:116px}
+      .v581-kpi:after{content:'';position:absolute;right:-34px;top:-42px;width:112px;height:112px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.10),transparent 70%)}
+      .v581-kpi span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8090aa;font-weight:1000}
+      .v581-kpi b{display:block;margin-top:9px;font-size:30px;letter-spacing:-.06em;color:#102044}
+      .v581-kpi small{display:block;margin-top:6px;color:#64748b;font-size:12px;font-weight:850;line-height:1.35}
+      .v581-habit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;flex-wrap:wrap}
+      .v581-range{display:inline-flex;gap:4px;background:rgba(255,255,255,.86);border:1px solid #dbe7f6;border-radius:18px;padding:5px;box-shadow:0 12px 28px rgba(37,99,235,.06)}
+      .v581-range button{border:0;background:transparent;border-radius:14px;padding:10px 18px;font-weight:950;color:#64748b}
+      .v581-range button.active{background:linear-gradient(135deg,#155ee7,#2563eb);color:#fff;box-shadow:0 14px 28px rgba(37,99,235,.22)}
+      .v581-habit-board{display:grid;grid-template-columns:minmax(0,1.58fr) 390px;gap:16px;align-items:stretch;margin-top:16px}
+      .v581-chart-card,.v581-coach-card{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,251,255,.98));box-shadow:0 22px 58px rgba(37,99,235,.09);padding:22px}
+      .v581-chart-card:before,.v581-coach-card:before{content:'';position:absolute;right:-80px;top:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.12),transparent 68%);pointer-events:none}
+      .v581-chart-head{position:relative;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+      .v581-chart-head h3,.v581-coach-card h3{margin:0;font-size:22px;letter-spacing:-.045em;color:#102044}
+      .v581-chart-head p,.v581-coach-card p{margin:7px 0 0;color:#64748b;font-size:13px;font-weight:800;line-height:1.45}
+      .v581-status-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #bbf7d0;background:#ecfdf5;color:#059669;border-radius:999px;padding:8px 11px;font-weight:1000;font-size:12px;white-space:nowrap}
+      .v581-chart-shell{position:relative;border:1px solid #e2ebf7;border-radius:26px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);padding:14px 14px 10px;overflow:hidden}
+      .v581-chart-shell:after{content:'';position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(180deg,transparent,rgba(16,185,129,.06));pointer-events:none}
+      .v581-svg{position:relative;z-index:1;width:100%;height:260px;display:block;overflow:visible}
+      .v581-axis{display:flex;justify-content:space-between;gap:10px;margin-top:7px;color:#64748b;font-size:12px;font-weight:900}
+      .v581-chart-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+      .v581-stat{border:1px solid #e2ebf7;background:#fff;border-radius:20px;padding:14px;min-height:88px}
+      .v581-stat span{display:block;font-size:11px;color:#8090aa;letter-spacing:.07em;text-transform:uppercase;font-weight:1000}
+      .v581-stat b{display:block;margin-top:7px;font-size:24px;letter-spacing:-.045em;color:#102044}
+      .v581-stat small{display:block;margin-top:4px;color:#64748b;font-size:12px;font-weight:850;line-height:1.3}
+      .v581-coach-card{display:flex;flex-direction:column;gap:14px}
+      .v581-coach-note{border:1px solid #dbe7f6;border-radius:22px;background:linear-gradient(180deg,#fff,#f8fbff);padding:16px;color:#475569;font-size:13px;font-weight:850;line-height:1.5}
+      .v581-coach-list{display:grid;gap:10px}
+      .v581-coach-item{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:flex-start;border:1px solid #e2ebf7;border-radius:20px;background:#fff;padding:13px}
+      .v581-coach-item i{width:34px;height:34px;border-radius:13px;display:grid;place-items:center;background:#eef6ff;font-style:normal;color:#2563eb;font-weight:1000}
+      .v581-coach-item b{display:block;font-size:14px;color:#102044;margin-bottom:3px}
+      .v581-coach-item span{display:block;color:#64748b;font-size:12px;font-weight:820;line-height:1.35}
+      .v581-table-wrap{margin-top:16px;border-radius:28px;overflow:hidden;box-shadow:0 22px 58px rgba(37,99,235,.08)}
+      .v581-table-wrap .habit-table{margin:0!important;border-radius:28px!important;box-shadow:none!important}
+      .v581-table-wrap .habit-title,.v581-table-wrap .habit-actions{background:rgba(255,255,255,.98)!important}
+      .v581-table-wrap .habit-day-head.weekend{background:#f3f8ff!important}
+      .v581-table-wrap .day-check{border-radius:10px;transition:transform .12s ease,box-shadow .12s ease}
+      .v581-table-wrap .day-check:hover{transform:scale(1.08);box-shadow:0 0 0 4px rgba(37,99,235,.10)}
+      @media(max-width:1280px){.v581-habit-board{grid-template-columns:1fr}.v581-habit-top,.v581-chart-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:720px){.v581-habit-top,.v581-chart-stats{grid-template-columns:1fr}.v581-chart-head{flex-direction:column}.v581-svg{height:220px}.v581-chart-card,.v581-coach-card{padding:16px;border-radius:24px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v581SmoothPath(points){
+    if(!points.length) return '';
+    if(points.length===1) return `M ${points[0][0]} ${points[0][1]}`;
+    let d=`M ${points[0][0]} ${points[0][1]}`;
+    for(let i=0;i<points.length-1;i++){
+      const p0=points[i-1]||points[i];
+      const p1=points[i];
+      const p2=points[i+1];
+      const p3=points[i+2]||p2;
+      const cp1x=p1[0]+(p2[0]-p0[0])/6;
+      const cp1y=p1[1]+(p2[1]-p0[1])/6;
+      const cp2x=p2[0]-(p3[0]-p1[0])/6;
+      const cp2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2[0]} ${p2[1]}`;
+    }
+    return d;
+  }
+  function v581HabitChart(days){
+    const habits=state.habits||[];
+    const max=Math.max(1,habits.length);
+    const vals=days.map(d=>habits.filter(h=>h.marks?.[d]).length);
+    const totalMarks=vals.reduce((a,b)=>a+b,0);
+    const avgDay=vals.length?Math.round(totalMarks/vals.length):0;
+    const best=Math.max(0,...vals);
+    const last=vals[vals.length-1]||0;
+    const w=760,h=250,pad=22;
+    const usableW=w-pad*2, usableH=h-42;
+    const step=days.length>1?usableW/(days.length-1):usableW;
+    const pts=vals.map((v,i)=>[Math.round(pad+i*step),Math.round(pad+usableH-(usableH*(v/max)))]);
+    const path=v581SmoothPath(pts);
+    const area=`M ${pad} ${pad+usableH} L ${pts.map(p=>p.join(' ')).join(' L ')} L ${pad+usableW} ${pad+usableH} Z`;
+    const firstLabel=days[0]?new Date(days[0]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const midLabel=days[Math.floor(days.length/2)]?new Date(days[Math.floor(days.length/2)]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const lastLabel=days[days.length-1]?new Date(days[days.length-1]).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const bars=vals.map((v,i)=>{const x=pad+i*step-5; const bh=Math.max(4,usableH*(v/max)); const y=pad+usableH-bh; const opacity=.25+.55*(v/max); return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="10" height="${bh.toFixed(2)}" rx="5" fill="rgba(16,185,129,${opacity.toFixed(2)})"><title>${fmt(days[i])}: ${v}/${max}</title></rect>`}).join('');
+    return `<article class="v581-chart-card"><div class="v581-chart-head"><div><h3>Пульс привычек</h3><p>Аккуратный график без визуального шума: зелёные бары показывают дни, линия — общий ритм.</p></div><span class="v581-status-pill">сегодня ${last}/${max}</span></div><div class="v581-chart-shell"><svg class="v581-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Пульс привычек">${[0,.25,.5,.75,1].map(t=>`<line x1="${pad}" y1="${(pad+usableH-usableH*t).toFixed(2)}" x2="${pad+usableW}" y2="${(pad+usableH-usableH*t).toFixed(2)}" stroke="rgba(148,163,184,.22)" stroke-dasharray="6 10"/>`).join('')}<path d="${area}" fill="rgba(16,185,129,.12)"></path>${bars}<path d="${path}" fill="none" stroke="#0fb981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="${path}" fill="none" stroke="rgba(255,255,255,.72)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?7:4.5}" fill="#fff" stroke="#0fb981" stroke-width="${i===pts.length-1?4:2.5}"><title>${fmt(days[i])}: ${vals[i]}/${max}</title></circle>`).join('')}</svg><div class="v581-axis"><span>${firstLabel} · старт</span><span>${midLabel} · середина</span><span>${lastLabel} · сегодня</span></div></div><div class="v581-chart-stats"><div class="v581-stat"><span>Среднее / день</span><b class="green">${avgDay}</b><small>из ${max} привычек</small></div><div class="v581-stat"><span>Лучший день</span><b>${best}</b><small>максимум отметок</small></div><div class="v581-stat"><span>Всего отметок</span><b class="blue">${totalMarks}</b><small>сумма за период</small></div><div class="v581-stat"><span>Ритм сегодня</span><b>${last}/${max}</b><small>${last>=avgDay?'выше среднего':'можно подтянуть'}</small></div></div></article>`;
+  }
+  function v581HabitsPage(){
+    v581Styles();
+    const range=num(state.settings.habitRange)||28;
+    const days=Array.from({length:range},(_,i)=>iso(addDays(new Date(),-(range-1-i))));
+    const habits=state.habits||[];
+    const avg=habits.length?Math.round(habits.reduce((s,h)=>s+habitPct(h,days),0)/habits.length):0;
+    const done=habits.filter(h=>h.marks?.[today()]).length;
+    const best=Math.max(0,...habits.map(streak));
+    const stable=habits.filter(h=>habitPct(h,days)>=70).length;
+    const focus=habits.filter(h=>habitPct(h,days)<40).length;
+    const weak=habits.slice().sort((a,b)=>habitPct(a,days)-habitPct(b,days))[0];
+    return layout('Привычки','Премиальный трекер ритма: понятно, где держишь темп, а где нужна мягкая поддержка.',`<section class="v581-habit-top"><article class="v581-kpi"><span>Ритм периода</span><b>${avg}%</b><small>среднее выполнение всех привычек</small></article><article class="v581-kpi"><span>Сегодня</span><b>${done}/${habits.length}</b><small>отмечено на текущий день</small></article><article class="v581-kpi"><span>Лучший стрик</span><b>${best}</b><small>дней подряд</small></article><article class="v581-kpi"><span>Стабильные</span><b>${stable}</b><small>привычки выше 70%</small></article></section><div class="v581-habit-toolbar"><div class="v581-range">${[7,14,28].map(n=>`<button data-action="setHabitRange" data-range="${n}" class="${range===n?'active':''}">${n} дней</button>`).join('')}</div><div class="row-actions"><button class="ghost-btn">Нужны в фокусе: ${focus}</button><button class="btn" data-action="openRecordForm" data-type="habit">＋ Новая привычка</button></div></div><section class="v581-habit-board">${v581HabitChart(days)}<aside class="v581-coach-card"><div><h3>Что делать с ритмом</h3><p>График стал спокойнее: без резких визуальных провалов и с понятной подсказкой по следующему шагу.</p></div><div class="v581-coach-note">Главная задача — не идеальность, а повторяемость. Лучше удерживать 2–3 привычки каждый день, чем разгоняться и бросать.</div><div class="v581-coach-list"><div class="v581-coach-item"><i>1</i><div><b>Якорная привычка</b><span>${weak?`Подтяни: ${esc(weak.name)}.`:'Выбери одну привычку на завтра.'}</span></div></div><div class="v581-coach-item"><i>2</i><div><b>Минимум на день</b><span>Оставь маленькую версию привычки, которую реально сделать даже в плохой день.</span></div></div><div class="v581-coach-item"><i>3</i><div><b>Не перегружай график</b><span>Если день уже плотный, цель — сохранить базовый ритм, а не добавить всё сразу.</span></div></div></div></aside></section><section class="v581-table-wrap"><section class="habit-table"><div class="habit-grid" style="grid-template-columns:280px repeat(${range},32px) 116px"><div class="habit-head"><div class="habit-title"><b>Привычка</b></div>${days.map(d=>`<div class="habit-day-head ${[0,6].includes(new Date(d).getDay())?'weekend':''}">${new Date(d).getDate()}<br>${new Date(d).toLocaleDateString('ru-RU',{weekday:'short'}).slice(0,2)}</div>`).join('')}<div class="habit-actions"><b>Действия</b></div></div>${habits.map(h=>habitRow(h,days)).join('')}</div></section></section>`);
+  }
+
+  if(typeof habitsPage==='function') habitsPage=v581HabitsPage;
+  if(typeof habitTrend==='function') habitTrend=v581HabitChart;
+
+  function v581Post(){
+    v581Styles();
+    const version=document.querySelector('.version'); if(version) version.textContent=V581_LABEL;
+    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V581_BUILD);
+  }
+  const oldRenderV581=typeof render==='function'?render:null;
+  if(oldRenderV581){render=function(){v581Styles(); const r=oldRenderV581.apply(this,arguments); setTimeout(v581Post,80); return r;};}
+  try{v581Styles();save();render();}catch(e){console.error('[V58.1 tracker polish init]',e)}
+})();
+
+
+/* ===== V58.2 HABIT CHART PREMIUM: refined visual tracker ===== */
+(function(){
+  const V582_BUILD='second-brain-space-v58-3-root-habit-premium-20260708';
+  const V582_LABEL='V58.3 · ROOT HABIT PREMIUM';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V582_BUILD);}catch(e){}
+
+  function v582Styles(){
+    if(document.getElementById('v582-habit-chart-premium-style')) return;
+    const st=document.createElement('style');
+    st.id='v582-habit-chart-premium-style';
+    st.textContent=`
+      .v582-wrap{display:grid;gap:18px}
+      .v582-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+      .v582-range{display:inline-flex;gap:6px;background:rgba(255,255,255,.82);border:1px solid #dbe7f6;border-radius:22px;padding:6px;box-shadow:0 18px 40px rgba(37,99,235,.07)}
+      .v582-range button{border:0;background:transparent;color:#53637d;font-weight:950;padding:12px 22px;border-radius:17px;font-size:15px;letter-spacing:-.02em}
+      .v582-range button.active{background:linear-gradient(180deg,#ffffff,#f1f6ff);color:#2563eb;box-shadow:inset 0 0 0 1px rgba(191,219,254,.95),0 12px 28px rgba(37,99,235,.09)}
+      .v582-toolbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+      .v582-action-lite{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.88);border:1px solid #dbe7f6;border-radius:18px;padding:12px 18px;color:#102044;font-weight:950;box-shadow:0 14px 30px rgba(37,99,235,.06)}
+      .v582-action-lite i{display:grid;place-items:center;width:24px;height:24px;border-radius:10px;background:#eef5ff;color:#2563eb;font-style:normal;font-size:14px;font-weight:1000}
+      .v582-primary{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:19px;padding:13px 22px;font-weight:950;color:#fff;background:linear-gradient(135deg,#2563eb,#3b82f6 46%,#4f8dfb);box-shadow:0 20px 38px rgba(37,99,235,.22)}
+      .v582-primary:hover{filter:brightness(1.03)}
+      .v582-board{display:grid;grid-template-columns:minmax(0,1.75fr) 420px;gap:18px;align-items:start}
+      .v582-main{display:grid;gap:16px}
+      .v582-panel,.v582-side-card,.v582-side-metric,.v582-mini-card{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.98));border:1px solid #dbe7f6;border-radius:32px;box-shadow:0 26px 64px rgba(37,99,235,.09)}
+      .v582-panel:before,.v582-side-card:before,.v582-side-metric:before,.v582-mini-card:before{content:'';position:absolute;inset:auto -72px -72px auto;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.08),transparent 70%);pointer-events:none}
+      .v582-panel{padding:24px 24px 18px}
+      .v582-main-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+      .v582-main-head h3{margin:0;color:#102044;font-size:20px;letter-spacing:-.04em}
+      .v582-main-head p{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:820;line-height:1.45}
+      .v582-title-pack{display:flex;align-items:flex-start;gap:16px}
+      .v582-title-icon,.v582-side-icon,.v582-metric-icon{flex:0 0 auto;display:grid;place-items:center;width:56px;height:56px;border-radius:20px;background:linear-gradient(180deg,#eefbf4,#dff8eb);box-shadow:0 18px 34px rgba(16,185,129,.16);color:#16a34a;font-size:28px;font-weight:1000}
+      .v582-status{display:inline-flex;align-items:center;gap:9px;border:1px solid #bbf7d0;background:#ecfdf5;border-radius:999px;padding:10px 14px;color:#16a34a;font-size:13px;font-weight:1000;white-space:nowrap}
+      .v582-status:before{content:'';width:11px;height:11px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.12)}
+      .v582-chart-box{position:relative;border-radius:28px;padding:6px 0 0}
+      .v582-svg{width:100%;height:390px;display:block;overflow:visible}
+      .v582-axis-label{fill:#334a73;font-size:13px;font-weight:900}
+      .v582-axis-caption{fill:#5f7291;font-size:12px;font-weight:860}
+      .v582-chart-grid{stroke:rgba(148,163,184,.35);stroke-dasharray:5 6}
+      .v582-baseline{stroke:rgba(191,219,254,.95)}
+      .v582-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+      .v582-mini-card{padding:16px 16px 18px;min-height:148px}
+      .v582-mini-top{display:flex;align-items:flex-start;gap:12px}
+      .v582-mini-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:18px;background:#eef7ff;color:#2563eb;font-size:24px;box-shadow:0 12px 24px rgba(37,99,235,.10)}
+      .v582-mini-card span{display:block;font-size:12px;line-height:1.25;letter-spacing:.08em;text-transform:uppercase;color:#7083a2;font-weight:1000}
+      .v582-mini-card b{display:block;margin-top:8px;font-size:36px;line-height:1;letter-spacing:-.06em;color:#102044}
+      .v582-mini-card small{display:block;margin-top:10px;color:#5f7291;font-size:13px;font-weight:850;line-height:1.45}
+      .v582-mini-card b.green{color:#16a34a}.v582-mini-card b.blue{color:#2563eb}.v582-mini-card b.amber{color:#f59e0b}
+      .v582-side{display:grid;gap:16px}
+      .v582-side-card{padding:26px;display:grid;gap:16px}
+      .v582-side-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+      .v582-side-head h3{margin:0;color:#102044;font-size:18px;letter-spacing:-.035em}
+      .v582-side-head p{margin:8px 0 0;color:#5f7291;font-size:14px;font-weight:820;line-height:1.55}
+      .v582-side-icon{background:linear-gradient(180deg,#eef2ff,#f7f8ff);box-shadow:0 18px 34px rgba(37,99,235,.12);color:#2554f4;font-size:26px}
+      .v582-tip{border:1px solid #dfe8f7;border-radius:24px;background:linear-gradient(180deg,#f8fbff,#f4f7ff);padding:18px 18px 18px 20px;color:#2d4d95;font-size:13px;line-height:1.65;font-weight:850}
+      .v582-tip b{display:block;margin-bottom:4px;color:#1d4ed8}
+      .v582-side-metric{padding:22px;display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;align-items:start}
+      .v582-metric-icon{width:60px;height:60px;border-radius:22px;background:linear-gradient(180deg,#eefbf4,#e5fff2);box-shadow:0 16px 32px rgba(16,185,129,.14);font-size:28px}
+      .v582-side-metric.warn .v582-metric-icon{background:linear-gradient(180deg,#fff5eb,#fff0da);box-shadow:0 16px 32px rgba(245,158,11,.14);color:#f59e0b}
+      .v582-side-metric h4{margin:0;font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:#7183a3;font-weight:1000}
+      .v582-side-metric b{display:block;margin-top:8px;font-size:44px;line-height:1;color:#102044;letter-spacing:-.07em}
+      .v582-side-metric.warn b{color:#f59e0b}
+      .v582-side-metric small{display:block;margin-top:10px;color:#5f7291;font-size:14px;font-weight:850;line-height:1.45}
+      .v582-table-wrap{margin-top:4px;border-radius:30px;overflow:hidden;box-shadow:0 24px 56px rgba(37,99,235,.08)}
+      .v582-table-wrap .habit-table{margin:0!important;border-radius:30px!important;box-shadow:none!important}
+      .v582-table-wrap .habit-title,.v582-table-wrap .habit-actions{background:rgba(255,255,255,.98)!important}
+      .v582-table-wrap .habit-day-head.weekend{background:#f4f8ff!important}
+      .v582-table-wrap .day-check{border-radius:10px;transition:transform .14s ease,box-shadow .14s ease}
+      .v582-table-wrap .day-check:hover{transform:scale(1.08);box-shadow:0 0 0 4px rgba(37,99,235,.10)}
+      @media(max-width:1380px){.v582-board{grid-template-columns:1fr}.v582-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:860px){.v582-toolbar{align-items:flex-start}.v582-main-head{flex-direction:column}.v582-svg{height:340px}.v582-stats{grid-template-columns:1fr}.v582-side-metric{grid-template-columns:56px minmax(0,1fr)}}
+      @media(max-width:640px){.v582-range button{padding:10px 14px;font-size:14px}.v582-panel,.v582-side-card,.v582-side-metric,.v582-mini-card{border-radius:24px}.v582-panel{padding:18px}.v582-side-card,.v582-side-metric{padding:18px}.v582-svg{height:300px}.v582-title-pack,.v582-side-head{grid-template-columns:1fr;display:grid}.v582-title-icon,.v582-side-icon,.v582-metric-icon{width:52px;height:52px;font-size:24px}.v582-mini-card b,.v582-side-metric b{font-size:34px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v582Path(points){
+    if(!points.length) return '';
+    if(points.length===1) return `M ${points[0][0]} ${points[0][1]}`;
+    let d=`M ${points[0][0]} ${points[0][1]}`;
+    for(let i=0;i<points.length-1;i++){
+      const p0=points[i-1]||points[i];
+      const p1=points[i];
+      const p2=points[i+1];
+      const p3=points[i+2]||p2;
+      const cp1x=p1[0]+(p2[0]-p0[0])/6;
+      const cp1y=p1[1]+(p2[1]-p0[1])/6;
+      const cp2x=p2[0]-(p3[0]-p1[0])/6;
+      const cp2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2[0]} ${p2[1]}`;
+    }
+    return d;
+  }
+
+  function v582Chart(days){
+    const habits=state.habits||[];
+    const maxHabits=Math.max(1,habits.length);
+    const vals=days.map(d=>habits.filter(h=>h.marks?.[d]).length);
+    const totalMarks=vals.reduce((a,b)=>a+b,0);
+    const avgDay=vals.length?Math.round(totalMarks/vals.length):0;
+    const best=Math.max(0,...vals);
+    const last=vals[vals.length-1]||0;
+    const yMax=Math.max(3,maxHabits);
+    const yMarks=[0, Math.round(yMax/3), Math.round(yMax*2/3), yMax].filter((v,i,a)=>i===0 || v!==a[i-1]);
+    while(yMarks.length<4){ yMarks.splice(yMarks.length-1,0,yMarks[yMarks.length-2]||0); }
+    const w=900,h=360,left=46,right=14,top=18,bottom=46;
+    const plotW=w-left-right, plotH=h-top-bottom;
+    const step=days.length>1?plotW/(days.length-1):plotW;
+    const pts=vals.map((v,i)=>[+(left+i*step).toFixed(2), +(top+plotH-(plotH*(v/yMax))).toFixed(2)]);
+    const linePath=v582Path(pts);
+    const areaPath=`${linePath} L ${pts[pts.length-1]?pts[pts.length-1][0]:left} ${top+plotH} L ${left} ${top+plotH} Z`;
+    const firstDate=days[0]?new Date(days[0]):null;
+    const midDate=days[Math.floor(days.length/2)]?new Date(days[Math.floor(days.length/2)]):null;
+    const lastDate=days[days.length-1]?new Date(days[days.length-1]):null;
+    const firstLabel=firstDate?firstDate.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const midLabel=midDate?midDate.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    const lastLabel=lastDate?lastDate.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
+    return `
+      <article class="v582-panel">
+        <div class="v582-main-head">
+          <div class="v582-title-pack">
+            <div class="v582-title-icon">↗</div>
+            <div><h3>Тренд привычек по дням</h3><p>Чем выше линия, тем больше привычек было выполнено в день.</p></div>
+          </div>
+          <span class="v582-status">сегодня ${last}/${maxHabits}</span>
+        </div>
+        <div class="v582-chart-box">
+          <svg class="v582-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Тренд привычек">
+            <defs>
+              <linearGradient id="v582Area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(34,197,94,.34)"/><stop offset="100%" stop-color="rgba(34,197,94,.06)"/></linearGradient>
+              <linearGradient id="v582Line" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>
+              <filter id="v582Glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            ${yMarks.map(v=>{const y=(top+plotH-(plotH*(v/yMax))).toFixed(2); return `<g><line class="v582-chart-grid" x1="${left}" y1="${y}" x2="${w-right}" y2="${y}"/><text class="v582-axis-label" x="12" y="${(+y+4).toFixed(2)}">${v}</text></g>`}).join('')}
+            <line class="v582-baseline" x1="${left}" y1="${top+plotH}" x2="${w-right}" y2="${top+plotH}"/>
+            <path d="${areaPath}" fill="url(#v582Area)"></path>
+            <path d="${linePath}" fill="none" stroke="rgba(34,197,94,.18)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#v582Glow)"></path>
+            <path d="${linePath}" fill="none" stroke="url(#v582Line)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            ${pts.map((p,i)=>{
+              const r=i===pts.length-1?9.5:6.2;
+              const ring=i===pts.length-1?`<circle cx="${p[0]}" cy="${p[1]}" r="${(r+7).toFixed(1)}" fill="rgba(34,197,94,.12)"></circle><circle cx="${p[0]}" cy="${p[1]}" r="${(r+4).toFixed(1)}" fill="rgba(34,197,94,.10)"></circle>`:'';
+              return `<g>${ring}<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="#22c55e" stroke="#ffffff" stroke-width="${i===pts.length-1?3.8:3.2}"><title>${fmt(days[i])}: ${vals[i]}/${maxHabits}</title></circle></g>`;
+            }).join('')}
+            <text class="v582-axis-caption" x="${left}" y="${h-10}"><tspan style="font-weight:950;fill:#102044">${firstLabel}</tspan> старт периода</text>
+            <text class="v582-axis-caption" x="${(left+plotW/2)-42}" y="${h-10}"><tspan style="font-weight:950;fill:#102044">${midLabel}</tspan> середина</text>
+            <text class="v582-axis-caption" x="${w-right-132}" y="${h-10}"><tspan style="font-weight:950;fill:#102044">${lastLabel}</tspan> сегодня</text>
+          </svg>
+        </div>
+      </article>
+      <section class="v582-stats">
+        <article class="v582-mini-card"><div class="v582-mini-top"><div class="v582-mini-icon" style="color:#16a34a;background:#eefbf4">↗</div><div><span>Среднее / день</span><b class="green">${avgDay}</b><small>из ${maxHabits} привычек</small></div></div></article>
+        <article class="v582-mini-card"><div class="v582-mini-top"><div class="v582-mini-icon" style="color:#4f46e5;background:#f2efff">✦</div><div><span>Лучший день</span><b>${best}</b><small>максимум отметок за период</small></div></div></article>
+        <article class="v582-mini-card"><div class="v582-mini-top"><div class="v582-mini-icon" style="color:#2563eb;background:#eef5ff">☑</div><div><span>Всего отметок</span><b class="blue">${totalMarks}</b><small>суммарная активность</small></div></div></article>
+        <article class="v582-mini-card"><div class="v582-mini-top"><div class="v582-mini-icon" style="color:#2563eb;background:#eef5ff">∿</div><div><span>Ритм сегодня</span><b>${last}/${maxHabits}</b><small>${last>=avgDay?'выше среднего':'ниже среднего'}</small></div></div></article>
+      </section>`;
+  }
+
+  function v582HabitsPage(){
+    v582Styles();
+    const range=num(state.settings.habitRange)||28;
+    const days=Array.from({length:range},(_,i)=>iso(addDays(new Date(),-(range-1-i))));
+    const habits=state.habits||[];
+    const stable=habits.filter(h=>habitPct(h,days)>=70).length;
+    const focus=habits.filter(h=>habitPct(h,days)<40).length;
+    return layout('Привычки','Премиальный трекер ритма: аккуратный график, понятные подсказки и спокойная аналитика.',`
+      <section class="v582-wrap">
+        <div class="v582-toolbar">
+          <div class="v582-range">${[7,14,28].map(n=>`<button data-action="setHabitRange" data-range="${n}" class="${range===n?'active':''}">${n} дней</button>`).join('')}</div>
+          <div class="v582-toolbar-actions"><button class="v582-action-lite"><i>🛡</i>Стабильность: ${habits.length?Math.round(stable/habits.length*100):0}%</button><button class="v582-primary" data-action="openRecordForm" data-type="habit">＋ Новая привычка</button></div>
+        </div>
+        <section class="v582-board">
+          <div class="v582-main">${v582Chart(days)}</div>
+          <aside class="v582-side">
+            <article class="v582-side-card">
+              <div class="v582-side-head"><div class="v582-side-icon">⌁</div><div><h3>Что показывает график</h3><p>Теперь график читает не просто столбцы, а общий темп: когда привычки росли, где просели и какой уровень удалось удержать.</p></div></div>
+              <div class="v582-tip"><b>Совет:</b> держи 2–3 якорные привычки, которые проще всего выполнить даже в тяжёлый день. Именно они стабилизируют линию графика.</div>
+            </article>
+            <article class="v582-side-metric"><div class="v582-metric-icon">🛡</div><div><h4>Стабильные привычки</h4><b>${stable}</b><small>выполнение не ниже 70% за период</small></div></article>
+            <article class="v582-side-metric warn"><div class="v582-metric-icon">◎</div><div><h4>Нужны в фокусе</h4><b>${focus}</b><small>привычки с низким процентом выполнения</small></div></article>
+          </aside>
+        </section>
+        <section class="v582-table-wrap"><section class="habit-table"><div class="habit-grid" style="grid-template-columns:280px repeat(${range},32px) 116px"><div class="habit-head"><div class="habit-title"><b>Привычка</b></div>${days.map(d=>`<div class="habit-day-head ${[0,6].includes(new Date(d).getDay())?'weekend':''}">${new Date(d).getDate()}<br>${new Date(d).toLocaleDateString('ru-RU',{weekday:'short'}).slice(0,2)}</div>`).join('')}<div class="habit-actions"><b>Действия</b></div></div>${habits.map(h=>habitRow(h,days)).join('')}</div></section></section>
+      </section>`);
+  }
+
+  if(typeof habitsPage==='function') habitsPage=v582HabitsPage;
+  if(typeof habitTrend==='function') habitTrend=v582Chart;
+
+  function v582Post(){
+    v582Styles();
+    const version=document.querySelector('.version'); if(version) version.textContent=V582_LABEL;
+    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V582_BUILD);
+  }
+  const oldRenderV582=typeof render==='function'?render:null;
+  if(oldRenderV582){render=function(){v582Styles(); const r=oldRenderV582.apply(this,arguments); setTimeout(v582Post,90); return r;};}
+  try{v582Styles();save();render();}catch(e){console.error('[V58.2 habit chart premium init]',e)}
+})();
+
+
+/* ===== V58.3 ROOT CONFIRMATION: prove new app.js is loaded ===== */
+(function(){
+  const V583_BUILD='second-brain-space-v58-3-root-habit-premium-20260708';
+  const V583_LABEL='V58.3 · ROOT HABIT PREMIUM';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V583_BUILD);}catch(e){}
+  function v583Post(){
+    try{
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V583_BUILD);
+      const version=document.querySelector('.version'); if(version) version.textContent=V583_LABEL;
+      const hero=document.querySelector('.hero p');
+      if((page==='habits' || (location.hash||'').replace('#','')==='habits') && hero){
+        hero.textContent='Премиальный трекер ритма: новый график загружен из app.js V58.3, таблица и sidebar сохранены.';
+      }
+      document.body?.setAttribute('data-sbos-build',V583_BUILD);
+    }catch(e){console.error('[V58.3 post]',e)}
+  }
+  const oldRenderV583=typeof render==='function'?render:null;
+  if(oldRenderV583){render=function(){const r=oldRenderV583.apply(this,arguments); setTimeout(v583Post,120); return r;};}
+  try{v583Post();}catch(e){}
 })();
