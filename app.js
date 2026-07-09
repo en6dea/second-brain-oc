@@ -5652,3 +5652,149 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   window.addEventListener('hashchange',()=>setTimeout(v63Post,90));
   try{v63Ensure();v63Styles();v63SetBuild();render()}catch(e){console.error('[V63 init]',e)}
 })();
+
+
+/* ===== V63 STABILITY LOCK: no page jumps, fixed expense rows, clickable calendar chips ===== */
+(function(){
+  const V63S_BUILD='second-brain-space-v63-stability-lock-20260709';
+  const V63S_LABEL='V63 · STABILITY LOCK';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V63S_BUILD); if('scrollRestoration' in history) history.scrollRestoration='manual';}catch(e){}
+
+  const nativeScrollTo=window.scrollTo.bind(window);
+  let lockUntil=0;
+  let lockedY=null;
+  let lastRoute=(location.hash||'').replace('#','')||page||'dashboard';
+  let renderDepth=0;
+
+  function route(){return (location.hash||'').replace('#','')||page||'dashboard'}
+  function key(r=route()){return 'sbos.v63s.scroll.'+r}
+  function getY(r=route()){try{return Number(sessionStorage.getItem(key(r))||0)||0}catch(e){return 0}}
+  function setY(r=route(),y=window.scrollY||document.documentElement.scrollTop||0){try{sessionStorage.setItem(key(r),String(Math.max(0,Math.round(y))))}catch(e){}}
+  function setBuild(){
+    try{
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V63S_BUILD);
+      document.body?.setAttribute('data-sbos-build',V63S_BUILD);
+      const v=document.querySelector('.v59-version,.version');
+      if(v) v.textContent=V63S_LABEL;
+    }catch(e){}
+  }
+
+  window.scrollTo=function(a,b){
+    const now=Date.now();
+    if(lockedY!==null && now<lockUntil){
+      const requested=typeof a==='object'?Number(a?.top||0):Number(b||0);
+      if(Math.abs(requested-lockedY)>3) return nativeScrollTo(0,lockedY);
+    }
+    return nativeScrollTo(a,b);
+  };
+
+  function hardRestore(y){
+    y=Math.max(0,Number(y)||0);
+    lockedY=y;
+    lockUntil=Date.now()+950;
+    [0,16,48,120,240,420,720,940].forEach(t=>setTimeout(()=>nativeScrollTo(0,y),t));
+    setTimeout(()=>{if(Date.now()>=lockUntil){lockedY=null;setY(route(),window.scrollY||0)}},980);
+  }
+
+  function styles(){
+    if(document.getElementById('v63-stability-lock-style')) return;
+    const st=document.createElement('style');
+    st.id='v63-stability-lock-style';
+    st.textContent=`
+      html,body,#app,.app,.main,#view,.v52-view,.v59-main,.v59-app{scroll-behavior:auto!important;overflow-anchor:none!important}
+      *{scroll-margin-top:0!important}
+      .v52-view,.v59-main #view,.v61-page,.v62-page,.v63-page{animation:none!important;transform:none!important}
+      .card,.v49-hero-card,.v49-panel,.v50-learn-card,.v52-panel,.v59-card,.v61-card,.v62-card,.v63-card,.v63-panel,.v44-group,.v44-op,.v60-route-row{transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,color .16s ease!important;transform:none!important;will-change:auto!important}
+      .card:hover,.v49-hero-card:hover,.v49-panel:hover,.v50-learn-card:hover,.v52-panel:hover,.v59-card:hover,.v61-card:hover,.v62-card:hover,.v63-card:hover,.v63-panel:hover,.v44-group:hover,.v44-op:hover,.v60-route-row:hover{transform:none!important}
+
+      .v44-section-grid{grid-template-columns:minmax(0,1.52fr) minmax(330px,.78fr)!important;align-items:start!important;gap:16px!important}
+      .v44-section-grid>main{min-width:0!important}
+      .v44-op{display:grid!important;grid-template-columns:96px minmax(0,1fr) auto!important;grid-template-areas:"date info amount" "cat cat actions"!important;gap:11px 14px!important;align-items:center!important;padding:14px!important;border-radius:18px!important;min-width:0!important}
+      .v44-op>div:nth-child(1){grid-area:date!important}
+      .v44-op>div:nth-child(2){grid-area:info!important;min-width:0!important;overflow-wrap:anywhere!important}
+      .v44-op>div:nth-child(2)>b{display:block!important;line-height:1.3!important;max-width:100%!important;overflow-wrap:anywhere!important}
+      .v44-op>div:nth-child(3){grid-area:amount!important;white-space:nowrap!important;text-align:right!important}
+      .v44-op>div:nth-child(4){grid-area:cat!important;min-width:0!important}
+      .v44-op>div:nth-child(4) input{width:min(360px,100%)!important}
+      .v44-op>div:nth-child(5){grid-area:actions!important;display:flex!important;flex-wrap:wrap!important;justify-content:flex-end!important;gap:8px!important;min-width:0!important}
+      .v44-op .mini{white-space:nowrap!important}
+      .v44-group summary{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important}
+      .v44-review-toolbar{align-items:center!important}
+
+      .v60-route-row{cursor:pointer!important}
+      .v60-route-row:hover{border-color:#bfdbfe!important;background:#f8fbff!important;box-shadow:0 12px 28px rgba(37,99,235,.08)!important}
+      .v63s-clickable-badge{cursor:pointer!important;border-color:#bfdbfe!important;background:#eef5ff!important;color:#2563eb!important}
+      .v63s-clickable-badge:hover{box-shadow:0 8px 18px rgba(37,99,235,.12)!important}
+
+      @media(max-width:1320px){.v44-section-grid{grid-template-columns:1fr!important}.v44-section-grid aside{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}.v44-op{grid-template-columns:86px minmax(0,1fr) auto!important}}
+      @media(max-width:820px){.v44-section-grid aside{grid-template-columns:1fr!important}.v44-op{grid-template-columns:1fr!important;grid-template-areas:"date" "info" "amount" "cat" "actions"!important}.v44-op>div:nth-child(3){text-align:left!important}.v44-op>div:nth-child(5){justify-content:flex-start!important}.v44-op>div:nth-child(4) input{width:100%!important}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function makeCalendarClickable(){
+    if(route()!=='calendar') return;
+    document.querySelectorAll('.v60-route-row').forEach(row=>{
+      const badge=[...row.querySelectorAll('.v59-badge,.pill')].find(x=>/tasks|calendar|задача|событие/i.test(x.textContent||''));
+      const text=(badge?.textContent||row.textContent||'').toLowerCase();
+      const target=text.includes('tasks')||text.includes('задач')?'tasks':(text.includes('calendar')||text.includes('событ')?'calendar':'tasks');
+      row.dataset.go=target;
+      row.setAttribute('role','button');
+      row.setAttribute('tabindex','0');
+      if(badge){
+        badge.dataset.go=target;
+        badge.setAttribute('role','button');
+        badge.setAttribute('tabindex','0');
+        badge.classList.add('v63s-clickable-badge');
+        if((badge.textContent||'').trim()==='tasks') badge.textContent='Открыть задачи';
+        if((badge.textContent||'').trim()==='calendar') badge.textContent='Открыть календарь';
+      }
+    });
+  }
+
+  function post(){
+    styles();
+    setBuild();
+    makeCalendarClickable();
+  }
+
+  const oldGo=typeof go==='function'?go:null;
+  if(oldGo){
+    go=function(id){
+      setY(lastRoute);
+      const res=oldGo.apply(this,arguments);
+      const next=String(id||route()||'dashboard');
+      lastRoute=next;
+      setTimeout(()=>hardRestore(getY(next)),0);
+      return res;
+    };
+  }
+
+  const oldRender=typeof render==='function'?render:null;
+  if(oldRender){
+    render=function(){
+      const before=route();
+      const beforeY=window.scrollY||document.documentElement.scrollTop||0;
+      setY(before,beforeY);
+      renderDepth++;
+      styles();
+      const res=oldRender.apply(this,arguments);
+      const after=route();
+      const target=after===before?beforeY:getY(after);
+      post();
+      hardRestore(target);
+      renderDepth--;
+      lastRoute=after;
+      return res;
+    };
+  }
+
+  window.addEventListener('scroll',()=>{if(lockedY===null && !renderDepth) setY(route())},{passive:true});
+  window.addEventListener('keydown',e=>{
+    const row=e.target.closest&&e.target.closest('.v60-route-row[data-go],.v63s-clickable-badge[data-go]');
+    if(row && (e.key==='Enter'||e.key===' ')){e.preventDefault();go(row.dataset.go)}
+  },true);
+  window.addEventListener('hashchange',()=>setTimeout(()=>{post();hardRestore(getY(route()))},80));
+
+  try{styles();post();setY(route());if(typeof render==='function')render();}catch(e){console.error('[V63 Stability Lock init]',e)}
+})();
