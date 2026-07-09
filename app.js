@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v60-clickable-folders-20260708';
+const BUILD='second-brain-space-v61-smart-daily-os-20260708';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -5017,4 +5017,175 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   window.addEventListener('hashchange',()=>{const cur=v60Resolve((location.hash||'').replace('#','')||'dashboard'); if(cur!==page||!document.querySelector('.v60-folder-ok')) v60Render();});
 
   try{go=v60Go; render=v60Render; v60Styles(); v60Render();}catch(e){console.error('[V60 init]',e)}
+})();
+
+
+/* ===== V61 SMART DAILY OS: smart day cockpit + action engine ===== */
+(function(){
+  const V61_BUILD='second-brain-space-v61-smart-daily-os-20260708';
+  const V61_LABEL='V61 · SMART DAILY OS';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V61_BUILD);}catch(e){}
+
+  try{
+    if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='daily')){
+      const idx=SECTIONS.findIndex(s=>s.id==='dashboard');
+      SECTIONS.splice(idx>=0?idx+1:1,0,{id:'daily',label:'День',icon:'☀️',color:'#2563eb',group:'ПРОСТРАНСТВО'});
+    }
+  }catch(e){}
+
+  function v61Arr(k){return Array.isArray(state&&state[k])?state[k]:[]}
+  function v61Today(){try{return today()}catch(e){return new Date().toISOString().slice(0,10)}}
+  function v61Add(d,n){try{return iso(addDays(new Date(d),n))}catch(e){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}}
+  function v61Done(t){return ['готово','сделано','done','closed'].includes(String(t.status||'').toLowerCase())}
+  function v61Esc(x){try{return esc(x)}catch(e){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}}
+  function v61Money(v){try{return money(v)}catch(e){return `${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`}}
+  function v61Fmt(d){try{return fmt(d)}catch(e){return d||'—'}}
+  function v61Uid(){try{return uid()}catch(e){return 'v61_'+Date.now().toString(36)+Math.random().toString(36).slice(2)}}
+  function v61Total(arr){return arr.reduce((s,x)=>s+Number(x.amount||0),0)}
+  function v61SetBuild(){try{document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V61_BUILD);document.body?.setAttribute('data-sbos-build',V61_BUILD);const v=document.querySelector('.v59-version,.version');if(v)v.textContent=V61_LABEL;}catch(e){}}
+
+  function v61Styles(){
+    if(document.getElementById('v61-smart-daily-style')) return;
+    const st=document.createElement('style');
+    st.id='v61-smart-daily-style';
+    st.textContent=`
+      .v61-page{max-width:1600px;margin:0 auto}.v61-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}.v61-hero h1{margin:0;font-size:38px;line-height:1;letter-spacing:-.065em;color:#061f4a}.v61-hero p{margin:9px 0 0;color:#52647f;font-weight:780}.v61-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #dbe7f6;background:rgba(255,255,255,.9);border-radius:999px;padding:10px 13px;font-weight:1000;color:#334155;box-shadow:0 14px 32px rgba(37,99,235,.07)}
+      .v61-command{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:34px;background:linear-gradient(135deg,rgba(255,255,255,.99),rgba(239,247,255,.96));box-shadow:0 30px 76px rgba(37,99,235,.12);padding:24px;margin-bottom:18px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(360px,.9fr);gap:18px}.v61-command:before{content:'';position:absolute;right:-120px;top:-130px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.16),transparent 68%)}.v61-command>*{position:relative;z-index:1}.v61-command h2{margin:0;font-size:28px;letter-spacing:-.06em;color:#102044}.v61-command p{margin:10px 0 0;color:#64748b;font-weight:820;line-height:1.48}.v61-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.v61-actions button{border:1px solid #dbe7f6;background:#fff;border-radius:16px;padding:12px 14px;font-weight:950;color:#334155;box-shadow:0 12px 26px rgba(37,99,235,.05)}.v61-actions button.primary{border:0;color:#fff;background:linear-gradient(135deg,#2563eb,#38bdf8);box-shadow:0 20px 38px rgba(37,99,235,.21)}.v61-actions button.green{border:0;color:#fff;background:linear-gradient(135deg,#10b981,#34d399)}
+      .v61-grid{display:grid;gap:16px}.v61-cols-2{grid-template-columns:1.13fr .87fr}.v61-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.v61-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.v61-card,.v61-stat,.v61-signal,.v61-action-card{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.98));box-shadow:0 22px 56px rgba(37,99,235,.085);padding:18px}.v61-card:before,.v61-stat:before,.v61-action-card:before{content:'';position:absolute;right:-60px;top:-70px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.08),transparent 70%);pointer-events:none}.v61-card>* , .v61-stat>* , .v61-action-card>*{position:relative;z-index:1}.v61-card h3,.v61-action-card h3{margin:0;font-size:19px;letter-spacing:-.04em;color:#102044}.v61-card p,.v61-action-card p{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:820;line-height:1.45}.v61-stat span{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7b8aa4;font-weight:1000}.v61-stat b{display:block;margin-top:9px;font-size:32px;letter-spacing:-.06em;color:#102044}.v61-stat b.blue{color:#2563eb}.v61-stat b.green{color:#10b981}.v61-stat b.red{color:#ef4444}.v61-stat b.amber{color:#f59e0b}.v61-stat small{display:block;margin-top:6px;color:#64748b;font-size:12px;font-weight:820;line-height:1.35}
+      .v61-radar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v61-radar-item{border:1px solid #e2ebf7;background:#fff;border-radius:20px;padding:13px}.v61-radar-item span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7b8aa4;font-weight:1000}.v61-radar-item b{display:block;margin-top:6px;font-size:20px;color:#102044;letter-spacing:-.04em}.v61-radar-item small{display:block;margin-top:3px;color:#64748b;font-size:12px;font-weight:820}.v61-score{display:grid;place-items:center;min-height:160px;border:1px solid #dbe7f6;border-radius:28px;background:radial-gradient(circle at 50% 28%,rgba(37,99,235,.12),transparent 44%),linear-gradient(180deg,#fff,#f8fbff)}.v61-score strong{font-size:52px;line-height:1;letter-spacing:-.08em;color:#2563eb}.v61-score span{display:block;margin-top:8px;color:#64748b;font-weight:900}.v61-score.good strong{color:#10b981}.v61-score.warn strong{color:#f59e0b}.v61-score.danger strong{color:#ef4444}
+      .v61-plan-list{display:grid;gap:12px}.v61-plan-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #e2ebf7;background:#fff;border-radius:22px;padding:14px}.v61-plan-ico{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:#eef5ff;color:#2563eb;font-weight:1000}.v61-plan-row b{display:block;color:#102044;letter-spacing:-.025em}.v61-plan-row small{display:block;margin-top:3px;color:#64748b;font-weight:820;line-height:1.35}.v61-mini-btn{border:1px solid #dbe7f6;background:#f8fbff;color:#2563eb;border-radius:13px;padding:9px 11px;font-weight:950}.v61-mini-btn:hover{background:#eef5ff}.v61-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;border:1px solid #dbe7f6;background:#f8fbff;color:#475569}.v61-badge.blue{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v61-badge.green{background:#ecfdf5;color:#10b981;border-color:#bbf7d0}.v61-badge.red{background:#fff1f2;color:#ef4444;border-color:#fecaca}.v61-badge.amber{background:#fff7ed;color:#d97706;border-color:#fed7aa}
+      .v61-timeline{display:grid;gap:10px}.v61-time-row{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #e2ebf7;border-radius:20px;background:#fff;padding:12px}.v61-time-row time{font-weight:1000;color:#2563eb}.v61-time-row b{color:#102044}.v61-time-row small{display:block;color:#64748b;font-weight:820;margin-top:2px}.v61-ai{border:1px solid #dbe7f6;border-radius:28px;background:linear-gradient(135deg,#102044,#2563eb);color:#fff;padding:20px;box-shadow:0 26px 62px rgba(37,99,235,.22)}.v61-ai h3{margin:0;font-size:21px;letter-spacing:-.045em}.v61-ai p{color:rgba(255,255,255,.80);font-weight:820;line-height:1.48}.v61-ai .v61-actions button{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);color:#fff}.v61-ai .v61-actions button.primary{background:#fff;color:#2563eb}.v61-note{border:1px dashed #c7dbf7;background:#f8fbff;border-radius:20px;padding:14px;color:#53657f;font-weight:830;font-size:13px;line-height:1.5}.v61-nav-spark{box-shadow:0 0 0 4px rgba(37,99,235,.08)!important}
+      @media(max-width:1280px){.v61-command,.v61-cols-2{grid-template-columns:1fr}.v61-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}.v61-radar{grid-template-columns:repeat(4,minmax(0,1fr))}}
+      @media(max-width:760px){.v61-hero{align-items:flex-start;flex-direction:column}.v61-hero h1{font-size:30px}.v61-command{padding:18px;border-radius:26px}.v61-cols-3,.v61-cols-4,.v61-radar{grid-template-columns:1fr}.v61-plan-row,.v61-time-row{grid-template-columns:1fr}.v61-actions button{width:100%;justify-content:center}.v61-page{padding-bottom:80px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v61Health(){
+    const d=v61Today(), week=v61Add(d,7);
+    const tasks=v61Arr('tasks');
+    const activeTasks=tasks.filter(t=>!v61Done(t));
+    const todayTasks=activeTasks.filter(t=>(t.date||d)===d);
+    const overdueTasks=activeTasks.filter(t=>t.date && t.date<d);
+    const weekTasks=activeTasks.filter(t=>t.date && t.date>d && t.date<=week);
+    const debts=(typeof activeDebts==='function'?activeDebts():v61Arr('debts').filter(x=>String(x.status||'').toLowerCase()!=='закрыт'));
+    const dueOut=debts.filter(x=>x.direction==='out' && x.due && x.due<=week);
+    const dueIn=debts.filter(x=>x.direction==='in' && x.due && x.due<=week);
+    const overdueDebts=debts.filter(x=>x.due && x.due<d);
+    const habits=v61Arr('habits');
+    const habitsDone=habits.filter(h=>h.marks&&h.marks[d]).length;
+    const f=(typeof periodInfo==='function'&&typeof financeTotals==='function')?financeTotals(periodInfo('month')):{inc:0,exp:0,net:0};
+    const load=todayTasks.length + overdueTasks.length*2 + dueOut.length*2 + overdueDebts.length*2;
+    const score=Math.max(0,Math.min(100,100-load*7));
+    return {d,week,tasks,activeTasks,todayTasks,overdueTasks,weekTasks,debts,dueOut,dueIn,overdueDebts,habits,habitsDone,f,score,load};
+  }
+
+  function v61FocusTask(h){
+    const priority={A:1,'Высокий':1,B:2,'Средний':2,C:3,'Низкий':3};
+    return [...h.overdueTasks,...h.todayTasks,...h.weekTasks].sort((a,b)=>(priority[a.priority]||9)-(priority[b.priority]||9)||String(a.date||'').localeCompare(String(b.date||'')))[0];
+  }
+
+  function v61PlanRows(h){
+    const focus=v61FocusTask(h);
+    const debt=h.dueOut.sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')))[0];
+    const income=h.dueIn.sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')))[0];
+    const rows=[];
+    if(focus) rows.push(['✅','Главный шаг',focus.title,`${focus.area||'Задача'} · ${focus.date?v61Fmt(focus.date):'без даты'} · ${focus.time||'без времени'}`,'tasks','Открыть']);
+    else rows.push(['✅','Главный шаг','Создать один маленький шаг на 15 минут','Нет задачи, которую система может назначить главной','tasks','Создать']);
+    if(debt) rows.push(['⚖️','Долг / обязательство',`${debt.person} · ${v61Money(debt.amount)}`,`срок: ${v61Fmt(debt.due)} · лучше не тянуть`,'debts','Долги']);
+    else if(income) rows.push(['↗','Возврат денег',`${income.person} · ${v61Money(income.amount)}`,`ожидается до ${v61Fmt(income.due)}`,'debts','Проверить']);
+    else rows.push(['💸','Финансовый контроль','Проверить лимит дня и расходы','долгов на 7 дней не найдено','finance','Финансы']);
+    if(h.habits.length) rows.push(['🎯','Минимум ритма',`Отметить ${Math.max(0,Math.min(3,h.habits.length)-h.habitsDone)} из ${h.habits.length} привычек`,`сегодня отмечено ${h.habitsDone}/${h.habits.length}`,'habits','Привычки']);
+    rows.push(['📥','Разгрузка головы','Скинуть всё лишнее во входящие','чтобы не держать в голове и не перегружаться','inbox','Входящие']);
+    return rows.slice(0,4);
+  }
+
+  function v61LoadLabel(h){
+    if(h.score>=75) return ['good','Лёгкий день','Можно спокойно закрывать главное'];
+    if(h.score>=45) return ['warn','Средняя нагрузка','Важно не распыляться'];
+    return ['danger','Перегруз','Нужен режим минимума'];
+  }
+
+  function v61DailyPage(){
+    v61Styles();
+    const h=v61Health();
+    const [scoreCls,loadTitle,loadSub]=v61LoadLabel(h);
+    const plan=v61PlanRows(h);
+    const todayTimeline=[...h.todayTasks].sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99'))).slice(0,8);
+    const debtAmount=v61Total(h.dueOut);
+    const incomingAmount=v61Total(h.dueIn);
+    const balance=Number(state.settings?.currentBalance||0);
+    const dayBudget=Math.max(0,Math.round((balance+incomingAmount-debtAmount)/Math.max(1,7)));
+    return `<div class="v61-page"><div class="v61-hero"><div><h1>Умный день</h1><p>Операционный экран: что важно сегодня, где риск и какой следующий шаг сделать без перегруза.</p></div><div class="v61-pill">☷ ${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</div></div>
+      <section class="v61-command"><div><span class="v61-badge blue">Smart Daily OS</span><h2>Сегодня: ${loadTitle}</h2><p>${loadSub}. Система собрала задачи, долги, финансы и привычки в один короткий план, чтобы не прыгать по разделам.</p><div class="v61-actions"><button class="primary" data-v61-action="createTinyTask">Создать шаг 15 минут</button><button class="green" data-go="tasks">Открыть задачи</button><button data-go="finance">Финансы</button><button data-go="habits">Привычки</button></div></div><div class="v61-score ${scoreCls}"><strong>${h.score}%</strong><span>${loadTitle}</span></div></section>
+      <section class="v61-grid v61-cols-4" style="margin-bottom:16px"><article class="v61-stat"><span>Сегодня</span><b class="blue">${h.todayTasks.length}</b><small>активных задач на день</small></article><article class="v61-stat"><span>Просрочено</span><b class="${h.overdueTasks.length?'red':'green'}">${h.overdueTasks.length}</b><small>задач требуют решения</small></article><article class="v61-stat"><span>Долги 7 дней</span><b class="${debtAmount?'red':'green'}">${v61Money(debtAmount)}</b><small>${h.dueOut.length} обязательств рядом</small></article><article class="v61-stat"><span>Ритм привычек</span><b class="green">${h.habitsDone}/${h.habits.length}</b><small>отмечено сегодня</small></article></section>
+      <section class="v61-grid v61-cols-2"><article class="v61-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px"><div><h3>Что делать сейчас</h3><p>Короткий список вместо перегруза и бесконечного выбора.</p></div><span class="v61-badge green">активный план</span></div><div class="v61-plan-list">${plan.map(r=>`<div class="v61-plan-row"><span class="v61-plan-ico">${r[0]}</span><div><b>${v61Esc(r[1])}: ${v61Esc(r[2])}</b><small>${v61Esc(r[3])}</small></div><button class="v61-mini-btn" data-go="${r[4]}">${v61Esc(r[5])}</button></div>`).join('')}</div></article>
+      <aside class="v61-card"><h3>Радар дня</h3><p>Быстрый снимок нагрузки и денег.</p><div class="v61-radar" style="margin-top:14px"><div class="v61-radar-item"><span>Баланс</span><b>${v61Money(balance)}</b><small>факт вручную</small></div><div class="v61-radar-item"><span>Лимит 7 дней</span><b>${v61Money(dayBudget)}</b><small>оценка после долгов</small></div><div class="v61-radar-item"><span>Ожидаемые возвраты</span><b>${v61Money(incomingAmount)}</b><small>${h.dueIn.length} поступлений рядом</small></div><div class="v61-radar-item"><span>Месяц</span><b class="${h.f.net<0?'red':'green'}">${v61Money(h.f.net||0)}</b><small>прогноз остатка</small></div></div><div class="v61-note" style="margin-top:14px">Если день перегружен — не добавляй новые задачи. Закрой один главный шаг, один финансовый риск и минимум привычек.</div></aside></section>
+      <section class="v61-grid v61-cols-2" style="margin-top:16px"><article class="v61-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px"><div><h3>Календарная лента</h3><p>То, что стоит на сегодня по времени.</p></div><button class="v61-mini-btn" data-go="calendar">Календарь</button></div><div class="v61-timeline">${todayTimeline.map(t=>`<div class="v61-time-row"><time>${v61Esc(t.time||'—')}</time><div><b>${v61Esc(t.title)}</b><small>${v61Esc(t.area||'Задача')} · ${v61Esc(t.priority||'B')}</small></div><span class="v61-badge blue">${v61Esc(t.status||'активно')}</span></div>`).join('')||'<div class="v61-note">На сегодня нет задач по времени. Можно выбрать один шаг вручную.</div>'}</div></article><article class="v61-ai"><h3>AI-помощник дня</h3><p>Быстрые команды для следующей версии AI-логики. Сейчас они уже дают рабочие действия внутри системы.</p><div class="v61-actions"><button class="primary" data-v61-action="createTinyTask">Сделать шаг 15 минут</button><button data-v61-action="createReview">Создать обзор дня</button><button data-go="attention">Центр внимания</button><button data-go="global-search">Поиск</button></div></article></section>
+    </div>`;
+  }
+
+  function v61CreateTinyTask(){
+    const h=v61Health(); const focus=v61FocusTask(h);
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({id:v61Uid(),title:`15 минут: ${focus?focus.title:'разобрать главный завал дня'}`,area:focus?.area||'Фокус',date:v61Today(),time:'',priority:'A',status:'Активно',google:false,reminder:'',note:'Создано Smart Daily OS'});
+    try{save()}catch(e){}
+    try{(typeof toast==='function'?toast:alert)('Создал шаг на 15 минут')}catch(e){}
+    v61Go('tasks');
+  }
+  function v61CreateReview(){
+    state.notes=Array.isArray(state.notes)?state.notes:[];
+    state.notes.unshift({id:v61Uid(),title:'Обзор дня',folder:'Обзоры',date:v61Today(),text:'Что было главным сегодня?\nЧто забрало силы?\nЧто перенести?\nКакой один шаг завтра?'});
+    try{save()}catch(e){}
+    try{(typeof toast==='function'?toast:alert)('Создал заметку для обзора дня')}catch(e){}
+    v61Go('notes');
+  }
+
+  function v61Post(){
+    try{
+      v61Styles(); v61SetBuild();
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      document.querySelectorAll('[data-go="daily"]').forEach(el=>el.classList.add('v61-nav-spark'));
+      if(current==='daily'){
+        const view=document.querySelector('#view');
+        if(view) view.innerHTML=v61DailyPage();
+        document.querySelectorAll('.v59-nav-item').forEach(el=>el.classList.toggle('active',el.dataset.go==='daily'));
+      }
+    }catch(e){console.error('[V61 post]',e)}
+  }
+
+  const oldGoV61=typeof go==='function'?go:null;
+  function v61Go(id){
+    if(id==='daily'){
+      page='daily';
+      try{location.hash='daily'}catch(e){}
+      try{if(typeof render==='function') render(); else v61Post();}catch(e){v61Post();}
+      setTimeout(v61Post,80);
+      return;
+    }
+    if(oldGoV61) return oldGoV61(id);
+    try{location.hash=id; if(typeof render==='function') render();}catch(e){}
+  }
+  try{go=v61Go;}catch(e){}
+
+  const oldRenderV61=typeof render==='function'?render:null;
+  if(oldRenderV61){
+    render=function(){
+      const r=oldRenderV61.apply(this,arguments);
+      setTimeout(v61Post,80);
+      return r;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const a=e.target.closest&&e.target.closest('[data-v61-action]');
+    if(!a) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const act=a.dataset.v61Action;
+    if(act==='createTinyTask') return v61CreateTinyTask();
+    if(act==='createReview') return v61CreateReview();
+  },true);
+  window.addEventListener('hashchange',()=>{if((location.hash||'').replace('#','')==='daily') setTimeout(v61Post,90);});
+
+  try{v61Styles();v61SetBuild();render();}catch(e){console.error('[V61 init]',e)}
 })();
