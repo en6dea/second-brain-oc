@@ -5452,3 +5452,203 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{v62Ensure();v62Styles();v62SetBuild();render();}catch(e){console.error('[V62 init]',e)}
 })();
+
+
+/* ===== V63 UNIFIED OS UPGRADE: one combined product layer ===== */
+(function(){
+  const V63_BUILD='second-brain-space-v63-unified-os-upgrade-20260709';
+  const V63_LABEL='V63 · UNIFIED OS UPGRADE';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V63_BUILD);}catch(e){}
+
+  function v63Arr(k){return Array.isArray(state&&state[k])?state[k]:[]}
+  function v63Today(){return typeof today==='function'?today():new Date().toISOString().slice(0,10)}
+  function v63Add(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+  function v63Esc(v){return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]))}
+  function v63Money(v){try{return money(v)}catch(e){return `${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`}}
+  function v63Fmt(d){try{return fmt(d)}catch(e){return d||'—'}}
+  function v63Uid(){try{return uid()}catch(e){return 'v63_'+Date.now().toString(36)+Math.random().toString(36).slice(2)}}
+  function v63Done(x){return ['готово','закрыт','закрыто','done'].includes(String(x.status||'').trim().toLowerCase())}
+  function v63Toast(msg){try{(typeof v59Toast==='function'?v59Toast:(typeof toast==='function'?toast:alert))(msg)}catch(e){}}
+  function v63Sum(arr){return arr.reduce((s,x)=>s+Number(x.amount||0),0)}
+
+  function v63Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v63=Object.assign({onboardingDone:{},lastStrategyAt:'',mobilePolish:true},state.settings.v63||{});
+    if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='command')){
+      const idx=SECTIONS.findIndex(s=>s.id==='daily');
+      SECTIONS.splice(idx>=0?idx+1:1,0,{id:'command',label:'Командный центр',icon:'▦',color:'#0f172a',group:'ПРОСТРАНСТВО'});
+    }
+  }
+
+  function v63SetBuild(){
+    try{
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V63_BUILD);
+      document.body?.setAttribute('data-sbos-build',V63_BUILD);
+      const v=document.querySelector('.v59-version,.version');
+      if(v) v.textContent=V63_LABEL;
+    }catch(e){}
+  }
+
+  function v63Styles(){
+    if(document.getElementById('v63-unified-os-style')) return;
+    const st=document.createElement('style');
+    st.id='v63-unified-os-style';
+    st.textContent=`
+      :root{--v63-ink:#071d44;--v63-muted:#5b6f8d;--v63-line:#dbe7f6;--v63-blue:#2563eb;--v63-violet:#7c3aed;--v63-green:#10b981;--v63-red:#ef4444;--v63-amber:#f59e0b}
+      .v63-page{max-width:1640px;margin:0 auto;padding-bottom:40px}.v63-hero{position:relative;overflow:hidden;border:1px solid var(--v63-line);border-radius:34px;background:radial-gradient(circle at 82% 6%,rgba(37,99,235,.17),transparent 30%),radial-gradient(circle at 15% 0%,rgba(16,185,129,.13),transparent 28%),linear-gradient(135deg,#fff,#f4f9ff);box-shadow:0 30px 78px rgba(37,99,235,.12);padding:26px;display:grid;grid-template-columns:minmax(0,1.22fr) minmax(320px,.78fr);gap:20px;margin-bottom:18px}.v63-kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid #bfdbfe;background:#eef5ff;color:#2563eb;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:1000}.v63-hero h1{margin:14px 0 8px;color:var(--v63-ink);font-size:40px;line-height:1;letter-spacing:-.065em}.v63-hero p{margin:0;color:var(--v63-muted);font-weight:820;line-height:1.55}.v63-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.v63-btn{border:1px solid var(--v63-line);background:#fff;color:#334155;border-radius:16px;padding:12px 14px;font-weight:1000;box-shadow:0 12px 26px rgba(37,99,235,.05)}.v63-btn.primary{border:0;color:#fff;background:linear-gradient(135deg,#0f172a,#2563eb);box-shadow:0 20px 44px rgba(37,99,235,.22)}.v63-btn.green{border:0;color:#fff;background:linear-gradient(135deg,#10b981,#34d399)}.v63-btn.violet{border:0;color:#fff;background:linear-gradient(135deg,#7c3aed,#2563eb)}.v63-btn:hover{transform:translateY(-1px)}
+      .v63-grid{display:grid;gap:16px}.v63-cols-2{grid-template-columns:1.08fr .92fr}.v63-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.v63-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.v63-card,.v63-stat,.v63-panel{position:relative;overflow:hidden;border:1px solid var(--v63-line);border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.98));box-shadow:0 22px 56px rgba(37,99,235,.085);padding:18px}.v63-card:before,.v63-panel:before{content:'';position:absolute;right:-76px;top:-86px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.08),transparent 68%);pointer-events:none}.v63-card>* , .v63-panel>*{position:relative;z-index:1}.v63-card h3,.v63-panel h3{margin:0;color:var(--v63-ink);font-size:20px;letter-spacing:-.045em}.v63-card p,.v63-panel p{margin:8px 0 0;color:var(--v63-muted);font-size:13px;font-weight:820;line-height:1.48}.v63-stat span{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7b8aa4;font-weight:1000}.v63-stat b{display:block;margin-top:9px;font-size:32px;letter-spacing:-.06em;color:var(--v63-ink)}.v63-stat small{display:block;margin-top:6px;color:var(--v63-muted);font-size:12px;font-weight:820;line-height:1.35}.v63-blue{color:#2563eb!important}.v63-green{color:#10b981!important}.v63-red{color:#ef4444!important}.v63-amber{color:#f59e0b!important}.v63-violet{color:#7c3aed!important}
+      .v63-row-list{display:grid;gap:11px}.v63-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #e2ebf7;background:#fff;border-radius:22px;padding:14px}.v63-ico{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:#eef5ff;color:#2563eb;font-weight:1000}.v63-row b{display:block;color:var(--v63-ink);letter-spacing:-.025em}.v63-row small{display:block;margin-top:4px;color:var(--v63-muted);font-weight:820;line-height:1.35}.v63-mini{border:1px solid var(--v63-line);background:#fff;color:#334155;border-radius:13px;padding:9px 11px;font-size:12px;font-weight:1000}.v63-mini.blue{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v63-mini.green{background:#ecfdf5;color:#10b981;border-color:#bbf7d0}.v63-mini.red{background:#fff1f2;color:#ef4444;border-color:#fecaca}.v63-mini.violet{background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe}.v63-mini.amber{background:#fff7ed;color:#d97706;border-color:#fed7aa}.v63-badge{display:inline-flex;align-items:center;border:1px solid var(--v63-line);background:#f8fbff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;color:#475569;white-space:nowrap}.v63-badge.blue{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v63-badge.green{background:#ecfdf5;color:#10b981;border-color:#bbf7d0}.v63-badge.red{background:#fff1f2;color:#ef4444;border-color:#fecaca}.v63-badge.amber{background:#fff7ed;color:#d97706;border-color:#fed7aa}.v63-badge.violet{background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe}
+      .v63-strategy{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.v63-strategy-tile{border:1px solid #e2ebf7;background:#fff;border-radius:22px;padding:14px}.v63-strategy-tile span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7b8aa4;font-weight:1000}.v63-strategy-tile b{display:block;margin-top:7px;font-size:23px;color:var(--v63-ink);letter-spacing:-.045em}.v63-strategy-tile small{display:block;margin-top:5px;color:var(--v63-muted);font-size:12px;font-weight:820;line-height:1.35}.v63-note{border:1px dashed #c7dbf7;background:#f8fbff;border-radius:20px;padding:14px;color:#53657f;font-size:13px;font-weight:830;line-height:1.5}.v63-command-hot{box-shadow:0 0 0 4px rgba(15,23,42,.08)!important}.v63-injected{margin:0 0 16px!important}.v63-progress{height:9px;border-radius:999px;background:#eaf1fb;overflow:hidden;margin-top:10px}.v63-progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#10b981,#2563eb)}
+      @media(max-width:1180px){.v59-main,.main{padding-left:18px!important;padding-right:18px!important}.v63-hero,.v63-cols-2{grid-template-columns:1fr}.v63-cols-4,.v63-cols-3,.v63-strategy{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v63-hero{padding:18px;border-radius:26px}.v63-hero h1{font-size:31px}.v63-cols-4,.v63-cols-3,.v63-strategy{grid-template-columns:1fr}.v63-row{grid-template-columns:1fr}.v63-actions .v63-btn,.v63-mini{width:100%;justify-content:center}.v63-page{padding-bottom:92px}.card,.v59-card,.v61-card,.v62-card,.v63-card,.v63-panel{border-radius:22px!important;padding:15px!important}.bottom-nav{grid-template-columns:repeat(5,1fr)!important}.v59-top-actions .ghost-btn:not(:first-child),.top-actions .ghost-btn:not(:first-child){display:none!important}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v63Health(){
+    const d=v63Today(), week=v63Add(d,7);
+    const tasks=v63Arr('tasks');
+    const active=tasks.filter(t=>!v63Done(t));
+    const todayTasks=active.filter(t=>(t.date||d)===d);
+    const overdue=active.filter(t=>t.date && t.date<d);
+    const weekTasks=active.filter(t=>t.date && t.date>d && t.date<=week);
+    const debts=(typeof activeDebts==='function'?activeDebts():v63Arr('debts').filter(x=>!v63Done(x)));
+    const dueOut=debts.filter(x=>x.direction==='out'&&x.due&&x.due<=week).sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')));
+    const dueIn=debts.filter(x=>x.direction==='in'&&x.due&&x.due<=week).sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')));
+    const habits=v63Arr('habits');
+    const habitDone=habits.filter(h=>h.marks&&h.marks[d]).length;
+    const f=(typeof periodInfo==='function'&&typeof financeTotals==='function')?financeTotals(periodInfo('month')):{inc:0,exp:0,net:0,planned:0};
+    const balance=Number(state.settings?.currentBalance||0);
+    const load=todayTasks.length+overdue.length*2+dueOut.length*2;
+    const score=Math.max(0,Math.min(100,100-load*7));
+    const debtSum=v63Sum(dueOut), incoming=v63Sum(dueIn);
+    const safeLimit=Math.max(0,Math.round((balance+incoming-debtSum)/7));
+    const runway=Math.max(0,Math.round((balance+incoming-debtSum)/(Math.max(1,(f.exp||0)/30)||1)));
+    const priority={A:1,'Высокий':1,B:2,'Средний':2,C:3,'Низкий':3};
+    const focus=[...overdue,...todayTasks,...weekTasks].sort((a,b)=>(priority[a.priority]||9)-(priority[b.priority]||9)||String(a.date||'').localeCompare(String(b.date||'')))[0];
+    return {d,week,tasks,active,todayTasks,overdue,weekTasks,debts,dueOut,dueIn,habits,habitDone,f,balance,load,score,debtSum,incoming,safeLimit,runway,focus};
+  }
+
+  function v63OnboardingPct(){
+    const done=state.settings?.v63?.onboardingDone||{};
+    const keys=['balance','debts','goals','habits','firstPlan'];
+    return {done,keys,count:keys.filter(k=>done[k]).length,pct:Math.round(keys.filter(k=>done[k]).length/keys.length*100)};
+  }
+
+  function v63StrategyText(h){
+    const focus=h.focus?h.focus.title:'создать один шаг на 15 минут';
+    const debt=h.dueOut[0]?`${h.dueOut[0].person} · ${v63Money(h.dueOut[0].amount)} до ${v63Fmt(h.dueOut[0].due)}`:'ближайших обязательств на 7 дней нет';
+    return [
+      'Unified OS brief',
+      `Дата: ${v63Fmt(h.d)}`,
+      `Фокус: ${focus}`,
+      `Финансы: баланс ${v63Money(h.balance)}, лимит 7 дней ${v63Money(h.safeLimit)}, прогноз месяца ${v63Money(h.f.net||0)}.`,
+      `Долги: ${debt}.`,
+      `Привычки: ${h.habitDone}/${h.habits.length}.`,
+      `Нагрузка: ${h.score}%. ${h.score<45?'Включить режим минимума.':'День можно вести по плану.'}`
+    ].join('\n');
+  }
+
+  function v63CommandPage(){
+    v63Ensure(); v63Styles();
+    const h=v63Health();
+    const ob=v63OnboardingPct();
+    const mode=h.score<45?'Режим минимума':h.debtSum?'Финансовый фокус':'Операционный день';
+    const modeClass=h.score<45?'amber':h.debtSum?'red':'green';
+    return `<div class="v63-page">
+      <section class="v63-hero"><div><span class="v63-kicker">▦ Unified OS Upgrade</span><h1>${mode}</h1><p>Один общий апгрейд вместо пачки версий: финстратегия, мобильная полировка, единый визуал, календарь, задачи, onboarding и защита данных в одном командном центре.</p><div class="v63-actions"><button class="v63-btn primary" data-v63-action="buildDay">Собрать день</button><button class="v63-btn green" data-v63-action="createStrategy">Создать стратегию</button><button class="v63-btn violet" data-v63-action="openOnboarding">Первичная настройка</button><button class="v63-btn" data-v63-action="backup">Backup</button></div></div><aside class="v63-panel"><h3>Статус системы</h3><div class="v63-strategy"><div class="v63-strategy-tile"><span>Нагрузка</span><b class="v63-${modeClass}">${h.score}%</b><small>${h.overdue.length} просрочено</small></div><div class="v63-strategy-tile"><span>Onboarding</span><b>${ob.pct}%</b><small>${ob.count}/${ob.keys.length} шагов</small></div><div class="v63-strategy-tile"><span>Данные</span><b>${Math.round((JSON.stringify(state||{}).length||0)/1024)} КБ</b><small>локальная база</small></div></div><div class="v63-progress"><i style="width:${ob.pct}%"></i></div></aside></section>
+      <section class="v63-grid v63-cols-4" style="margin-bottom:16px"><article class="v63-stat"><span>Фокус</span><b class="v63-blue">${h.todayTasks.length}</b><small>задач сегодня</small></article><article class="v63-stat"><span>Долги 7 дней</span><b class="${h.debtSum?'v63-red':'v63-green'}">${v63Money(h.debtSum)}</b><small>${h.dueOut.length} обязательств</small></article><article class="v63-stat"><span>Лимит 7 дней</span><b class="v63-green">${v63Money(h.safeLimit)}</b><small>после ближайших долгов</small></article><article class="v63-stat"><span>Привычки</span><b class="v63-violet">${h.habitDone}/${h.habits.length}</b><small>ритм дня</small></article></section>
+      <section class="v63-grid v63-cols-2"><article class="v63-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px"><div><h3>Что делать сейчас</h3><p>Единый execution engine: выбирает главное, деньги, ритм и разгрузку.</p></div><button class="v63-mini blue" data-v63-action="copyBrief">Скопировать</button></div><div class="v63-row-list">${v63ActionRows(h).map(r=>`<div class="v63-row"><span class="v63-ico">${r[0]}</span><div><b>${v63Esc(r[1])}</b><small>${v63Esc(r[2])}</small></div><button class="v63-mini ${r[5]}" data-${r[3]==='action'?'v63-action':'go'}="${r[4]}">${v63Esc(r[6])}</button></div>`).join('')}</div></article>
+      <aside class="v63-card"><h3>Финансовая стратегия</h3><p>Прогноз, лимит и сценарий закрытия ближайших обязательств.</p><div class="v63-strategy"><div class="v63-strategy-tile"><span>Баланс</span><b>${v63Money(h.balance)}</b><small>фактический остаток</small></div><div class="v63-strategy-tile"><span>Прогноз</span><b class="${(h.f.net||0)<0?'v63-red':'v63-green'}">${v63Money(h.f.net||0)}</b><small>месяц</small></div><div class="v63-strategy-tile"><span>Запас</span><b>${h.runway} дн.</b><small>ориентир runway</small></div></div><div class="v63-note" style="margin-top:14px">Правило: если лимит 7 дней ниже комфортного, новые покупки уходят в ожидание, а ближайший долг получает задачу на сегодня.</div><div class="v63-actions"><button class="v63-btn green" data-v63-action="createDebtPlan">План долгов</button><button class="v63-btn" data-go="finance">Открыть финансы</button></div></aside></section>
+      <section class="v63-grid v63-cols-3" style="margin-top:16px"><article class="v63-card"><h3>Календарь и нагрузка</h3><p>День считается перегруженным, если рядом много задач и финансовых сроков.</p><div class="v63-row-list" style="margin-top:12px">${v63CalendarRows(h).join('')}</div><div class="v63-actions"><button class="v63-btn" data-go="calendar">Календарь</button></div></article><article class="v63-card"><h3>Onboarding</h3><p>Быстрый мастер первого запуска: баланс, долги, цели, привычки, первый план.</p>${v63OnboardingHtml(ob)}<div class="v63-actions"><button class="v63-btn violet" data-v63-action="openOnboarding">Настроить</button></div></article><article class="v63-card"><h3>Data Safety Pro</h3><p>Один клик для backup, диагностики и защиты от потери данных.</p><div class="v63-row-list" style="margin-top:12px"><div class="v63-row"><span class="v63-ico">↓</span><div><b>Экспорт JSON</b><small>скачать полный backup данных</small></div><button class="v63-mini blue" data-v63-action="backup">Backup</button></div><div class="v63-row"><span class="v63-ico">✓</span><div><b>Диагностика</b><small>проверить сборку и размер базы</small></div><button class="v63-mini green" data-go="system">Система</button></div></div></article></section>
+    </div>`;
+  }
+
+  function v63ActionRows(h){
+    const debt=h.dueOut[0], habit=h.habits.find(x=>!(x.marks&&x.marks[h.d]));
+    return [
+      ['✓',h.focus?`Главный шаг: ${h.focus.title}`:'Создать главный шаг на 15 минут',h.focus?`${h.focus.area||'Задача'} · ${h.focus.date?v63Fmt(h.focus.date):'без даты'}`:'Система не нашла очевидный фокус','action','createTinyTask','blue','Создать'],
+      ['₽',debt?`Финансы: ${debt.person} · ${v63Money(debt.amount)}`:'Финансы: проверить лимит дня',debt?`срок ${v63Fmt(debt.due)}`:`лимит 7 дней ${v63Money(h.safeLimit)}`,'action','createDebtPlan',debt?'red':'green',debt?'План':'Проверить'],
+      ['∿',habit?`Минимум ритма: ${habit.name||habit.title||'привычка'}`:'Ритм сегодня закрыт',`${h.habitDone}/${h.habits.length} привычек отмечено`,'action','createHabitMinimum',habit?'violet':'green','Ритм'],
+      ['☷','Разгрузить голову','создать обзор дня и убрать шум из выбора','action','createReview','amber','Обзор']
+    ];
+  }
+
+  function v63CalendarRows(h){
+    const rows=[...h.todayTasks.slice(0,2).map(t=>['🗓',t.title,`${t.time||'без времени'} · ${t.area||'задача'}`])];
+    if(h.dueOut[0]) rows.push(['⚖',`${h.dueOut[0].person} · ${v63Money(h.dueOut[0].amount)}`,`срок ${v63Fmt(h.dueOut[0].due)}`]);
+    if(!rows.length) rows.push(['✓','День не перегружен','можно выбрать один фокус вручную']);
+    return rows.slice(0,3).map(r=>`<div class="v63-row"><span class="v63-ico">${r[0]}</span><div><b>${v63Esc(r[1])}</b><small>${v63Esc(r[2])}</small></div><span class="v63-badge blue">день</span></div>`);
+  }
+
+  function v63OnboardingHtml(ob){
+    const labels={balance:'Баланс',debts:'Долги',goals:'Цели',habits:'Привычки',firstPlan:'Первый план'};
+    return `<div class="v63-row-list" style="margin-top:12px">${ob.keys.map(k=>`<div class="v63-row"><span class="v63-ico">${ob.done[k]?'✓':'○'}</span><div><b>${labels[k]}</b><small>${ob.done[k]?'готово':'нужно заполнить'}</small></div><button class="v63-mini ${ob.done[k]?'green':'blue'}" data-v63-action="markOnboarding" data-key="${k}">${ob.done[k]?'OK':'Готово'}</button></div>`).join('')}</div>`;
+  }
+
+  function v63InjectPanel(pageId){
+    const view=document.querySelector('#view');
+    if(!view || view.querySelector('.v63-injected')) return;
+    const h=v63Health();
+    let html='';
+    if(pageId==='finance') html=`<section class="v63-card v63-injected"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3>Финансовая стратегия V63</h3><p>Лимит 7 дней: <b>${v63Money(h.safeLimit)}</b>. Ближайшие обязательства: <b>${v63Money(h.debtSum)}</b>. Прогноз месяца: <b>${v63Money(h.f.net||0)}</b>.</p></div><button class="v63-mini green" data-v63-action="createDebtPlan">Создать план</button></div></section>`;
+    if(pageId==='tasks') html=`<section class="v63-card v63-injected"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3>Task Execution Engine V63</h3><p>${h.focus?`Главный шаг: ${v63Esc(h.focus.title)}.`:'Главный шаг не выбран.'} Просрочено: ${h.overdue.length}. Сегодня: ${h.todayTasks.length}.</p></div><button class="v63-mini blue" data-v63-action="createTinyTask">Шаг 15 минут</button></div></section>`;
+    if(pageId==='calendar') html=`<section class="v63-card v63-injected"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3>Calendar Command Center V63</h3><p>Нагрузка дня: <b>${h.score}%</b>. Учитываются задачи, просрочки, долги и привычки.</p></div><button class="v63-mini blue" data-go="command">Командный центр</button></div></section>`;
+    if(pageId==='system') html=`<section class="v63-card v63-injected"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3>Data Safety Pro V63</h3><p>Backup, диагностика и единая сборка. Build: ${V63_BUILD}.</p></div><button class="v63-mini blue" data-v63-action="backup">Backup</button></div></section>`;
+    if(html) view.insertAdjacentHTML('afterbegin',html);
+  }
+
+  function v63CreateTinyTask(){const h=v63Health();state.tasks=Array.isArray(state.tasks)?state.tasks:[];state.tasks.unshift({id:v63Uid(),title:`15 минут: ${h.focus?h.focus.title:'разобрать главный фокус'}`,area:h.focus?.area||'Командный центр',date:v63Today(),time:'',priority:'A',status:'Активно',google:false,reminder:'',note:'Создано Unified OS Upgrade V63'});try{save()}catch(e){}v63Toast('Создал шаг на 15 минут');v63Go('tasks')}
+  function v63CreateDebtPlan(){const h=v63Health();state.tasks=Array.isArray(state.tasks)?state.tasks:[];const debt=h.dueOut[0];const title=debt?`Финплан: ${debt.person} · ${v63Money(debt.amount)}`:`Финплан: проверить лимит ${v63Money(h.safeLimit)}`;state.tasks.unshift({id:v63Uid(),title,area:'Финансы',date:v63Today(),time:'12:00',priority:'A',status:'Активно',google:false,reminder:'',note:v63StrategyText(h)});try{save()}catch(e){}v63Toast('Финансовый план создан');v63Go('tasks')}
+  function v63CreateHabitMinimum(){const h=v63Health();const habit=h.habits.find(x=>!(x.marks&&x.marks[h.d]))||h.habits[0];state.tasks=Array.isArray(state.tasks)?state.tasks:[];state.tasks.unshift({id:v63Uid(),title:`Минимум ритма: ${habit?(habit.name||habit.title||'одна привычка'):'одна простая привычка'}`,area:'Привычки',date:v63Today(),time:'',priority:'B',status:'Активно',google:false,reminder:'',note:'Минимальная версия привычки, V63'});try{save()}catch(e){}v63Toast('Минимум ритма создан');v63Go('tasks')}
+  function v63CreateReview(){state.notes=Array.isArray(state.notes)?state.notes:[];state.notes.unshift({id:v63Uid(),title:'Unified OS brief',folder:'Обзоры',date:v63Today(),text:v63StrategyText(v63Health())});try{save()}catch(e){}v63Toast('Обзор создан в заметках');v63Go('notes')}
+  function v63CreateStrategy(){state.notes=Array.isArray(state.notes)?state.notes:[];state.notes.unshift({id:v63Uid(),title:'Стратегия недели V63',folder:'Обзоры',date:v63Today(),text:v63StrategyText(v63Health())});state.settings.v63.lastStrategyAt=new Date().toISOString();try{save()}catch(e){}v63Toast('Стратегия создана');v63Go('notes')}
+  function v63BuildDay(){const h=v63Health();state.tasks=Array.isArray(state.tasks)?state.tasks:[];const base=[`15 минут: ${h.focus?h.focus.title:'главный фокус дня'}`,h.dueOut[0]?`Финансы: проверить ${h.dueOut[0].person} · ${v63Money(h.dueOut[0].amount)}`:'',h.habits.find(x=>!(x.marks&&x.marks[h.d]))?`Минимум ритма: ${h.habits.find(x=>!(x.marks&&x.marks[h.d])).name||'привычка'}`:''].filter(Boolean);const exists=new Set(state.tasks.filter(t=>t.date===v63Today()).map(t=>String(t.title||'').toLowerCase()));let added=0;base.reverse().forEach((title,i)=>{if(exists.has(title.toLowerCase()))return;added++;state.tasks.unshift({id:v63Uid(),title,area:'Командный центр',date:v63Today(),time:'',priority:i===0?'A':'B',status:'Активно',google:false,reminder:'',note:'День собран V63'})});state.settings.v63.onboardingDone.firstPlan=true;try{save()}catch(e){}v63Toast(added?`День собран: ${added} задач`:'День уже собран');v63Go('daily')}
+  function v63Backup(){try{const payload={version:V63_BUILD,exportedAt:new Date().toISOString(),state};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='second-brain-os-backup-v63-'+v63Today()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);v63Toast('Backup скачан')}catch(e){console.error(e);v63Toast('Не удалось скачать backup')}}
+  function v63CopyBrief(){const text=v63StrategyText(v63Health());if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>v63Toast('Brief скопирован')).catch(()=>v63Toast('Не удалось скопировать'));else v63Toast(text)}
+  function v63MarkOnboarding(el){state.settings.v63.onboardingDone[el.dataset.key||'firstPlan']=true;try{save()}catch(e){}render();v63Toast('Шаг отмечен')}
+  function v63OpenOnboarding(){
+    const h=v63Health();
+    if(typeof openModal==='function') openModal('Первичная настройка V63',`<div class="form"><div class="field"><label>Фактический баланс</label><input id="v63_balance" type="number" value="${Number(state.settings.currentBalance||0)}"></div><div class="field"><label>Главная цель</label><input id="v63_goal" placeholder="Например: закрыть долги / накопить резерв"></div><div class="field span-2"><label>Комментарий к неделе</label><textarea id="v63_note">Лимит 7 дней: ${v63Money(h.safeLimit)}. Ближайшие обязательства: ${v63Money(h.debtSum)}.</textarea></div></div><div class="row-actions" style="margin-top:14px"><button class="btn" data-v63-action="saveOnboarding">Сохранить настройку</button><button class="ghost-btn" data-v63-action="buildDay">Собрать первый план</button></div>`);
+  }
+  function v63SaveOnboarding(){state.settings.currentBalance=Number(document.getElementById('v63_balance')?.value||0);const goal=document.getElementById('v63_goal')?.value.trim();if(goal){state.goals=Array.isArray(state.goals)?state.goals:[];state.goals.unshift({id:v63Uid(),title:goal,kind:'Личная',area:'Командный центр',target:0,current:0,deadline:'',note:'Создано onboarding V63'});state.settings.v63.onboardingDone.goals=true}state.settings.v63.onboardingDone.balance=true;state.settings.v63.onboardingDone.debts=!!v63Arr('debts').length;state.settings.v63.onboardingDone.habits=!!v63Arr('habits').length;try{save();closeModal&&closeModal()}catch(e){}render();v63Toast('Настройка сохранена')}
+
+  const oldGoV63=typeof go==='function'?go:null;
+  function v63Go(id){if(id==='command'){page='command';try{location.hash='command'}catch(e){}try{if(typeof render==='function')render();else v63Post()}catch(e){v63Post()}setTimeout(v63Post,80);return}if(oldGoV63)return oldGoV63(id);try{location.hash=id;if(typeof render==='function')render()}catch(e){}}
+  try{go=v63Go}catch(e){}
+
+  function v63Post(){
+    try{
+      v63Ensure();v63Styles();v63SetBuild();
+      document.querySelectorAll('[data-go="command"]').forEach(el=>el.classList.add('v63-command-hot'));
+      document.querySelectorAll('[data-v59-action="dayPlan"]').forEach(el=>{el.removeAttribute('data-v59-action');el.setAttribute('data-go','command')});
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='command'){
+        const view=document.querySelector('#view');
+        if(view) view.innerHTML=v63CommandPage();
+        document.querySelectorAll('.v59-nav-item').forEach(el=>el.classList.toggle('active',el.dataset.go==='command'));
+      }else v63InjectPanel(current);
+    }catch(e){console.error('[V63 post]',e)}
+  }
+
+  const oldRenderV63=typeof render==='function'?render:null;
+  if(oldRenderV63){render=function(){v63Ensure();const r=oldRenderV63.apply(this,arguments);setTimeout(v63Post,90);return r}}
+  window.addEventListener('click',function(e){
+    const a=e.target.closest&&e.target.closest('[data-v63-action]');
+    if(!a)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    const act=a.dataset.v63Action;
+    if(act==='buildDay')return v63BuildDay();
+    if(act==='createTinyTask')return v63CreateTinyTask();
+    if(act==='createDebtPlan')return v63CreateDebtPlan();
+    if(act==='createHabitMinimum')return v63CreateHabitMinimum();
+    if(act==='createReview')return v63CreateReview();
+    if(act==='createStrategy')return v63CreateStrategy();
+    if(act==='backup')return v63Backup();
+    if(act==='copyBrief')return v63CopyBrief();
+    if(act==='markOnboarding')return v63MarkOnboarding(a);
+    if(act==='openOnboarding')return v63OpenOnboarding();
+    if(act==='saveOnboarding')return v63SaveOnboarding();
+  },true);
+  window.addEventListener('hashchange',()=>setTimeout(v63Post,90));
+  try{v63Ensure();v63Styles();v63SetBuild();render()}catch(e){console.error('[V63 init]',e)}
+})();
