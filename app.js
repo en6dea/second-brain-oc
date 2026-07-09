@@ -5189,3 +5189,266 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   try{v61Styles();v61SetBuild();render();}catch(e){console.error('[V61 init]',e)}
 })();
+
+
+/* ===== V62 AI LIFE COACH: real coach page + action engine ===== */
+(function(){
+  const V62_BUILD='second-brain-space-v62-ai-life-coach-20260709';
+  const V62_LABEL='V62 · AI LIFE COACH';
+  try{localStorage.setItem('secondBrainOS.currentBuild',V62_BUILD);}catch(e){}
+
+  function v62Arr(k){return Array.isArray(state&&state[k])?state[k]:[]}
+  function v62Today(){return typeof today==='function'?today():new Date().toISOString().slice(0,10)}
+  function v62Add(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+  function v62Esc(v){return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]))}
+  function v62Money(v){try{return money(v)}catch(e){return `${Math.round(Number(v)||0).toLocaleString('ru-RU')} ₽`}}
+  function v62Fmt(d){try{return fmt(d)}catch(e){return d||'—'}}
+  function v62Uid(){try{return uid()}catch(e){return 'v62_'+Date.now().toString(36)+Math.random().toString(36).slice(2)}}
+  function v62Done(x){return ['готово','закрыт','закрыто','done'].includes(String(x.status||'').trim().toLowerCase())}
+  function v62Sum(arr){return arr.reduce((s,x)=>s+Number(x.amount||0),0)}
+  function v62Toast(msg){try{(typeof v59Toast==='function'?v59Toast:(typeof toast==='function'?toast:alert))(msg)}catch(e){}}
+
+  function v62Ensure(){
+    state.settings=state.settings||{};
+    state.settings.v62=Object.assign({mode:'focus',lastBriefAt:''},state.settings.v62||{});
+    if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='coach')){
+      const idx=SECTIONS.findIndex(s=>s.id==='daily');
+      SECTIONS.splice(idx>=0?idx+1:1,0,{id:'coach',label:'AI Coach',icon:'✦',color:'#7c3aed',group:'ПРОСТРАНСТВО'});
+    }
+  }
+
+  function v62SetBuild(){
+    try{
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V62_BUILD);
+      document.body?.setAttribute('data-sbos-build',V62_BUILD);
+      const v=document.querySelector('.v59-version,.version');
+      if(v) v.textContent=V62_LABEL;
+    }catch(e){}
+  }
+
+  function v62Styles(){
+    if(document.getElementById('v62-ai-life-coach-style')) return;
+    const st=document.createElement('style');
+    st.id='v62-ai-life-coach-style';
+    st.textContent=`
+      .v62-page{max-width:1600px;margin:0 auto;padding-bottom:34px}.v62-hero{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:34px;background:radial-gradient(circle at 88% 10%,rgba(124,58,237,.18),transparent 32%),linear-gradient(135deg,#ffffff,#f5f9ff);box-shadow:0 30px 76px rgba(37,99,235,.12);padding:26px;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(300px,.82fr);gap:20px;margin-bottom:18px}.v62-kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid #ddd6fe;background:#f5f3ff;color:#7c3aed;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:1000}.v62-hero h1{margin:14px 0 8px;color:#071d44;font-size:40px;line-height:1;letter-spacing:-.065em}.v62-hero p{margin:0;color:#58708f;font-weight:820;line-height:1.55}.v62-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.v62-btn{border:1px solid #dbe7f6;background:#fff;color:#334155;border-radius:16px;padding:12px 14px;font-weight:1000;box-shadow:0 12px 26px rgba(37,99,235,.05)}.v62-btn.primary{border:0;color:#fff;background:linear-gradient(135deg,#7c3aed,#2563eb);box-shadow:0 20px 42px rgba(124,58,237,.22)}.v62-btn.green{border:0;color:#fff;background:linear-gradient(135deg,#10b981,#34d399)}.v62-btn:hover{transform:translateY(-1px)}.v62-mode-card{border:1px solid #dbe7f6;border-radius:28px;background:rgba(255,255,255,.76);padding:16px;display:grid;gap:10px}.v62-mode-card h3{margin:0;color:#102044;letter-spacing:-.04em}.v62-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.v62-mode{border:1px solid #e3ecf8;background:#fff;border-radius:18px;padding:12px;text-align:left;font-weight:1000;color:#334155}.v62-mode small{display:block;margin-top:5px;color:#64748b;font-weight:780;line-height:1.35}.v62-mode.active{border-color:#c4b5fd;background:linear-gradient(180deg,#f5f3ff,#fff);color:#6d28d9;box-shadow:0 14px 30px rgba(124,58,237,.12)}
+      .v62-grid{display:grid;gap:16px}.v62-cols-2{grid-template-columns:1.08fr .92fr}.v62-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.v62-card,.v62-signal,.v62-command-card{position:relative;overflow:hidden;border:1px solid #dbe7f6;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.98));box-shadow:0 22px 56px rgba(37,99,235,.085);padding:18px}.v62-card:before,.v62-command-card:before{content:'';position:absolute;right:-72px;top:-82px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.08),transparent 68%);pointer-events:none}.v62-card>* , .v62-command-card>*{position:relative;z-index:1}.v62-card h3,.v62-command-card h3{margin:0;color:#102044;font-size:20px;letter-spacing:-.045em}.v62-card p,.v62-command-card p{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:820;line-height:1.48}.v62-signal span{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7b8aa4;font-weight:1000}.v62-signal b{display:block;margin-top:9px;font-size:32px;letter-spacing:-.06em;color:#102044}.v62-signal small{display:block;margin-top:6px;color:#64748b;font-size:12px;font-weight:820;line-height:1.35}.v62-blue{color:#2563eb!important}.v62-green{color:#10b981!important}.v62-red{color:#ef4444!important}.v62-amber{color:#f59e0b!important}.v62-violet{color:#7c3aed!important}
+      .v62-brief{display:grid;gap:12px}.v62-brief-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #e2ebf7;background:#fff;border-radius:22px;padding:14px}.v62-ico{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:#f5f3ff;color:#7c3aed;font-weight:1000}.v62-brief-row b{display:block;color:#102044;letter-spacing:-.025em}.v62-brief-row small{display:block;margin-top:4px;color:#64748b;font-weight:820;line-height:1.35}.v62-badge{display:inline-flex;align-items:center;border:1px solid #dbe7f6;background:#f8fbff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;color:#475569;white-space:nowrap}.v62-badge.blue{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v62-badge.green{background:#ecfdf5;color:#10b981;border-color:#bbf7d0}.v62-badge.red{background:#fff1f2;color:#ef4444;border-color:#fecaca}.v62-badge.amber{background:#fff7ed;color:#d97706;border-color:#fed7aa}.v62-badge.violet{background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe}
+      .v62-command-list{display:grid;gap:11px}.v62-command-card{display:grid;grid-template-columns:54px minmax(0,1fr);gap:14px;align-items:start}.v62-command-card .v62-ico{width:54px;height:54px}.v62-command-card .v62-actions{grid-column:1/-1;display:flex;gap:9px;flex-wrap:wrap;margin-top:2px}.v62-mini{border:1px solid #dbe7f6;background:#fff;color:#334155;border-radius:13px;padding:9px 11px;font-size:12px;font-weight:1000}.v62-mini.primary{background:#eef5ff;color:#2563eb;border-color:#bfdbfe}.v62-mini.green{background:#ecfdf5;color:#10b981;border-color:#bbf7d0}.v62-mini.red{background:#fff1f2;color:#ef4444;border-color:#fecaca}.v62-insight{border:1px solid #dbe7f6;background:linear-gradient(135deg,#102044,#2563eb);color:#fff;border-radius:30px;padding:20px;box-shadow:0 28px 66px rgba(37,99,235,.24)}.v62-insight h3{margin:0;font-size:22px;letter-spacing:-.045em}.v62-insight p{color:rgba(255,255,255,.82);font-weight:820;line-height:1.55}.v62-insight .v62-mini{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24);color:#fff}.v62-insight .v62-mini.primary{background:#fff;color:#2563eb}.v62-note{border:1px dashed #c7dbf7;background:#f8fbff;border-radius:20px;padding:14px;color:#53657f;font-size:13px;font-weight:830;line-height:1.5}.v62-nav-hot{box-shadow:0 0 0 4px rgba(124,58,237,.10)!important}
+      @media(max-width:1280px){.v62-hero,.v62-cols-2{grid-template-columns:1fr}.v62-cols-3{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v62-hero{padding:18px;border-radius:26px}.v62-hero h1{font-size:31px}.v62-cols-3,.v62-mode-grid{grid-template-columns:1fr}.v62-brief-row,.v62-command-card{grid-template-columns:1fr}.v62-hero-actions .v62-btn,.v62-command-card .v62-mini{width:100%;justify-content:center}.v62-page{padding-bottom:86px}}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function v62Health(){
+    const d=v62Today(), week=v62Add(d,7);
+    const tasks=v62Arr('tasks');
+    const activeTasks=tasks.filter(t=>!v62Done(t));
+    const todayTasks=activeTasks.filter(t=>(t.date||d)===d);
+    const overdueTasks=activeTasks.filter(t=>t.date && t.date<d);
+    const weekTasks=activeTasks.filter(t=>t.date && t.date>d && t.date<=week);
+    const debts=(typeof activeDebts==='function'?activeDebts():v62Arr('debts').filter(x=>!v62Done(x)));
+    const dueOut=debts.filter(x=>x.direction==='out' && x.due && x.due<=week).sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')));
+    const dueIn=debts.filter(x=>x.direction==='in' && x.due && x.due<=week).sort((a,b)=>String(a.due||'').localeCompare(String(b.due||'')));
+    const overdueDebts=debts.filter(x=>x.due && x.due<d);
+    const habits=v62Arr('habits');
+    const habitsDone=habits.filter(h=>h.marks&&h.marks[d]).length;
+    const openHabits=habits.filter(h=>!(h.marks&&h.marks[d]));
+    const f=(typeof periodInfo==='function'&&typeof financeTotals==='function')?financeTotals(periodInfo('month')):{inc:0,exp:0,net:0};
+    const load=todayTasks.length + overdueTasks.length*2 + dueOut.length*2 + overdueDebts.length*2;
+    const score=Math.max(0,Math.min(100,100-load*7));
+    const focus=[...overdueTasks,...todayTasks,...weekTasks].sort((a,b)=>{
+      const p={A:1,'Высокий':1,B:2,'Средний':2,C:3,'Низкий':3};
+      return (p[a.priority]||9)-(p[b.priority]||9)||String(a.date||'').localeCompare(String(b.date||''));
+    })[0];
+    return {d,week,tasks,activeTasks,todayTasks,overdueTasks,weekTasks,debts,dueOut,dueIn,overdueDebts,habits,habitsDone,openHabits,f,load,score,focus};
+  }
+
+  function v62ModeInfo(mode,h){
+    if(mode==='minimum') return ['Режим минимума','Закрыть один важный шаг, один финансовый риск и минимум ритма. Остальное не трогать.','amber'];
+    if(mode==='money') return ['Финансовый режим','Сначала долги, возвраты и лимит дня. Задачи без денег можно отложить.','green'];
+    return h.score<45?['Фокус без перегруза','День перегружен: система предлагает короткий план без распыления.','red']:['Фокус дня','Выбрать главное действие и спокойно вести день по короткому маршруту.','blue'];
+  }
+
+  function v62BriefRows(h){
+    const debt=h.dueOut[0];
+    const incoming=h.dueIn[0];
+    const habit=h.openHabits[0];
+    const rows=[];
+    if(h.focus) rows.push(['✓','Главный шаг',h.focus.title,`${h.focus.area||'Задача'} · ${h.focus.date?v62Fmt(h.focus.date):'без даты'} ${h.focus.time?'· '+h.focus.time:''}`,'tasks','blue']);
+    else rows.push(['✓','Главный шаг','Создать маленькую задачу на 15 минут','Сейчас нет очевидной главной задачи','tasks','green']);
+    if(debt) rows.push(['₽','Финансовый риск',`${debt.person} · ${v62Money(debt.amount)}`,`срок ${v62Fmt(debt.due)} · лучше поставить напоминание`,'debts','red']);
+    else if(incoming) rows.push(['↗','Возврат денег',`${incoming.person} · ${v62Money(incoming.amount)}`,`ожидается до ${v62Fmt(incoming.due)}`,'debts','green']);
+    else rows.push(['₽','Деньги','Проверить лимит дня и свежие расходы',`прогноз месяца: ${v62Money(h.f.net||0)}`,'finance','blue']);
+    if(h.habits.length) rows.push(['∿','Ритм',habit?`Отметить: ${habit.name||habit.title||'привычку'}`:'Ритм на сегодня закрыт',`${h.habitsDone}/${h.habits.length} привычек отмечено сегодня`,'habits',habit?'amber':'green']);
+    rows.push(['☷','Разгрузка','Сбросить лишнее во входящие','чтобы не держать в голове и не прыгать между папками','inbox','violet']);
+    return rows;
+  }
+
+  function v62BriefText(h){
+    const mode=state.settings?.v62?.mode||'focus';
+    const [title,sub]=v62ModeInfo(mode,h);
+    const debt=h.dueOut[0];
+    const habit=h.openHabits[0];
+    return [
+      `AI Life Coach · ${title}`,
+      `Дата: ${v62Fmt(h.d)}`,
+      '',
+      `Состояние дня: ${h.score}% · задач сегодня ${h.todayTasks.length} · просрочено ${h.overdueTasks.length}.`,
+      `Главное действие: ${h.focus?h.focus.title:'создать один шаг на 15 минут'}.`,
+      `Финансовый фокус: ${debt?`${debt.person}, ${v62Money(debt.amount)}, срок ${v62Fmt(debt.due)}`:`прогноз месяца ${v62Money(h.f.net||0)}`}.`,
+      `Ритм: ${h.habitsDone}/${h.habits.length}${habit?`, следующий минимум — ${habit.name||habit.title||'привычка'}`:''}.`,
+      '',
+      `Рекомендация: ${sub}`
+    ].join('\n');
+  }
+
+  function v62CoachPage(){
+    v62Ensure(); v62Styles();
+    const h=v62Health();
+    const mode=state.settings?.v62?.mode||'focus';
+    const [modeTitle,modeSub,modeColor]=v62ModeInfo(mode,h);
+    const debtAmount=v62Sum(h.dueOut);
+    const incoming=v62Sum(h.dueIn);
+    const balance=Number(state.settings?.currentBalance||0);
+    const safeLimit=Math.max(0,Math.round((balance+incoming-debtAmount)/7));
+    const rows=v62BriefRows(h);
+    return `<div class="v62-page">
+      <section class="v62-hero">
+        <div><span class="v62-kicker">✦ AI Life Coach</span><h1>${v62Esc(modeTitle)}</h1><p>${v62Esc(modeSub)} Помощник работает без внешнего API: он читает текущие задачи, долги, финансы и привычки, а потом создаёт конкретные действия внутри приложения.</p><div class="v62-hero-actions"><button class="v62-btn primary" data-v62-action="createMinimumDay">Собрать день</button><button class="v62-btn green" data-v62-action="createCoachBrief">Создать brief</button><button class="v62-btn" data-go="daily">Умный день</button><button class="v62-btn" data-go="system">Система</button></div></div>
+        <aside class="v62-mode-card"><h3>Режим помощника</h3><div class="v62-mode-grid">${[['focus','Фокус','главное действие'],['minimum','Минимум','когда перегруз'],['money','Деньги','долги и лимит']].map(([id,t,s])=>`<button class="v62-mode ${mode===id?'active':''}" data-v62-action="setMode" data-mode="${id}">${t}<small>${s}</small></button>`).join('')}</div><div class="v62-note">Текущий режим влияет на рекомендации и создаваемые действия. Это уже рабочая логика, не декоративная карточка.</div></aside>
+      </section>
+      <section class="v62-grid v62-cols-3" style="margin-bottom:16px">
+        <article class="v62-signal"><span>Нагрузка дня</span><b class="v62-${modeColor}">${h.score}%</b><small>${h.score<45?'режим минимума':'можно вести день спокойно'}</small></article>
+        <article class="v62-signal"><span>Финансовый риск</span><b class="${debtAmount?'v62-red':'v62-green'}">${v62Money(debtAmount)}</b><small>${h.dueOut.length} обязательств на 7 дней</small></article>
+        <article class="v62-signal"><span>Лимит 7 дней</span><b class="v62-blue">${v62Money(safeLimit)}</b><small>оценка после ближайших долгов</small></article>
+      </section>
+      <section class="v62-grid v62-cols-2">
+        <article class="v62-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px"><div><h3>Короткий brain-brief</h3><p>Самое важное из всей системы в одном месте.</p></div><button class="v62-mini primary" data-v62-action="copyBrief">Скопировать</button></div><div class="v62-brief">${rows.map(r=>`<div class="v62-brief-row"><span class="v62-ico">${r[0]}</span><div><b>${v62Esc(r[1])}: ${v62Esc(r[2])}</b><small>${v62Esc(r[3])}</small></div><button class="v62-mini ${r[5]==='red'?'red':r[5]==='green'?'green':'primary'}" data-go="${r[4]}">Открыть</button></div>`).join('')}</div></article>
+        <aside class="v62-insight"><h3>Что бы я сделал сейчас</h3><p>${v62Esc(v62BriefText(h).split('\n').slice(4).join(' '))}</p><div class="v62-hero-actions"><button class="v62-mini primary" data-v62-action="createTinyTask">Шаг 15 минут</button><button class="v62-mini" data-v62-action="createDebtTask">Фин. напоминание</button><button class="v62-mini" data-v62-action="createHabitTask">Минимум привычки</button></div></aside>
+      </section>
+      <section class="v62-grid v62-cols-3" style="margin-top:16px">
+        <article class="v62-command-card"><span class="v62-ico">1</span><div><h3>Разобрать перегруз</h3><p>Создаёт один маленький шаг вместо большого комка задач.</p></div><div class="v62-actions"><button class="v62-mini primary" data-v62-action="createTinyTask">Создать задачу</button><button class="v62-mini" data-go="tasks">Открыть задачи</button></div></article>
+        <article class="v62-command-card"><span class="v62-ico">2</span><div><h3>Закрыть денежный риск</h3><p>Берёт ближайший долг/обязательство и делает напоминание на сегодня.</p></div><div class="v62-actions"><button class="v62-mini red" data-v62-action="createDebtTask">Создать напоминание</button><button class="v62-mini" data-go="debts">Долги</button></div></article>
+        <article class="v62-command-card"><span class="v62-ico">3</span><div><h3>Сохранить ритм</h3><p>Если привычки просели, создаёт минимальную задачу без чувства провала.</p></div><div class="v62-actions"><button class="v62-mini green" data-v62-action="createHabitTask">Минимум ритма</button><button class="v62-mini" data-go="habits">Привычки</button></div></article>
+      </section>
+    </div>`;
+  }
+
+  function v62CreateTinyTask(){
+    const h=v62Health();
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({id:v62Uid(),title:`15 минут: ${h.focus?h.focus.title:'разобрать главный завал дня'}`,area:h.focus?.area||'AI Coach',date:v62Today(),time:'',priority:'A',status:'Активно',google:false,reminder:'',note:'Создано AI Life Coach V62'});
+    try{save()}catch(e){}
+    v62Toast('Создал шаг на 15 минут');
+    v62Go('tasks');
+  }
+  function v62CreateDebtTask(){
+    const h=v62Health(); const d=h.dueOut[0]||h.dueIn[0];
+    if(!d){v62Toast('Ближайших долгов не нашёл'); return v62Go('finance');}
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({id:v62Uid(),title:`Финансы: ${d.direction==='out'?'оплатить/проверить':'напомнить о возврате'} ${d.person} · ${v62Money(d.amount)}`,area:'Финансы',date:v62Today(),time:'12:00',priority:'A',status:'Активно',google:false,reminder:'',note:`AI Coach V62. Срок: ${v62Fmt(d.due)}. ${d.note||''}`});
+    try{save()}catch(e){}
+    v62Toast('Финансовое напоминание создано');
+    v62Go('tasks');
+  }
+  function v62CreateHabitTask(){
+    const h=v62Health(); const habit=h.openHabits[0]||h.habits[0];
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({id:v62Uid(),title:`Минимум ритма: ${habit?(habit.name||habit.title||'одна привычка'):'одна простая привычка'}`,area:'Привычки',date:v62Today(),time:'',priority:'B',status:'Активно',google:false,reminder:'',note:'Минимальная версия привычки, создано AI Life Coach V62'});
+    try{save()}catch(e){}
+    v62Toast('Задача для ритма создана');
+    v62Go('tasks');
+  }
+  function v62CreateCoachBrief(){
+    const h=v62Health();
+    state.notes=Array.isArray(state.notes)?state.notes:[];
+    state.notes.unshift({id:v62Uid(),title:'AI brief дня',folder:'Обзоры',date:v62Today(),text:v62BriefText(h)});
+    state.settings.v62.lastBriefAt=new Date().toISOString();
+    try{save()}catch(e){}
+    v62Toast('AI brief создан в заметках');
+    v62Go('notes');
+  }
+  function v62CreateMinimumDay(){
+    const h=v62Health();
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    const exists=new Set(state.tasks.filter(t=>t.date===v62Today()).map(t=>String(t.title||'').toLowerCase()));
+    const adds=[
+      `15 минут: ${h.focus?h.focus.title:'разобрать главный завал дня'}`,
+      h.dueOut[0]?`Финансы: проверить ${h.dueOut[0].person} · ${v62Money(h.dueOut[0].amount)}`:'',
+      h.openHabits[0]?`Минимум ритма: ${h.openHabits[0].name||h.openHabits[0].title||'одна привычка'}`:''
+    ].filter(Boolean).filter(t=>!exists.has(t.toLowerCase()));
+    adds.reverse().forEach((title,i)=>state.tasks.unshift({id:v62Uid(),title,area:i===1?'Финансы':'AI Coach',date:v62Today(),time:'',priority:i===0?'A':'B',status:'Активно',google:false,reminder:'',note:'Собрано AI Life Coach V62'}));
+    try{save()}catch(e){}
+    v62Toast(adds.length?`Собрал день: ${adds.length} задач`:'День уже собран');
+    v62Go('daily');
+  }
+  function v62CopyBrief(){
+    const text=v62BriefText(v62Health());
+    if(navigator.clipboard) navigator.clipboard.writeText(text).then(()=>v62Toast('Brief скопирован')).catch(()=>v62Toast('Не удалось скопировать'));
+    else v62Toast(text);
+  }
+  function v62SetMode(el){
+    state.settings=state.settings||{}; state.settings.v62=state.settings.v62||{};
+    state.settings.v62.mode=el.dataset.mode||'focus';
+    try{save()}catch(e){}
+    render();
+  }
+
+  const oldGoV62=typeof go==='function'?go:null;
+  function v62Go(id){
+    if(id==='coach'){
+      page='coach';
+      try{location.hash='coach'}catch(e){}
+      try{if(typeof render==='function') render(); else v62Post();}catch(e){v62Post();}
+      setTimeout(v62Post,80);
+      return;
+    }
+    if(oldGoV62) return oldGoV62(id);
+    try{location.hash=id; if(typeof render==='function') render();}catch(e){}
+  }
+  try{go=v62Go;}catch(e){}
+
+  function v62Post(){
+    try{
+      v62Ensure(); v62Styles(); v62SetBuild();
+      document.querySelectorAll('[data-v59-action="coach"]').forEach(el=>{el.removeAttribute('data-v59-action');el.setAttribute('data-go','coach');});
+      document.querySelectorAll('[data-go="coach"]').forEach(el=>el.classList.add('v62-nav-hot'));
+      const ai=document.querySelector('.v61-ai .v61-actions');
+      if(ai && !ai.querySelector('[data-go="coach"]')) ai.insertAdjacentHTML('afterbegin','<button data-go="coach">AI Coach V62</button>');
+      const current=(location.hash||'').replace('#','')||page||'dashboard';
+      if(current==='coach'){
+        const view=document.querySelector('#view');
+        if(view) view.innerHTML=v62CoachPage();
+        document.querySelectorAll('.v59-nav-item').forEach(el=>el.classList.toggle('active',el.dataset.go==='coach'));
+      }
+    }catch(e){console.error('[V62 post]',e)}
+  }
+
+  const oldRenderV62=typeof render==='function'?render:null;
+  if(oldRenderV62){
+    render=function(){
+      v62Ensure();
+      const r=oldRenderV62.apply(this,arguments);
+      setTimeout(v62Post,90);
+      return r;
+    };
+  }
+
+  window.addEventListener('click',function(e){
+    const a=e.target.closest&&e.target.closest('[data-v62-action]');
+    if(!a) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const act=a.dataset.v62Action;
+    if(act==='setMode') return v62SetMode(a);
+    if(act==='createTinyTask') return v62CreateTinyTask();
+    if(act==='createDebtTask') return v62CreateDebtTask();
+    if(act==='createHabitTask') return v62CreateHabitTask();
+    if(act==='createCoachBrief') return v62CreateCoachBrief();
+    if(act==='createMinimumDay') return v62CreateMinimumDay();
+    if(act==='copyBrief') return v62CopyBrief();
+  },true);
+  window.addEventListener('hashchange',()=>{if((location.hash||'').replace('#','')==='coach') setTimeout(v62Post,90);});
+
+  try{v62Ensure();v62Styles();v62SetBuild();render();}catch(e){console.error('[V62 init]',e)}
+})();
