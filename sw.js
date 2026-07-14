@@ -1,5 +1,110 @@
-const CACHE_NAME='second-brain-space-v52-living-premium-ui-20260708';
-const ASSETS=['./','./index.html','./app.js','./manifest.webmanifest','./offline.html'];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS).catch(()=>{}))) });
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{const clone=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(event.request,clone)).catch(()=>{});return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./offline.html'))))});
+const CACHE_NAME = 'second-brain-space-v67-8-reminder-center-20260714';
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './app.js',
+  './app-v64.js',
+  './app-v65.js',
+  './app-v66.js',
+  './app-v67.js',
+  './app-v67-life.js',
+  './styles-v64.css',
+  './styles-v65.css',
+  './styles-v66.css',
+  './styles-v67.css',
+  './manifest.webmanifest',
+  './offline.html',
+  './icon-192.png',
+  './icon-512.png'
+];
+
+self.addEventListener('install', event => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS)));
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
+          return response;
+        })
+        .catch(async () => (await caches.match('./index.html')) || caches.match('./offline.html'))
+    );
+    return;
+  }
+
+  if (['script', 'style', 'manifest', 'worker'].includes(request.destination)) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request, { ignoreSearch: true }))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request, { ignoreSearch: true }).then(cached => {
+      const network = fetch(request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        }
+        return response;
+      });
+      return cached || network;
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || './#dashboard', self.registration.scope).href;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+      const existing = windows[0];
+      if (existing) {
+        existing.navigate(target);
+        return existing.focus();
+      }
+      return clients.openWindow(target);
+    })
+  );
+});
+
+self.addEventListener('push', event => {
+  let payload = {};
+  try { payload = event.data?.json?.() || {}; }
+  catch (error) { payload = { body: event.data?.text?.() || '' }; }
+  const title = payload.title || 'Second Brain OS';
+  const options = {
+    body: payload.body || 'Появился новый личный сигнал.',
+    tag: payload.tag || 'sbos-web-push',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    data: { url: payload.url || './#dashboard' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
