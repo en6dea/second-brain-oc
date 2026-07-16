@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v67-cloud-safe-20260714-7';
+const BUILD='second-brain-space-v72-polina-state-20260716-r2';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -94,7 +94,7 @@ window.addEventListener('click',function(e){
     polinaMarkStart:()=>window.markPolinaPeriodStart?window.markPolinaPeriodStart():toast('Полина: отметка не готова')
   };
   if(act && actions[act.dataset.action]) return run(actions[act.dataset.action]);
-  if(goEl) return run(()=>typeof window.v70Navigate==='function'?window.v70Navigate(goEl.dataset.go):go(goEl.dataset.go));
+  if(goEl) return run(()=>{const target=goEl.dataset.go;if(target==='polina'&&window.PolinaState?.navigate)return window.PolinaState.navigate();return typeof window.v70Navigate==='function'?window.v70Navigate(target):go(target)});
 },true);
 
 
@@ -397,7 +397,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='polina')){
     const idx=SECTIONS.findIndex(s=>s.id==='personal');
-    SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Полина',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
+    SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Состояние Полины',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
   }
 
   function ensurePolinaStyles(){
@@ -1076,7 +1076,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   function ensurePolinaV33(){
     if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='polina')){
       const idx=SECTIONS.findIndex(s=>s.id==='personal');
-      SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Полина',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
+      SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Состояние Полины',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
     }
     state.settings=state.settings||{};
     state.settings.polinaCycle={lastStart:'',cycleLength:28,duration:5,...(state.settings.polinaCycle||{})};
@@ -1298,7 +1298,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     try{
       if(Array.isArray(SECTIONS) && !SECTIONS.some(s=>s.id==='polina')){
         const idx=SECTIONS.findIndex(s=>s.id==='personal');
-        SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Полина',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
+        SECTIONS.splice(idx>=0?idx+1:SECTIONS.length,0,{id:'polina',label:'Состояние Полины',icon:'🌸',color:'#ec4899',group:'ЛИЧНОЕ'});
       }
       state=settingsSafeStateV34(state);
     }catch(e){console.error('[V34 Polina ensure]',e)}

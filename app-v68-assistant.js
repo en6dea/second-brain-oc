@@ -354,7 +354,7 @@
         { title: 'Forex', routes: ['trading', 'trading-course'] }
       ] },
       { id: 'memory', icon: '◇', title: 'Личная память', sections: [
-        { title: 'Я и люди', routes: ['subconscious', 'people', 'personal'] },
+        { title: 'Я и люди', routes: ['subconscious', 'people', 'personal', 'polina'] },
         { title: 'Мысли и знания', routes: ['inbox', 'notes', 'ideas', 'documents', 'books', 'films'] },
         { title: 'Желания и опыт', routes: ['wishes', 'trips'] }
       ] },

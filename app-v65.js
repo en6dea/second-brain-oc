@@ -4,7 +4,7 @@
   const V65_BUILD = 'second-brain-space-v65-premium-life-20260714-5';
   const V65_LABEL = 'V65 · PREMIUM LIFE OS';
   let polishQueued = false;
-  const HIDDEN_ROUTES = new Set(['daily', 'command', 'focus-path', 'attention', 'learning', 'reviews', 'expense-review', 'global-search', 'diagnostics', 'polina']);
+  const HIDDEN_ROUTES = new Set(['daily', 'command', 'focus-path', 'attention', 'learning', 'reviews', 'expense-review', 'global-search', 'diagnostics']);
 
   const list = key => Array.isArray(state?.[key]) ? state[key] : [];
   const text = value => String(value || '').trim();
