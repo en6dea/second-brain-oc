@@ -7,13 +7,19 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
 const num=v=>Number(String(v??'').replace(/\s/g,'').replace(',','.'))||0;
-const money=v=>`${Math.round(num(v)).toLocaleString('ru-RU')} ₽`;
+const money=v=>{const value=num(v);return `${value.toLocaleString('ru-RU',{minimumFractionDigits:Number.isInteger(value)?0:2,maximumFractionDigits:2})} ₽`};
 const dateKey=d=>{const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
 const today=()=>dateKey(new Date());
 const iso=d=>dateKey(d);
 const safeUrl=v=>{const raw=String(v??'').trim();if(!raw)return '';try{const u=new URL(raw,location.href);return ['http:','https:','mailto:','tel:'].includes(u.protocol)?u.href:''}catch(e){return ''}};
 const safeImageUrl=v=>{const raw=String(v??'').trim();if(/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw))return raw;const url=safeUrl(raw);return /^https?:/i.test(url)?url:''};
-function exportableState(){const clean=JSON.parse(JSON.stringify(state));if(clean.settings?.sync)delete clean.settings.sync.token;return clean}
+function exportableState(){
+  const clean=JSON.parse(JSON.stringify(state));
+  if(clean.settings?.sync) delete clean.settings.sync.token;
+  if(clean.settings) delete clean.settings.alfaWorkerKey;
+  if(clean.settings?.v66) delete clean.settings.v66.security;
+  return clean;
+}
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const month=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const fmt=d=>d?new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -88,7 +94,7 @@ window.addEventListener('click',function(e){
     polinaMarkStart:()=>window.markPolinaPeriodStart?window.markPolinaPeriodStart():toast('Полина: отметка не готова')
   };
   if(act && actions[act.dataset.action]) return run(actions[act.dataset.action]);
-  if(goEl) return run(()=>go(goEl.dataset.go));
+  if(goEl) return run(()=>typeof window.v70Navigate==='function'?window.v70Navigate(goEl.dataset.go):go(goEl.dataset.go));
 },true);
 
 
@@ -1422,14 +1428,14 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   personalPage=function(){
     ensureV35State(); ensureV35Styles();
-    const c=syncCfg();
     return layout('Личное','Личная база: люди, заметки, идеи, желания, книги, фильмы, путешествия, документы и Полина.',`
       <section class="personal-v35-actions">
-        <div class="sync-v35-pill">${c.auto&&c.gistId?'☁️ Синхронизация включена':'☁️ Синхронизация не настроена'}</div>
+        <div>
+          <div class="sync-v35-pill">⛨ Безопасная синхронизация Windows ↔ iPhone</div>
+          <p class="small muted" style="max-width:760px;margin:8px 0 0">Локальные данные остаются главными. Облако включается только после резервной копии и выбора разделов; финансы и долги по умолчанию не отправляются.</p>
+        </div>
         <div class="row-actions">
-          <button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button>
-          <button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button>
-          <button class="btn" data-sync-action="syncPush">Сохранить в облако</button>
+          <button class="btn" data-v67-action="open-account">Открыть управление</button>
         </div>
       </section>
       <section class="personal-v35-wrap">
@@ -1440,8 +1446,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
   function cloudSnapshot(){
     ensureV35State();
-    const clean=JSON.parse(JSON.stringify(state));
-    if(clean.settings&&clean.settings.sync&&clean.settings.sync.token) clean.settings.sync.token='';
+    const clean=typeof exportableState==='function'?exportableState():JSON.parse(JSON.stringify(state));
     return {app:'Second Brain OS',format:1,build:V35_BUILD,updatedAt:syncCfg().updatedAt||isoNow(),state:clean};
   }
 
@@ -1453,91 +1458,29 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   }
 
   async function createSyncGist(){
-    ensureV35State();
-    const c=syncCfg();
-    if(!c.token) return toast('Для создания облака нужен GitHub token с доступом gist');
-    const filename=c.filename||'second-brain-os-sync.json';
-    c.lastError=''; save();
-    try{
-      syncBusy=true; toast('Создаю облачное хранилище...');
-      const res=await fetch('https://api.github.com/gists',{method:'POST',headers:authHeaders(),body:JSON.stringify({description:'Second Brain OS sync storage',public:false,files:{[filename]:{content:JSON.stringify(cloudSnapshot(),null,2)}}})});
-      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
-      const data=await res.json();
-      state.settings.sync.gistId=data.id;
-      state.settings.sync.lastPush=isoNow();
-      state.settings.sync.lastError='';
-      save(); closeModal(); render(); toast('Облако создано и сохранено');
-    }catch(e){state.settings.sync.lastError=e.message||String(e);save();toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
-    finally{syncBusy=false;}
+    toast('Старая Gist-синхронизация отключена. Откройте личный аккаунт в разделе «Система».');
+    if(window.SecondBrainCloud?.openAccount) window.SecondBrainCloud.openAccount();
+    return false;
   }
 
   async function pushCloudSync(showToast=true){
-    ensureV35State();
-    const c=syncCfg();
-    if(!c.gistId || !c.token){ if(showToast) openSyncSettings(); return; }
-    if(syncBusy) return;
-    try{
-      syncBusy=true; c.lastError='';
-      if(showToast) toast('Сохраняю в облако...');
-      const filename=c.filename||'second-brain-os-sync.json';
-      const snap=cloudSnapshot();
-      const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(c.gistId.trim())}`,{method:'PATCH',headers:authHeaders(),body:JSON.stringify({files:{[filename]:{content:JSON.stringify(snap,null,2)}}})});
-      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
-      state.settings.sync.lastPush=isoNow();
-      state.settings.sync.lastError='';
-      save();
-      if(showToast) toast('Данные сохранены в облако');
-    }catch(e){state.settings.sync.lastError=e.message||String(e);save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
-    finally{syncBusy=false;}
+    if(showToast) toast('Старая Gist-синхронизация отключена. Используйте личный аккаунт в разделе «Система».');
+    return false;
   }
 
   async function pullCloudSync(showToast=true){
-    ensureV35State();
-    const localCfg={...syncCfg()};
-    if(!localCfg.gistId){ if(showToast) openSyncSettings(); return; }
-    if(syncBusy) return;
-    try{
-      syncBusy=true; syncPulling=true; localCfg.lastError='';
-      if(showToast) toast('Загружаю из облака...');
-      const res=await fetch(`https://api.github.com/gists/${encodeURIComponent(localCfg.gistId.trim())}`,{headers:authHeaders()});
-      if(!res.ok) throw new Error('GitHub Gist: '+res.status);
-      const data=await res.json();
-      const filename=localCfg.filename||'second-brain-os-sync.json';
-      const file=data.files?.[filename] || Object.values(data.files||{}).find(f=>f.filename===filename) || Object.values(data.files||{})[0];
-      if(!file || !file.content) throw new Error('Файл синхронизации не найден');
-      const parsed=JSON.parse(file.content);
-      const incoming=parsed.state||parsed;
-      const keepToken=localCfg.token||'';
-      state=normalize(incoming);
-      state.settings=state.settings||{};
-      state.settings.sync={...localCfg,...(state.settings.sync||{}),gistId:localCfg.gistId,token:keepToken,filename,lastPull:isoNow(),lastError:''};
-      save(); closeModal(); render();
-      if(showToast) toast('Данные загружены из облака');
-    }catch(e){state.settings.sync={...localCfg,lastError:e.message||String(e)};save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
-    finally{syncBusy=false;syncPulling=false;}
+    if(showToast) toast('Старая Gist-синхронизация отключена. Локальные данные не изменены.');
+    return false;
   }
 
   function openSyncSettings(){
-    ensureV35State();
-    const c=syncCfg();
-    openModal('Синхронизация на разных устройствах',`
-      <div class="sync-v35-panel">
-        <div class="sync-v35-note"><b>Как работает:</b> приложение остаётся на GitHub Pages, а данные синхронизируются через приватный GitHub Gist. На каждом устройстве нужно один раз вставить одинаковый Gist ID и token. Token хранится только в браузере этого устройства.</div>
-        <div class="form">
-          <div class="field"><label>GitHub Gist ID</label><input id="sync_gistId" value="${esc(c.gistId||'')}" placeholder="например: a1b2c3..."></div>
-          <div class="field"><label>GitHub token</label><input id="sync_token" type="password" value="${esc(c.token||'')}" placeholder="token с доступом gist"></div>
-          <div class="field"><label>Имя файла</label><input id="sync_filename" value="${esc(c.filename||'second-brain-os-sync.json')}"></div>
-          <div class="field"><label>Автосинхронизация</label><select id="sync_auto"><option value="false" ${!c.auto?'selected':''}>Выключена</option><option value="true" ${c.auto?'selected':''}>Включена</option></select></div>
-        </div>
-        <div class="small muted">${syncStatusText()}</div>
-        <div class="row-actions"><button class="ghost-btn" data-sync-action="syncCreateGist">Создать облако</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button><button class="ghost-btn" data-sync-action="syncPush">Сохранить в облако</button><button class="btn" data-sync-action="syncSaveSettings">Сохранить настройки</button></div>
-      </div>`);
+    if(window.SecondBrainCloud?.openAccount) return window.SecondBrainCloud.openAccount();
+    location.hash='system';
+    toast('Откройте карточку «Аккаунт и синхронизация»');
   }
 
   function saveSyncSettings(){
-    ensureV35State();
-    state.settings.sync={...syncCfg(),gistId:$('#sync_gistId')?.value.trim()||'',token:$('#sync_token')?.value.trim()||'',filename:$('#sync_filename')?.value.trim()||'second-brain-os-sync.json',auto:($('#sync_auto')?.value==='true'),lastError:''};
-    save(); closeModal(); render(); toast('Настройки синхронизации сохранены');
+    return openSyncSettings();
   }
 
   const oldOpenProfileToolsV35=typeof openProfileTools==='function'?openProfileTools:null;
@@ -1545,7 +1488,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     ensureV35State();
     openModal('Профиль, импорт и сервис',`
       <div class="grid cols-2"><button class="ghost-btn" data-action="exportData">Экспорт данных</button><button class="ghost-btn" data-action="restoreSections">Показать все папки</button><button class="ghost-btn" data-action="clearCache">Очистить кэш</button><button class="ghost-btn" data-action="setActualBalance">Фактический остаток</button></div>
-      <div class="sync-v35-panel" style="margin-top:14px"><div class="card-head"><div><h3>Синхронизация устройств</h3><p class="small muted">GitHub Gist: ${syncCfg().gistId?'настроен':'не настроен'} · ${syncStatusText()}</p></div><span class="pill ${syncCfg().auto?'green':'blue'}">${syncCfg().auto?'авто':'ручной режим'}</span></div><div class="row-actions"><button class="ghost-btn" data-sync-action="syncSettings">Настроить</button><button class="ghost-btn" data-sync-action="syncPull">Загрузить</button><button class="btn" data-sync-action="syncPush">Сохранить</button></div></div>
+      <div class="sync-v35-panel" style="margin-top:14px"><div class="card-head"><div><h3>Аккаунт и синхронизация</h3><p class="small muted">Безопасное объединение Windows ↔ iPhone после резервной копии.</p></div><span class="pill blue">по подтверждению</span></div><div class="row-actions"><button class="btn" data-v67-action="open-account" type="button">Открыть управление</button></div></div>
       <div class="csv-import-box" style="margin-top:14px"><h3>Импорт CSV банка</h3><p class="small muted">Дубли удаляются автоматически.</p><input type="file" id="csvFile" accept=".csv,text/csv"><div class="row-actions" style="margin-top:10px"><button class="btn" data-action="importBankCsv">Импортировать CSV</button></div></div>
       <p class="small muted" style="margin-top:12px">Сборка: ${V35_BUILD}</p>`);
   };
@@ -1557,11 +1500,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
       if(!syncPulling) state.settings.sync.updatedAt=isoNow();
       const res=oldSaveV35();
       try{ localStorage.setItem('secondBrainOS.currentBuild',V35_BUILD); }catch(e){}
-      const c=syncCfg();
-      if(c.auto && c.gistId && c.token && !syncPulling){
-        clearTimeout(syncTimer);
-        syncTimer=setTimeout(()=>pushCloudSync(false),1500);
-      }
+      clearTimeout(syncTimer);
       return res;
     };
   }
@@ -1592,15 +1531,10 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
 
   async function autoPullOnLoad(){
-    ensureV35State();
-    const c=syncCfg();
-    if(!c.auto||!c.gistId) return;
-    const last=Date.parse(c.lastPull||0)||0;
-    if(Date.now()-last<60000) return;
-    await pullCloudSync(false);
+    return false;
   }
 
-  try{ensureV35State();ensureV35Styles();save();render();setTimeout(autoPullOnLoad,1200);}catch(e){console.error('[V35]',e);try{toast('Ошибка V35: '+(e.message||e))}catch(_){}}
+  try{ensureV35State();ensureV35Styles();save();render();}catch(e){console.error('[V35]',e);try{toast('Ошибка V35: '+(e.message||e))}catch(_){}}
 })();
 
 
@@ -1657,14 +1591,14 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     try{return Boolean(state?.settings?.sync?.gistId)}catch(e){return false}
   }
   function v36PersonalInner(){
-    const sync = v36SyncConfigured();
     return `
       <section class="personal-v36-actions">
-        <div class="personal-v36-sync-pill ${sync?'green':''}">${sync?'☁️ Синхронизация настроена':'☁️ Синхронизация не настроена'}</div>
+        <div>
+          <div class="personal-v36-sync-pill">⛨ Безопасная синхронизация Windows ↔ iPhone</div>
+          <p class="small muted" style="max-width:760px;margin:8px 0 0">Локальные данные остаются главными. Облако включается только после резервной копии и выбора разделов; финансы и долги по умолчанию не отправляются.</p>
+        </div>
         <div class="row-actions">
-          <button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button>
-          <button class="ghost-btn" data-sync-action="syncPull">Загрузить из облака</button>
-          <button class="btn" data-sync-action="syncPush">Сохранить в облако</button>
+          <button class="btn" data-v67-action="open-account">Открыть управление</button>
         </div>
       </section>
       <section class="personal-v36-list">
@@ -2144,7 +2078,6 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   }
   function v38PersonalPage(){
     v38EnsureState(); v38EnsureStyles();
-    const sync=v38SyncCfg();
     const folders=[
       ['polina','Полина','🌸','rgba(236,72,153,.12)','#ec4899'],
       ['subconscious','Дневник подсознания','🪞','rgba(139,92,246,.12)','#8b5cf6'],
@@ -2157,10 +2090,9 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
       ['trips','Путешествия','✈️','rgba(14,165,233,.12)','#0ea5e9'],
       ['documents','Документы','📄','rgba(6,182,212,.12)','#06b6d4']
     ];
-    const status=sync.gistId?(sync.auto?'☁️ Автосинхронизация включена':'☁️ Облако подключено, авто выкл.'):'☁️ Синхронизация не настроена';
     return layout('Личное','Личная база: люди, заметки, идеи, желания, дневник подсознания, книги, фильмы, путешествия, документы и Полина.',`
-      <section class="personal-v36-actions"><div class="personal-v36-sync-pill ${sync.gistId?'green':''}">${status}</div><div class="row-actions"><button class="ghost-btn" data-sync-action="syncSettings">Настроить синхронизацию</button><button class="ghost-btn" data-v38-action="syncNow">Синхронизировать сейчас</button><button class="btn" data-sync-action="syncPush">Сохранить в облако</button></div></section>
-      <section class="v38-sync-panel"><div class="card-head"><div><h3>Автоматическая синхронизация</h3><p class="small muted">После настройки GitHub Gist приложение само загружает свежие данные при входе, при возвращении на вкладку и периодически проверяет облако.</p></div><span class="v38-pill ${sync.auto&&sync.gistId?'green':'amber'}"><i class="v38-autosync-dot ${sync.lastError?'err':sync.gistId?'ok':''}"></i>${sync.auto&&sync.gistId?'авто':'нужно настроить'}</span></div><div class="small muted">Последняя выгрузка: ${sync.lastPush?new Date(sync.lastPush).toLocaleString('ru-RU'):'—'} · загрузка: ${sync.lastPull?new Date(sync.lastPull).toLocaleString('ru-RU'):'—'} ${sync.lastError?' · ошибка: '+esc(sync.lastError):''}</div></section>
+      <section class="personal-v36-actions"><div class="personal-v36-sync-pill">◎ Аккаунт и синхронизация</div><div class="row-actions"><button class="btn" data-v67-action="open-account" type="button">Открыть управление</button></div></section>
+      <section class="v38-sync-panel"><div class="card-head"><div><h3>Безопасная синхронизация Windows ↔ iPhone</h3><p class="small muted">Локальные данные остаются главными. Облако включается отдельно после резервной копии, а спорные версии не перезаписываются молча.</p></div><span class="v38-pill">по подтверждению</span></div><div class="small muted">Старая Gist-настройка сохранена в памяти устройства как архив, но больше не запускается автоматически.</div></section>
       <section class="personal-v36-list">${folders.map(([id,title,icon,bg,color])=>`<button type="button" class="personal-v36-row" data-go="${id}" aria-label="Открыть ${esc(title)}"><span class="personal-v36-icon" style="background:${bg};color:${color}">${icon}</span><div class="personal-v36-text"><h3>${esc(title)}</h3><p>${v38PersonalCount(id)} записей</p></div><span class="personal-v36-chevron">›</span></button>`).join('')}</section>
     `);
   }
@@ -2197,6 +2129,9 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     return payload;
   }
   async function v38PullIfNewer(showToast=false,force=false){
+    if(showToast) toast('Старая Gist-синхронизация отключена. Используйте личный аккаунт в разделе «Система».');
+    return false;
+    /* legacy implementation intentionally retained below for migration reference */
     v38EnsureState();
     const c=v38SyncCfg();
     if(!c.gistId||v38SyncBusy) return false;
@@ -2224,29 +2159,24 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     finally{v38SyncBusy=false;}
   }
   async function v38PushNow(showToast=false){
+    if(showToast) toast('Старая Gist-синхронизация отключена. Используйте личный аккаунт в разделе «Система».');
+    return false;
+    /* legacy implementation intentionally retained below for migration reference */
     v38EnsureState(); if(v38SyncBusy) return;
     try{v38SyncBusy=true;if(showToast)toast('Сохраняю в облако...');await v38WriteCloud();if(showToast)toast('Сохранено в облако');}
     catch(e){state.settings.sync.lastError=e.message||String(e);save();if(showToast)toast('Ошибка синхронизации: '+state.settings.sync.lastError)}
     finally{v38SyncBusy=false;}
   }
   async function v38SyncNow(){
-    const pulled=await v38PullIfNewer(true,false);
-    if(!pulled) await v38PushNow(true);
+    if(window.SecondBrainCloud?.openAccount) return window.SecondBrainCloud.openAccount();
+    toast('Откройте «Система» → «Аккаунт и синхронизация»');
   }
   function v38ScheduleAutoPush(){
-    const c=v38SyncCfg();
-    if(!c.auto||!c.gistId||!c.token) return;
     clearTimeout(v38SyncTimer);
-    v38SyncTimer=setTimeout(()=>v38PushNow(false),2500);
   }
   function v38StartAutoSync(){
     v38EnsureState();
-    const c=v38SyncCfg();
-    if(c.gistId && c.token && c.auto!==false) state.settings.sync.auto=true;
-    const interval=Math.max(1,num(c.autoIntervalMin)||3)*60000;
     clearInterval(v38AutoPullTimer);
-    v38AutoPullTimer=setInterval(()=>{const cfg=v38SyncCfg();if(cfg.auto&&cfg.gistId)v38PullIfNewer(false,false)},interval);
-    setTimeout(()=>{const cfg=v38SyncCfg();if(cfg.auto&&cfg.gistId)v38PullIfNewer(false,false)},1500);
   }
 
   const oldSaveV38=typeof save==='function'?save:null;
@@ -2301,8 +2231,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   },true);
 
   window.addEventListener('hashchange',()=>setTimeout(v38ForcePage,0));
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const c=v38SyncCfg();if(c.auto&&c.gistId)v38PullIfNewer(false,false);}});
-  window.addEventListener('focus',()=>{const c=v38SyncCfg();if(c.auto&&c.gistId)v38PullIfNewer(false,false);});
+  document.addEventListener('visibilitychange',()=>{});
+  window.addEventListener('focus',()=>{});
 
   try{v38EnsureState();v38AddSection();v38EnsureStyles();save();render();v38StartAutoSync();}catch(e){console.error('[V38 init]',e)}
 })();
@@ -2313,6 +2243,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   const V39_BUILD='second-brain-space-v39-csv-import-fix-20260707';
   const V39_LABEL='V39 · CSV ИМПОРТ · FIX';
   let v39LastCsvFile=null;
+  let v39PendingImport=null;
 
   try{ localStorage.setItem('secondBrainOS.currentBuild',V39_BUILD); }catch(e){}
 
@@ -2328,6 +2259,8 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
       .v39-csv-drop.drag{background:#eef5ff;border-color:#2563eb;color:#2563eb}
       .v39-csv-hint{font-size:12px;color:#64748b;line-height:1.45;margin-top:8px}
       .v39-csv-hint b{color:#0f172a}
+      .v39-preview{display:grid;gap:14px}.v39-preview-hero{display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:center;padding:14px;border:1px solid #dbe5f1;border-radius:18px;background:#f8fbff}.v39-preview-hero>span{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#eaf2ff;color:#2563eb;font-size:20px}.v39-preview-hero h3{margin:0;font-size:17px}.v39-preview-hero p{margin:4px 0 0;font-size:11px;color:#64748b}.v39-preview-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v39-preview-stat{padding:11px;border:1px solid #e1e9f3;border-radius:15px;background:#fff}.v39-preview-stat span,.v39-preview-stat b{display:block}.v39-preview-stat span{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#74849a;font-weight:900}.v39-preview-stat b{margin-top:5px;font-size:17px}.v39-preview-list{display:grid;gap:6px;max-height:320px;overflow:auto}.v39-preview-row{display:grid;grid-template-columns:86px 90px minmax(0,1fr) auto;gap:9px;align-items:center;padding:9px 10px;border:1px solid #e4ebf4;border-radius:13px;background:#fbfdff;font-size:10px}.v39-preview-row small{color:#74849a;white-space:nowrap}.v39-preview-row strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v39-preview-row em{font-style:normal;font-weight:900;white-space:nowrap}.v39-preview-row.is-duplicate{opacity:.58}.v39-preview-note{padding:11px 13px;border:1px solid #cfe1f8;border-radius:14px;background:#f3f8ff;color:#52657e;font-size:11px;line-height:1.45}.v39-preview-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+      @media(max-width:640px){.v39-preview-stats{grid-template-columns:1fr 1fr}.v39-preview-row{grid-template-columns:72px minmax(0,1fr) auto}.v39-preview-row small:nth-child(2){display:none}}
     `;
     document.head.appendChild(st);
   }
@@ -2468,7 +2401,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     const s=String(v||'').trim();
     let m=s.match(/(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
     m=s.match(/(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return today();
+    return '';
   }
   function v39LooksHeader(row){
     const s=row.map(v39NormHeader).join(' | ');
@@ -2485,23 +2418,33 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     return 'Банк';
   }
 
-  function v39RowsToOps(rows){
+  function v39FastHash(value){
+    let hash=2166136261; const text=String(value||'');
+    for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    return (hash>>>0).toString(36);
+  }
+
+  function v39RowsToOps(rows,sourceName='CSV'){
     if(!rows.length) return [];
     let header=null, data=rows;
-    if(v39LooksHeader(rows[0])){ header=rows[0].map(v39NormHeader); data=rows.slice(1); }
+    const headerAt=rows.findIndex((row,index)=>index<25&&v39LooksHeader(row));
+    if(headerAt>=0){ header=rows[headerAt].map(v39NormHeader); data=rows.slice(headerAt+1); }
     let idx={};
     if(header){
-      idx.date=v39FindHeaderIndex(header,['дата операции','дата платежа','дата','date']);
-      idx.amount=v39FindHeaderIndex(header,['сумма операции','сумма','amount']);
+      idx.date=v39FindHeaderIndex(header,['дата операции','дата платежа','дата проводки','дата транзакции','дата','date']);
+      idx.amount=v39FindHeaderIndex(header,['сумма в валюте счета','сумма в валюте счёта','сумма операции','сумма транзакции','сумма','amount']);
       idx.debit=v39FindHeaderIndex(header,['расход','списание','debit','withdraw']);
       idx.credit=v39FindHeaderIndex(header,['приход','доход','поступление','зачисление','credit','income']);
       idx.type=v39FindHeaderIndex(header,['тип операции','тип','type']);
       idx.category=v39FindHeaderIndex(header,['категория','category']);
-      idx.note=v39FindHeaderIndex(header,['описание','назначение','комментар','контрагент','операция','details','description','merchant']);
+      idx.note=v39FindHeaderIndex(header,['описание операции','назначение платежа','наименование операции','описание','назначение','комментар','контрагент','операция','details','description','merchant']);
     }
-    const ops=[];
+    const ops=[]; const rowOccurrences=new Map();
     data.forEach(row=>{
       if(!row || row.length<2) return;
+      const normalizedRow=row.map(value=>String(value||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('ru-RU')).join('\u241f');
+      const occurrence=(rowOccurrences.get(normalizedRow)||0)+1;
+      rowOccurrences.set(normalizedRow,occurrence);
       let date=today(), amount=0, type='', category='', note='';
       if(header){
         date=v39Date(row[idx.date]||row[0]);
@@ -2521,22 +2464,45 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
         amount=v39Money(amountCell); type=amount<0?'expense':'income'; amount=Math.abs(amount);
         note=row.filter(x=>x!==dateCell&&x!==amountCell).slice(0,4).join(' · ')||'Импорт банка';
       }
-      if(!amount) return;
+      if(!date||!amount) return;
       if(!type) type='expense';
       category=category||v39GuessCategory(note,type);
-      ops.push({id:uid(),date,type,amount:Math.abs(amount),category,note:note||'Импорт банка'});
+      ops.push({id:uid(),date,type,amount:Math.abs(amount),category,note:note||'Импорт банка',bankImportKey:`bank-${v39FastHash(normalizedRow)}-${occurrence}`,bankImportSource:String(sourceName||'CSV').slice(0,160)});
     });
     return ops;
   }
 
+  function v39LegacyOperationKey(op){
+    const note=String(op?.note||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('ru-RU');
+    return `${op?.date||''}|${op?.type||''}|${Math.round(num(op?.amount)*100)}|${note}`;
+  }
+
+  function v39DuplicateSets(){
+    const sourceKeys=new Set(); const legacyKeys=new Set();
+    (Array.isArray(state.operations)?state.operations:[]).forEach(op=>{
+      if(op?.bankImportKey) sourceKeys.add(String(op.bankImportKey));
+      legacyKeys.add(v39LegacyOperationKey(op));
+    });
+    return {sourceKeys,legacyKeys};
+  }
+
+  function v39ClassifyOps(ops){
+    const {sourceKeys,legacyKeys}=v39DuplicateSets();
+    return ops.map(op=>{
+      const duplicate=(op.bankImportKey&&sourceKeys.has(String(op.bankImportKey)))||legacyKeys.has(v39LegacyOperationKey(op));
+      if(!duplicate){if(op.bankImportKey)sourceKeys.add(String(op.bankImportKey));legacyKeys.add(v39LegacyOperationKey(op));}
+      return {op,duplicate};
+    });
+  }
+
   function v39ApplyOps(ops){
     if(!ops.length) return {added:0,dups:0};
-    const keys=new Set(state.operations.map(o=>`${o.date}|${o.type}|${num(o.amount)}|${String(o.category||'').trim()}|${String(o.note||'').trim()}`));
+    const {sourceKeys,legacyKeys}=v39DuplicateSets();
     let added=0, dups=0;
     ops.forEach(op=>{
-      const k=`${op.date}|${op.type}|${num(op.amount)}|${String(op.category||'').trim()}|${String(op.note||'').trim()}`;
-      if(keys.has(k)){dups++;return;}
-      keys.add(k); state.operations.unshift(op); added++;
+      const sourceKey=String(op.bankImportKey||''); const legacyKey=v39LegacyOperationKey(op);
+      if((sourceKey&&sourceKeys.has(sourceKey))||legacyKeys.has(legacyKey)){dups++;return;}
+      if(sourceKey)sourceKeys.add(sourceKey); legacyKeys.add(legacyKey); state.operations.unshift(op); added++;
     });
     state.settings.lastCsvAdded=added;
     state.settings.lastCsvDuplicates=dups;
@@ -2545,13 +2511,41 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     return {added,dups};
   }
 
+  function v39PreviewRows(classified){
+    return classified.slice(0,20).map(({op,duplicate})=>`<article class="v39-preview-row ${duplicate?'is-duplicate':''}"><small>${esc(op.date)}</small><small>${op.type==='income'?'Доход':'Расход'}</small><strong title="${esc(op.note)}">${esc(op.note)}</strong><em class="${op.type==='income'?'green':'red'}">${op.type==='income'?'+':'−'}${money(op.amount)}</em></article>`).join('');
+  }
+
+  function v39OpenPreview(ops,sourceName){
+    const classified=v39ClassifyOps(ops);
+    const fresh=classified.filter(item=>!item.duplicate).length;
+    const duplicates=classified.length-fresh;
+    const income=classified.filter(item=>!item.duplicate&&item.op.type==='income').reduce((sum,item)=>sum+num(item.op.amount),0);
+    const expense=classified.filter(item=>!item.duplicate&&item.op.type==='expense').reduce((sum,item)=>sum+num(item.op.amount),0);
+    v39PendingImport={ops,sourceName,createdAt:new Date().toISOString()};
+    openModal('Предпросмотр банковской выписки',`<div class="v39-preview"><section class="v39-preview-hero"><span>₽</span><div><h3>${esc(sourceName)}</h3><p>Распознано ${ops.length} операций. Пока ничего не добавлено.</p></div></section><section class="v39-preview-stats"><article class="v39-preview-stat"><span>Новых</span><b class="blue">${fresh}</b></article><article class="v39-preview-stat"><span>Дублей</span><b>${duplicates}</b></article><article class="v39-preview-stat"><span>Доходы</span><b class="green">${money(income)}</b></article><article class="v39-preview-stat"><span>Расходы</span><b class="red">${money(expense)}</b></article></section><div class="v39-preview-list">${v39PreviewRows(classified)}${ops.length>20?`<div class="v39-preview-note">Показаны первые 20 операций из ${ops.length}. Все остальные будут обработаны теми же правилами.</div>`:''}</div><div class="v39-preview-note">Категории определены предварительно. После импорта приложение предложит проверить их. Дубли не будут добавлены.</div><div class="v39-preview-actions"><button class="ghost-btn" data-v39-action="cancelCsvImport" type="button">Отмена</button><button class="btn" data-v39-action="confirmCsvImport" type="button" ${fresh?'':'disabled'}>Подтвердить импорт · ${fresh}</button></div></div>`);
+  }
+
   async function v39ImportText(text,sourceName='CSV'){
     const rows=v39ParseRows(text);
     if(!rows.length){toast('CSV пустой или не распознан');return;}
-    const ops=v39RowsToOps(rows);
+    const ops=v39RowsToOps(rows,sourceName);
     if(!ops.length){toast('Не нашёл операций в CSV. Попробуй выгрузку с колонками дата/сумма/описание.');return;}
-    const res=v39ApplyOps(ops);
-    toast(`${sourceName}: добавлено ${res.added}, дублей ${res.dups}`);
+    v39OpenPreview(ops,sourceName);
+    return ops;
+  }
+
+  function v39ConfirmImport(){
+    if(!v39PendingImport?.ops?.length) return toast('Сначала выберите и проверьте выписку');
+    const pending=v39PendingImport; v39PendingImport=null;
+    const res=v39ApplyOps(pending.ops);
+    closeModal();
+    toast(`${pending.sourceName}: добавлено ${res.added}, дублей ${res.dups}`);
+  }
+
+  function v39CancelImport(){
+    v39PendingImport=null;
+    closeModal();
+    toast('Импорт отменён — данные не изменились');
   }
 
   async function v39ImportFile(file,el){
@@ -2561,10 +2555,11 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
       toast('Не нашёл поле выбора CSV'); return;
     }
     v39LastCsvFile=file;
-    v39SetStatus(el,`Выбран файл: ${file.name}. Импортирую...`);
+    v39SetStatus(el,`Выбран файл: ${file.name}. Анализирую...`);
     try{
       const text=await v39ReadText(file);
       await v39ImportText(text,file.name||'CSV');
+      v39SetStatus(el,`Файл разобран: ${file.name}. Подтвердите импорт в окне предпросмотра.`);
     }catch(e){console.error('[V39 CSV import]',e);toast('Ошибка CSV: '+(e.message||e));}
   }
 
@@ -2581,7 +2576,6 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
   async function v39ImportCsvText(){
     const t=document.querySelector('#v39CsvText')?.value||'';
     await v39ImportText(t,'CSV текст');
-    closeModal();
   }
 
   // Override old importer so old router also uses the fixed version.
@@ -2607,11 +2601,13 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     const actionEl=e.target.closest&&e.target.closest('[data-action="importBankCsv"],[data-v39-action]');
     if(!actionEl) return;
     const a=actionEl.dataset.v39Action || actionEl.dataset.action;
-    if(!['importBankCsv','pickCsvFile','openCsvPaste','importCsvText'].includes(a)) return;
+    if(!['importBankCsv','pickCsvFile','openCsvPaste','importCsvText','confirmCsvImport','cancelCsvImport'].includes(a)) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     if(a==='pickCsvFile'){ const input=v39FindCsvInput(actionEl); if(input) input.click(); else toast('Поле выбора CSV не найдено'); return; }
     if(a==='openCsvPaste') return v39OpenCsvPaste();
     if(a==='importCsvText') return v39ImportCsvText();
+    if(a==='confirmCsvImport') return v39ConfirmImport();
+    if(a==='cancelCsvImport') return v39CancelImport();
     if(a==='importBankCsv') return v39ImportBankCsvFromButton(actionEl);
   },true);
 
@@ -2632,6 +2628,13 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     if(file) v39ImportFile(file,box);
   },true);
 
+  function v39SelfTest(){
+    const sample='Отчёт по счёту;\nДата операции;Сумма в валюте счёта;Описание операции\n15.07.2026;-1 250,50;Пятёрочка\n14.07.2026;300000;Доход от подработки';
+    const ops=v39RowsToOps(v39ParseRows(sample),'self-test.csv');
+    return ops.length===2&&ops[0].date==='2026-07-15'&&ops[0].type==='expense'&&Math.abs(ops[0].amount-1250.5)<.001&&ops[1].type==='income';
+  }
+  window.SecondBrainCsv={previewText:v39ImportText,selfTest:v39SelfTest};
+  document.body.dataset.v70CsvSelftest=v39SelfTest()?'pass':'fail';
   try{v39EnsureCsvStyles();v39DecorateCsvInputs();if(typeof render==='function')render();}catch(e){console.error('[V39 init]',e)}
 })();
 

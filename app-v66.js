@@ -34,8 +34,10 @@
   ];
 
   function v66DownloadSnapshot(suffix = 'backup') {
-    const copy = JSON.parse(JSON.stringify(state));
+    const copy = typeof exportableState === 'function' ? exportableState() : JSON.parse(JSON.stringify(state));
     if (copy.settings?.sync) delete copy.settings.sync.token;
+    if (copy.settings) delete copy.settings.alfaWorkerKey;
+    if (copy.settings?.v66) delete copy.settings.v66.security;
     const blob = new Blob([JSON.stringify({ version: V66_BUILD, createdAt: new Date().toISOString(), state: copy }, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -391,7 +393,7 @@
     if (permission !== 'granted') return toast('Разрешение не выдано');
     try {
       const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification('Second Brain OS', { body: 'Уведомления включены. План — 09:00, итог — 20:00.', tag: 'sbos-notification-test', icon: './icon-192.png' });
+      await registration.showNotification('Second Brain OS', { body: 'Уведомления включены. План — 09:00, итог — 20:00.', tag: 'sbos-notification-test', icon: './icon-192-v71.png' });
     } catch (error) {}
     v66OpenNotifications();
   }
@@ -417,7 +419,7 @@
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(kind === 'morning' ? 'План утра' : 'Итог вечера', {
       body: kind === 'morning' ? 'Откройте короткий порядок дня и выберите главный шаг.' : 'Зафиксируйте результат дня и первый шаг на завтра.',
-      tag: `sbos-${kind}-${today()}`, icon: './icon-192.png', data: { url: kind === 'morning' ? './#dashboard' : './#dashboard' }
+      tag: `sbos-${kind}-${today()}`, icon: './icon-192-v71.png', data: { url: kind === 'morning' ? './#dashboard' : './#dashboard' }
     });
   }
 
@@ -493,15 +495,18 @@
 
   function v66PostRender() {
     document.body.classList.add('v66-safe-core');
+    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
     const v67Active = document.body.classList.contains('v67-cloud-safe');
     if (!v67Active) {
       document.body.dataset.sbosBuild = V66_BUILD;
       document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', V66_BUILD);
     }
     const version = document.querySelector('.v59-version,.version');
-    if (version) version.textContent = v67Active ? 'V67.8 · LIVING PERSONAL OS' : V66_LABEL;
+    if (version) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : (v67Active ? 'V67.8 · LIVING PERSONAL OS' : V66_LABEL)));
     const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = v67Active ? 'V67.8' : 'V66';
+    if (core) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : (v67Active ? 'V67.8' : 'V66')));
     v66InjectNavigation();
     const route = (location.hash || '').replace('#', '') || page || 'dashboard';
     const view = document.getElementById('view');

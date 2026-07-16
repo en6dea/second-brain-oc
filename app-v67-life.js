@@ -64,6 +64,9 @@
   ];
 
   let voiceRecognition = null;
+  let voiceStarting = false;
+  let voiceSession = 0;
+  let voiceBaseText = '';
   let installPrompt = null;
   let postTimer = 0;
 
@@ -105,8 +108,12 @@
     const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     const dark = mode === 'dark' || (mode === 'auto' && systemDark);
     document.body.classList.toggle('v67-theme-dark', dark);
+    document.documentElement.classList.toggle('v70-theme-dark', dark);
+    document.documentElement.classList.toggle('v70-theme-light', !dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    document.documentElement.dataset.v70Theme = dark ? 'dark' : 'light';
     document.body.dataset.v67Theme = mode;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#071126' : '#0b1530');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#071126' : '#f3f6fa');
     const button = document.querySelector('[data-v67-theme-button]');
     if (button) {
       button.textContent = dark ? '☾' : '◐';
@@ -145,13 +152,148 @@
 
   function speechApi() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
 
+  function voiceCapability() {
+    const localHost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+    const secure = window.isSecureContext || localHost;
+    return {
+      secure,
+      speech: Boolean(speechApi()),
+      microphone: Boolean(navigator.mediaDevices?.getUserMedia),
+      ready: secure && Boolean(speechApi())
+    };
+  }
+
+  function setVoiceState(message, tone = '') {
+    const status = document.getElementById('v67_voice_state');
+    const shell = status?.closest('.v67-voice');
+    if (status) {
+      status.textContent = message;
+      status.dataset.tone = tone;
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+    }
+    shell?.classList.toggle('is-listening', tone === 'listening');
+  }
+
+  async function requestVoiceMicrophone() {
+    const capability = voiceCapability();
+    if (!capability.secure) throw Object.assign(new Error('insecure-context'), { voiceCode: 'insecure-context' });
+    if (!capability.microphone) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
+      stream.getTracks().forEach(track => track.stop());
+    } catch (error) {
+      const code = error?.name === 'NotAllowedError' || error?.name === 'SecurityError' ? 'not-allowed'
+        : error?.name === 'NotFoundError' ? 'audio-capture'
+        : error?.name === 'NotReadableError' ? 'device-busy'
+        : 'microphone-error';
+      throw Object.assign(error || new Error(code), { voiceCode: code });
+    }
+  }
+
+  function voiceErrorMessage(code) {
+    return ({
+      'not-allowed': 'Разрешите микрофон в настройках сайта и нажмите «Начать запись» ещё раз',
+      'service-not-allowed': 'Распознавание заблокировано браузером — проверьте разрешение микрофона',
+      'audio-capture': 'Микрофон не найден — проверьте подключение устройства',
+      'device-busy': 'Микрофон занят другим приложением',
+      'network': 'Для распознавания речи браузеру сейчас требуется интернет',
+      'no-speech': 'Речь не услышана — приблизьтесь к микрофону и повторите',
+      'insecure-context': 'Голосовой ввод работает только в установленном приложении или на защищённом адресе',
+      'microphone-error': 'Не удалось открыть микрофон — проверьте разрешение Windows или iPhone',
+      'aborted': 'Запись остановлена'
+    })[code] || 'Не удалось распознать речь — нажмите «Начать запись» и повторите';
+  }
+
+  async function startVoiceReliable() {
+    if (voiceStarting) return;
+    const Speech = speechApi();
+    const capability = voiceCapability();
+    if (!Speech || !capability.secure) {
+      setVoiceState(voiceErrorMessage(capability.secure ? 'unsupported' : 'insecure-context'), 'error');
+      document.getElementById('v67_voice_text')?.focus();
+      return toast('На этом устройстве используйте диктовку клавиатуры в поле текста');
+    }
+
+    voiceStarting = true;
+    setVoiceState('Готовлю микрофон…', 'pending');
+    try {
+      if (navigator.permissions?.query) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'microphone' });
+          if (permission.state === 'denied') throw Object.assign(new Error('not-allowed'), { voiceCode: 'not-allowed' });
+        } catch (error) {
+          if (error?.voiceCode) throw error;
+        }
+      }
+      try { voiceRecognition?.abort?.(); } catch (error) {}
+
+      const session = ++voiceSession;
+      const field = document.getElementById('v67_voice_text');
+      voiceBaseText = clean(field?.value);
+      const recognition = new Speech();
+      voiceRecognition = recognition;
+      recognition.lang = 'ru-RU';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => {
+        if (session !== voiceSession) return;
+        setVoiceState('Слушаю… говорите естественно', 'listening');
+      };
+      recognition.onaudiostart = () => {
+        if (session === voiceSession) setVoiceState('Микрофон включён — слушаю…', 'listening');
+      };
+      recognition.onresult = event => {
+        if (session !== voiceSession) return;
+        let finalText = '';
+        let interimText = '';
+        for (let index = 0; index < event.results.length; index += 1) {
+          const transcript = clean(event.results[index]?.[0]?.transcript);
+          if (event.results[index].isFinal) finalText += `${transcript} `;
+          else interimText += `${transcript} `;
+        }
+        const output = [voiceBaseText, clean(finalText), clean(interimText)].filter(Boolean).join(' ');
+        const target = document.getElementById('v67_voice_text');
+        if (target) {
+          target.value = output;
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        setVoiceState(interimText ? 'Распознаю речь…' : 'Фраза распознана', interimText ? 'listening' : 'success');
+      };
+      recognition.onerror = event => {
+        if (session !== voiceSession) return;
+        const code = event?.error || 'recognition-error';
+        if (code !== 'aborted') setVoiceState(voiceErrorMessage(code), 'error');
+      };
+      recognition.onend = () => {
+        if (session !== voiceSession) return;
+        const status = document.getElementById('v67_voice_state');
+        document.querySelector('.v67-voice')?.classList.remove('is-listening');
+        if (status && !['error', 'success'].includes(status.dataset.tone || '')) setVoiceState('Готово — проверьте текст и выберите тип записи', 'success');
+      };
+      recognition.start();
+      setTimeout(() => {
+        if (session !== voiceSession) return;
+        const status = document.getElementById('v67_voice_state');
+        if (status?.dataset.tone === 'pending') setVoiceState('Разрешите доступ к микрофону в запросе браузера', 'pending');
+      }, 1600);
+    } catch (error) {
+      setVoiceState(voiceErrorMessage(error?.voiceCode || error?.name || 'microphone-error'), 'error');
+    } finally {
+      voiceStarting = false;
+    }
+  }
+
   function openVoiceCapture(autoStart = true) {
-    const supported = Boolean(speechApi());
+    const supported = voiceCapability().ready;
     openModal('Голосовой быстрый ввод', `<div class="v67-voice"><section><span class="v67-voice-dot"></span><div><small>Задача · заметка · расход · дневник</small><h3>${supported ? 'Говорите естественно' : 'Голосовой API недоступен'}</h3><p>${supported ? 'Текст останется на устройстве до выбора типа записи.' : 'Можно ввести текст вручную или использовать микрофон клавиатуры iPhone.'}</p></div></section><textarea id="v67_voice_text" placeholder="Например: записать расход 1250 рублей на продукты"></textarea><div class="v67-voice-state" id="v67_voice_state">${supported ? 'Готов слушать' : 'Ручной режим'}</div><div class="v67-voice-controls"><button data-v67-life-action="start-voice" type="button" ${supported ? '' : 'disabled'}>● Начать запись</button><button data-v67-life-action="stop-voice" type="button">Остановить</button></div><div class="v67-voice-save"><button data-v67-life-action="save-voice" data-type="task" type="button">✓ Задача</button><button data-v67-life-action="save-voice" data-type="note" type="button">⌁ Заметка</button><button data-v67-life-action="save-voice" data-type="expense" type="button">₽ Расход</button><button data-v67-life-action="save-voice" data-type="diary" type="button">◇ В дневник</button></div></div>`);
     if (supported && autoStart) startVoice();
   }
 
   function startVoice() {
+    return startVoiceReliable();
+    /* Legacy implementation remains below as a compatibility fallback for old cached builds. */
     const Speech = speechApi();
     if (!Speech) return toast('Используйте микрофон клавиатуры или ручной ввод');
     try { voiceRecognition?.stop?.(); } catch (error) {}
@@ -172,7 +314,10 @@
   }
 
   function stopVoice() {
+    voiceSession += 1;
     try { voiceRecognition?.stop?.(); } catch (error) {}
+    voiceRecognition = null;
+    document.querySelector('.v67-voice')?.classList.remove('is-listening');
     const status = document.getElementById('v67_voice_state');
     if (status) status.textContent = 'Запись остановлена';
   }
@@ -445,7 +590,7 @@
   async function showSystemReminder(title, body, tag, route = 'dashboard') {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return false;
     const registration = await navigator.serviceWorker.ready;
-    await registration.showNotification(title, { body, tag, renotify: false, icon: './icon-192.png', badge: './icon-192.png', data: { url: `./#${route}` } });
+    await registration.showNotification(title, { body, tag, renotify: false, icon: './icon-192-v71.png', badge: './icon-192-v71.png', data: { url: `./#${route}` } });
     return true;
   }
 
@@ -677,14 +822,18 @@
   }
 
   function postRender() {
-    document.body.dataset.sbosBuild = BUILD;
+    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
+    const activeBuild = v70Active ? 'second-brain-space-v70-living-personal-os-20260715' : (v69Active ? 'second-brain-space-v69-calm-intelligence-20260715' : (v68Active ? 'second-brain-space-v68-unified-assistant-20260715' : BUILD));
+    document.body.dataset.sbosBuild = activeBuild;
     document.body.dataset.v678ReminderSelftest = reminderSelfTest().ok ? 'pass' : 'fail';
-    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', BUILD);
-    try { localStorage.setItem('secondBrainOS.currentBuild', BUILD); } catch (error) {}
+    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', activeBuild);
+    try { localStorage.setItem('secondBrainOS.currentBuild', activeBuild); } catch (error) {}
     const version = document.querySelector('.v59-version,.version');
-    if (version && version.textContent !== 'V67.8 · LIVING PERSONAL OS') version.textContent = 'V67.8 · LIVING PERSONAL OS';
+    if (version && version.textContent !== (v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67.8 · LIVING PERSONAL OS')))) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67.8 · LIVING PERSONAL OS'));
     const core = document.querySelector('.v59-core-pill');
-    if (core && core.textContent !== 'V67.8') core.textContent = 'V67.8';
+    if (core && core.textContent !== (v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67.8')))) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67.8'));
     ensurePersonFields();
     ensureFinanceFields();
     injectTopTools();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v67-8-reminder-center-20260714';
+const CACHE_NAME = 'second-brain-space-v71-personal-data-restore-20260716-r26';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -8,14 +8,22 @@ const CORE_ASSETS = [
   './app-v66.js',
   './app-v67.js',
   './app-v67-life.js',
+  './app-v68-assistant.js',
+  './app-v69-calm.js',
+  './app-v70-living.js',
+  './app-v71-data.js',
   './styles-v64.css',
   './styles-v65.css',
   './styles-v66.css',
   './styles-v67.css',
+  './styles-v68.css',
+  './styles-v69.css',
+  './styles-v70.css',
   './manifest.webmanifest',
   './offline.html',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192-v71.png',
+  './icon-512-v71.png',
+  './maskable-512-v71.png'
 ];
 
 self.addEventListener('install', event => {
@@ -102,8 +110,8 @@ self.addEventListener('push', event => {
   const options = {
     body: payload.body || 'Появился новый личный сигнал.',
     tag: payload.tag || 'sbos-web-push',
-    icon: './icon-192.png',
-    badge: './icon-192.png',
+    icon: './icon-192-v71.png',
+    badge: './icon-192-v71.png',
     data: { url: payload.url || './#dashboard' }
   };
   event.waitUntil(self.registration.showNotification(title, options));

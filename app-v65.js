@@ -628,7 +628,9 @@
   function tidyNavigation() {
     const nav = document.querySelector('.v59-nav-scroll');
     if (!nav) return;
-    const labels = { dashboard: 'Главная', coach: 'Помощник', habits: 'Привычки', finance: 'Финансы', debts: 'Долги', goals: 'Цели', subconscious: 'Дневник', tasks: 'Задачи', planning: 'Планы', personal: 'Личная память' };
+    const v70Navigation = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Navigation = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const labels = { dashboard: v70Navigation ? 'Главное сейчас' : (v69Navigation ? 'Мой день' : 'Главная'), coach: 'Помощник', habits: 'Привычки', finance: 'Финансы', debts: 'Долги', goals: 'Цели', subconscious: 'Дневник', tasks: 'Задачи', planning: 'Планы', personal: 'Личная память' };
     nav.querySelectorAll('.v59-nav-item[data-go]').forEach(button => {
       const route = button.dataset.go;
       button.hidden = HIDDEN_ROUTES.has(route);
@@ -636,7 +638,7 @@
     });
 
     const mainList = nav.querySelector('.v59-nav-list');
-    if (mainList) {
+    if (mainList && !nav.classList.contains('v68-nav-ready')) {
       const priorityButtons = ['dashboard', 'coach', 'finance', 'debts', 'habits', 'tasks', 'goals', 'subconscious']
         .map(route => route === 'coach'
           ? nav.querySelector('.v59-nav-item[data-go="coach"],.v59-nav-item[data-v65-action="openAssistant"]')
@@ -680,6 +682,9 @@
       return;
     }
     document.body.classList.add('v65-premium');
+    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
     const v67Active = document.body.classList.contains('v67-cloud-safe');
     const v66Active = document.body.classList.contains('v66-safe-core');
     if (!v67Active && !v66Active) document.body.dataset.sbosBuild = V65_BUILD;
@@ -687,8 +692,8 @@
     document.title = 'Second Brain OS — личная жизнь в порядке';
     if (!v67Active && !v66Active) document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', V65_BUILD);
     if (!v67Active) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b1530');
-    setText(document.querySelector('.v59-version,.version'), v67Active ? 'V67.7 · LIVING PERSONAL OS' : (v66Active ? 'V66 · SAFE PERSONAL OS' : V65_LABEL));
-    setText(document.querySelector('.v59-core-pill'), v67Active ? 'V67.7' : (v66Active ? 'V66' : 'V65'));
+    setText(document.querySelector('.v59-version,.version'), v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : (v67Active ? 'V67.8 · LIVING PERSONAL OS' : (v66Active ? 'V66 · SAFE PERSONAL OS' : V65_LABEL)))));
+    setText(document.querySelector('.v59-core-pill'), v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : (v67Active ? 'V67.8' : (v66Active ? 'V66' : 'V65')))));
     setText(document.querySelector('.v59-sub'), 'личная операционная система');
     setText(document.querySelector('.v59-ai-card h3'), 'Личный помощник');
     const helperText = document.querySelector('.v59-ai-card p');

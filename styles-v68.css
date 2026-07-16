@@ -1,0 +1,486 @@
+/* Second Brain OS V68 — unified personal assistant */
+
+.v68-nav-ready > .v59-section,
+.v68-nav-ready > .v59-nav-list { display: none !important; }
+
+.v68-nav-shell { display: grid; gap: 8px; }
+.v68-nav-caption { padding: 3px 9px 7px; }
+.v68-nav-caption span {
+  display: block;
+  color: #8ba0bd;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.v68-nav-caption small { display: block; margin-top: 3px; color: #647694; font-size: 10px; font-weight: 700; }
+.v68-nav-quick { display: grid; gap: 4px; }
+.v68-nav-quick .v59-nav-item { min-height: 48px; }
+.v68-nav-folders { display: grid; gap: 6px; margin-top: 2px; }
+.v68-nav-folder {
+  overflow: hidden;
+  border: 1px solid rgba(111, 132, 169, .17);
+  border-radius: 16px;
+  background: rgba(14, 30, 57, .2);
+  transition: border-color .18s ease, background .18s ease;
+}
+.v68-nav-folder[open] { border-color: rgba(109, 139, 210, .31); background: rgba(32, 54, 91, .34); }
+.v68-nav-folder summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 43px;
+  padding: 7px 9px;
+  color: #d2dced;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.v68-nav-folder summary::-webkit-details-marker { display: none; }
+.v68-nav-folder summary > span { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.v68-nav-folder summary i {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  color: #c8d6ff;
+  background: rgba(102, 120, 225, .2);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 950;
+}
+.v68-nav-folder summary b { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.v68-nav-folder summary em {
+  min-width: 21px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #8ea0bc;
+  background: rgba(5, 15, 34, .32);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
+}
+.v68-nav-folder summary strong { color: #7f91ad; font-size: 14px; transform: rotate(-90deg); transition: transform .18s ease; }
+.v68-nav-folder[open] summary strong { transform: rotate(0); }
+.v68-nav-folder-items { display: grid; gap: 2px; padding: 0 5px 6px 12px; }
+.v68-nav-folder-items .v59-nav-item { min-height: 39px; padding: 5px 7px; border-radius: 12px; }
+.v68-nav-folder-items .v59-nav-ico { width: 25px; height: 25px; border-radius: 8px; font-size: 12px; box-shadow: none; }
+.v68-nav-folder-items .label { font-size: 11px; }
+.v68-nav-folder-items .v59-nav-tools { display: none; }
+.v68-sidebar-card-hidden { display: none !important; }
+.v68-nav-subfolder { border-top: 1px solid rgba(111, 132, 169, .13); }
+.v68-nav-subfolder:first-child { border-top: 0; }
+.v68-nav-subfolder > summary {
+  min-height: 34px;
+  padding: 5px 6px 5px 10px;
+  color: #9eacc1;
+}
+.v68-nav-subfolder > summary > span { font-size: 10px; font-weight: 850; }
+.v68-nav-subfolder > summary > em { background: transparent; }
+.v68-nav-subfolder > summary > strong { font-size: 11px; }
+.v68-nav-subfolder > div { display: grid; gap: 2px; padding: 0 0 5px 7px; }
+
+.v68-command {
+  --v68-accent: #5b5ce2;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(300px, 1.35fr) minmax(330px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(205, 215, 231, .78);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 7% -30%, rgba(99, 102, 241, .21), transparent 43%),
+    radial-gradient(circle at 98% 115%, rgba(20, 184, 166, .13), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, .97), rgba(247, 249, 255, .94));
+  box-shadow: 0 22px 62px rgba(34, 48, 84, .11), inset 0 1px 0 rgba(255, 255, 255, .96);
+}
+
+.v68-command::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--v68-accent), #14b8a6);
+}
+
+.v68-command.is-direct { --v68-accent: #e64e64; }
+.v68-command.is-supportive { --v68-accent: #5b5ce2; }
+.v68-command.is-calm { --v68-accent: #159a8c; }
+
+.v68-command-main {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+}
+
+.v68-command-main > span,
+.v68-assistant-hero > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 950;
+  background: linear-gradient(145deg, var(--v68-accent), #8177ee);
+  box-shadow: 0 13px 27px color-mix(in srgb, var(--v68-accent) 28%, transparent);
+}
+
+.v68-command-main small,
+.v68-assistant-hero small,
+.v68-assistant-plan header small,
+.v68-assistant-signals header small,
+.v68-goal-bridge small {
+  display: block;
+  margin-bottom: 5px;
+  color: #72819a;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.v68-command-main h3 {
+  margin: 0;
+  color: #101a32;
+  font-size: clamp(17px, 1.35vw, 22px);
+  line-height: 1.16;
+  letter-spacing: -.035em;
+}
+
+.v68-command-main p,
+.v68-assistant-hero p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.v68-command-facts,
+.v68-assistant-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.v68-command-facts article,
+.v68-assistant-facts article {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(221, 228, 240, .9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.v68-command-facts article span,
+.v68-assistant-facts article span {
+  display: block;
+  overflow: hidden;
+  color: #8290a6;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v68-command-facts article b,
+.v68-assistant-facts article b {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #17213a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v68-command-facts article.is-red,
+.v68-assistant-facts article.is-red { border-color: #ffd5dc; background: #fff7f8; }
+.v68-command-facts article.is-red b,
+.v68-assistant-facts article.is-red b { color: #c93b51; }
+.v68-command-facts article.is-amber,
+.v68-assistant-facts article.is-amber { border-color: #fde4b4; background: #fffaf0; }
+.v68-command-facts article.is-amber b,
+.v68-assistant-facts article.is-amber b { color: #b66a12; }
+.v68-command-facts article.is-green,
+.v68-assistant-facts article.is-green { border-color: #beeade; background: #f1fbf8; }
+.v68-command-facts article.is-green b,
+.v68-assistant-facts article.is-green b { color: #137c70; }
+
+.v68-command-actions,
+.v68-assistant-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v68-command-actions button,
+.v68-assistant-actions button,
+.v68-assistant-plan article button,
+.v68-goal-bridge-list button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #dfe6f1;
+  border-radius: 13px;
+  color: #34425d;
+  background: rgba(255, 255, 255, .86);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.v68-command-actions button:hover,
+.v68-assistant-actions button:hover,
+.v68-assistant-plan article button:hover,
+.v68-goal-bridge-list button:hover {
+  border-color: #bdc9ef;
+  color: #4f46d4;
+  transform: translateY(-1px);
+}
+
+.v68-command-actions .is-primary,
+.v68-assistant-actions .is-primary {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, #4f51cf, #7167ea);
+  box-shadow: 0 12px 25px rgba(79, 81, 207, .22);
+}
+
+.v68-assistant {
+  --v68-accent: #5b5ce2;
+  display: grid;
+  gap: 14px;
+}
+
+.v68-assistant-hero {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 15px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid #dfe4f1;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(20, 184, 166, .12), transparent 38%),
+    linear-gradient(135deg, #f7f8ff, #fff);
+}
+
+.v68-assistant-hero.is-direct { --v68-accent: #e64e64; }
+.v68-assistant-hero.is-calm { --v68-accent: #159a8c; }
+.v68-assistant-hero > span { width: 58px; height: 58px; border-radius: 20px; font-size: 25px; }
+.v68-assistant-hero h3 { margin: 0; color: #101a32; font-size: 23px; line-height: 1.15; letter-spacing: -.04em; }
+.v68-assistant-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.v68-assistant-plan,
+.v68-assistant-signals {
+  padding: 16px;
+  border: 1px solid #e3e9f2;
+  border-radius: 21px;
+  background: #fbfcff;
+}
+
+.v68-assistant-plan header,
+.v68-assistant-signals header,
+.v68-goal-bridge header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.v68-assistant-plan h3,
+.v68-assistant-signals h3,
+.v68-goal-bridge h3 { margin: 0; color: #17213a; font-size: 17px; letter-spacing: -.025em; }
+.v68-assistant-plan header em {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #b04b23;
+  background: #fff2e9;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+}
+.v68-assistant-plan header em.is-ok { color: #137c70; background: #eaf9f5; }
+.v68-assistant-plan > div { display: grid; gap: 8px; }
+.v68-assistant-plan article {
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e8edf5;
+  border-radius: 15px;
+  background: #fff;
+}
+.v68-assistant-plan article > span {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #4f51cf;
+  background: #eef0ff;
+  font-weight: 950;
+}
+.v68-assistant-plan article b { display: block; color: #202b42; font-size: 13px; }
+.v68-assistant-plan article small { display: block; margin-top: 3px; color: #7c899e; font-size: 11px; font-weight: 700; }
+
+.v68-assistant-signals > div { display: grid; gap: 7px; }
+.v68-assistant-signals button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+.v68-assistant-signals button:hover { border-color: #e1e7f2; background: #fff; }
+.v68-assistant-signals button > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #4f51cf;
+  background: #eef0ff;
+  font-weight: 950;
+}
+.v68-assistant-signals button > span.is-red { color: #c93b51; background: #fff0f2; }
+.v68-assistant-signals button > span.is-amber { color: #b66a12; background: #fff5e5; }
+.v68-assistant-signals button b { display: block; color: #202b42; font-size: 13px; }
+.v68-assistant-signals button small { display: block; margin-top: 2px; color: #7c899e; font-size: 11px; }
+.v68-assistant-signals button p { margin: 4px 0 0; color: #4e5d75; font-size: 11px; font-weight: 800; }
+.v68-assistant-signals button i { color: #9ba8bc; font-size: 18px; font-style: normal; }
+
+.v68-assistant-actions { flex-direction: row; justify-content: flex-end; }
+.v68-assistant-note {
+  margin: 0;
+  padding: 10px 13px;
+  border-radius: 13px;
+  color: #64748b;
+  background: #f4f6fa;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.v68-goal-bridge {
+  margin: 0 0 18px;
+  padding: 17px;
+  border: 1px solid rgba(207, 217, 235, .86);
+  border-radius: 23px;
+  background: linear-gradient(135deg, rgba(247, 248, 255, .96), rgba(255, 255, 255, .96));
+  box-shadow: 0 14px 38px rgba(45, 57, 94, .07);
+}
+.v68-goal-bridge header > div:first-child { display: flex; align-items: center; gap: 11px; }
+.v68-goal-bridge header > div:first-child > span {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(145deg, #5556d6, #8076eb);
+  box-shadow: 0 10px 20px rgba(85, 86, 214, .2);
+}
+.v68-goal-bridge header > div:last-child { text-align: right; }
+.v68-goal-bridge header > div:last-child b { display: block; color: #4f51cf; font-size: 21px; }
+.v68-goal-bridge header > div:last-child small { margin: 2px 0 0; letter-spacing: 0; text-transform: none; }
+.v68-goal-bridge-list { display: grid; gap: 8px; }
+.v68-goal-bridge-list article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e7ebf4;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .86);
+}
+.v68-goal-bridge-list article > span { color: #5b5ce2; font-size: 25px; text-align: center; }
+.v68-goal-bridge-list b { display: block; color: #202b42; font-size: 13px; }
+.v68-goal-bridge-list small { margin: 3px 0 0; overflow: hidden; letter-spacing: 0; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
+
+.v67-theme-dark .v68-command,
+.v67-theme-dark .v68-assistant-hero,
+.v67-theme-dark .v68-goal-bridge {
+  border-color: rgba(91, 107, 143, .4);
+  background: radial-gradient(circle at 8% -20%, rgba(99, 102, 241, .22), transparent 40%), linear-gradient(135deg, #182139, #121a2c);
+  box-shadow: 0 22px 62px rgba(0, 0, 0, .26);
+}
+.v67-theme-dark .v68-command-main h3,
+.v67-theme-dark .v68-assistant-hero h3,
+.v67-theme-dark .v68-assistant-plan h3,
+.v67-theme-dark .v68-assistant-signals h3,
+.v67-theme-dark .v68-goal-bridge h3,
+.v67-theme-dark .v68-command-facts article b,
+.v67-theme-dark .v68-assistant-facts article b,
+.v67-theme-dark .v68-assistant-plan article b,
+.v67-theme-dark .v68-assistant-signals button b,
+.v67-theme-dark .v68-goal-bridge-list b { color: #edf3ff; }
+.v67-theme-dark .v68-command-main p,
+.v67-theme-dark .v68-assistant-hero p,
+.v67-theme-dark .v68-assistant-plan article small,
+.v67-theme-dark .v68-assistant-signals button small,
+.v67-theme-dark .v68-assistant-signals button p { color: #9baac4; }
+.v67-theme-dark .v68-command-facts article,
+.v67-theme-dark .v68-assistant-facts article,
+.v67-theme-dark .v68-assistant-plan article,
+.v67-theme-dark .v68-goal-bridge-list article,
+.v67-theme-dark .v68-command-actions button,
+.v67-theme-dark .v68-assistant-actions button,
+.v67-theme-dark .v68-assistant-plan article button,
+.v67-theme-dark .v68-goal-bridge-list button {
+  border-color: #34415b;
+  color: #cbd6ea;
+  background: rgba(27, 38, 62, .88);
+}
+.v67-theme-dark .v68-assistant-plan,
+.v67-theme-dark .v68-assistant-signals { border-color: #303c55; background: #151e31; }
+.v67-theme-dark .v68-assistant-note { color: #a9b6cc; background: #192338; }
+
+body:not(.v67-theme-dark) .v59-side .v68-nav-folder,
+body:not(.v67-theme-dark) .side .v68-nav-folder { border-color: rgba(111, 132, 169, .17); }
+
+@media (max-width: 1100px) {
+  .v68-command { grid-template-columns: minmax(0, 1fr) minmax(290px, .9fr); }
+  .v68-command-actions { grid-column: 1 / -1; flex-direction: row; }
+  .v68-assistant-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .v68-command { grid-template-columns: 1fr; gap: 14px; padding: 17px; border-radius: 24px; }
+  .v68-command-main { grid-template-columns: 43px minmax(0, 1fr); align-items: start; }
+  .v68-command-main > span { width: 43px; height: 43px; border-radius: 15px; }
+  .v68-command-main h3 { font-size: 18px; }
+  .v68-command-actions { grid-column: auto; display: grid; grid-template-columns: 1fr 1fr; }
+  .v68-command-actions button:first-child { grid-column: 1 / -1; }
+  .v68-assistant-hero { grid-template-columns: 46px minmax(0, 1fr); padding: 14px; }
+  .v68-assistant-hero > span { width: 46px; height: 46px; border-radius: 16px; font-size: 21px; }
+  .v68-assistant-hero h3 { font-size: 19px; }
+  .v68-assistant-plan article { grid-template-columns: 29px minmax(0, 1fr); }
+  .v68-assistant-plan article button { grid-column: 2; justify-self: start; }
+  .v68-assistant-plan header { align-items: flex-start; flex-direction: column; }
+  .v68-assistant-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .v68-goal-bridge header { align-items: flex-start; }
+  .v68-goal-bridge-list article { grid-template-columns: 30px minmax(0, 1fr); }
+  .v68-goal-bridge-list button { grid-column: 2; justify-self: start; }
+}

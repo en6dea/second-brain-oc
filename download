@@ -1,7 +1,18 @@
 # Never publish personal exports, credentials or local environment files.
 data.json
 *.private.json
+*backup*.json
+*Backup*.json
+second-brain-personal-*.json
+second-brain-before-*.json
+*.csv
+*.tsv
+*.db
+*.sqlite
+*.sqlite3
 .private/
+personal-data/
+Личные резервные копии/
 .env
 .env.*
 !.env.example

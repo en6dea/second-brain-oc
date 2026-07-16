@@ -238,18 +238,14 @@
   async function loadLocalFirebaseConfig() {
     if (window.SECOND_BRAIN_FIREBASE_CONFIG?.projectId) return window.SECOND_BRAIN_FIREBASE_CONFIG;
     try {
-      const response = await fetch(`./firebase-config.js?v=${encodeURIComponent(BUILD)}`, { cache: 'no-store' });
-      if (!response.ok) return null;
-      const source = await response.text();
-      const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = url;
+        script.src = `./firebase-config.js?v=${encodeURIComponent(BUILD)}-${Date.now()}`;
+        script.async = true;
         script.onload = resolve;
         script.onerror = reject;
         document.head.appendChild(script);
       });
-      URL.revokeObjectURL(url);
       return window.SECOND_BRAIN_FIREBASE_CONFIG?.projectId ? window.SECOND_BRAIN_FIREBASE_CONFIG : null;
     } catch (error) { return null; }
   }
@@ -769,9 +765,13 @@
   }
 
   function injectFinanceLimitControl(view) {
-    const hero = view.querySelector('.v65-finance-hero,.hero,.v59-hero');
+    const hero = view.querySelector('.v65-finance-hero') || view.querySelector('.hero,.v59-hero');
     const kpis = view.querySelector('.v65-money-kpis');
     if (!hero || !kpis) return;
+    const heroActions = hero.querySelector('.v65-finance-actions');
+    if (heroActions && !heroActions.querySelector('[data-v67-action="open-bank-import"]')) {
+      heroActions.insertAdjacentHTML('beforeend', '<button data-v67-action="open-bank-import" type="button">Импорт выписки</button>');
+    }
     const model = financeLimitModel();
     if (!view.querySelector('.v67-limit-control')) {
       kpis.insertAdjacentHTML('beforebegin', `<section class="v67-limit-control"><div><span class="v65-overline">Лимит расходов</span><h3>Автоматический и ручной режим</h3><p>Авто сначала резервирует обязательные платежи и покупки, затем делит свободный остаток по дням. Ручной режим использует заданную вами сумму.</p></div><div class="v67-limit-modes"><button class="${model.mode === 'auto' ? 'active' : ''}" data-v67-action="finance-limit-mode" data-mode="auto" type="button">Авто · ${money(model.autoDaily)}</button><button class="${model.mode === 'manual' ? 'active' : ''}" data-v67-action="finance-limit-mode" data-mode="manual" type="button">Вручную</button></div><label><span>Ручной лимит на день</span><input id="v67_manual_daily_limit" type="number" min="0" step="100" value="${model.manualDaily || ''}" placeholder="Например, 3 000"><button data-v67-action="save-manual-limit" type="button">Сохранить</button></label></section>`);
@@ -789,6 +789,10 @@
       if (strong) strong.textContent = model.selectedDaily ? money(model.selectedDaily * 7) : '—';
       if (small) small.textContent = model.mode === 'manual' ? '7 × ручной дневной лимит' : '7 × автоматический дневной лимит';
     }
+  }
+
+  function openBankImport() {
+    openModal('Импорт банковской выписки', `<div class="v39-csv-import v67-bank-import"><section class="v67-safety-banner"><span>₽</span><div><h3>Сначала предпросмотр</h3><p>Выберите CSV или TXT из банка. Приложение покажет операции, суммы и найденные дубли, но ничего не добавит без вашего подтверждения.</p></div></section><input id="v67_bank_csv" type="file" data-v39-csv-input accept=".csv,text/csv,text/plain,.txt"><div class="v39-csv-pick-row"><button class="ghost-btn" data-v39-action="pickCsvFile" type="button">Выбрать CSV / TXT</button><button class="btn" data-action="importBankCsv" type="button">Показать операции</button><button class="ghost-btn" data-v39-action="openCsvPaste" type="button">Вставить CSV текстом</button></div><div class="v39-csv-drop">Можно перетащить выписку сюда</div><div class="v39-csv-status">Файл пока не выбран</div><div class="v39-csv-hint"><b>Поддержка:</b> Альфа-Банк и другие CSV с разделителями ; , TAB, датами ДД.ММ.ГГГГ и кодировкой UTF-8/Windows-1251.</div></div>`);
   }
 
   function saveManualLimit() {
@@ -870,13 +874,17 @@
 
   function livePostRender() {
     const atmosphere = dayAtmosphere();
+    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
+    const activeBuild = v70Active ? 'second-brain-space-v71-personal-data-restore-20260716-r26' : (v69Active ? 'second-brain-space-v69-calm-intelligence-20260715' : (v68Active ? 'second-brain-space-v68-unified-assistant-20260715' : BUILD));
     document.body.classList.remove('v67-time-morning', 'v67-time-day', 'v67-time-evening');
     document.body.classList.add(`v67-time-${atmosphere.key}`);
-    document.body.dataset.sbosBuild = BUILD;
+    document.body.dataset.sbosBuild = activeBuild;
     const version = document.querySelector('.v59-version,.version');
-    if (version && version.textContent !== 'V67 · LIVING PERSONAL OS') version.textContent = 'V67 · LIVING PERSONAL OS';
+    if (version && version.textContent !== (v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67 · LIVING PERSONAL OS')))) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67 · LIVING PERSONAL OS'));
     const core = document.querySelector('.v59-core-pill');
-    if (core && core.textContent !== 'V67') core.textContent = 'V67';
+    if (core && core.textContent !== (v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67')))) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67'));
     const view = document.getElementById('view');
     if (!view) return;
     const route = (location.hash || '').replace('#', '') || 'dashboard';
@@ -990,6 +998,7 @@
     if (action === 'resolve-conflict') return resolveConflict(button.dataset.conflictId || '', button.dataset.choice || 'remote');
     if (action === 'restore-rollback') return restoreRollback();
     if (action === 'download-cloud-backup') { downloadBackup('manual'); return toast('Резервная копия подготовлена'); }
+    if (action === 'open-bank-import') return openBankImport();
     if (action === 'finance-limit-mode') return setFinanceLimitMode(button.dataset.mode || 'auto');
     if (action === 'save-manual-limit') return saveManualLimit();
   }, true);
