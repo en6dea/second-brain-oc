@@ -138,6 +138,15 @@
 .v66-risk-strip span, .v66-risk-strip b { display: block; }
 .v66-risk-strip span { color: #7e8da1; font-size: 8px; }
 .v66-risk-strip b { margin-top: 5px; color: #203652; font-size: 11px; }
+.v66-risk-strip .v66-balance-cell { display: grid; align-content: center; gap: 6px; }
+.v66-inline-balance { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; margin-top: 2px; }
+.v66-inline-balance input { width: 100%; min-width: 0; height: 34px; border: 1px solid #cdd9e8; border-radius: 10px; background: #fff; color: #203652; padding: 0 9px; outline: 0; font-size: 11px; font-weight: 900; }
+.v66-inline-balance input:focus { border-color: #65a2ff; box-shadow: 0 0 0 3px rgba(47, 111, 235, .12); }
+.v66-inline-balance button { height: 34px; border: 1px solid #78a9f4; border-radius: 10px; background: #2f7dea; color: #fff; padding: 0 10px; font-size: 9px; font-weight: 950; }
+.v66-balance-cell > small { color: #74859a; font-size: 7px; font-weight: 800; }
+.v67-theme-dark .v66-inline-balance input, .v70-theme-dark .v66-inline-balance input { border-color: #39506f; background: #0d1b2d; color: #eef4ff; }
+.v67-theme-dark .v66-inline-balance button, .v70-theme-dark .v66-inline-balance button { border-color: #397bd7; background: #256fd7; color: #fff; }
+.v67-theme-dark .v66-balance-cell > small, .v70-theme-dark .v66-balance-cell > small { color: #8191a8; }
 .v66-trade-kpis b.is-positive, .v66-trade-list .is-positive { color: #13805a; }
 .v66-trade-kpis b.is-negative, .v66-trade-list .is-negative { color: #c54855; }
 .v66-trade-list { display: grid; gap: 8px; }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v73-password-vault-20260716-r1';
+const CACHE_NAME = 'second-brain-space-v74-trading-balance-20260716-r1';
 const CORE_ASSETS = [
   './',
   './index.html',
