@@ -3,13 +3,13 @@
 /* Second Brain OS V72 — календарь состояния Полины и прогноз цикла.
    Данные остаются в общем state и автоматически попадают в backup / облачную синхронизацию. */
 (() => {
-  const BUILD = 'second-brain-space-v72-polina-state-20260716-r2';
-  const LABEL = 'V72 · СОСТОЯНИЕ ПОЛИНЫ';
+  const BUILD = 'second-brain-space-v72-polina-state-20260716-r3';
+  const LABEL = 'V72.1 · СОСТОЯНИЕ ПОЛИНЫ';
   const ROUTE = 'polina';
   const STATUS = {
-    excellent: { label: 'Отличное', short: 'Отличное', icon: '✦' },
-    good: { label: 'Хорошее', short: 'Хорошее', icon: '♡' },
-    neutral: { label: 'Нейтральное', short: 'Нейтральное', icon: '•' }
+    good: { label: 'Хорошее', short: 'Хорошее', icon: '✓' },
+    neutral: { label: 'Нейтральное', short: 'Нейтральное', icon: '•' },
+    bad: { label: 'Плохое', short: 'Плохое', icon: '!' }
   };
   let postTimer = 0;
 
@@ -56,8 +56,8 @@
     const legacy = clean(entry?.mood).toLowerCase();
     if (legacy === 'good') return 'good';
     if (legacy === 'neutral') return 'neutral';
-    if (legacy === 'excellent') return 'excellent';
-    if (legacy === 'bad') return 'neutral';
+    if (legacy === 'excellent') return 'good';
+    if (legacy === 'bad') return 'bad';
     return '';
   }
 
@@ -235,7 +235,7 @@
 
   function monthStats(key) {
     const entries = entriesAscending().filter(item => monthKey(item.date) === key);
-    const result = { total: 0, excellent: 0, good: 0, neutral: 0, comments: 0, starts: 0, ends: 0 };
+    const result = { total: 0, good: 0, neutral: 0, bad: 0, comments: 0, starts: 0, ends: 0 };
     entries.forEach(item => {
       if (STATUS[item.status]) {
         result.total += 1;
@@ -279,11 +279,11 @@
 
   function monthHistoryRow(key) {
     const stats = monthStats(key);
-    const dominant = ['excellent', 'good', 'neutral'].sort((left, right) => stats[right] - stats[left])[0];
+    const dominant = ['good', 'neutral', 'bad'].sort((left, right) => stats[right] - stats[left])[0];
     const dominantLabel = stats.total ? STATUS[dominant].label : 'Нет состояний';
     return `<button class="v72-history-row ${key === selectedMonth() ? 'is-active' : ''}" data-v72-action="open-month" data-month="${key}" type="button">
       <span><b>${escape(formatMonth(key))}</b><small>${stats.total} ${plural(stats.total, 'день', 'дня', 'дней')} с состоянием · ${stats.comments} ${plural(stats.comments, 'комментарий', 'комментария', 'комментариев')}</small></span>
-      <span class="v72-history-pills"><i class="is-excellent">${stats.excellent}</i><i class="is-good">${stats.good}</i><i class="is-neutral">${stats.neutral}</i>${stats.starts ? `<i class="is-cycle">● ${stats.starts}</i>` : ''}</span>
+      <span class="v72-history-pills"><i class="is-good">${stats.good}</i><i class="is-neutral">${stats.neutral}</i><i class="is-bad">${stats.bad}</i>${stats.starts ? `<i class="is-cycle">● ${stats.starts}</i>` : ''}</span>
       <em>${escape(dominantLabel)} ›</em>
     </button>`;
   }
@@ -319,10 +319,10 @@
             <div><span>Календарь</span><h2>${escape(formatMonth(key))}</h2><p>${stats.total ? `${stats.total} ${plural(stats.total, 'отмеченный день', 'отмеченных дня', 'отмеченных дней')} в этом месяце` : 'В этом месяце пока нет отметок'}</p></div>
             <div class="v72-month-nav"><button data-v72-action="month" data-delta="-1" type="button" aria-label="Предыдущий месяц">←</button><button data-v72-action="today-month" type="button">Сегодня</button><button data-v72-action="month" data-delta="1" type="button" aria-label="Следующий месяц">→</button></div>
           </header>
-          <div class="v72-month-summary"><span class="is-excellent">✦ Отличное <b>${stats.excellent}</b></span><span class="is-good">♡ Хорошее <b>${stats.good}</b></span><span class="is-neutral">• Нейтральное <b>${stats.neutral}</b></span><span class="is-cycle">● Цикл <b>${stats.starts + stats.ends}</b></span></div>
+          <div class="v72-month-summary"><span class="is-good">✓ Хорошее <b>${stats.good}</b></span><span class="is-neutral">• Нейтральное <b>${stats.neutral}</b></span><span class="is-bad">! Плохое <b>${stats.bad}</b></span><span class="is-cycle">● Цикл <b>${stats.starts + stats.ends}</b></span></div>
           <div class="v72-weekdays">${weekdays.map(day => `<span>${day}</span>`).join('')}</div>
           <div class="v72-calendar">${cells.map(date => dayCell(date, model)).join('')}</div>
-          <footer class="v72-legend"><span><i class="is-excellent"></i>Отличное</span><span><i class="is-good"></i>Хорошее</span><span><i class="is-neutral"></i>Нейтральное</span><span><i class="is-period"></i>Фактические месячные</span><span><i class="is-forecast"></i>Прогноз</span></footer>
+          <footer class="v72-legend"><span><i class="is-good"></i>Хорошее</span><span><i class="is-neutral"></i>Нейтральное</span><span><i class="is-bad"></i>Плохое</span><span><i class="is-period"></i>Фактические месячные</span><span><i class="is-forecast"></i>Прогноз</span></footer>
         </article>
 
         <aside class="v72-side-column">
@@ -355,9 +355,9 @@
     const html = `<div class="v72-modal-form">
       <label class="v72-field"><span>Дата</span><input id="v72_day_date" type="date" value="${chosen}"></label>
       <fieldset class="v72-state-field"><legend>Состояние</legend><div class="v72-state-options">
-        <label class="is-excellent"><input type="radio" name="v72_status" value="excellent" ${checked('excellent')}><span><i>✦</i><b>Отличное</b><small>много энергии и лёгкости</small></span></label>
-        <label class="is-good"><input type="radio" name="v72_status" value="good" ${checked('good')}><span><i>♡</i><b>Хорошее</b><small>спокойное хорошее состояние</small></span></label>
-        <label class="is-neutral"><input type="radio" name="v72_status" value="neutral" ${checked('neutral')}><span><i>•</i><b>Нейтральное</b><small>без выраженного подъёма</small></span></label>
+        <label class="is-good"><input type="radio" name="v72_status" value="good" ${checked('good')}><span><i>✓</i><b>Хорошее</b><small>хорошее и спокойное состояние</small></span></label>
+        <label class="is-neutral"><input type="radio" name="v72_status" value="neutral" ${checked('neutral')}><span><i>•</i><b>Нейтральное</b><small>ровное состояние без явного перекоса</small></span></label>
+        <label class="is-bad"><input type="radio" name="v72_status" value="bad" ${checked('bad')}><span><i>!</i><b>Плохое</b><small>тяжёлый или раздражительный день</small></span></label>
         <label class="is-none"><input type="radio" name="v72_status" value="" ${entry?.status ? '' : 'checked'}><span><i>×</i><b>Без отметки</b><small>оставить только комментарий или цикл</small></span></label>
       </div></fieldset>
       <label class="v72-field"><span>Отметка цикла</span><select id="v72_period_marker"><option value="" ${!marker ? 'selected' : ''}>Нет отметки</option><option value="start" ${marker === 'start' ? 'selected' : ''}>Начало месячных</option><option value="end" ${marker === 'end' ? 'selected' : ''}>Конец месячных</option></select></label>
@@ -478,7 +478,7 @@
     const version = document.querySelector('.v59-version,.version');
     if (version) version.textContent = LABEL;
     const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = 'V72';
+    if (core) core.textContent = 'V72.1';
   }
 
   function renderRoute() {
