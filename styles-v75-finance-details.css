@@ -1,0 +1,46 @@
+/* Second Brain OS V75 — кликабельные финансовые плашки */
+.v75-clickable-finance-card{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;isolation:isolate}
+.v75-clickable-finance-card:hover,.v75-clickable-finance-card:focus-visible{transform:translateY(-2px);border-color:#5789d7!important;box-shadow:0 16px 34px rgba(28,74,143,.16)!important;outline:none}
+.v75-clickable-finance-card:active{transform:translateY(0)}
+.v75-card-open-hint{position:absolute;right:13px;bottom:10px;color:#7591b5;font-size:8px;font-weight:950;letter-spacing:.02em;opacity:.7}
+.v75-mandatory-card:after{content:"";position:absolute!important;inset:0!important;background:linear-gradient(135deg,rgba(245,158,11,.06),transparent 58%)!important;pointer-events:none}
+.v75-clickable-flow-tile{cursor:pointer;border-radius:13px;transition:.16s ease}
+.v75-clickable-flow-tile:hover,.v75-clickable-flow-tile:focus-visible{background:rgba(59,130,246,.07);outline:1px solid rgba(96,165,250,.55);outline-offset:3px}
+.v75-modal-stack{display:grid;gap:15px}
+.v75-breakdown-grid,.v75-obligation-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.v75-breakdown-grid article,.v75-obligation-summary article{border:1px solid #dfe7f2;border-radius:16px;background:#f9fbfe;padding:12px}
+.v75-breakdown-grid span,.v75-obligation-summary span{display:block;color:#78879c;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.v75-breakdown-grid b,.v75-obligation-summary b{display:block;margin-top:7px;color:#243a5b;font-size:17px}
+.v75-obligation-summary small{display:block;margin-top:4px;color:#8995a6;font-size:8px;font-weight:750}
+.v75-breakdown-grid article.is-result,.v75-obligation-summary article.is-total{border-color:#aac6ee;background:#eff6ff}
+.v75-obligation-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+.v75-formula-card{border:1px solid #dce6f4;border-radius:17px;background:#f8fbff;padding:13px}
+.v75-formula-card b{color:#243a5b;font-size:11px}.v75-formula-card p{margin:6px 0;color:#748298;font-size:10px;font-weight:700;line-height:1.5}.v75-formula-card strong{color:#2869c8;font-size:12px}
+.v75-obligation-section{border:1px solid #dfe7f2;border-radius:18px;background:#fbfdff;padding:13px}
+.v75-obligation-section>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+.v75-obligation-section>header span{color:#8491a3;font-size:8px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+.v75-obligation-section>header h3{margin:3px 0 0;color:#253b5c;font-size:15px}.v75-obligation-section>header p{margin:4px 0 0;color:#8491a3;font-size:9px;font-weight:700}
+.v75-obligation-section button,.v75-modal-actions button,.v75-row-actions button{min-height:34px;border:1px solid #d9e3f0;border-radius:11px;background:#fff;color:#3a516f;padding:0 10px;font-size:9px;font-weight:900}
+.v75-obligation-section button:hover,.v75-modal-actions button:hover,.v75-row-actions button:hover{border-color:#9cbbea;background:#f3f7ff;color:#2869c8}
+.v75-primary{border-color:#347be0!important;background:#347be0!important;color:#fff!important}
+.v75-obligation-list{display:grid;gap:7px}
+.v75-obligation-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto auto;gap:10px;align-items:center;border:1px solid #e1e8f2;border-radius:14px;background:#fff;padding:9px}
+.v75-obligation-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#eef4ff;color:#3470c9;font-size:13px;font-weight:950}
+.v75-obligation-row.is-purchase .v75-obligation-icon{background:#fff5dc;color:#b97800}
+.v75-obligation-row b{display:block;color:#263c5d;font-size:10px}.v75-obligation-row small{display:block;margin-top:3px;color:#8491a3;font-size:8px;font-weight:700;line-height:1.4}.v75-obligation-row>strong{color:#263c5d;font-size:11px;white-space:nowrap}
+.v75-row-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.v75-empty{border:1px dashed #dce5f1;border-radius:14px;background:#f8fbff;padding:14px;color:#8290a3;font-size:9px;font-weight:750}
+.v75-data-safety-note{margin:0;border:1px dashed #9ecbb3;border-radius:14px;background:#effaf4;padding:10px;color:#49705b;font-size:9px;font-weight:700;line-height:1.5}
+.v75-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.v75-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v75-form-grid label{display:grid;gap:6px}.v75-form-grid label.is-wide{grid-column:1/-1}.v75-form-grid span{color:#566982;font-size:9px;font-weight:950}.v75-form-grid input,.v75-form-grid textarea{width:100%;border:1px solid #dce5f0;border-radius:13px;background:#fff;color:#243a5b;padding:10px 11px;outline:none;font:inherit;font-size:10px;font-weight:700}.v75-form-grid textarea{min-height:94px;resize:vertical}.v75-form-grid input:focus,.v75-form-grid textarea:focus{border-color:#72a2e7;box-shadow:0 0 0 3px rgba(52,123,224,.09)}
+.v67-theme-dark .v75-clickable-finance-card:hover,.v67-theme-dark .v75-clickable-finance-card:focus-visible{border-color:#4f78b7!important;box-shadow:0 16px 34px rgba(0,0,0,.24)!important}
+.v67-theme-dark .v75-card-open-hint{color:#7f96b5}.v67-theme-dark .v75-clickable-flow-tile:hover,.v67-theme-dark .v75-clickable-flow-tile:focus-visible{background:rgba(77,124,196,.14)}
+.v67-theme-dark .v75-breakdown-grid article,.v67-theme-dark .v75-obligation-summary article,.v67-theme-dark .v75-formula-card,.v67-theme-dark .v75-obligation-section{border-color:#2d4261;background:#101f36}
+.v67-theme-dark .v75-breakdown-grid article.is-result,.v67-theme-dark .v75-obligation-summary article.is-total{border-color:#3e6195;background:#142c4d}
+.v67-theme-dark .v75-breakdown-grid b,.v67-theme-dark .v75-obligation-summary b,.v67-theme-dark .v75-formula-card b,.v67-theme-dark .v75-obligation-section>header h3,.v67-theme-dark .v75-obligation-row b,.v67-theme-dark .v75-obligation-row>strong{color:#e4ebf6}
+.v67-theme-dark .v75-breakdown-grid span,.v67-theme-dark .v75-obligation-summary span,.v67-theme-dark .v75-obligation-summary small,.v67-theme-dark .v75-formula-card p,.v67-theme-dark .v75-obligation-section>header p,.v67-theme-dark .v75-obligation-row small{color:#8d9bb0}
+.v67-theme-dark .v75-obligation-row{border-color:#2b405e;background:#11213a}.v67-theme-dark .v75-obligation-icon{background:#193251;color:#9cbce9}.v67-theme-dark .v75-obligation-row.is-purchase .v75-obligation-icon{background:#45350e;color:#f4c760}
+.v67-theme-dark .v75-obligation-section button,.v67-theme-dark .v75-modal-actions button,.v67-theme-dark .v75-row-actions button{border-color:#304663;background:#13243d;color:#bdc9d9}
+.v67-theme-dark .v75-empty{border-color:#314863;background:#0e1d32;color:#8795a9}.v67-theme-dark .v75-data-safety-note{border-color:#326048;background:#102a20;color:#88b99d}
+.v67-theme-dark .v75-form-grid input,.v67-theme-dark .v75-form-grid textarea{border-color:#2e4462;background:#0c1a2f;color:#e5ecf7}
+@media(max-width:760px){.v75-breakdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v75-obligation-summary{grid-template-columns:1fr}.v75-obligation-row{grid-template-columns:34px minmax(0,1fr) auto}.v75-obligation-row>.v75-row-actions,.v75-obligation-row>button{grid-column:2/-1;justify-content:flex-start}.v75-form-grid{grid-template-columns:1fr}.v75-form-grid label.is-wide{grid-column:auto}.v75-obligation-section>header{flex-direction:column}.v75-card-open-hint{display:none}}

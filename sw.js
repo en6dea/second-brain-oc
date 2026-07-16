@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v74-trading-balance-20260716-r1';
+const CACHE_NAME = 'second-brain-space-v75-finance-details-20260716-r1';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const CORE_ASSETS = [
   './app-v71-data.js',
   './app-v72-polina.js',
   './app-v73-passwords.js',
+  './app-v75-finance-details.js',
   './styles-v64.css',
   './styles-v65.css',
   './styles-v66.css',
@@ -23,6 +24,7 @@ const CORE_ASSETS = [
   './styles-v70.css',
   './styles-v72-polina.css',
   './styles-v73-passwords.css',
+  './styles-v75-finance-details.css',
   './manifest.webmanifest',
   './offline.html',
   './icon-192-v71.png',
