@@ -3,8 +3,8 @@
 /* Second Brain OS V72 — календарь состояния Полины и прогноз цикла.
    Данные остаются в общем state и автоматически попадают в backup / облачную синхронизацию. */
 (() => {
-  const BUILD = 'second-brain-space-v72-polina-state-20260716-r3';
-  const LABEL = 'V72.1 · СОСТОЯНИЕ ПОЛИНЫ';
+  const BUILD = 'second-brain-space-v72-polina-state-20260716-r4';
+  const LABEL = 'V72.2 · СОСТОЯНИЕ ПОЛИНЫ';
   const ROUTE = 'polina';
   const STATUS = {
     good: { label: 'Хорошее', short: 'Хорошее', icon: '✓' },
@@ -478,7 +478,7 @@
     const version = document.querySelector('.v59-version,.version');
     if (version) version.textContent = LABEL;
     const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = 'V72.1';
+    if (core) core.textContent = 'V72.2';
   }
 
   function renderRoute() {
