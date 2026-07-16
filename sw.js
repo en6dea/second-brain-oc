@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v71-personal-data-restore-20260716-r26';
+const CACHE_NAME = 'second-brain-space-v72-polina-state-20260716-r2';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const CORE_ASSETS = [
   './app-v69-calm.js',
   './app-v70-living.js',
   './app-v71-data.js',
+  './app-v72-polina.js',
   './styles-v64.css',
   './styles-v65.css',
   './styles-v66.css',
@@ -19,6 +20,7 @@ const CORE_ASSETS = [
   './styles-v68.css',
   './styles-v69.css',
   './styles-v70.css',
+  './styles-v72-polina.css',
   './manifest.webmanifest',
   './offline.html',
   './icon-192-v71.png',
