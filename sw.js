@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v72-polina-state-20260716-r2';
+const CACHE_NAME = 'second-brain-space-v72-polina-state-20260716-r6';
 const CORE_ASSETS = [
   './',
   './index.html',

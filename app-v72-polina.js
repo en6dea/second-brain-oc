@@ -3,8 +3,8 @@
 /* Second Brain OS V72 — календарь состояния Полины и прогноз цикла.
    Данные остаются в общем state и автоматически попадают в backup / облачную синхронизацию. */
 (() => {
-  const BUILD = 'second-brain-space-v72-polina-state-20260716-r5';
-  const LABEL = 'V72.3 · СОСТОЯНИЕ ПОЛИНЫ';
+  const BUILD = 'second-brain-space-v72-polina-state-20260716-r6';
+  const LABEL = 'V72.4 · СОСТОЯНИЕ ПОЛИНЫ';
   const ROUTE = 'polina';
   const STATUS = {
     good: { label: 'Хорошее', short: 'Хорошее', icon: '✓' },
@@ -254,6 +254,23 @@
     return [...keys].sort((left, right) => right.localeCompare(left)).slice(0, 18);
   }
 
+  function statusCellStyle(status) {
+    if (!status) return '';
+    const dark = document.documentElement.classList.contains('v70-theme-dark') || document.body.classList.contains('v67-theme-dark');
+    const palette = dark ? {
+      good: { background: '#174f2d', border: '#47c879', shadow: 'rgba(71,200,121,.24)' },
+      neutral: { background: '#5a4310', border: '#e2b83f', shadow: 'rgba(226,184,63,.25)' },
+      bad: { background: '#57212a', border: '#ef7180', shadow: 'rgba(239,113,128,.24)' }
+    } : {
+      good: { background: '#c9f1d5', border: '#42b96d', shadow: 'rgba(66,185,109,.20)' },
+      neutral: { background: '#ffe89a', border: '#ddb02f', shadow: 'rgba(221,176,47,.20)' },
+      bad: { background: '#ffc8d0', border: '#e76575', shadow: 'rgba(231,101,117,.20)' }
+    };
+    const color = palette[status];
+    if (!color) return '';
+    return `background:${color.background}!important;border-color:${color.border}!important;box-shadow:inset 0 0 0 999px ${color.shadow},inset 0 0 0 1px ${color.border}!important;`;
+  }
+
   function dayCell(date, model) {
     if (!date) return '<div class="v72-day is-empty" aria-hidden="true"></div>';
     const entry = entryByDate(date);
@@ -269,7 +286,7 @@
     ].filter(Boolean).join(' ');
     const stateLabel = status ? STATUS[status].short : '';
     const periodLabel = actual?.label || predicted?.label || '';
-    return `<button class="${classes}" data-v72-action="open-day" data-date="${date}" type="button" aria-label="${escape(formatDate(date))}">
+    return `<button class="${classes}" style="${statusCellStyle(status)}" data-v72-action="open-day" data-date="${date}" type="button" aria-label="${escape(formatDate(date))}">
       <span class="v72-day-top"><b>${Number(date.slice(8, 10))}</b>${date === todayStamp() ? '<em>сегодня</em>' : ''}</span>
       <span class="v72-day-state">${status ? `<i>${STATUS[status].icon}</i>${escape(stateLabel)}` : '<span>Без отметки</span>'}</span>
       ${entry?.comment ? `<span class="v72-day-comment">${escape(entry.comment)}</span>` : '<span class="v72-day-comment is-placeholder">Добавить комментарий</span>'}
@@ -478,7 +495,7 @@
     const version = document.querySelector('.v59-version,.version');
     if (version) version.textContent = LABEL;
     const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = 'V72.3';
+    if (core) core.textContent = 'V72.4';
   }
 
   function renderRoute() {
