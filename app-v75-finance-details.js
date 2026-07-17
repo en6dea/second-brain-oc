@@ -4,7 +4,7 @@
    Модуль ничего не очищает и не пересоздаёт при загрузке.
    Запись выполняется только после явного действия пользователя, с резервным снимком state. */
 (() => {
-  const BUILD = 'second-brain-space-v75-finance-details-20260716-r1';
+  const BUILD = 'second-brain-space-v75-finance-details-20260716-r2';
   const BACKUP_KEY = 'secondBrainOS.v75.lastSafeBackup';
   let timer = 0;
 
@@ -56,15 +56,21 @@
   }
 
   function snapshotBeforeWrite(reason) {
+    /* Полную копию больше не кладём рядом с основной базой в localStorage:
+       это удваивало объём данных и могло блокировать дальнейшие сохранения.
+       V76 хранит защитные снимки в IndexedDB с существенно большим лимитом. */
+    if (window.SecondBrainStorageGuard?.backup) {
+      window.SecondBrainStorageGuard.backup(reason).catch(error => console.warn('[V75 backup via V76]', error));
+      return;
+    }
     try {
-      const snapshot = JSON.stringify({
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({
         createdAt: new Date().toISOString(),
         reason,
-        state: JSON.parse(JSON.stringify(state))
-      });
-      localStorage.setItem(BACKUP_KEY, snapshot);
+        lightweight: true
+      }));
     } catch (error) {
-      console.warn('[V75] Не удалось создать локальный защитный снимок', error);
+      console.warn('[V75] Не удалось записать метаданные защитного снимка', error);
     }
   }
 

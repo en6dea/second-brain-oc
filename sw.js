@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-space-v75-finance-details-20260716-r1';
+const CACHE_NAME = 'second-brain-space-v76-durable-storage-20260717-r1';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const CORE_ASSETS = [
   './app-v72-polina.js',
   './app-v73-passwords.js',
   './app-v75-finance-details.js',
+  './app-v76-storage-guard.js',
   './styles-v64.css',
   './styles-v65.css',
   './styles-v66.css',
