@@ -3,29 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#07111f" />
+  <meta name="theme-color" content="#fbf9ff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Second Brain OS" />
   <meta name="application-name" content="Second Brain OS" />
   <meta name="description" content="Second Brain OS — личная система для целей, привычек, финансов и повседневной жизни." />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta name="second-brain-build" content="second-brain-space-v77-discipline-20260720-r1" />
+  <meta name="second-brain-build" content="second-brain-space-v78-premium-unified-20260720-r1" />
   <script>
     (function(){
-      var mode='auto';
-      try {
-        var raw=localStorage.getItem('secondBrainOS.v1');
-        var parsed=raw?JSON.parse(raw):null;
-        var saved=parsed&&(parsed.state||parsed);
-        mode=(saved&&saved.settings&&saved.settings.v67&&saved.settings.v67.theme)||'auto';
-      } catch(error) {}
-      var dark=mode==='dark'||(mode==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.classList.add(dark?'v70-theme-dark':'v70-theme-light');
-      document.documentElement.dataset.v70Theme=dark?'dark':'light';
-      document.documentElement.style.colorScheme=dark?'dark':'light';
+      document.documentElement.classList.remove('v70-theme-dark');
+      document.documentElement.classList.add('v70-theme-light');
+      document.documentElement.dataset.v70Theme='light';
+      document.documentElement.style.colorScheme='light';
       var themeMeta=document.querySelector('meta[name="theme-color"]');
-      if(themeMeta)themeMeta.setAttribute('content',dark?'#07111f':'#f3f6fa');
+      if(themeMeta)themeMeta.setAttribute('content','#fbf9ff');
     })();
   </script>
   <title>Second Brain OS</title>
@@ -35,11 +28,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;450;500;550;600;650;700;750;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles-v64.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v65.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v66.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v67.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v68.css?v=second-brain-space-v77-discipline-20260720-r1" />
+  <link rel="stylesheet" href="styles-v64.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v65.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v66.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v67.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v68.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
   <style>
     :root{
       --bg:#f6f8fc;--panel:#fff;--panel2:#fbfdff;--text:#0f172a;--muted:#64748b;--soft:#94a3b8;--line:#e6edf7;
@@ -53,32 +46,32 @@
     .finance-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}.chip-btn.active{background:#eef5ff;color:var(--blue);border-color:#bfdbfe}.finance-chart{height:230px;border:1px solid #eaf0f8;background:linear-gradient(180deg,#fff,#f8fbff);border-radius:22px;padding:14px;display:flex;align-items:flex-end;gap:7px;overflow:hidden}.finance-day{flex:1;min-width:8px;display:flex;gap:3px;align-items:flex-end;height:100%;position:relative}.finance-bar{flex:1;border-radius:999px 999px 6px 6px;min-height:5px}.finance-bar.income{background:linear-gradient(180deg,#34d399,#10b981)}.finance-bar.expense{background:linear-gradient(180deg,#fb7185,#ef4444)}.finance-day:hover:after{content:attr(data-tip);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);white-space:nowrap;background:#0f172a;color:#fff;border-radius:10px;padding:6px 8px;font-size:11px;z-index:20}.category-bars{display:grid;gap:12px}.category-line{display:grid;gap:7px}.category-top{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:900}.forecast-list{display:grid;gap:10px}.planned-month-card{border:1px solid #dbeafe;background:linear-gradient(135deg,#f8fbff,#fff);border-radius:20px;padding:14px;display:grid;gap:10px}.purchase-month-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.version{background:linear-gradient(135deg,#0f172a,#0ea5e9)!important}.record-card .thumb{display:grid;place-items:center;font-size:24px}.field textarea{white-space:pre-wrap}
 
   </style>
-  <link rel="stylesheet" href="styles-v69.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v70.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v72-polina.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v73-passwords.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v75-finance-details.css?v=second-brain-space-v77-discipline-20260720-r1" />
-  <link rel="stylesheet" href="styles-v77-discipline.css?v=second-brain-space-v77-discipline-20260720-r1" />
+  <link rel="stylesheet" href="styles-v69.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v70.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v72-polina.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v73-passwords.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v75-finance-details.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
+  <link rel="stylesheet" href="styles-v78-premium.css?v=second-brain-space-v78-premium-unified-20260720-r1" />
 </head>
-<body class="v70-living-os v70-booting" data-sbos-build="second-brain-space-v77-discipline-20260720-r1">
-  <script>(function(){var dark=document.documentElement.classList.contains('v70-theme-dark');document.body.classList.toggle('v67-theme-dark',dark);document.body.dataset.v67Theme=(function(){try{var raw=localStorage.getItem('secondBrainOS.v1');var parsed=raw?JSON.parse(raw):null;var saved=parsed&&(parsed.state||parsed);return(saved&&saved.settings&&saved.settings.v67&&saved.settings.v67.theme)||'auto'}catch(error){return'auto'}})();setTimeout(function(){document.body.classList.remove('v70-booting')},4000)})()</script>
+<body class="v70-living-os v70-booting v78-booting" data-sbos-build="second-brain-space-v78-premium-unified-20260720-r1">
+  <script>(function(){document.body.classList.remove('v67-theme-dark');document.body.dataset.v67Theme='light';setTimeout(function(){document.body.classList.remove('v70-booting')},4000)})()</script>
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button class="icon-btn" data-action="closeModal">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v64.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v65.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v66.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v67.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v67-life.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v68-assistant.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v69-calm.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v70-living.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v71-data.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v72-polina.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v73-passwords.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v75-finance-details.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v76-storage-guard.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
-  <script src="app-v77-discipline.js?v=second-brain-space-v77-discipline-20260720-r1"></script>
+  <script src="app.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v64.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v65.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v66.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v67.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v67-life.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v68-assistant.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v69-calm.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v70-living.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v71-data.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v72-polina.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v73-passwords.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v75-finance-details.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v76-storage-guard.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
+  <script src="app-v78-premium.js?v=second-brain-space-v78-premium-unified-20260720-r1"></script>
 </body>
 </html>
