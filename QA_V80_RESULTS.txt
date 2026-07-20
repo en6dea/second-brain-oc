@@ -1,0 +1,14 @@
+Second Brain OS V80 — automated checks
+
+PASS: JavaScript syntax (node --check)
+PASS: Today route renders habits
+PASS: Finance analytics reads legacy Russian operation types and categories
+PASS: Habits route renders symmetric habit cards
+PASS: Daily subconscious interview route renders 3 questions and history
+PASS: People route renders questionnaires and birthday data
+PASS: Wish cards render image/product links
+PASS: Interview records are migrated out of Notes and Personal Memory
+PASS: index.html loads only V80 JavaScript and CSS
+PASS: service worker caches only V80 runtime assets
+
+Note: full visual Chromium screenshot rendering was unavailable in the container environment; route rendering was tested with a browser-API harness.
