@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#fbf9ff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-space-v831-restore-light-design-20260721-r1">
+  <meta name="second-brain-build" content="second-brain-space-v833-books-goals-final-20260721-r1">
   <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v831-r1">
+  <link rel="manifest" href="manifest.webmanifest?v=v833-r1">
   <link rel="icon" href="icon-192-v82.png?v=v831-r1">
   <link rel="apple-touch-icon" href="icon-192-v82.png?v=v831-r1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -469,16 +469,121 @@ body{font-size:15px!important}
 @media(max-width:1180px){.v83-game-grid,.v83-goal-layout{grid-template-columns:1fr}.v83-goal-grid{grid-template-columns:repeat(2,1fr)}.v83-player-hero{grid-template-columns:120px 1fr}.v83-map-orb{display:none}.v83-today-game{align-items:stretch;flex-direction:column}.v83-strip-actions{justify-content:flex-end}}
 @media(max-width:760px){.v83-goal-grid,.v83-goal-principles{grid-template-columns:1fr}.v83-player-hero{grid-template-columns:1fr;text-align:center}.v83-avatar-core{justify-self:center}.v83-player-hero footer,.v83-goal-meta{justify-content:center}.v83-player-mini{grid-template-columns:44px 1fr}.v83-mini-money{grid-column:1/-1}.v83-strip-actions{display:grid;grid-template-columns:1fr 1fr}.v83-capture-types{grid-template-columns:1fr 1fr}.v83-goal-hero{grid-template-columns:1fr;text-align:center}.v83-goal-ring{justify-self:center}.v83-campaign-badge{justify-self:center}.v83-wizard-progress{grid-template-columns:repeat(7,30px);overflow:auto}}
 
+
+
+/* V83.2 — livelier light design, bank CSV import and Polina forecast */
+:root{--v832-ink:#171735;--v832-muted:#5f5b7a;--v832-soft:#8e86b2;--v832-line:rgba(123,95,211,.14);--v832-glow:0 18px 40px rgba(124,86,232,.14)}
+.v78-content,.v78-content button,.v78-content input,.v78-content textarea,.v78-content select{color:var(--v832-ink)!important}
+.v78-content p,.v78-content small,.v78-card header p,.v78-page-head p,.v78-page-head span,.v78-finance-folder span em,.v78-info-folder span small,.v78-kpi-row article span,.v83-goal-card>p,.v83-next-action small,.v83-rewards small,.v83-game-log small{color:var(--v832-muted)!important}
+.v78-page-head span,.v78-kpi-row article small,.v78-finance-folder span small,.v78-info-folder span small{letter-spacing:.08em;color:#8a82ae!important}
+.v78-page-head h1,.v78-content h1,.v78-content h2,.v78-content h3{color:#171735!important}
+
+.v78-sidebar{background:linear-gradient(180deg,#ffffff 0%,#fcfaff 55%,#f7f1ff 100%)!important;border-right:1px solid rgba(120,95,210,.09)!important;position:sticky;top:0;overflow:hidden}
+.v78-sidebar:before{content:"";position:absolute;inset:auto -60px -80px auto;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#e8d7ff 0%,rgba(232,215,255,0) 65%);opacity:.65;pointer-events:none}
+.v78-brand{position:relative}
+.v78-brand img,.v78-brand .v78-brand-orb{filter:drop-shadow(0 12px 18px rgba(124,86,232,.16))}
+.v78-side-link{position:relative;overflow:hidden;border-color:transparent!important;min-height:49px;border-radius:18px!important;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.v78-side-link i{background:linear-gradient(145deg,#f6f1ff,#ffffff)!important;border:1px solid rgba(123,95,211,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 16px rgba(124,86,232,.08);color:#7c56e8!important}
+.v78-side-link:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(124,86,232,0),rgba(124,86,232,.05),rgba(124,86,232,0));transform:translateX(-120%);transition:transform .55s ease;pointer-events:none}
+.v78-side-link:hover{transform:translateX(3px)!important;box-shadow:0 12px 22px rgba(124,86,232,.08)}
+.v78-side-link:hover:after{transform:translateX(100%)}
+.v78-side-link.active{background:linear-gradient(135deg,#f7f0ff,#fff)!important;box-shadow:0 16px 28px rgba(124,86,232,.12)!important;border-color:rgba(123,95,211,.18)!important}
+.v78-side-link.active i{background:linear-gradient(145deg,#efe5ff,#f9fbff)!important;color:#6b45d0!important}
+.v78-motivation{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff7ff,#f5edff)!important;border-color:rgba(123,95,211,.12)!important;box-shadow:var(--v832-glow)}
+.v78-motivation:before{content:"";position:absolute;right:-14px;bottom:-18px;width:110px;height:110px;border-radius:38px;background:radial-gradient(circle at 30% 30%,#ffffff 0%,#e7d8ff 30%,#cfaeff 58%,rgba(207,174,255,0) 78%);transform:rotate(18deg)}
+.v78-profile-mini{background:rgba(255,255,255,.7)!important;border-color:rgba(123,95,211,.12)!important;box-shadow:0 10px 20px rgba(124,86,232,.06)}
+
+.v83-today-game{position:relative;overflow:hidden;background:linear-gradient(95deg,#281d72 0%,#5e46ce 52%,#79d7cf 100%)!important;box-shadow:0 26px 65px rgba(83,59,163,.28)!important}
+.v83-today-game:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.18) 34%,transparent 50%);transform:translateX(-140%);animation:v832-sheen 7s linear infinite}
+.v83-today-game:after{content:"";position:absolute;right:28px;top:-36px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.32),rgba(255,255,255,0) 68%);pointer-events:none}
+.v83-player-level,.v83-mini-money b,.v83-mini-money span,.v83-strip-actions button{backdrop-filter:blur(8px)}
+.v83-strip-actions button{transition:transform .18s ease,background .18s ease,border-color .18s ease}
+.v83-strip-actions button:hover{transform:translateY(-1px)}
+.v83-strip-actions button:last-child{background:rgba(255,255,255,.08)!important}
+@keyframes v832-sheen{0%{transform:translateX(-140%)}45%,100%{transform:translateX(180%)}}
+
+.v83-player-hero{position:relative;overflow:hidden;border:1px solid rgba(123,95,211,.1);background:linear-gradient(135deg,#fff 0%,#fcf9ff 38%,#f2f8ff 100%)!important;color:#171735!important;box-shadow:var(--v832-glow)!important}
+.v83-player-hero:before{content:"";position:absolute;inset:auto auto -30px -20px;width:180px;height:180px;border-radius:42px;background:radial-gradient(circle at 30% 30%,rgba(124,86,232,.18),rgba(124,86,232,0) 70%)}
+.v83-player-hero small,.v83-player-hero p{color:var(--v832-muted)!important}
+.v83-player-hero h2{color:#18183a!important}
+.v83-player-hero footer>*{background:#ffffff!important;border:1px solid rgba(123,95,211,.1);color:#5f5b7a!important}
+.v83-level-progress{background:#ece8f5!important}.v83-level-progress i{box-shadow:0 8px 18px rgba(107,78,223,.18)}
+.v83-map-orb{box-shadow:inset -18px -16px 30px rgba(27,22,91,.26),0 25px 40px rgba(83,59,163,.16)!important;animation:v832-float 4.2s ease-in-out infinite}
+.v83-map-orb i{opacity:.9}
+@keyframes v832-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+.v85-export-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:16px}
+.v85-export-card{position:relative;overflow:hidden;padding:22px;border:1px solid var(--v832-line);border-radius:26px;background:linear-gradient(145deg,#fff,#fbf8ff);box-shadow:var(--v832-glow)}
+.v85-export-card:before{content:"";position:absolute;right:-40px;top:-35px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(124,86,232,.18),rgba(124,86,232,0) 68%)}
+.v85-export-card h2{margin:4px 0 8px}
+.v85-export-card p{max-width:680px}
+.v85-export-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}
+.v85-export-stats article{padding:13px 14px;border:1px solid var(--v832-line);border-radius:18px;background:#fff}
+.v85-export-stats b,.v85-export-stats small,.v85-export-stats span{display:block}
+.v85-export-stats b{font-size:22px!important;margin-top:4px}
+.v85-export-checks{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.v85-export-checks span{padding:8px 11px;border-radius:999px;background:#f5f0ff;color:#6548cd;font-weight:600}
+.v85-export-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.v85-import-note{padding:13px 14px;border-radius:16px;background:linear-gradient(135deg,#f7f3ff,#eef8ff);color:var(--v832-muted);margin:12px 0}
+.v85-import-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:14px;background:#fff;border:1px solid rgba(123,95,211,.16);color:#6548cd;font-weight:650}
+.v85-import-button input{display:none}
+.v85-preview-table{display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:2px}
+.v85-preview-row{display:grid;grid-template-columns:92px 70px 110px 1fr 1fr 72px;gap:10px;align-items:center;padding:11px 12px;border:1px solid rgba(123,95,211,.1);border-radius:16px;background:#fff}
+.v85-preview-row header{font-size:11px;color:#8f86b5;text-transform:uppercase;letter-spacing:.08em}
+.v85-preview-row input[type="text"],.v85-preview-row select{min-height:38px;border-radius:12px;border:1px solid rgba(123,95,211,.12);background:#fcfbff;padding:0 12px}
+.v85-preview-row .v85-money{font-weight:700}
+.v85-preview-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.v85-preview-meta article{padding:12px 13px;border-radius:16px;background:#faf7ff;border:1px solid rgba(123,95,211,.08)}
+.v85-preview-meta b,.v85-preview-meta small,.v85-preview-meta span{display:block}
+.v85-preview-meta b{font-size:20px!important;margin-top:4px}
+.v85-import-help{padding:12px 14px;border-radius:15px;background:#f7f3ff;color:var(--v832-muted)}
+
+.v85-polina-forecast{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.v85-polina-forecast article{padding:16px;border-radius:18px;border:1px solid rgba(111,92,172,.12);background:linear-gradient(145deg,#fff,#fbf8ff);box-shadow:0 12px 24px rgba(124,86,232,.06)}
+.v85-polina-forecast b,.v85-polina-forecast small,.v85-polina-forecast span{display:block}
+.v85-polina-forecast b{font-size:21px!important;margin:5px 0 4px}
+.v79-polina-grid button.forecast{background:linear-gradient(145deg,#fff5fb,#fff)!important;border-style:dashed;border-color:#f2b6cf!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
+.v79-polina-grid button.forecast span{color:#a65076!important}.v79-polina-grid button em.v85-forecast-tag{background:#f4bfd8!important;color:#6f3352!important}
+
+@media(max-width:980px){.v85-export-grid,.v85-polina-forecast{grid-template-columns:1fr}.v85-export-stats,.v85-preview-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.v85-export-stats,.v85-preview-meta{grid-template-columns:1fr}.v85-preview-row{grid-template-columns:1fr;gap:7px}.v85-preview-row>div{display:grid;gap:4px}.v85-preview-row input[type="checkbox"]{justify-self:start}}
+
+
+
+/* V83.3 — reading tracker, quotes and clear goal deletion */
+.v833-goal-card-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.v833-goal-delete{color:#c84b67!important;border-color:#ffd1db!important;background:#fff7f9!important}
+.v83-finished-goals article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.v83-finished-goals article>button:first-child{width:100%}
+.v83-finished-goals article>.v833-goal-delete{min-height:38px;border-radius:12px;padding:0 12px}
+.v833-book-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.v833-book-stats article{display:grid;grid-template-columns:52px minmax(0,1fr);gap:13px;align-items:center;padding:17px;border:1px solid rgba(111,92,172,.12);border-radius:22px;background:linear-gradient(145deg,#fff,#faf7ff);box-shadow:var(--v78-shadow)}
+.v833-book-stats i{width:50px;height:50px;border-radius:17px;display:grid;place-items:center;font-style:normal;font-size:20px;color:#6c48d0;background:linear-gradient(145deg,#efe7ff,#e9fbff)}
+.v833-book-stats small,.v833-book-stats b{display:block}.v833-book-stats b{font-size:25px!important;margin-top:3px}
+.v833-books-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.v833-book-card{display:grid;grid-template-columns:150px minmax(0,1fr);min-height:285px;border:1px solid rgba(111,92,172,.12);border-radius:25px;background:linear-gradient(145deg,#fff,#faf8ff);box-shadow:var(--v78-shadow);overflow:hidden}
+.v833-book-card.reading{box-shadow:0 22px 48px rgba(86,65,171,.13)}
+.v833-book-cover{position:relative;min-height:100%;display:grid;place-items:center;background:linear-gradient(150deg,#efe8ff,#eefbff)}
+.v833-book-cover img{width:100%;height:100%;object-fit:cover}.v833-book-cover>span{font-size:54px;filter:drop-shadow(0 13px 18px rgba(99,73,184,.16))}
+.v833-book-cover em{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.92);color:#6646ca;font-style:normal;box-shadow:0 8px 18px rgba(79,57,153,.12)}
+.v833-book-content{display:flex;flex-direction:column;gap:12px;padding:18px}.v833-book-content>header{display:flex;justify-content:space-between;gap:10px}.v833-book-content h2{margin:3px 0 0;font-size:20px!important}.v833-book-content>header strong{white-space:nowrap;color:#7c56e8}
+.v833-book-progress>div{display:flex;justify-content:space-between;gap:10px;align-items:center}.v833-book-progress u{display:block;height:8px;margin:8px 0 5px;border-radius:999px;background:#ebe8f2;overflow:hidden;text-decoration:none}.v833-book-progress u i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7c56e8,#5bcdb8);box-shadow:0 6px 14px rgba(91,205,184,.2)}
+.v833-book-progress small{display:block}.v833-book-content>p{margin:0;color:#666178!important;line-height:1.55}.v833-book-meta{display:flex;gap:8px;flex-wrap:wrap}.v833-book-meta span{padding:6px 9px;border-radius:999px;background:#f5f1ff;color:#6950b9;font-size:11px!important}
+.v833-book-content>footer{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}.v833-book-content>footer button{min-height:38px;padding:0 11px;border:1px solid rgba(111,92,172,.13);border-radius:12px;background:#fff;color:#6446c3}.v833-book-content>footer button:hover{background:#f7f2ff}.v833-book-content>footer .danger{color:#c64b66;border-color:#ffd2db;background:#fff7f9}
+.v833-quotes-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.v833-quotes-feed article{position:relative;padding:16px;border:1px solid rgba(111,92,172,.1);border-radius:19px;background:linear-gradient(145deg,#fff,#faf7ff)}
+.v833-quotes-feed article:before{content:'“';position:absolute;right:14px;top:4px;font:700 52px/1 Georgia,serif;color:#eadfff}.v833-quotes-feed blockquote{position:relative;margin:0 0 13px;padding-right:26px;font-size:15px;line-height:1.58;color:#2b2840}.v833-quotes-feed footer{display:flex;justify-content:space-between;gap:10px;align-items:center}.v833-quotes-feed footer span b,.v833-quotes-feed footer span small{display:block}.v833-quotes-feed footer button{border:0;background:transparent;color:#704bd1}.v833-quotes-feed article>p{margin:10px 0 0;padding-top:10px;border-top:1px solid rgba(111,92,172,.08)}
+@media(max-width:1150px){.v833-books-grid{grid-template-columns:1fr}.v833-book-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.v833-book-stats,.v833-quotes-feed{grid-template-columns:1fr}.v833-book-card{grid-template-columns:105px minmax(0,1fr)}.v833-book-cover{min-height:240px}.v833-goal-card-actions{justify-content:flex-start}}
+
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-space-v831-restore-light-design-20260721-r1">
+<body class="v80-booting" data-sbos-build="second-brain-space-v833-books-goals-final-20260721-r1">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
   <script>'use strict';
 
-/* Second Brain OS V82.1 — readable premium runtime with working archive route,
-   symmetric habits, Google-style calendar views and protected data storage.
+/* Second Brain OS V83.2 — restored light runtime with livelier UI, bank CSV import, category prep and Polina forecast.
    Миграция только дополняет state. Существующие коллекции и записи не очищаются. */
 (async () => {
 
@@ -498,7 +603,7 @@ body{font-size:15px!important}
   function coreClone(value){ return JSON.parse(JSON.stringify(value ?? null)); }
   function coreStamp(source){
     source.settings = source.settings && typeof source.settings === 'object' ? source.settings : {};
-    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:83,updatedAt:new Date().toISOString(),reason:'v83-save',fullStateInIndexedDB:false});
+    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:833,updatedAt:new Date().toISOString(),reason:'v833-save',fullStateInIndexedDB:false});
     return source.settings.storageGuard.updatedAt;
   }
   function coreNormalize(raw){
@@ -532,9 +637,9 @@ body{font-size:15px!important}
     const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
     const loaded=coreNormalize(chooseDurable?durableState:local);
     try{
-      const marker='secondBrainOS.v83.backupCreated';
+      const marker='secondBrainOS.v833.backupCreated';
       if(!localStorage.getItem(marker)){
-        await coreDbPut(`backup:v822-before-v83:${new Date().toISOString()}`,{version:83,createdAt:new Date().toISOString(),reason:'automatic-before-v83-gamelife-goals-runtime',state:coreClone(loaded)});
+        await coreDbPut(`backup:v832-before-v833:${new Date().toISOString()}`,{version:833,createdAt:new Date().toISOString(),reason:'automatic-before-v833-books-goals-runtime',state:coreClone(loaded)});
         localStorage.setItem(marker,new Date().toISOString());
       }
     }catch(error){}
@@ -546,7 +651,7 @@ body{font-size:15px!important}
     let localOk=false;
     try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V83 local save]',error);}
     const snapshot=coreClone(state),updatedAt=coreUpdatedAt(state);
-    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:83,updatedAt,reason:'v83-save',state:snapshot}).catch(error=>console.warn('[V83 durable save]',error)));
+    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:833,updatedAt,reason:'v833-save',state:snapshot}).catch(error=>console.warn('[V833 durable save]',error)));
     document.body.dataset.sbosStorage=localOk?'durable':'indexeddb-only';
     return localOk;
   }
@@ -577,7 +682,7 @@ body{font-size:15px!important}
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v831-restore-light-design-20260721-r1';
+  const BUILD = 'second-brain-space-v833-books-goals-final-20260721-r1';
   const LABEL = 'V83 · GAMELIFE & GOALS';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
@@ -744,6 +849,16 @@ body{font-size:15px!important}
       {id:'reward-evening',title:'Вечер полностью без дел',cost:70,icon:'🌙'},
       {id:'reward-small-buy',title:'Небольшая желанная покупка',cost:100,icon:'🎁'}
     ];
+    state.books = Array.isArray(state.books)?state.books:[];
+    state.books.forEach(book=>{
+      book.id=clean(book.id)||makeId(); book.title=clean(book.title)||'Книга'; book.author=clean(book.author||'');
+      book.status=bookStatusMeta(book.status).key; book.pagesTotal=Math.max(0,number(book.pagesTotal||book.totalPages));
+      book.currentPage=Math.max(0,number(book.currentPage||book.page)); if(book.pagesTotal&&book.currentPage>book.pagesTotal)book.currentPage=book.pagesTotal;
+      book.startDate=clean(book.startDate||''); book.finishDate=clean(book.finishDate||''); book.rating=Math.min(10,Math.max(0,number(book.rating)));
+      book.summary=clean(book.summary||book.note||''); book.quoteEntries=Array.isArray(book.quoteEntries)?book.quoteEntries:[];
+      book.quoteEntries=book.quoteEntries.filter(Boolean).map(q=>({id:clean(q.id)||makeId(),text:clean(q.text||q.quote),page:Math.max(0,number(q.page))||'',date:clean(q.date||''),note:clean(q.note||''),createdAt:q.createdAt||nowIso()}));
+      if(book.status==='finished'&&book.pagesTotal&&!book.currentPage)book.currentPage=book.pagesTotal;
+    });
     state.goals = Array.isArray(state.goals)?state.goals:[];
     state.goals.forEach(goal=>{
       goal.id=clean(goal.id)||makeId(); goal.title=clean(goal.title)||'Цель'; goal.type=clean(goal.type)||'result';
@@ -1102,9 +1217,10 @@ body{font-size:15px!important}
 
   function financePage() {
     const f = financeSnapshot();
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Финансовая осознанность</span><h1>Финансы</h1><p>Все суммы строятся только из фактических операций, покупок и обязательств.</p></div><div><button class="v78-secondary" data-v79-action="set-actual-balance" type="button">Изменить баланс</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
-      <section class="v78-finance-folders">${financeFolder('finance-operations','▦','Операции',`${array('operations').length} записей`,`Доходы, расходы, переводы и полный многостраничный список`)}${financeFolder('finance-analytics','◌','Анализ категорий',safe(moneyText(categoryData().sum)),'Структура расходов и доля каждой категории')}${financeFolder('finance-export','⇩','Экспорт CSV','Все операции','Выгрузка абсолютно всех записей в UTF-8')}${financeFolder('debts','!','Источники долгов',safe(moneyText(f.debtTotal)),`${f.debts.length} активных обязательств — каждая сумма объяснена`)}</section>
-      <section class="v78-kpi-row"><article><small>Фактический баланс</small><b>${safe(moneyText(f.balance))}</b><span>указанный остаток</span></article><article><small>Доходы месяца</small><b class="positive">${safe(moneyText(f.income))}</b><span>по операциям</span></article><article><small>Расходы месяца</small><b class="negative">${safe(moneyText(f.expense))}</b><span>по операциям</span></article><article><small>Обязательные покупки</small><b>${safe(moneyText(f.planned))}</b><span>в текущем месяце</span></article></section>
+    const cat = categoryData();
+    return `<section class="v78-page"><header class="v78-page-head"><div><span>Финансовая осознанность</span><h1>Финансы</h1><p>Все суммы строятся только из фактических операций, покупок и обязательств.</p></div><div><button class="v78-secondary" data-v85-action="import-bank-csv" type="button">⇧ Импорт CSV</button><button class="v78-secondary" data-v79-action="set-actual-balance" type="button">Изменить баланс</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
+      <section class="v78-finance-folders">${financeFolder('finance-operations','▦','Операции',`${array('operations').length} записей`,`Доходы, расходы, переводы и полный многостраничный список`)}${financeFolder('finance-analytics','◌','Анализ категорий',safe(moneyText(categoryData().sum)),'Структура расходов и доля каждой категории')}${financeFolder('finance-export','⇩','Экспорт CSV','Импорт и выгрузка','Банк CSV, удаление дублей и полный экспорт')}${financeFolder('debts','!','Источники долгов',safe(moneyText(f.debtTotal)),`${f.debts.length} активных обязательств — каждая сумма объяснена`)}</section>
+      <section class="v78-kpi-row"><article><small>Фактический баланс</small><b>${safe(moneyText(f.balance))}</b><span>указанный остаток</span></article><article><small>Доходы месяца</small><b class="positive">${safe(moneyText(f.income))}</b><span>по операциям</span></article><article><small>Расходы месяца</small><b class="negative">${safe(moneyText(f.expense))}</b><span>по операциям</span></article><article><small>Активных категорий</small><b>${cat.rows.length}</b><span>готовы к анализу и редактированию</span></article></section>
       <section class="v78-two-cols">${operationsFolderMini()}${categoryMini()}</section>
       ${card('Прозрачные обязательства', 'Сумма не берётся из воздуха — ниже показаны все источники.', debtSourceRows(), 'v78-debt-source')}
     </section>`;
@@ -1170,10 +1286,14 @@ body{font-size:15px!important}
 
   function financeExportPage() {
     const ops = array('operations');
-    const cats=categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Выгрузка данных</span><h1>Экспорт CSV</h1><p>В файл войдут абсолютно все операции, а не только текущая страница списка.</p></div></header>
-      <section class="v78-export-card"><div class="v78-export-icon">⇩</div><div><h2>${ops.length} ${plural(ops.length,'операция','операции','операций')} готовы к экспорту</h2><p>Формат CSV UTF-8 с разделителем «;». Содержит дату, тип, сумму, категорию, счёт, источник дохода и комментарий.</p><div class="v78-export-checks"><span>✓ Все страницы</span><span>✓ Все даты</span><span>✓ Все категории</span><span>✓ Совместимо с Excel</span></div><button class="v78-primary" data-v78-action="export-csv" data-scope="all" type="button">Скачать полный CSV</button></div></section>
-      <section class="v81-category-hint"><div><b>Категории из CSV</b><p>Если категория после импорта названа неудачно, откройте редактор и переименуйте её сразу у всех строк.</p></div><div class="v81-category-pills">${cats.rows.slice(0,8).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}<button class="accent" data-v81-action="open-category-editor" type="button">Открыть редактор</button></div></section>
+    const cats = categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
+    const dupeless = new Set(ops.map(operationSignature)).size;
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Импорт и выгрузка данных</span><h1>CSV-центр</h1><p>Здесь можно и выгрузить весь список операций, и загрузить банковскую выписку без дублей.</p></div></header>
+      <section class="v85-export-grid">
+        <article class="v85-export-card"><small>Экспорт операций</small><h2>${ops.length} ${plural(ops.length,'операция','операции','операций')} готовы к выгрузке</h2><p>Файл сохраняется в CSV UTF-8 с разделителем «;». Экспорт включает все даты, страницы, категории, комментарии и счета.</p><div class="v85-export-stats"><article><small>Всего записей</small><b>${ops.length}</b><span>в полном файле</span></article><article><small>Уникальных</small><b>${dupeless}</b><span>без возможных дублей</span></article><article><small>Категорий</small><b>${cats.rows.length}</b><span>используются в аналитике</span></article></div><div class="v85-export-checks"><span>✓ Полный список</span><span>✓ UTF‑8</span><span>✓ Excel compatible</span><span>✓ Комментарии и счёт</span></div><div class="v85-export-actions"><button class="v78-primary" data-v78-action="export-csv" data-scope="all" type="button">Скачать полный CSV</button><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">Скачать текущий список</button></div></article>
+        <article class="v85-export-card"><small>Импорт из банка</small><h2>Загрузить банковскую выписку</h2><p>Поддерживаются CSV‑файлы банковских выписок. Система распознаёт дату, сумму, комментарий и черновую категорию, а перед импортом показывает превью.</p><div class="v85-import-note">Во время импорта автоматически удаляются дубли из файла и уже существующие операции. После импорта можно быстро редактировать категорию у любой строки.</div><div class="v85-export-actions"><button class="v78-primary" data-v85-action="import-bank-csv" type="button">⇧ Импортировать CSV</button><button class="v78-secondary" data-v81-action="open-category-editor" type="button">Редактор категорий</button></div></article>
+      </section>
+      <section class="v81-category-hint"><div><b>Категории из CSV</b><p>Если банк прислал «нечеловеческие» категории, откройте редактор и переименуйте их сразу у всей выписки. Для точечной правки у каждой операции есть кнопка «Категория».</p></div><div class="v81-category-pills">${cats.rows.slice(0,8).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}<button class="accent" data-v81-action="open-category-editor" type="button">Открыть редактор</button></div></section>
       ${card('Предпросмотр последних операций', 'Сам файл будет содержать весь список.', `<div class="v78-export-preview">${ops.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,8).map(item=>`<div><span>${formatShort(item.date)}</span><b>${safe(item.category||'Без категории')}</b><em class="${item.type==='income'?'positive':'negative'}">${item.type==='income'?'+':'−'} ${safe(moneyText(item.amount))}</em></div>`).join('') || '<div class="v78-empty">Операций нет.</div>'}</div>`, 'v78-export-preview-card')}
     </section>`;
   }
@@ -1213,7 +1333,7 @@ body{font-size:15px!important}
     idea:{arr:'ideas',title:'Идея',fields:[['title','Название','text'],['date','Дата','date'],['text','Описание','textarea']]},
     wish:{arr:'wishes',title:'Желание',fields:[['title','Название','text'],['date','Дата','date'],['amount','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Прямая ссылка на товар','url'],['note','Описание','textarea']]},
     document:{arr:'documents',title:'Документ',fields:[['title','Название','text'],['type','Тип','text'],['date','Дата','date'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','text'],['imageUrl','URL обложки','url'],['url','Ссылка на книгу','url'],['quotes','Цитаты и заметки','textarea']]},
+    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','select',[['planned','Хочу прочитать'],['reading','Читаю'],['paused','На паузе'],['finished','Прочитано']]],['pagesTotal','Всего страниц','number'],['currentPage','Текущая страница','number'],['startDate','Дата начала','date'],['finishDate','Дата завершения','date'],['rating','Оценка из 10','number'],['imageUrl','URL обложки','url'],['url','Ссылка на книгу','url'],['summary','Главные мысли / конспект','textarea'],['quotes','Старые цитаты и заметки','textarea']]},
     film:{arr:'films',title:'Фильм',fields:[['title','Название','text'],['status','Статус','text'],['imageUrl','URL постера','url'],['url','Ссылка на фильм','url'],['note','Впечатления','textarea']]},
     trip:{arr:'trips',title:'Путешествие',fields:[['title','Название','text'],['place','Место','text'],['date','Дата','date'],['budget','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Ссылка на тур / место','url'],['note','План','textarea']]},
     personal:{arr:'personal',title:'Личная запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Запись','textarea']]},
@@ -1241,6 +1361,18 @@ body{font-size:15px!important}
   function openBalance(){openModal('Фактический баланс',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Сколько денег фактически сейчас?</span><input id="v79_balance" type="number" step="0.01" value="${number(state.settings.currentBalance)}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-balance">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
   function genericRecordPage(route){const type=ROUTE_RECORD[route],schema=RECORDS[type],meta=ROUTE_META[route],items=array(schema.arr).slice().sort((a,b)=>String(b.date||b.updatedAt||'').localeCompare(String(a.date||a.updatedAt||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>${meta[0]} Раздел</span><h1>${meta[1]}</h1><p>${meta[2]}</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="${type}">＋ Добавить</button></header><section class="v79-record-grid">${items.map(item=>recordTile(type,item)).join('')||'<div class="v78-empty-big">Пока пусто. Добавьте первую запись.</div>'}</section></section>`;}
   function recordTile(type,item){const title=item.title||item.name||item.person||item.category||'Запись';const sub=item.role||item.author||item.area||item.folder||item.place||item.type||item.date||'';const body=item.note||item.text||item.quotes||'';const amount=item.amount||item.budget||item.target;const image=normalizedUrl(item.imageUrl||item.coverUrl||item.posterUrl||'');const link=normalizedUrl(item.url||item.productUrl||'');return `<article class="v79-record-card ${image?'has-image':''}">${image?`<div class="v80-record-image"><img src="${safe(image)}" alt="${safe(title)}" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}<header><div><small>${safe(sub)}</small><h2>${safe(title)}</h2></div>${amount?`<b>${safe(moneyText(amount))}</b>`:''}</header><p>${safe(String(body).slice(0,320))||'Без дополнительного описания.'}</p>${link?`<a class="v80-external-link" href="${safe(link)}" target="_blank" rel="noopener">Открыть ссылку ↗</a>`:''}<footer><button data-v79-action="edit-record" data-type="${type}" data-id="${safe(item.id)}">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(item.id)}">Удалить</button></footer></article>`;}
+
+
+  function bookStatusMeta(value){const raw=clean(value).toLowerCase();if(/finished|прочитан|готов/.test(raw))return {key:'finished',label:'Прочитано',icon:'✓'};if(/reading|читаю|в процессе/.test(raw))return {key:'reading',label:'Читаю',icon:'◉'};if(/paused|пауза/.test(raw))return {key:'paused',label:'На паузе',icon:'Ⅱ'};return {key:'planned',label:'Хочу прочитать',icon:'+'};}
+  function bookProgress(book){const total=Math.max(0,number(book.pagesTotal)),current=Math.max(0,number(book.currentPage));if(total>0)return Math.min(100,Math.round(current/total*100));return bookStatusMeta(book.status).key==='finished'?100:0;}
+  function bookQuoteEntries(book){const list=Array.isArray(book.quoteEntries)?book.quoteEntries.filter(Boolean):[];if(list.length)return list.slice().sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||'')));const legacy=clean(book.quotes);return legacy?[{id:`legacy-${book.id}`,text:legacy,page:'',note:'Перенесено из старого поля',createdAt:book.updatedAt||book.createdAt||''}]:[];}
+  function bookStats(){const books=array('books'),reading=books.filter(b=>bookStatusMeta(b.status).key==='reading'),finished=books.filter(b=>bookStatusMeta(b.status).key==='finished');const pages=books.reduce((sum,b)=>sum+Math.max(0,number(b.currentPage)),0);const quotes=books.reduce((sum,b)=>sum+bookQuoteEntries(b).length,0);return {books,reading,finished,pages,quotes};}
+  function booksPage(){const data=bookStats();const books=data.books.slice().sort((a,b)=>{const statusOrder={reading:0,planned:1,paused:2,finished:3};const sa=statusOrder[bookStatusMeta(a.status).key]??9,sb=statusOrder[bookStatusMeta(b.status).key]??9;return sa-sb||String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});const latestQuotes=books.flatMap(book=>bookQuoteEntries(book).map(q=>({book,q}))).slice().sort((a,b)=>String(b.q.createdAt||'').localeCompare(String(a.q.createdAt||''))).slice(0,8);return `<section class="v78-page v833-books-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>📚 Личная библиотека</span><h1>Книги</h1><p>Фиксируйте прогресс, страницы, цитаты, мысли и итоговую оценку — без отдельного дневника чтения.</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="book" type="button">＋ Добавить книгу</button></header><section class="v833-book-stats"><article><i>◉</i><span><small>Сейчас читаю</small><b>${data.reading.length}</b></span></article><article><i>✓</i><span><small>Прочитано</small><b>${data.finished.length}</b></span></article><article><i>▤</i><span><small>Страниц отмечено</small><b>${data.pages}</b></span></article><article><i>“</i><span><small>Цитат сохранено</small><b>${data.quotes}</b></span></article></section><section class="v833-books-grid">${books.map(bookCard).join('')||'<div class="v78-empty-big">Добавьте первую книгу и начните фиксировать прогресс.</div>'}</section>${latestQuotes.length?card('Последние цитаты','Сохранённые мысли из всей библиотеки.',`<div class="v833-quotes-feed">${latestQuotes.map(({book,q})=>`<article><blockquote>${safe(q.text||'Цитата')}</blockquote><footer><span><b>${safe(book.title||'Книга')}</b>${q.page?`<small>стр. ${safe(q.page)}</small>`:''}</span><button data-v833-action="open-book-quote" data-id="${safe(book.id)}" type="button">Добавить ещё</button></footer>${q.note?`<p>${safe(q.note)}</p>`:''}</article>`).join('')}</div>`,'v833-quotes-card'):''}</section>`;}
+  function bookCard(book){const status=bookStatusMeta(book.status),progress=bookProgress(book),cover=normalizedUrl(book.imageUrl||book.coverUrl||''),quotes=bookQuoteEntries(book),total=Math.max(0,number(book.pagesTotal)),current=Math.max(0,number(book.currentPage));return `<article class="v833-book-card ${status.key}"><div class="v833-book-cover">${cover?`<img src="${safe(cover)}" alt="${safe(book.title||'Книга')}" loading="lazy" onerror="this.outerHTML='<span>📚</span>'">`:'<span>📚</span>'}<em>${safe(status.icon)}</em></div><div class="v833-book-content"><header><div><small>${safe(book.author||'Автор не указан')}</small><h2>${safe(book.title||'Без названия')}</h2></div>${number(book.rating)?`<strong>★ ${number(book.rating)}/10</strong>`:''}</header><div class="v833-book-progress"><div><span>${safe(status.label)}</span><b>${progress}%</b></div><u><i style="width:${progress}%"></i></u><small>${total?`${current} из ${total} страниц`:current?`${current} страниц отмечено`:'Укажите количество страниц'}</small></div>${book.summary?`<p>${safe(String(book.summary).slice(0,180))}</p>`:'<p>Добавьте главные мысли или короткий конспект.</p>'}<div class="v833-book-meta"><span>“ ${quotes.length} ${plural(quotes.length,'цитата','цитаты','цитат')}</span>${book.startDate?`<span>Начато ${formatShort(book.startDate)}</span>`:''}${book.finishDate?`<span>Завершено ${formatShort(book.finishDate)}</span>`:''}</div><footer><button data-v833-action="open-book-progress" data-id="${safe(book.id)}" type="button">Прогресс</button><button data-v833-action="open-book-quote" data-id="${safe(book.id)}" type="button">＋ Цитата</button><button data-v79-action="edit-record" data-type="book" data-id="${safe(book.id)}" type="button">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="book" data-id="${safe(book.id)}" type="button">Удалить</button></footer></div></article>`;}
+  function openBookProgress(id){const book=array('books').find(b=>b.id===id);if(!book)return toast('Книга не найдена');const status=bookStatusMeta(book.status);openModal(`Прогресс: ${book.title||'Книга'}`,`<div class="v79-form-grid"><label class="v79-field"><span>Текущая страница</span><input id="v833_book_current" type="number" min="0" value="${Math.max(0,number(book.currentPage))}"></label><label class="v79-field"><span>Всего страниц</span><input id="v833_book_total" type="number" min="0" value="${Math.max(0,number(book.pagesTotal))}"></label><label class="v79-field"><span>Статус</span><select id="v833_book_status"><option value="planned" ${status.key==='planned'?'selected':''}>Хочу прочитать</option><option value="reading" ${status.key==='reading'?'selected':''}>Читаю</option><option value="paused" ${status.key==='paused'?'selected':''}>На паузе</option><option value="finished" ${status.key==='finished'?'selected':''}>Прочитано</option></select></label><label class="v79-field"><span>Оценка из 10</span><input id="v833_book_rating" type="number" min="0" max="10" step="0.5" value="${number(book.rating)||''}"></label><label class="v79-field"><span>Дата начала</span><input id="v833_book_start" type="date" value="${safe(book.startDate||'')}"></label><label class="v79-field"><span>Дата завершения</span><input id="v833_book_finish" type="date" value="${safe(book.finishDate||'')}"></label><label class="v79-field span-2"><span>Что понял / главная мысль</span><textarea id="v833_book_summary">${safe(book.summary||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v833-action="save-book-progress" data-id="${safe(id)}" type="button">Сохранить прогресс</button><button data-v78-action="close-modal" type="button">Отмена</button></div>`);}
+  function saveBookProgress(id,originEl=null){const book=array('books').find(b=>b.id===id);if(!book)return;const previous=bookProgress(book);book.currentPage=Math.max(0,number(document.getElementById('v833_book_current')?.value));book.pagesTotal=Math.max(0,number(document.getElementById('v833_book_total')?.value));book.status=clean(document.getElementById('v833_book_status')?.value)||'planned';book.rating=Math.min(10,Math.max(0,number(document.getElementById('v833_book_rating')?.value)));book.startDate=clean(document.getElementById('v833_book_start')?.value);book.finishDate=clean(document.getElementById('v833_book_finish')?.value);book.summary=clean(document.getElementById('v833_book_summary')?.value);if(book.status==='reading'&&!book.startDate)book.startDate=todayKey();if(book.status==='finished'){if(book.pagesTotal)book.currentPage=book.pagesTotal;if(!book.finishDate)book.finishDate=todayKey();}book.updatedAt=nowIso();save();closeModal();renderPremium();toast('Прогресс книги сохранён');if(bookProgress(book)>previous)celebrate(originEl,'📚');}
+  function openBookQuote(id){const book=array('books').find(b=>b.id===id);if(!book)return toast('Книга не найдена');openModal(`Новая цитата · ${book.title||'Книга'}`,`<div class="v79-form-grid"><label class="v79-field span-2"><span>Цитата</span><textarea id="v833_quote_text" placeholder="Запишите цитату точно или своими словами"></textarea></label><label class="v79-field"><span>Страница</span><input id="v833_quote_page" type="number" min="0" value="${Math.max(0,number(book.currentPage))||''}"></label><label class="v79-field"><span>Дата</span><input id="v833_quote_date" type="date" value="${todayKey()}"></label><label class="v79-field span-2"><span>Почему это важно / моя мысль</span><textarea id="v833_quote_note" placeholder="Как я понимаю эту мысль и где применю?"></textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v833-action="save-book-quote" data-id="${safe(id)}" type="button">Сохранить цитату</button><button data-v78-action="close-modal" type="button">Отмена</button></div>`);}
+  function saveBookQuote(id,originEl=null){const book=array('books').find(b=>b.id===id);if(!book)return;const text=clean(document.getElementById('v833_quote_text')?.value);if(!text)return toast('Введите цитату');const entry={id:makeId(),text,page:Math.max(0,number(document.getElementById('v833_quote_page')?.value))||'',date:clean(document.getElementById('v833_quote_date')?.value)||todayKey(),note:clean(document.getElementById('v833_quote_note')?.value),createdAt:nowIso()};book.quoteEntries=Array.isArray(book.quoteEntries)?book.quoteEntries:[];book.quoteEntries.unshift(entry);if(entry.page&&entry.page>number(book.currentPage))book.currentPage=entry.page;if(bookStatusMeta(book.status).key==='planned')book.status='reading';if(!book.startDate)book.startDate=todayKey();book.updatedAt=nowIso();save();closeModal();renderPremium();toast('Цитата сохранена');celebrate(originEl,'“');}
 
   function personAvatar(person,size='card'){const src=normalizedUrl(person.avatar||person.photoUrl||'');return src?`<img class="v80-person-avatar ${size}" src="${safe(src)}" alt="${safe(person.name)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;v80-person-avatar fallback ${size}&quot;>${safe(initial(person.name))}</span>'">`:`<span class="v80-person-avatar fallback ${size}">${safe(initial(person.name))}</span>`;}
   function peoplePage(){const people=array('people').slice().sort((a,b)=>clean(a.name).localeCompare(clean(b.name),'ru')),birthdays=upcomingBirthdays(60);return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Личные связи</span><h1>Люди</h1><p>Анкеты, важные даты, предпочтения, вишлисты и контекст отношений.</p></div><button class="v78-primary" data-v80-action="open-person-form">＋ Добавить человека</button></header>${birthdays.length?`<section class="v80-birthday-strip"><header><h2>Ближайшие дни рождения</h2><p>Напоминания отображаются заранее по настройкам каждой анкеты.</p></header><div>${birthdays.slice(0,6).map(({person,days})=>`<button data-v80-action="open-person-form" data-id="${safe(person.id)}">${personAvatar(person,'sm')}<span><b>${safe(person.name)}</b><small>${days===0?'сегодня':days===1?'завтра':`через ${days} дн.`}</small></span></button>`).join('')}</div></section>`:''}<section class="v80-people-grid">${people.map(person=>{const days=birthdayDays(person),wish=clean(person.wishlist||person.giftIdeas);return `<article class="v80-person-card"><header>${personAvatar(person)}<div><small>${safe(person.role||person.relation||'Человек')}</small><h2>${safe(person.name)}</h2>${person.city?`<p>⌖ ${safe(person.city)}</p>`:''}</div><button data-v80-action="open-person-form" data-id="${safe(person.id)}">✎</button></header><div class="v80-person-facts">${person.birthday?`<span><small>День рождения</small><b>${safe(formatDate(person.birthday))}</b><em>${days===0?'Сегодня':days===1?'Завтра':`через ${days} дн.`}</em></span>`:''}${person.phone?`<span><small>Телефон</small><b>${safe(person.phone)}</b></span>`:''}${person.telegram?`<span><small>Telegram</small><b>${safe(person.telegram)}</b></span>`:''}</div><p>${safe(person.note||person.about||'Добавьте важный контекст об этом человеке.')}</p>${wish?`<div class="v80-person-wishlist"><small>Вишлист и идеи подарков</small><p>${safe(wish.slice(0,220))}</p></div>`:''}<footer><button data-v80-action="open-person-form" data-id="${safe(person.id)}">Открыть анкету</button><button class="danger" data-v80-action="delete-person" data-id="${safe(person.id)}">Удалить</button></footer></article>`}).join('')||'<div class="v78-empty-big">Добавьте первую анкету человека.</div>'}</section></section>`;}
@@ -1280,7 +1412,8 @@ body{font-size:15px!important}
 
   function systemPage(){const stats=[['Операции',array('operations').length],['Долги',array('debts').length],['Задачи',array('tasks').length],['Покупки',array('purchases').length],['Желания',array('wishes').length],['Заметки',array('notes').length],['Идеи',array('ideas').length],['Люди',array('people').length],['Привычки',array('habits').length],['Цели',array('goals').length],['Документы',array('documents').length],['Книги',array('books').length],['Фильмы',array('films').length],['Поездки',array('trips').length],['Личная память',array('personal').length]];return `<section class="v78-page"><header class="v78-page-head"><div><span>Защита данных и обслуживание</span><h1>Настройки</h1><p>Один чистый runtime. Старые версии больше не подключаются и не реагируют на клики.</p></div></header><section class="v79-system-actions"><article><i>⇩</i><div><h2>Резервная копия</h2><p>Скачайте JSON перед крупными изменениями.</p></div><button data-v79-action="export-data">Скачать</button></article><article><i>⇧</i><div><h2>Импорт данных</h2><p>Верните ранее сохранённую копию.</p></div><label><input id="v79_import_file" type="file" accept="application/json"><span>Выбрать</span></label></article><article><i>↻</i><div><h2>Обновить интерфейс</h2><p>Удаляет только кэш файлов, личные данные остаются.</p></div><button data-v79-action="clear-ui-cache">Очистить кэш</button></article></section><section class="v79-data-stats">${stats.map(([l,v])=>`<article><small>${l}</small><b>${v}</b></article>`).join('')}</section></section>`;}
 
-  function polinaPage(){const key=state.settings.polinaMonth||monthKey(todayKey());const [y,m]=key.split('-').map(Number);const first=new Date(y,m-1,1,12),days=new Date(y,m,0,12).getDate(),offset=(first.getDay()+6)%7;const cells=Array(offset).fill('').concat(Array.from({length:days},(_,i)=>`${key}-${String(i+1).padStart(2,'0')}`));const entries=new Map(array('polinaDays').map(e=>[String(e.date).slice(0,10),e]));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Состояние и цикл</span><h1>Состояние Полины</h1><p>Хорошее — зелёным, нейтральное — жёлтым, плохое — красным. Заполняется вся ячейка.</p></div><div><button class="v78-secondary" data-v79-action="polina-month" data-delta="-1">←</button><button class="v78-primary" data-v79-action="polina-month" data-delta="1">→</button></div></header><section class="v79-polina-card"><header><h2>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</h2><div><span class="good">Хорошее</span><span class="neutral">Нейтральное</span><span class="bad">Плохое</span></div></header><div class="v79-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</div><div class="v79-polina-grid">${cells.map(date=>{if(!date)return '<i></i>';const e=entries.get(date)||{};return `<button class="${safe(e.status||'')} ${e.periodMarker?'period':''}" data-v79-action="open-polina-day" data-date="${date}"><b>${Number(date.slice(8))}</b><span>${safe(e.status==='good'?'Хорошее':e.status==='neutral'?'Нейтральное':e.status==='bad'?'Плохое':'Без отметки')}</span><small>${safe(e.comment||'Добавить комментарий')}</small>${e.periodMarker?`<em>${e.periodMarker==='start'?'Начало':e.periodMarker==='end'?'Конец':'Месячные'}</em>`:''}</button>`}).join('')}</div></section></section>`;}
+  function polinaPage(){const key=state.settings.polinaMonth||monthKey(todayKey());const [y,m]=key.split('-').map(Number);const first=new Date(y,m-1,1,12),days=new Date(y,m,0,12).getDate(),offset=(first.getDay()+6)%7;const cells=Array(offset).fill('').concat(Array.from({length:days},(_,i)=>`${key}-${String(i+1).padStart(2,'0')}`));const entries=new Map(array('polinaDays').map(e=>[String(e.date).slice(0,10),e]));const forecast=polinaCycleForecast();return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Состояние и цикл</span><h1>Состояние Полины</h1><p>Хорошее — зелёным, нейтральное — жёлтым, плохое — красным. Заполняется вся ячейка. Прогноз строится по уже отмеченным циклам.</p></div><div><button class="v78-secondary" data-v79-action="polina-month" data-delta="-1">←</button><button class="v78-primary" data-v79-action="polina-month" data-delta="1">→</button></div></header><section class="v85-polina-forecast"><article><small>Следующие месячные</small><b>${forecast.nextStart?formatDate(forecast.nextStart):'Нужно больше данных'}</b><span>${forecast.nextStart?`ориентир на ${forecast.avgCycle} дней цикла`: 'Отметьте хотя бы 2 начала цикла'}</span></article><article><small>Средняя длина цикла</small><b>${forecast.avgCycle?`${forecast.avgCycle} дн.`:'—'}</b><span>${forecast.cycles>=2?`${forecast.cycles} сохранённых цикла`: 'Пока недостаточно истории'}</span></article><article><small>Средняя длительность</small><b>${forecast.avgPeriod?`${forecast.avgPeriod} дн.`:'—'}</b><span>${forecast.nextEnd?`прогноз окончания ${formatDate(forecast.nextEnd)}`:'Обычно по последним отметкам'}</span></article></section><section class="v79-polina-card"><header><h2>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</h2><div><span class="good">Хорошее</span><span class="neutral">Нейтральное</span><span class="bad">Плохое</span></div></header><div class="v79-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</div><div class="v79-polina-grid">${cells.map(date=>{if(!date)return '<i></i>';const e=entries.get(date)||{};const isForecast=forecast.nextStart&&date>=forecast.nextStart&&date<=forecast.nextEnd&&!e.periodMarker;const statusLabel=e.status==='good'?'Хорошее':e.status==='neutral'?'Нейтральное':e.status==='bad'?'Плохое':isForecast?'Прогноз цикла':'Без отметки';return `<button class="${safe(e.status||'')} ${e.periodMarker?'period':''} ${isForecast?'forecast':''}" data-v79-action="open-polina-day" data-date="${date}"><b>${Number(date.slice(8))}</b><span>${safe(statusLabel)}</span><small>${safe(e.comment||(isForecast?'Можно заранее учитывать самочувствие':'Добавить комментарий'))}</small>${e.periodMarker?`<em>${e.periodMarker==='start'?'Начало':e.periodMarker==='end'?'Конец':'Месячные'}</em>`:isForecast?'<em class="v85-forecast-tag">Прогноз</em>':''}</button>`}).join('')}</div></section></section>`;}
+
   function openPolinaDay(date){const e=array('polinaDays').find(x=>x.date===date)||{};openModal(`Состояние Полины · ${formatDate(date)}`,`<div class="v79-form-grid"><label class="v79-field"><span>Состояние</span><select id="v79_p_status"><option value="">Без отметки</option><option value="good" ${e.status==='good'?'selected':''}>Хорошее</option><option value="neutral" ${e.status==='neutral'?'selected':''}>Нейтральное</option><option value="bad" ${e.status==='bad'?'selected':''}>Плохое</option></select></label><label class="v79-field"><span>Цикл</span><select id="v79_p_period"><option value="">Нет отметки</option><option value="start" ${e.periodMarker==='start'?'selected':''}>Начало месячных</option><option value="period" ${e.periodMarker==='period'?'selected':''}>Месячные</option><option value="end" ${e.periodMarker==='end'?'selected':''}>Конец месячных</option></select></label><label class="v79-field span-2"><span>Комментарий</span><textarea id="v79_p_comment">${safe(e.comment||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-polina-day" data-date="${date}">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
   function savePolinaDay(date){const status=clean(document.getElementById('v79_p_status')?.value),periodMarker=clean(document.getElementById('v79_p_period')?.value),comment=clean(document.getElementById('v79_p_comment')?.value);const old=array('polinaDays').find(x=>x.date===date);state.polinaDays=array('polinaDays').filter(x=>x.date!==date);if(status||periodMarker||comment)state.polinaDays.push({id:old?.id||makeId(),date,status,periodMarker,comment,updatedAt:nowIso()});save();closeModal();renderPremium();toast('Состояние сохранено');}
 
@@ -1314,8 +1447,8 @@ body{font-size:15px!important}
 
   function goalProgress(goal){const stages=goal.stages||[];if(stages.length)return Math.round(stages.filter(s=>s.done).length/stages.length*100);if(number(goal.target)>0)return Math.max(0,Math.min(100,Math.round(number(goal.current)/number(goal.target)*100)));return goal.status==='done'?100:0;}
   function goalTypeLabel(type){return type==='process'?'Цель-процесс':type==='maintenance'?'Цель-поддержание':'Цель-результат';}
-  function goalsPage(){const active=array('goals').filter(g=>g.status!=='archived'&&g.status!=='done'),done=array('goals').filter(g=>g.status==='done');return `<section class="v78-page v83-goals-page"><header class="v78-page-head"><div><span>Цели как игровые кампании</span><h1>Цели</h1><p>Каждая цель обязана отвечать на вопрос: что конкретно сделать следующим шагом за 5–20 минут?</p></div><button class="v78-primary" data-v83-action="goal-wizard">＋ Создать цель с мастером</button></header><section class="v83-goal-principles"><article><i>1</i><span><b>Результат</b><small>Что должно конкретно измениться?</small></span></article><article><i>2</i><span><b>Этапы</b><small>3–5 понятных контрольных точек.</small></span></article><article><i>3</i><span><b>Следующий шаг</b><small>Физическое действие максимум на 20 минут.</small></span></article></section><section class="v83-goal-grid">${active.map(goalCard).join('')||'<div class="v78-empty-big">Активных кампаний пока нет. Создай первую цель через мастер.</div>'}</section>${done.length?card('Завершённые кампании',`${done.length} целей`, `<div class="v83-finished-goals">${done.map(g=>`<button data-v78-route="goal-${encodeURIComponent(g.id)}"><i>🏆</i><span><b>${safe(g.title)}</b><small>${safe(formatDate(g.due))}</small></span><em>100%</em></button>`).join('')}</div>`,'v83-finished-card'):''}</section>`;}
-  function goalCard(goal){const progress=goalProgress(goal),next=goal.nextAction||'Определите следующий физический шаг';return `<article class="v83-goal-card"><header><span>${goal.type==='process'?'🔁':goal.type==='maintenance'?'🛡️':'🎯'}</span><div><small>${goalTypeLabel(goal.type)}</small><h2>${safe(goal.title)}</h2></div><em>${progress}%</em></header><div class="v83-goal-progress"><i style="width:${progress}%"></i></div><p>${safe(goal.why||'Причина пока не указана.')}</p><div class="v83-next-action"><small>СЛЕДУЮЩИЙ ШАГ · ${number(goal.actionMinutes)||15} МИН</small><b>${safe(next)}</b></div><footer><span>${goal.due?`до ${formatShort(goal.due)}`:'без жёсткого срока'}</span><button data-v78-route="goal-${encodeURIComponent(goal.id)}">Открыть кампанию →</button></footer></article>`;}
+  function goalsPage(){const active=array('goals').filter(g=>g.status!=='archived'&&g.status!=='done'),done=array('goals').filter(g=>g.status==='done');return `<section class="v78-page v83-goals-page"><header class="v78-page-head"><div><span>Цели как игровые кампании</span><h1>Цели</h1><p>Каждая цель обязана отвечать на вопрос: что конкретно сделать следующим шагом за 5–20 минут?</p></div><button class="v78-primary" data-v83-action="goal-wizard">＋ Создать цель с мастером</button></header><section class="v83-goal-principles"><article><i>1</i><span><b>Результат</b><small>Что должно конкретно измениться?</small></span></article><article><i>2</i><span><b>Этапы</b><small>3–5 понятных контрольных точек.</small></span></article><article><i>3</i><span><b>Следующий шаг</b><small>Физическое действие максимум на 20 минут.</small></span></article></section><section class="v83-goal-grid">${active.map(goalCard).join('')||'<div class="v78-empty-big">Активных кампаний пока нет. Создай первую цель через мастер.</div>'}</section>${done.length?card('Завершённые кампании',`${done.length} целей`, `<div class="v83-finished-goals">${done.map(g=>`<article><button data-v78-route="goal-${encodeURIComponent(g.id)}" type="button"><i>🏆</i><span><b>${safe(g.title)}</b><small>${safe(formatDate(g.due))}</small></span><em>100%</em></button><button class="v833-goal-delete" data-v83-action="delete-goal" data-id="${safe(g.id)}" type="button">Удалить</button></article>`).join('')}</div>`,'v83-finished-card'):''}</section>`;}
+  function goalCard(goal){const progress=goalProgress(goal),next=goal.nextAction||'Определите следующий физический шаг';return `<article class="v83-goal-card"><header><span>${goal.type==='process'?'🔁':goal.type==='maintenance'?'🛡️':'🎯'}</span><div><small>${goalTypeLabel(goal.type)}</small><h2>${safe(goal.title)}</h2></div><em>${progress}%</em></header><div class="v83-goal-progress"><i style="width:${progress}%"></i></div><p>${safe(goal.why||'Причина пока не указана.')}</p><div class="v83-next-action"><small>СЛЕДУЮЩИЙ ШАГ · ${number(goal.actionMinutes)||15} МИН</small><b>${safe(next)}</b></div><footer><span>${goal.due?`до ${formatShort(goal.due)}`:'без жёсткого срока'}</span><div class="v833-goal-card-actions"><button class="v833-goal-delete" data-v83-action="delete-goal" data-id="${safe(goal.id)}" type="button" title="Удалить цель">Удалить</button><button data-v78-route="goal-${encodeURIComponent(goal.id)}" type="button">Открыть кампанию →</button></div></footer></article>`;}
   function goalPage(id){const goal=array('goals').find(g=>g.id===id);if(!goal)return `<section class="v78-page"><div class="v78-empty-big">Цель не найдена.<button data-v78-route="goals">Вернуться</button></div></section>`;const progress=goalProgress(goal),linked=array('tasks').filter(t=>t.goalId===goal.id);return `<section class="v78-page v83-goal-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="goals">← Все цели</button><span>${goalTypeLabel(goal.type)}</span><h1>${safe(goal.title)}</h1><p>${safe(goal.why||'Добавьте личную причину — она помогает возвращаться к цели после спада мотивации.')}</p></div><div><button class="v78-secondary" data-v83-action="goal-wizard" data-id="${safe(goal.id)}">Редактировать</button><button class="v83-danger-soft" data-v83-action="delete-goal" data-id="${safe(goal.id)}">Удалить</button></div></header><section class="v83-goal-hero"><div class="v83-goal-ring" style="--goal-progress:${progress}"><span><b>${progress}%</b><small>кампании</small></span></div><div><small>МЕТРИКА УСПЕХА</small><h2>${safe(goal.metric||'Определите измеримый результат')}</h2><p>${number(goal.target)?`${number(goal.current)} из ${number(goal.target)} ${safe(goal.unit)}`:'Прогресс считается по этапам'}</p><div class="v83-goal-meta"><span>📅 ${goal.due?formatDate(goal.due):'Без срока'}</span><span>⏱ ${number(goal.actionMinutes)||15} минут на шаг</span></div></div><div class="v83-campaign-badge">КАМПАНИЯ</div></section><section class="v83-goal-layout"><div>${card('Карта кампании','Этапы не обязаны быть идеальными — их можно менять по ходу.', `<div class="v83-stage-list">${(goal.stages||[]).map((stage,index)=>`<button class="${stage.done?'done':''}" data-v83-action="toggle-goal-stage" data-goal="${safe(goal.id)}" data-stage="${safe(stage.id)}"><i>${stage.done?'✓':index+1}</i><span><b>${safe(stage.title)}</b><small>${stage.done?'Этап завершён':'Нажмите, когда контрольная точка достигнута'}</small></span><em>${stage.done?'Готово':'○'}</em></button>`).join('')||'<p class="v78-empty">Добавьте этапы через редактирование цели.</p>'}</div>`,'v83-stages-card')}${card('Задачи этой цели',`${linked.length} связанных задач`, `<div class="v83-linked-tasks">${linked.map(t=>`<button data-v79-action="edit-record" data-type="task" data-id="${safe(t.id)}"><i>${taskStatusMeta(t.status).done?'✓':'▦'}</i><span><b>${safe(t.title)}</b><small>${safe(formatShort(t.date))} · ${safe(taskStatusMeta(t.status).label)}</small></span><em>›</em></button>`).join('')||'<p class="v78-empty">Пока нет связанных задач.</p>'}</div>`,'v83-linked-card')}</div><aside>${card('Активный следующий шаг',`Действие на ${number(goal.actionMinutes)||15} минут`, `<div class="v83-current-step"><i>⚡</i><h2>${safe(goal.nextAction||'Сформулируйте конкретное физическое действие')}</h2><p>Хороший шаг начинается с глагола: открыть, написать, позвонить, проверить, внести.</p><button class="v78-primary" data-v83-action="goal-task" data-id="${safe(goal.id)}">Создать задачу на сегодня</button><button class="v78-secondary" data-v83-action="goal-next-done" data-id="${safe(goal.id)}">✓ Шаг выполнен</button></div>`,'v83-current-step-card')}${card('Управление кампанией','Цель можно поставить на паузу без удаления данных.', `<div class="v83-goal-controls"><button data-v83-action="goal-status" data-id="${safe(goal.id)}" data-status="${goal.status==='paused'?'active':'paused'}">${goal.status==='paused'?'▶ Возобновить':'Ⅱ Поставить на паузу'}</button><button data-v83-action="goal-status" data-id="${safe(goal.id)}" data-status="done">🏆 Завершить цель</button></div>`,'v83-controls-card')}</aside></section></section>`;}
   function openGoalWizard(id=''){const goal=array('goals').find(g=>g.id===id);goalWizardStep=0;goalWizardDraft=goal?coreClone(goal):{id:'',title:'',type:'result',why:'',metric:'',target:0,current:0,unit:'',due:'',currentPoint:'',stages:[],nextAction:'',actionMinutes:15,status:'active'};renderGoalWizard();}
   function goalWizardQuestions(){return [
@@ -1336,7 +1469,7 @@ body{font-size:15px!important}
   function createGoalTask(id){const goal=array('goals').find(g=>g.id===id);if(!goal)return;const stage=(goal.stages||[]).find(s=>!s.done);openRecordForm('task','',{title:goal.nextAction,date:todayKey(),status:'planned',priority:'high',goalId:goal.id,stageId:stage?.id||'',area:goal.title,note:`Следующий шаг цели «${goal.title}»`});}
   function completeGoalNextAction(id,originEl=null){const goal=array('goals').find(g=>g.id===id);if(!goal)return;const current=goal.nextAction;const stage=(goal.stages||[]).find(s=>!s.done);if(stage)stage.done=true;goal.nextAction='Определите следующий конкретный шаг через редактирование цели';goal.updatedAt=nowIso();awardGame(`goal-action:${id}:${todayKey()}:${current}`,8,2,'discipline',{title:`Шаг цели: ${current}`});save();renderPremium();toast('Шаг выполнен. Теперь сформулируйте следующий.');celebrate(originEl,'🎯');}
   function setGoalStatus(id,status){const goal=array('goals').find(g=>g.id===id);if(!goal)return;goal.status=status;goal.updatedAt=nowIso();if(status==='done'){awardGame(`goal-done:${id}`,30,10,'discipline',{title:`Цель завершена: ${goal.title}`});celebrate(null,'🏆');}save();renderPremium();}
-  function deleteGoal(id){const goal=array('goals').find(g=>g.id===id);if(!goal)return;if(!confirm(`Удалить цель «${goal.title}»? Копия сохранится в архиве.`))return;archiveSnapshot(`Удалённая цель: ${goal.title}`,'deleted-goal',goal);state.goals=array('goals').filter(g=>g.id!==id);save();navigate('goals');}
+  function deleteGoal(id){const goal=array('goals').find(g=>g.id===id);if(!goal)return;const linked=array('tasks').filter(t=>t.goalId===id);if(!confirm(`Удалить цель «${goal.title}»? Копия сохранится в архиве.${linked.length?` Связь будет снята у ${linked.length} задач.`:''}`))return;archiveSnapshot(`Удалённая цель: ${goal.title}`,'deleted-goal',Object.assign({},goal,{linkedTasks:linked}));state.goals=array('goals').filter(g=>g.id!==id);state.tasks=array('tasks').map(task=>task.goalId===id?Object.assign({},task,{goalId:'',stageId:'',updatedAt:nowIso()}):task);save();navigate('goals');toast('Цель удалена, копия сохранена в архиве');}
 
   function archivePage(){
     const items=array('archive').slice().sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||'')));
@@ -1366,6 +1499,7 @@ body{font-size:15px!important}
     if (normalized === 'people') return peoplePage();
     if (normalized === 'polina') return polinaPage();
     if (normalized === 'passwords') return passwordsPage();
+    if (normalized === 'books') return booksPage();
     if (ROUTE_RECORD[normalized]) return genericRecordPage(normalized);
     if (normalized.startsWith('habit-')) return habitPage(decodeURIComponent(normalized.slice(6)));
     return todayPage();
@@ -1516,6 +1650,155 @@ body{font-size:15px!important}
 
   async function compressPersonAvatar(file){if(!file)return;const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=dataUrl;});const size=420,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d'),scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);pendingPersonAvatar=canvas.toDataURL('image/jpeg',.82);const preview=document.getElementById('v80_person_avatar_preview');if(preview)preview.innerHTML=`<img src="${safe(pendingPersonAvatar)}">`;}
 
+
+  let pendingBankImport = [];
+  let pendingBankImportStats = { parsed:0, duplicatesInFile:0, duplicatesExisting:0 };
+
+  function operationSignature(item){
+    const date=String(item?.date||'').slice(0,10);
+    const type=operationKind(item);
+    const amount=Math.round(Math.abs(number(item?.amount))*100);
+    const note=clean(item?.note||'').toLowerCase().replace(/\s+/g,' ');
+    const account=clean(item?.account||'').toLowerCase().replace(/\s+/g,' ');
+    return [date,type,amount,note,account].join('|');
+  }
+  function detectCsvDelimiter(text){
+    const line=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).find(row=>row.trim())||'';
+    const variants=[';','\t',','];
+    return variants.map(delimiter=>({delimiter,count:splitCsvRow(line,delimiter).length})).sort((a,b)=>b.count-a.count)[0]?.delimiter||';';
+  }
+  function splitCsvRow(line,delimiter){
+    const result=[];let current='',quoted=false;
+    for(let i=0;i<String(line||'').length;i+=1){
+      const char=line[i];
+      if(char==='"'){
+        if(quoted&&line[i+1]==='"'){current+='"';i+=1;}else quoted=!quoted;
+      }else if(char===delimiter&&!quoted){result.push(current.trim());current='';}
+      else current+=char;
+    }
+    result.push(current.trim());return result;
+  }
+  function normalizeCsvHeader(value){return clean(String(value||'')).toLowerCase().replaceAll('ё','е').replace(/[^a-zа-я0-9]+/g,' ');}
+  function parseCsvMoney(raw){
+    if(raw==null)return 0;
+    let value=String(raw).replace(/\u00a0/g,' ').replace(/\s+/g,'').replace(/₽|rub|р\.?/gi,'').replace(/,/g,'.');
+    value=value.replace(/[^0-9+\-.]/g,'');
+    const parsed=Number(value);return Number.isFinite(parsed)?parsed:0;
+  }
+  function normalizeCsvDate(raw){
+    const value=clean(raw);if(!value)return '';
+    if(/^\d{4}-\d{2}-\d{2}/.test(value))return value.slice(0,10);
+    const match=value.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+    if(match){let year=match[3];if(year.length===2)year=`20${year}`;return `${year}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;}
+    const date=new Date(value);return Number.isFinite(date.getTime())?date.toISOString().slice(0,10):'';
+  }
+  function importCategorySuggestions(){
+    const defaults=['Продукты','Кафе','Транспорт','Такси','Жильё','Подписки','Здоровье','Развлечения','Подарки','Долги','Инвестиции','Переводы','Путешествия','Прочее','Зарплата','Возврат'];
+    return [...new Set([...array('operations').map(item=>clean(item.category)).filter(Boolean),...defaults])];
+  }
+  function guessImportCategory(text,type='expense'){
+    const value=clean(text).toLowerCase();
+    if(type==='income'){
+      if(/зарплат|аванс|salary/.test(value))return 'Зарплата';
+      if(/возврат|refund|cashback|кэшбэк/.test(value))return 'Возврат';
+      if(/перевод|сбп/.test(value))return 'Переводы';
+      return 'Прочий доход';
+    }
+    if(/магнит|пятер|перекрест|лента|ашан|дикси|вкусвилл|самокат|продукт|grocery/.test(value))return 'Продукты';
+    if(/кафе|coffee|starbucks|burger|kfc|mcd|ресторан|pizza|пицц|суши/.test(value))return 'Кафе';
+    if(/яндекс.?go|uber|taxi|такси/.test(value))return 'Такси';
+    if(/метро|транспорт|автобус|tram|bus|ржд/.test(value))return 'Транспорт';
+    if(/подпис|spotify|netflix|ivi|кинопоиск|telegram premium|yandex plus/.test(value))return 'Подписки';
+    if(/аптек|pharm|стомат|медицин|doctor/.test(value))return 'Здоровье';
+    if(/кино|бар|club|steam|playstation|xbox|развлеч/.test(value))return 'Развлечения';
+    if(/долг|кредит|займ|loan/.test(value))return 'Долги';
+    if(/подар|цветы/.test(value))return 'Подарки';
+    if(/авиа|отель|hotel|booking|поезд|travel|trip/.test(value))return 'Путешествия';
+    if(/коммун|аренд|жкх|ипотек/.test(value))return 'Жильё';
+    if(/инвест|брокер|акци/.test(value))return 'Инвестиции';
+    if(/перевод|сбп|между своими/.test(value))return 'Переводы';
+    return 'Прочее';
+  }
+  function parseBankCsvText(text){
+    const lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(line=>line.trim());
+    if(lines.length<2)throw new Error('В CSV-файле не найден список операций');
+    const delimiter=detectCsvDelimiter(text);
+    const headers=splitCsvRow(lines[0],delimiter).map(normalizeCsvHeader);
+    const findIndex=patterns=>headers.findIndex(header=>patterns.some(pattern=>pattern instanceof RegExp?pattern.test(header):header.includes(pattern)));
+    const dateIndex=findIndex(['дата операции','дата','date',/transaction date/]);
+    const amountIndex=findIndex(['сумма операции','сумма','amount','value']);
+    const debitIndex=findIndex(['списание','расход','debit']);
+    const creditIndex=findIndex(['зачисление','поступление','доход','credit']);
+    const typeIndex=findIndex(['тип операции','тип','type']);
+    const categoryIndex=findIndex(['категория','катег','category','mcc']);
+    const noteIndex=findIndex(['описание','назначение платежа','комментарий','контрагент','merchant','description','details','note']);
+    const accountIndex=findIndex(['счет','карта','account','card']);
+    if(dateIndex<0)throw new Error('Не удалось найти колонку с датой');
+    if(amountIndex<0&&debitIndex<0&&creditIndex<0)throw new Error('Не удалось найти колонку с суммой');
+    const existing=new Set(array('operations').map(operationSignature));
+    const inside=new Set();const rows=[];let duplicatesInFile=0,duplicatesExisting=0;
+    for(let index=1;index<lines.length;index+=1){
+      const values=splitCsvRow(lines[index],delimiter);if(values.every(value=>!clean(value)))continue;
+      const date=normalizeCsvDate(values[dateIndex]);if(!date)continue;
+      const debit=debitIndex>=0?Math.abs(parseCsvMoney(values[debitIndex])):0;
+      const credit=creditIndex>=0?Math.abs(parseCsvMoney(values[creditIndex])):0;
+      const signed=amountIndex>=0?parseCsvMoney(values[amountIndex]):0;
+      let type='expense',amount=0;
+      if(debit||credit){type=credit&&!debit?'income':'expense';amount=credit&&!debit?credit:(debit||credit);}
+      else{amount=Math.abs(signed);type=signed>0?'income':'expense';}
+      const typeLabel=typeIndex>=0?normalizeCsvHeader(values[typeIndex]):'';
+      if(/расход|списание|expense|debit/.test(typeLabel))type='expense';
+      if(/доход|зачисление|поступление|income|credit/.test(typeLabel))type='income';
+      if(!amount)continue;
+      const rawCategory=categoryIndex>=0?clean(values[categoryIndex]):'';
+      const note=noteIndex>=0?clean(values[noteIndex]):'';
+      const account=accountIndex>=0?clean(values[accountIndex]):'';
+      const category=rawCategory||guessImportCategory(`${note} ${account}`,type);
+      const operation={id:makeId(),date,type,amount,category,account,note:note||rawCategory,incomeSource:type==='income'?category:'',createdAt:nowIso(),updatedAt:nowIso(),importSource:'bank-csv'};
+      const signature=operationSignature(operation);
+      if(inside.has(signature)){duplicatesInFile+=1;continue;}
+      inside.add(signature);
+      if(existing.has(signature)){duplicatesExisting+=1;continue;}
+      rows.push(operation);
+    }
+    return {rows,parsed:lines.length-1,duplicatesInFile,duplicatesExisting};
+  }
+  function openBankCsvImport(){
+    pendingBankImport=[];pendingBankImportStats={parsed:0,duplicatesInFile:0,duplicatesExisting:0};
+    openModal('Импорт CSV из банка',`<div class="v85-import-help"><b>Без дублей и ручной очистки</b><br>Выберите CSV-выписку. Перед сохранением приложение покажет операции, категории и комментарии.</div><div class="v85-export-actions" style="margin-top:14px"><label class="v85-import-button"><input id="v85_bank_csv_file" type="file" accept=".csv,text/csv">⇧ Выбрать CSV-файл</label><button data-v78-action="close-modal" type="button">Отмена</button></div>`);
+  }
+  async function handleBankCsvFile(file){
+    const result=parseBankCsvText(await file.text());pendingBankImport=result.rows;pendingBankImportStats=result;openBankCsvPreview();
+  }
+  function openBankCsvPreview(){
+    const suggestions=importCategorySuggestions(),rows=pendingBankImport;
+    openModal('Предпросмотр импорта CSV',`<div class="v85-preview-meta"><article><small>Новых операций</small><b>${rows.length}</b><span>готовы к импорту</span></article><article><small>Строк прочитано</small><b>${pendingBankImportStats.parsed}</b><span>из банковского файла</span></article><article><small>Дубли в файле</small><b>${pendingBankImportStats.duplicatesInFile}</b><span>автоматически исключены</span></article><article><small>Уже в базе</small><b>${pendingBankImportStats.duplicatesExisting}</b><span>повторно не добавятся</span></article></div><div class="v85-import-help">Первые 60 операций можно отредактировать до импорта. Остальные сохранятся с автоматически определённой категорией и будут доступны в общем списке.</div><datalist id="v85_import_categories">${suggestions.map(name=>`<option value="${safe(name)}"></option>`).join('')}</datalist><div class="v85-preview-table">${rows.slice(0,60).map((row,index)=>`<div class="v85-preview-row"><div><header>Дата</header><b>${formatShort(row.date)}</b></div><div><header>Тип</header><b>${row.type==='income'?'Доход':'Расход'}</b></div><div><header>Сумма</header><b class="v85-money">${row.type==='income'?'+':'−'} ${safe(moneyText(row.amount))}</b></div><div><header>Категория</header><input type="text" list="v85_import_categories" data-v85-field="category" data-index="${index}" value="${safe(row.category)}"></div><div><header>Комментарий</header><input type="text" data-v85-field="note" data-index="${index}" value="${safe(row.note||'')}"></div><div><header>Добавить</header><label><input type="checkbox" data-v85-field="keep" data-index="${index}" checked> Да</label></div></div>`).join('')||'<div class="v78-empty-big">Новых операций не найдено: возможно, весь файл уже был импортирован.</div>'}</div><div class="v79-modal-actions"><button class="v78-primary" data-v85-action="apply-bank-import" type="button" ${rows.length?'':'disabled'}>Импортировать ${rows.length}</button><button data-v78-action="close-modal" type="button">Отмена</button></div>`);
+  }
+  function applyBankCsvImport(){
+    if(!pendingBankImport.length)return toast('Новых операций нет');
+    const visible=Math.min(60,pendingBankImport.length);
+    for(let index=0;index<visible;index+=1){
+      const category=document.querySelector(`[data-v85-field="category"][data-index="${index}"]`);
+      const note=document.querySelector(`[data-v85-field="note"][data-index="${index}"]`);
+      const keep=document.querySelector(`[data-v85-field="keep"][data-index="${index}"]`);
+      pendingBankImport[index].category=clean(category?.value)||'Прочее';pendingBankImport[index].note=clean(note?.value);pendingBankImport[index]._keep=keep?.checked!==false;
+    }
+    const existing=new Set(array('operations').map(operationSignature)),next=[];let skipped=0;
+    pendingBankImport.forEach(item=>{if(item._keep===false){skipped+=1;return;}const signature=operationSignature(item);if(existing.has(signature)){skipped+=1;return;}existing.add(signature);delete item._keep;next.push(item);});
+    if(!next.length)return toast('Все операции были исключены или уже существуют');
+    state.operations=[...next,...array('operations')];save();pendingBankImport=[];closeModal();navigate('finance-operations');toast(`Импортировано ${next.length}. Пропущено ${skipped+pendingBankImportStats.duplicatesInFile+pendingBankImportStats.duplicatesExisting}.`);
+  }
+  function polinaCycleForecast(){
+    const entries=array('polinaDays').filter(item=>item?.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    const starts=entries.filter(item=>item.periodMarker==='start').map(item=>String(item.date).slice(0,10));
+    const cycleLengths=[];for(let index=1;index<starts.length;index+=1){const length=Math.round((dateAtNoon(starts[index])-dateAtNoon(starts[index-1]))/DAY);if(length>=20&&length<=45)cycleLengths.push(length);}
+    const periodLengths=[];starts.forEach(start=>{const end=entries.find(item=>item.periodMarker==='end'&&String(item.date)>start&&Math.round((dateAtNoon(item.date)-dateAtNoon(start))/DAY)<=12);if(end)periodLengths.push(Math.round((dateAtNoon(end.date)-dateAtNoon(start))/DAY)+1);});
+    const avgCycle=cycleLengths.length?Math.round(cycleLengths.reduce((sum,value)=>sum+value,0)/cycleLengths.length):(starts.length?28:0);
+    const avgPeriod=periodLengths.length?Math.round(periodLengths.reduce((sum,value)=>sum+value,0)/periodLengths.length):(starts.length?5:0);
+    const lastStart=starts.at(-1)||'';const nextStart=lastStart&&avgCycle?addDaysKey(lastStart,avgCycle):'';const nextEnd=nextStart&&avgPeriod?addDaysKey(nextStart,avgPeriod-1):'';
+    return {avgCycle,avgPeriod,lastStart,nextStart,nextEnd,cycles:starts.length};
+  }
+
   function exportCsv(scope = 'all') {
     let rows = array('operations').slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     if (scope === 'filtered') {
@@ -1596,6 +1879,18 @@ body{font-size:15px!important}
       if(action==='coach-reset'){state.settings.v82.coachStep=0;save();return renderPremium();}
       if(action==='coach-open-current'){const data=currentAssistantStep();closeModal();return navigate(data.step.route);}
       if(action==='archive-details')return openArchiveDetails(v82.dataset.id||'');
+    }
+    const v833 = event.target.closest?.('[data-v833-action]');
+    if(v833){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v833.dataset.v833Action;
+      if(action==='open-book-progress')return openBookProgress(v833.dataset.id||'');
+      if(action==='save-book-progress')return saveBookProgress(v833.dataset.id||'',v833);
+      if(action==='open-book-quote')return openBookQuote(v833.dataset.id||'');
+      if(action==='save-book-quote')return saveBookQuote(v833.dataset.id||'',v833);
+    }
+    const v85 = event.target.closest?.('[data-v85-action]');
+    if(v85){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v85.dataset.v85Action;
+      if(action==='import-bank-csv')return openBankCsvImport();
+      if(action==='apply-bank-import')return applyBankCsvImport();
     }
     const v81 = event.target.closest?.('[data-v81-action]');
     if(v81){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v81.dataset.v81Action;
@@ -1680,13 +1975,14 @@ body{font-size:15px!important}
     const personAvatar=event.target.closest?.('#v80_person_avatar_file');if(personAvatar?.files?.[0])compressPersonAvatar(personAvatar.files[0]).catch(error=>{console.error(error);toast('Не удалось обработать фотографию');});
     const period = event.target.closest?.('[data-v78-category-period]'); if(period){state.settings.v78.categoryPeriod=period.value;state.settings.v81.categoryPeriodAutoFixed=true;persist();renderPremium();}
     const importFile=event.target.closest?.('#v79_import_file');if(importFile?.files?.[0])importJson(importFile.files[0]);
+    const bankCsv=event.target.closest?.('#v85_bank_csv_file'); if(bankCsv?.files?.[0])handleBankCsvFile(bankCsv.files[0]).catch(error=>{console.error(error); toast(error?.message||'Не удалось импортировать CSV');});
   });
 
   window.addEventListener('popstate', renderPremium);
   window.addEventListener('hashchange', () => { clearTimeout(renderTimer); renderTimer = setTimeout(renderPremium, 10); });
   window.addEventListener('storage', event => { if (event.key === 'secondBrainOS.v1') { clearTimeout(renderTimer); renderTimer=setTimeout(renderPremium,80); } });
 
-  window.V83Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage, calendarPage, archivePage, assistantSteps, gameLifePage, goalsPage, goalPage, openGoalWizard, openGameCapture, awardGame };
+  window.V833Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage, calendarPage, archivePage, assistantSteps, gameLifePage, goalsPage, goalPage, openGoalWizard, openGameCapture, awardGame };
 
   try {
     state = await coreLoad();
@@ -1707,7 +2003,7 @@ body{font-size:15px!important}
   <script>
     if ('serviceWorker' in navigator) window.addEventListener('load', async () => {
       try {
-        const marker='secondBrainOS.v83.uiCacheCleared';
+        const marker='secondBrainOS.v833.uiCacheCleared';
         if(!localStorage.getItem(marker)){
           const registrations=await navigator.serviceWorker.getRegistrations();
           await Promise.all(registrations.map(registration=>registration.unregister()));

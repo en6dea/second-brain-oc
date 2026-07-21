@@ -2,7 +2,7 @@
   "name": "Second Brain OS",
   "short_name": "Second Brain",
   "description": "Премиальная личная система для привычек, финансов, календаря и саморазвития.",
-  "start_url": "./?v=831",
+  "start_url": "./?v=833",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fbf9ff",
