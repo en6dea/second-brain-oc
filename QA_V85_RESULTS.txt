@@ -1,0 +1,21 @@
+V85 STATIC QA RESULTS
+
+PASS - build_v85
+PASS - reward_editor
+PASS - reward_delete
+PASS - daily_checkin
+PASS - evening_review
+PASS - weekly_review
+PASS - review_queue
+PASS - goal_automation
+PASS - book_sessions
+PASS - achievements
+PASS - quick_capture_v85_handler
+PASS - finance_check_v85_handler
+PASS - no_localstorage_clear
+PASS - force_v85
+PASS - manifest_v85
+
+JavaScript syntax: checked separately with node --check.
+Visual Chromium smoke test: not completed in this environment; verify after GitHub Pages deployment.
+Data policy: additive migration; no localStorage.clear detected.
