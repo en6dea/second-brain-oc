@@ -1,4 +1,4 @@
-const CACHE_NAME='second-brain-space-v82-premium-calendar-20260721-r1';
+const CACHE_NAME='second-brain-space-v821-font-archive-20260721-r1';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./offline.html','./icon-192-v82.png','./icon-512-v82.png','./maskable-512-v82.png','./force-update.html'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS)));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
