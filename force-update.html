@@ -30,7 +30,7 @@
     <p>Удаляется только старый кэш файлов. Личные данные приложения не очищаются.</p>
     <div id="status" class="status">Подготовка…</div>
     <div id="actions" class="actions">
-      <a id="openApp" href="#" target="_blank" rel="noopener">Открыть V86 в новой вкладке</a>
+      <a id="openApp" href="#" target="_blank" rel="noopener">Открыть V86.1 в новой вкладке</a>
       <button id="retry" type="button">Повторить очистку</button>
     </div>
     <small>Новая вкладка нужна, чтобы старый Service Worker точно перестал управлять приложением. Этот экран больше не перенаправляет себя автоматически.</small>
@@ -42,8 +42,8 @@
       const openApp = document.getElementById('openApp');
       const retry = document.getElementById('retry');
 
-      const appUrl = new URL('./index.html', window.location.href);
-      appUrl.searchParams.set('v', '86');
+      const appUrl = new URL('./app-v86-direct-20260721.html', window.location.href);
+      appUrl.searchParams.set('v', '86.1');
       appUrl.searchParams.set('fresh', String(Date.now()));
       appUrl.hash = 'today';
       openApp.href = appUrl.href;
@@ -74,7 +74,7 @@
 
       retry.addEventListener('click', clearUiCache);
       openApp.addEventListener('click', () => {
-        status.textContent = 'V86 открывается в новой вкладке. Эту вкладку можно закрыть.';
+        status.textContent = 'V86.1 открывается в новой вкладке. Эту вкладку можно закрыть.';
       });
 
       clearUiCache();
