@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#fbf9ff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-space-v821-font-archive-20260721-r1">
+  <meta name="second-brain-build" content="second-brain-space-v822-direct-replace-20260721-r1">
   <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v821-r1">
-  <link rel="icon" href="icon-192-v82.png?v=v821-r1">
-  <link rel="apple-touch-icon" href="icon-192-v82.png?v=v821-r1">
+  <link rel="manifest" href="manifest.webmanifest?v=v822-r1">
+  <link rel="icon" href="icon-192-v82.png?v=v822-r1">
+  <link rel="apple-touch-icon" href="icon-192-v82.png?v=v822-r1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -462,7 +462,7 @@ body{font-size:15px!important}
 @media(max-width:760px){body{font-size:16px!important}.v78-content p{font-size:14.5px!important}.v821-archive-summary,.v821-archive-grid{grid-template-columns:1fr!important}.v821-archive-modal{grid-template-columns:1fr}}
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-space-v821-font-archive-20260721-r1">
+<body class="v80-booting" data-sbos-build="second-brain-space-v822-direct-replace-20260721-r1">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -568,8 +568,8 @@ body{font-size:15px!important}
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v821-font-archive-20260721-r1';
-  const LABEL = 'V82.1 · FONT & ARCHIVE';
+  const BUILD = 'second-brain-space-v822-direct-replace-20260721-r1';
+  const LABEL = 'V82.2 · DIRECT REPLACE';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
@@ -1595,7 +1595,7 @@ body{font-size:15px!important}
     renderPremium();
     setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
   } catch (error) {
-    console.error('[V82.1 Font Archive Runtime]', error);
+    console.error('[V82.2 Direct Replace Runtime]', error);
     document.body.classList.remove('v80-booting','v79-booting','v78-booting');
     document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
   }
@@ -1603,7 +1603,15 @@ body{font-size:15px!important}
 </script>
   <script>
     if ('serviceWorker' in navigator) window.addEventListener('load', async () => {
-      try { const registration=await navigator.serviceWorker.register('./sw.js?v=v821-r1',{updateViaCache:'none'}); await registration.update(); } catch(error) {}
+      try {
+        const marker='secondBrainOS.v822.uiCacheCleared';
+        if(!localStorage.getItem(marker)){
+          const registrations=await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(registration=>registration.unregister()));
+          if('caches' in window){const keys=await caches.keys();await Promise.all(keys.map(key=>caches.delete(key)));}
+          localStorage.setItem(marker,new Date().toISOString());
+        }
+      } catch(error) {}
     });
   </script>
 </body>
