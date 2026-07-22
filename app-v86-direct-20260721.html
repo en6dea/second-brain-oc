@@ -608,6 +608,12 @@ body{font-size:15px!important}
 @media(max-width:900px){.v86-automation-center{grid-template-columns:1fr}.v86-health-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.v86-capture-fab{right:14px;bottom:78px;padding:0 14px}.v86-capture-fab small{display:none}.v86-health-grid{grid-template-columns:1fr}}
 
+
+/* V86.3 — native route fallback for Goals */
+.v78-side-link,.v78-top-tab,.v78-mobile-nav a{text-decoration:none;cursor:pointer;pointer-events:auto;position:relative;z-index:2}
+.v78-side-nav,.v78-top-tabs,.v78-mobile-nav{pointer-events:auto;position:relative;z-index:4}
+.v78-side-link[href="#goals"],.v78-top-tab[href="#goals"],.v78-mobile-nav a[href="#goals"]{touch-action:manipulation}
+
 </style>
 </head>
 <body class="v80-booting" data-sbos-build="second-brain-space-v862-goal-wizard-fix-20260722-r1">
@@ -717,8 +723,8 @@ body{font-size:15px!important}
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v862-goal-wizard-fix-20260722-r1';
-  const LABEL = 'V86.2 · GOAL WIZARD FIX';
+  const BUILD = 'second-brain-space-v863-goals-route-hardening-20260722-r1';
+  const LABEL = 'V86.3 · GOALS ROUTE FIX';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
@@ -955,13 +961,13 @@ body{font-size:15px!important}
   function navItem(route, icon, label) {
     const current = routeNow();
     const active = current === route || (route === 'habits' && (current.startsWith('habit-') || current === 'habit-wishlist')) || (route === 'finance' && current.startsWith('finance-'));
-    return `<button class="v78-side-link ${active ? 'active' : ''}" data-v78-route="${safe(route)}" type="button"><i>${icon}</i><span>${safe(label)}</span></button>`;
+    return `<a class="v78-side-link ${active ? 'active' : ''}" href="#${encodeURIComponent(route)}" data-v78-route="${safe(route)}" role="link"><i>${icon}</i><span>${safe(label)}</span></a>`;
   }
 
   function topTab(route, icon, label) {
     const current = routeNow();
     const active = current === route || (route === 'habits' && (current.startsWith('habit-') || current === 'habit-wishlist')) || (route === 'finance' && current.startsWith('finance-'));
-    return `<button class="v78-top-tab ${active ? 'active' : ''}" data-v78-route="${route}" type="button"><i>${icon}</i>${label}</button>`;
+    return `<a class="v78-top-tab ${active ? 'active' : ''}" href="#${encodeURIComponent(route)}" data-v78-route="${route}" role="link"><i>${icon}</i>${label}</a>`;
   }
 
   function premiumShell(content) {
@@ -997,7 +1003,7 @@ body{font-size:15px!important}
         </header>
         <section id="view" class="v78-content" data-route="${safe(current)}">${content}</section>
       </main>
-      <nav class="v78-mobile-nav">${[['today','⌂','Сегодня'],['gamelife','✦','GameLife'],['goals','🎯','Цели'],['finance','₽','Финансы'],['profile','●','Профиль']].map(([r,i,l])=>`<button class="${current===r||(r==='habits'&&current.startsWith('habit-'))||(r==='finance'&&current.startsWith('finance-'))?'active':''}" data-v78-route="${r}" type="button"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>
+      <nav class="v78-mobile-nav">${[['today','⌂','Сегодня'],['gamelife','✦','GameLife'],['goals','🎯','Цели'],['finance','₽','Финансы'],['profile','●','Профиль']].map(([r,i,l])=>`<a class="${current===r||(r==='habits'&&current.startsWith('habit-'))||(r==='finance'&&current.startsWith('finance-'))?'active':''}" href="#${encodeURIComponent(r)}" data-v78-route="${r}" role="link"><i>${i}</i><span>${l}</span></a>`).join('')}</nav>
       <button class="v86-capture-fab" data-v83-action="quick-capture" type="button"><i>＋</i><span><b>Зафиксировать</b><small>мысль, расход или задачу</small></span></button>
       <div class="v78-build">${LABEL}</div>
     </div>`;
@@ -1656,8 +1662,16 @@ body{font-size:15px!important}
   function navigate(route, options = {}) {
     const target = LEGACY_ALIASES[route] || route || 'today';
     if (options.filter) operationType = options.filter;
+    closeModal();
+    document.querySelectorAll('.modal.show').forEach(el=>el.classList.remove('show'));
     try { history.pushState(null,'',`#${encodeURIComponent(target)}`); } catch(error) { location.hash=target; }
     renderPremium();
+  }
+
+  function openGoalsRouteDirect() {
+    closeModal();
+    document.querySelectorAll('.modal.show').forEach(el=>el.classList.remove('show'));
+    navigate('goals');
   }
 
   function toggleHabit(id, date = todayKey(), force, originEl=null) {
@@ -1961,6 +1975,14 @@ body{font-size:15px!important}
     const found=[]; sources.forEach(([route,label,icon,items])=>items.forEach(item=>{const text=[item.title,item.name,item.person,item.text,item.note,item.category,item.author,item.role,item.amount,item.date].join(' ').toLowerCase(); if(text.includes(q))found.push({route,label,icon,item});}));
     return `<div class="v78-search-results">${found.slice(0,30).map(({route,label,icon,item})=>`<button data-v78-route="${route}" type="button"><i>${icon}</i><span><b>${safe(item.title||item.name||item.person||item.category||label)}</b><small>${safe(label)} · ${safe((item.text||item.note||item.author||item.date||'').slice(0,80))}</small></span><em>›</em></button>`).join('') || '<p class="v78-empty">Ничего не найдено.</p>'}</div>`;
   }
+
+  window.addEventListener('pointerup', event => {
+    const goalsLink = event.target.closest?.('[data-v78-route="goals"]');
+    if (!goalsLink) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openGoalsRouteDirect();
+  }, true);
 
   window.addEventListener('click', event => {
     const routeButton = event.target.closest?.('[data-v78-route]');
