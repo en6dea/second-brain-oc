@@ -1,12 +1,12 @@
-// Second Brain OS — Firebase config
-// Этот файл нужен для входа и синхронизации ПК ↔ iPhone.
-// Firebase Web API key не является банковским секретом; доступ к данным ограничивают Firestore Rules.
-window.SECOND_BRAIN_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAuxWvGfr_0cReaEQdIkvPIUoEjurDcabY",
-  authDomain: "second-brain-os-7e27d.firebaseapp.com",
-  projectId: "second-brain-os-7e27d",
-  storageBucket: "second-brain-os-7e27d.firebasestorage.app",
-  messagingSenderId: "792312226609",
-  appId: "1:792312226609:web:8ffb6c2b04df69c2670610",
-  measurementId: "G-HKHTED5VBZ"
+/*
+  Заполните значения из Firebase Console → Project settings → Your apps → Web app.
+  После этого синхронизация заработает на iPhone и компьютере под одним аккаунтом.
+*/
+window.SECOND_BRAIN_FIREBASE_CONFIG = window.SECOND_BRAIN_FIREBASE_CONFIG || {
+  apiKey: "PASTE_FIREBASE_API_KEY",
+  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID",
+  storageBucket: "PASTE_PROJECT_ID.appspot.com",
+  messagingSenderId: "PASTE_SENDER_ID",
+  appId: "PASTE_APP_ID"
 };

@@ -1,0 +1,16 @@
+Second Brain OS V86.12 QA
+
+PASS: JavaScript syntax — index.html
+PASS: JavaScript syntax — cloud-sync.js
+PASS: JavaScript syntax — pwa-v8612.js
+PASS: manifest.webmanifest — valid JSON
+PASS: Finance route opens
+PASS: Finance planning route opens
+PASS: Build label V86.12 visible
+PASS: Recurring plan test: 6 000 ₽ per month, not 24 000 ₽ in one month
+PASS: Debt schedule test: monthly debt payment added to selected month
+PASS: Category modal: no horizontal overflow at 1440 / 900 / 390 px
+PASS: Generic category icons: 0 after migration in smoke test
+PASS: Category edit returns to previous list position
+PASS: 2 000-operation finance render smoke test: ~110 ms in headless Chromium
+NOTE: Firebase cross-device sync requires real project keys in firebase-config.js.
