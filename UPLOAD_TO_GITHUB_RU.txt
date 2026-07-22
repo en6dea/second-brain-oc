@@ -1,0 +1,19 @@
+КАК УСТАНОВИТЬ ДИЗАЙН
+
+1. Распакуйте ZIP.
+2. Откройте репозиторий en6dea/second-brain-oc на GitHub.
+3. Нажмите Add file -> Upload files.
+4. Перетащите все 6 файлов из папки PATCH в корень репозитория.
+5. Подтвердите замену index.html, sw.js и sbos-build.txt.
+6. Нажмите Commit changes.
+7. Через 1-3 минуты откройте сайт с новым параметром, например: ?v=871#gamelife
+
+ФАЙЛЫ PATCH
+- index.html
+- sw.js
+- sbos-build.txt
+- styles-v87-obsidian.css
+- app-v87-visual.js
+- UPLOAD_TO_GITHUB_RU.txt
+
+Личные данные, data.json и настройки Firebase в ZIP не входят.

@@ -1,0 +1,566 @@
+/*
+ * Second Brain OS — Obsidian Constellation visual layer.
+ * Decorative only: no layout data, finance logic or user content is changed.
+ */
+
+:root {
+  --v87-font: "Onest", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --v87-ease: cubic-bezier(.2,.78,.18,1);
+  --v87-radius: 24px;
+  --v87-bg: #f5f7fb;
+  --v87-bg-deep: #edf1f7;
+  --v87-panel: rgba(255,255,255,.84);
+  --v87-panel-solid: #fff;
+  --v87-panel-soft: rgba(248,250,254,.82);
+  --v87-line: rgba(30,55,82,.11);
+  --v87-line-strong: rgba(52,108,174,.24);
+  --v87-text: #0b1724;
+  --v87-muted: #6c7a8b;
+  --v87-blue: #236ee8;
+  --v87-blue-2: #4f93ff;
+  --v87-cyan: #3bc2d4;
+  --v87-green: #2eb67d;
+  --v87-coral: #ed6870;
+  --v87-amber: #df9e32;
+  --v87-violet: #7c63d8;
+  --v87-shadow: 0 22px 64px rgba(35,58,84,.12), inset 0 1px rgba(255,255,255,.82);
+  --v87-shadow-hover: 0 30px 80px rgba(35,58,84,.17), inset 0 1px rgba(255,255,255,.9);
+}
+
+html.v87-dark {
+  color-scheme: dark;
+  --v87-bg: #050b13;
+  --v87-bg-deep: #07111d;
+  --v87-panel: rgba(13,27,42,.88);
+  --v87-panel-solid: #0f1e2e;
+  --v87-panel-soft: rgba(17,34,51,.8);
+  --v87-line: rgba(130,169,210,.16);
+  --v87-line-strong: rgba(105,166,234,.34);
+  --v87-text: #f3f7fb;
+  --v87-muted: #93a5b8;
+  --v87-blue: #4b91ff;
+  --v87-blue-2: #75b1ff;
+  --v87-cyan: #6bd7e7;
+  --v87-green: #4bd49a;
+  --v87-coral: #ff767c;
+  --v87-amber: #efbd68;
+  --v87-violet: #aa8cff;
+  --v87-shadow: 0 26px 72px rgba(0,4,12,.4), inset 0 1px rgba(255,255,255,.035);
+  --v87-shadow-hover: 0 34px 90px rgba(0,4,12,.5), inset 0 1px rgba(255,255,255,.055);
+}
+
+html.v87-light { color-scheme: light; }
+html.v87-light,
+html.v87-dark { background: var(--v87-bg) !important; }
+
+html.v87-light body.v87-constellation,
+html.v87-dark body.v87-constellation {
+  color: var(--v87-text) !important;
+  font-family: var(--v87-font) !important;
+  background:
+    radial-gradient(900px 620px at 88% -10%, color-mix(in srgb,var(--v87-blue) 13%,transparent), transparent 68%),
+    radial-gradient(760px 560px at -8% 86%, color-mix(in srgb,var(--v87-cyan) 9%,transparent), transparent 70%),
+    linear-gradient(145deg,var(--v87-bg) 0%,var(--v87-bg-deep) 100%) !important;
+  transition: color .35s ease, background .55s ease;
+}
+
+html.v87-dark body.v87-constellation {
+  background:
+    radial-gradient(980px 700px at 87% -12%, rgba(36,100,190,.2), transparent 66%),
+    radial-gradient(800px 580px at -10% 88%, rgba(18,102,118,.12), transparent 70%),
+    linear-gradient(145deg,#050a12 0%,#07111e 48%,#091725 100%) !important;
+}
+
+body.v87-constellation::before {
+  opacity: .55 !important;
+  z-index: 0 !important;
+  background-image:
+    radial-gradient(circle at 20% 22%, color-mix(in srgb,var(--v87-blue) 26%,transparent) 0 1px, transparent 1.35px),
+    radial-gradient(circle at 72% 65%, color-mix(in srgb,var(--v87-cyan) 22%,transparent) 0 1px, transparent 1.35px) !important;
+  background-size: 34px 34px, 51px 51px !important;
+  mask-image: linear-gradient(to bottom,#000,transparent 92%);
+}
+
+body.v87-constellation::after {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .58;
+  background:
+    radial-gradient(circle at 30% 36%, color-mix(in srgb,var(--v87-blue) 13%,transparent), transparent 15%),
+    radial-gradient(circle at 70% 58%, color-mix(in srgb,var(--v87-green) 8%,transparent), transparent 17%),
+    radial-gradient(circle at 54% 79%, color-mix(in srgb,var(--v87-violet) 7%,transparent), transparent 15%);
+  animation: v87-ambient-drift 25s var(--v87-ease) infinite alternate;
+}
+
+body.v87-constellation #app,
+body.v87-constellation > .modal,
+body.v87-constellation > .toast,
+body.v87-constellation > .v86-capture-fab { position: relative; z-index: 1; }
+
+body.v87-constellation,
+body.v87-constellation :is(button,input,select,textarea) { font-family: var(--v87-font) !important; }
+
+body.v87-constellation :is(h1,h2,h3,h4,b,strong) { letter-spacing: -.03em; }
+body.v87-constellation :is(.v78-finance-numbers b,.v83-mini-money,.v78-kpi-row b,[class*="money"],[class*="amount"]) {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Unified constellation icon family. */
+.v87-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex: 0 0 auto;
+  overflow: visible;
+  stroke-width: 1.72;
+  vector-effect: non-scaling-stroke;
+}
+
+.v87-button-icon { display: inline-flex; align-items: center; justify-content: center; }
+.v87-button-icon .v87-icon { width: 15px; height: 15px; }
+
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a) > i {
+  position: relative;
+  overflow: hidden;
+  color: var(--v87-blue) !important;
+  border: 1px solid color-mix(in srgb,var(--v87-blue) 20%,transparent) !important;
+  background: linear-gradient(145deg,color-mix(in srgb,var(--v87-blue) 12%,var(--v87-panel-solid)),color-mix(in srgb,var(--v87-cyan) 7%,var(--v87-panel-solid))) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.35), 0 8px 22px color-mix(in srgb,var(--v87-blue) 12%,transparent);
+}
+
+html.v87-dark body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a) > i {
+  background: linear-gradient(145deg,rgba(45,91,148,.3),rgba(17,42,70,.48)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.045),0 9px 24px rgba(0,7,18,.2);
+}
+
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a)[data-v87-tone="green"] > i { color:var(--v87-green)!important;border-color:color-mix(in srgb,var(--v87-green) 24%,transparent)!important; }
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a)[data-v87-tone="coral"] > i { color:var(--v87-coral)!important;border-color:color-mix(in srgb,var(--v87-coral) 24%,transparent)!important; }
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a)[data-v87-tone="violet"] > i { color:var(--v87-violet)!important;border-color:color-mix(in srgb,var(--v87-violet) 24%,transparent)!important; }
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a)[data-v87-tone="amber"] > i { color:var(--v87-amber)!important;border-color:color-mix(in srgb,var(--v87-amber) 24%,transparent)!important; }
+
+body.v87-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a).active > i {
+  color: #fff !important;
+  border-color: rgba(172,211,255,.48) !important;
+  background: linear-gradient(145deg,var(--v87-blue-2),var(--v87-blue)) !important;
+  box-shadow: 0 0 26px color-mix(in srgb,var(--v87-blue) 38%,transparent),inset 0 1px rgba(255,255,255,.28) !important;
+}
+
+/* App chrome. */
+body.v87-constellation .v78-app { position: relative; z-index: 1; }
+
+body.v87-constellation .v78-sidebar {
+  border-right-color: var(--v87-line) !important;
+  background: color-mix(in srgb,var(--v87-panel-solid) 83%,transparent) !important;
+  box-shadow: 22px 0 72px color-mix(in srgb,var(--v87-text) 7%,transparent) !important;
+  backdrop-filter: blur(30px) saturate(128%) !important;
+}
+
+html.v87-dark body.v87-constellation .v78-sidebar {
+  background: linear-gradient(180deg,rgba(6,15,26,.97),rgba(7,18,31,.95)) !important;
+  box-shadow: 24px 0 80px rgba(0,4,12,.26) !important;
+}
+
+body.v87-constellation .v78-brand { color: var(--v87-text) !important; }
+body.v87-constellation .v78-brand small { color: var(--v87-muted) !important; }
+
+body.v87-constellation .v78-brand-orb {
+  background:
+    radial-gradient(circle at 29% 22%,#fff 0 7%,#cbe5ff 17%,#4f93ff 43%,#1e5fc2 67%,#67d7e6 89%) !important;
+  box-shadow: inset -9px -9px 17px rgba(3,28,76,.33),inset 7px 7px 15px rgba(255,255,255,.65),0 12px 32px rgba(42,115,224,.34) !important;
+  animation: v87-orb-float 7.5s var(--v87-ease) infinite;
+}
+
+body.v87-constellation .v78-brand-orb::after {
+  border-color: rgba(220,241,255,.82) !important;
+  border-left-color: #70b5ff !important;
+  border-right-color: #3b79da !important;
+  animation: v87-orbit 9s linear infinite;
+}
+
+body.v87-constellation .v78-side-link {
+  color: var(--v87-muted) !important;
+  font-weight: 590 !important;
+  transition: transform .22s var(--v87-ease),background .22s ease,color .22s ease,border-color .22s ease !important;
+}
+
+body.v87-constellation .v78-side-link:hover {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line) !important;
+  background: color-mix(in srgb,var(--v87-blue) 7%,var(--v87-panel-solid)) !important;
+  transform: translateX(4px) !important;
+}
+
+body.v87-constellation .v78-side-link.active {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line-strong) !important;
+  background: linear-gradient(135deg,color-mix(in srgb,var(--v87-blue) 13%,var(--v87-panel-solid)),color-mix(in srgb,var(--v87-cyan) 6%,var(--v87-panel-solid))) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb,var(--v87-blue) 13%,transparent) !important;
+}
+
+html.v87-dark body.v87-constellation .v78-side-link.active {
+  background: linear-gradient(135deg,rgba(47,102,179,.25),rgba(12,38,65,.4)) !important;
+}
+
+body.v87-constellation .v78-motivation {
+  border-color: var(--v87-line) !important;
+  color: var(--v87-text) !important;
+  background: linear-gradient(155deg,color-mix(in srgb,var(--v87-violet) 9%,var(--v87-panel-solid)),color-mix(in srgb,var(--v87-blue) 7%,var(--v87-panel-solid))) !important;
+  box-shadow: var(--v87-shadow) !important;
+}
+
+html.v87-dark body.v87-constellation .v78-motivation {
+  background: linear-gradient(155deg,#101f31 0%,#122641 54%,#0b1a2b 100%) !important;
+}
+
+body.v87-constellation .v78-liquid-art { filter: hue-rotate(28deg) saturate(.82); opacity: .75; }
+body.v87-constellation .v78-profile-mini {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line) !important;
+  background: var(--v87-panel) !important;
+}
+
+body.v87-constellation .v78-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 85;
+  padding: 0 5px;
+  border: 1px solid var(--v87-line);
+  border-radius: 21px;
+  background: color-mix(in srgb,var(--v87-panel-solid) 75%,transparent) !important;
+  box-shadow: 0 18px 52px color-mix(in srgb,var(--v87-text) 7%,transparent),inset 0 1px rgba(255,255,255,.4) !important;
+  backdrop-filter: blur(28px) saturate(128%) !important;
+}
+
+html.v87-dark body.v87-constellation .v78-topbar { background: rgba(8,20,34,.74) !important; }
+body.v87-constellation .v78-greeting b { color: var(--v87-text) !important; }
+body.v87-constellation .v78-greeting small { color: var(--v87-muted) !important; }
+
+body.v87-constellation .v78-top-tabs {
+  border-color: var(--v87-line) !important;
+  background: color-mix(in srgb,var(--v87-panel-solid) 72%,transparent) !important;
+  box-shadow: 0 12px 34px color-mix(in srgb,var(--v87-text) 6%,transparent) !important;
+}
+
+html.v87-dark body.v87-constellation .v78-top-tabs { background: rgba(11,25,41,.72) !important; }
+body.v87-constellation .v78-top-tab { color: var(--v87-muted) !important; }
+body.v87-constellation .v78-top-tab:hover { color: var(--v87-text)!important;background:var(--v87-panel-soft)!important; }
+body.v87-constellation .v78-top-tab.active {
+  color: var(--v87-text) !important;
+  background: var(--v87-panel-solid) !important;
+  box-shadow: 0 10px 25px color-mix(in srgb,var(--v87-blue) 12%,transparent) !important;
+}
+
+body.v87-constellation .v78-top-actions > button,
+body.v87-constellation .v87-theme-toggle {
+  color: var(--v87-muted) !important;
+  border-color: var(--v87-line) !important;
+  background: var(--v87-panel) !important;
+  transition: transform .2s var(--v87-ease),border-color .2s ease,color .2s ease !important;
+}
+
+body.v87-constellation .v78-top-actions > button:hover {
+  color: var(--v87-blue) !important;
+  border-color: var(--v87-line-strong) !important;
+  transform: translateY(-2px) rotate(-2deg);
+}
+
+.v87-theme-toggle { overflow: hidden; }
+.v87-theme-toggle::after {
+  content: "";
+  position: absolute;
+  inset: -55%;
+  background: conic-gradient(from 0deg,transparent,rgba(91,164,255,.45),transparent 27%);
+  animation: v87-button-orbit 6s linear infinite;
+}
+.v87-theme-toggle .v87-icon { position: relative; z-index: 1; }
+
+/* Premium surfaces shared by all routes. */
+body.v87-constellation :is(.v78-card,.v78-folder-panel,.v82-card,.v83-goal-card,.v83-controls-card,.v83-reward-card,.v83-skills-card,.v83-stages-card,.v83-log-card,.v85-routine-card,.v85-achievements-card,.v85-goal-automation-card,.v8612-system-card,.v86-health-grid>article,.v79-system-actions>article,.v79-data-stats>article) {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line) !important;
+  background: linear-gradient(145deg,var(--v87-panel),color-mix(in srgb,var(--v87-panel-solid) 78%,transparent)) !important;
+  box-shadow: var(--v87-shadow) !important;
+  backdrop-filter: blur(22px) saturate(116%);
+}
+
+html.v87-dark body.v87-constellation :is(.v78-card,.v78-folder-panel,.v82-card,.v83-goal-card,.v83-controls-card,.v83-reward-card,.v83-skills-card,.v83-stages-card,.v83-log-card,.v85-routine-card,.v85-achievements-card,.v85-goal-automation-card,.v8612-system-card,.v86-health-grid>article,.v79-system-actions>article,.v79-data-stats>article) {
+  background: linear-gradient(145deg,rgba(17,34,52,.94),rgba(9,22,36,.96)) !important;
+}
+
+body.v87-constellation :is(.v78-card,.v78-folder-panel,.v83-goal-card,.v8612-system-card) {
+  transition: transform .24s var(--v87-ease),box-shadow .24s var(--v87-ease),border-color .24s ease !important;
+}
+
+body.v87-constellation :is(.v78-card,.v78-folder-panel,.v83-goal-card,.v8612-system-card):hover {
+  transform: translateY(-4px);
+  border-color: var(--v87-line-strong) !important;
+  box-shadow: var(--v87-shadow-hover) !important;
+}
+
+body.v87-constellation :is(.v78-card,.v78-folder-panel,.v82-card,.v83-goal-card,.v8612-system-card) :is(p,small),
+body.v87-constellation :is(.v78-page-head,.v78-greeting) p { color: var(--v87-muted) !important; }
+body.v87-constellation :is(.v78-card,.v78-folder-panel,.v82-card,.v83-goal-card,.v8612-system-card) :is(h1,h2,h3,b,strong) { color: var(--v87-text) !important; }
+
+body.v87-constellation .v78-card::before {
+  background: radial-gradient(circle,color-mix(in srgb,var(--v87-blue) 10%,transparent),transparent 70%) !important;
+  animation: v87-card-glow 9s var(--v87-ease) infinite alternate;
+}
+
+body.v87-constellation :is(.v78-folder-card,.v78-habit-chip,.v78-wish-row,.v78-obligation-row,.v85-automation-strip button,.v78-finance-folder,.v78-operation-folder,.v8612-plan-row,.v8612-category-row,.v867-finance-overview>article,.v8611-analytics-kpis>article,.v869-plan-kpis>article) {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line) !important;
+  background: var(--v87-panel-soft) !important;
+}
+
+html.v87-dark body.v87-constellation :is(.v78-folder-card,.v78-habit-chip,.v78-wish-row,.v78-obligation-row,.v85-automation-strip button,.v78-finance-folder,.v78-operation-folder,.v8612-plan-row,.v8612-category-row,.v867-finance-overview>article,.v8611-analytics-kpis>article,.v869-plan-kpis>article) {
+  background: rgba(15,31,48,.8) !important;
+}
+
+body.v87-constellation :is(.v78-folder-card,.v78-habit-chip,.v85-automation-strip button,.v78-finance-folder,.v78-operation-folder) {
+  transition: transform .22s var(--v87-ease),border-color .22s ease,box-shadow .22s ease !important;
+}
+
+body.v87-constellation :is(.v78-folder-card,.v78-habit-chip,.v85-automation-strip button,.v78-finance-folder,.v78-operation-folder):hover {
+  transform: translateY(-3px) scale(1.008) !important;
+  border-color: var(--v87-line-strong) !important;
+  box-shadow: 0 18px 44px color-mix(in srgb,var(--v87-text) 9%,transparent) !important;
+}
+
+body.v87-constellation :is(.v78-week-strip span,.v78-category-period,.v78-segment,.v78-filter,.v83-campaign-badge,.v85-forecast-tag,.v8612-cloud-status) {
+  color: var(--v87-muted) !important;
+  border-color: var(--v87-line) !important;
+  background: var(--v87-panel-soft) !important;
+}
+
+body.v87-constellation .v78-week-strip span.today {
+  color: #fff !important;
+  background: linear-gradient(145deg,var(--v87-blue-2),var(--v87-blue)) !important;
+  box-shadow: 0 10px 28px color-mix(in srgb,var(--v87-blue) 28%,transparent) !important;
+}
+
+body.v87-constellation :is(input,select,textarea) {
+  color: var(--v87-text) !important;
+  border-color: var(--v87-line) !important;
+  background: var(--v87-panel-solid) !important;
+}
+body.v87-constellation :is(input,select,textarea):focus {
+  border-color: var(--v87-blue) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb,var(--v87-blue) 13%,transparent) !important;
+  outline: 0;
+}
+
+body.v87-constellation :is(.modal,.v78-search-modal) { color: var(--v87-text)!important;background:rgba(2,8,16,.68)!important;backdrop-filter:blur(16px)!important; }
+body.v87-constellation :is(.modal-card,.v78-search-modal>div) { color:var(--v87-text)!important;border:1px solid var(--v87-line)!important;background:var(--v87-panel-solid)!important;box-shadow:0 34px 100px rgba(0,4,12,.42)!important; }
+body.v87-constellation .modal-head { border-color:var(--v87-line)!important; }
+
+/* Living hero plates. */
+body.v87-constellation .v83-today-game {
+  isolation: isolate;
+  color: #fff !important;
+  border: 1px solid rgba(142,199,255,.34) !important;
+  background:
+    radial-gradient(520px 260px at 88% 32%,rgba(100,223,222,.34),transparent 63%),
+    linear-gradient(123deg,#0e3475 0%,#1657be 51%,#197fd2 100%) !important;
+  box-shadow: 0 28px 74px rgba(12,62,142,.31),inset 0 1px rgba(255,255,255,.19),0 0 0 1px rgba(49,130,236,.08) !important;
+  overflow: hidden;
+}
+
+html.v87-light body.v87-constellation .v83-today-game {
+  background:
+    radial-gradient(540px 280px at 88% 32%,rgba(105,235,222,.46),transparent 64%),
+    linear-gradient(123deg,#173a88 0%,#2a67d4 52%,#38a8c7 100%) !important;
+}
+
+body.v87-constellation .v83-today-game::before {
+  content: "";
+  position: absolute;
+  width: 430px;
+  height: 430px;
+  right: -175px;
+  top: -205px;
+  border: 1px solid rgba(208,235,255,.21);
+  border-radius: 50%;
+  box-shadow: 0 0 0 48px rgba(163,218,255,.045),0 0 0 104px rgba(163,218,255,.025);
+  animation: v87-orbit-breathe 7s var(--v87-ease) infinite;
+}
+
+body.v87-constellation .v83-today-game > * { position: relative; z-index: 3; }
+body.v87-constellation .v83-today-game :is(h2,small,b,span) { color: inherit !important; }
+body.v87-constellation .v83-player-level {
+  border: 1px solid rgba(255,255,255,.35) !important;
+  background: rgba(255,255,255,.14) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22),0 12px 36px rgba(2,22,64,.23) !important;
+  backdrop-filter: blur(14px);
+}
+body.v87-constellation .v83-xp-line { background:rgba(255,255,255,.16)!important; }
+body.v87-constellation .v83-xp-line i { background:linear-gradient(90deg,#a9efff,#fff)!important;box-shadow:0 0 20px rgba(159,235,255,.52); }
+body.v87-constellation .v83-strip-actions button {
+  border-color: rgba(255,255,255,.25) !important;
+  background: rgba(7,31,73,.18) !important;
+  color: #fff !important;
+  backdrop-filter: blur(12px);
+}
+body.v87-constellation .v83-strip-actions button:first-child { background:#fff!important;color:#102d61!important; }
+
+.v87-live-map {
+  position: absolute !important;
+  z-index: 1 !important;
+  width: min(42%,390px);
+  right: 6%;
+  top: 4%;
+  bottom: 4%;
+  pointer-events: none;
+  color: #c8e7ff;
+  opacity: .72;
+  mask-image: linear-gradient(90deg,transparent,#000 28%,#000);
+}
+.v87-live-map svg { width:100%;height:100%;overflow:visible; }
+.v87-live-map .v87-map-lines { opacity:.36;stroke-dasharray:3 7;animation:v87-map-dash 13s linear infinite; }
+.v87-live-map .v87-map-points circle { transform-box:fill-box;transform-origin:center;animation:v87-star-pulse 4.6s ease-in-out infinite; }
+.v87-live-map .v87-map-points circle:nth-child(3n) { animation-delay:-1.4s; }
+.v87-live-map .v87-map-points circle:nth-child(2n) { animation-delay:-2.7s; }
+.v87-live-map .v87-map-core { filter:drop-shadow(0 0 8px currentColor); }
+
+body.v87-constellation .v85-automation-strip button { overflow:hidden;isolation:isolate; }
+body.v87-constellation .v85-automation-strip button::after {
+  content:"";
+  position:absolute;
+  inset:-45% -80%;
+  z-index:-1;
+  background:linear-gradient(105deg,transparent 40%,color-mix(in srgb,var(--v87-blue) 15%,transparent) 50%,transparent 60%);
+  transform:translateX(-45%) rotate(7deg);
+  animation:v87-sheen 7.5s var(--v87-ease) infinite;
+}
+body.v87-constellation .v85-automation-strip button:nth-child(2)::after { animation-delay:-2.2s;background:linear-gradient(105deg,transparent 40%,color-mix(in srgb,var(--v87-violet) 16%,transparent) 50%,transparent 60%); }
+body.v87-constellation .v85-automation-strip button:nth-child(3)::after { animation-delay:-4.4s;background:linear-gradient(105deg,transparent 40%,color-mix(in srgb,var(--v87-green) 15%,transparent) 50%,transparent 60%); }
+body.v87-constellation .v85-automation-strip button > i {
+  color:var(--v87-blue)!important;
+  border:1px solid color-mix(in srgb,var(--v87-blue) 22%,transparent)!important;
+  background:color-mix(in srgb,var(--v87-blue) 9%,var(--v87-panel-solid))!important;
+}
+body.v87-constellation .v85-automation-strip button > i .v87-icon { width:18px;height:18px; }
+
+/* Assistant and interview motion. */
+body.v87-constellation :is(.v78-assistant-card,.v78-interview-card,.v82-coach-hero) { isolation:isolate; }
+.v87-assistant-orb {
+  position:absolute;
+  right:22px;
+  bottom:20px;
+  width:74px;
+  height:74px;
+  border-radius:50%;
+  pointer-events:none;
+  opacity:.65;
+  background:radial-gradient(circle at 31% 26%,#fff 0 7%,#8fe5f2 20%,#4b87ed 48%,#6e58cf 71%,transparent 73%);
+  box-shadow:inset -9px -10px 16px rgba(10,31,87,.31),0 0 38px color-mix(in srgb,var(--v87-blue) 32%,transparent);
+  animation:v87-orb-float 6.4s var(--v87-ease) infinite;
+}
+.v87-assistant-orb::before,.v87-assistant-orb::after { content:"";position:absolute;border:1px solid rgba(135,203,255,.36);border-radius:50%;inset:-10px;animation:v87-orbit 8s linear infinite; }
+.v87-assistant-orb::after { inset:-18px;animation-duration:13s;animation-direction:reverse; }
+
+/* GameLife, goals and finance retain their structure but share the material system. */
+body.v87-constellation :is(.v83-player-hero,.v83-goal-hero,.v78-finance-hero,.v869-plan-hero,.v82-coach-hero) {
+  color:#fff!important;
+  border-color:rgba(139,196,255,.28)!important;
+  background:
+    radial-gradient(500px 260px at 86% 18%,rgba(89,210,213,.24),transparent 66%),
+    linear-gradient(132deg,#0d2b59,#164f9d 56%,#116f9b)!important;
+  box-shadow:0 30px 80px rgba(5,35,84,.28),inset 0 1px rgba(255,255,255,.13)!important;
+}
+body.v87-constellation :is(.v83-player-hero,.v83-goal-hero,.v78-finance-hero,.v869-plan-hero,.v82-coach-hero) :is(h1,h2,h3,p,small,b,strong,span) { color:inherit!important; }
+body.v87-constellation :is(.v83-map-orb,.v869-plan-orb,.v82-coach-art) { filter:hue-rotate(22deg) saturate(.86);animation:v87-orb-float 8s var(--v87-ease) infinite; }
+body.v87-constellation :is(.v83-quest-card,.v83-current-step-card,.v83-linked-card,.v85-routine,.v85-achievements,.v85-goal-automation,.v867-finance-assistant,.v869-plan-assistant,.v8611-month-panel,.v8612-category-group) {
+  color:var(--v87-text)!important;
+  border-color:var(--v87-line)!important;
+  background:var(--v87-panel)!important;
+  box-shadow:var(--v87-shadow)!important;
+}
+
+/* Buttons. */
+body.v87-constellation :is(.v78-primary,.v78-link-button,.v82-complete-button,button.primary,[data-v78-action="save-balance"],[data-v83-action="quick-capture"]) {
+  border-color:transparent!important;
+  color:#fff!important;
+  background:linear-gradient(135deg,var(--v87-blue-2),var(--v87-blue))!important;
+  box-shadow:0 12px 30px color-mix(in srgb,var(--v87-blue) 26%,transparent),inset 0 1px rgba(255,255,255,.22)!important;
+}
+
+body.v87-constellation button { transition:transform .2s var(--v87-ease),box-shadow .2s ease,border-color .2s ease,background .2s ease; }
+body.v87-constellation button:active { transform:translateY(1px) scale(.985)!important; }
+body.v87-constellation :focus-visible { outline:2px solid var(--v87-blue)!important;outline-offset:3px!important; }
+
+/* Bottom chrome and update states. */
+body.v87-constellation .v86-capture-fab {
+  color:#fff!important;
+  border:1px solid rgba(175,215,255,.34)!important;
+  background:linear-gradient(135deg,var(--v87-blue-2),var(--v87-blue),var(--v87-cyan))!important;
+  background-size:180% 180%!important;
+  box-shadow:0 20px 52px color-mix(in srgb,var(--v87-blue) 34%,transparent),inset 0 1px rgba(255,255,255,.25)!important;
+  animation:v87-gradient-drift 8s var(--v87-ease) infinite alternate;
+}
+
+body.v87-constellation .v78-build {
+  color:#dcecff!important;
+  border:1px solid rgba(130,188,255,.25)!important;
+  background:linear-gradient(135deg,#164583,#15335c)!important;
+  box-shadow:0 10px 28px rgba(5,35,82,.28)!important;
+}
+
+body.v87-constellation .v78-mobile-nav {
+  border-color:var(--v87-line)!important;
+  background:color-mix(in srgb,var(--v87-panel-solid) 88%,transparent)!important;
+  box-shadow:0 -18px 48px color-mix(in srgb,var(--v87-text) 9%,transparent)!important;
+  backdrop-filter:blur(26px) saturate(128%)!important;
+}
+html.v87-dark body.v87-constellation .v78-mobile-nav { background:rgba(7,18,31,.94)!important; }
+body.v87-constellation .v78-mobile-nav a { color:var(--v87-muted)!important; }
+body.v87-constellation .v78-mobile-nav a.active { color:var(--v87-text)!important; }
+
+/* Theme transition without animating layout. */
+body.v87-theme-changing :is(.v78-sidebar,.v78-topbar,.v78-card,.v78-folder-panel,.v78-mobile-nav,.modal-card,input,select,textarea) {
+  transition:background-color .38s ease,border-color .38s ease,color .3s ease,box-shadow .38s ease!important;
+}
+
+@keyframes v87-ambient-drift { to { transform:translate3d(2.4vmax,-1.8vmax,0) rotate(.8deg); } }
+@keyframes v87-orb-float { 0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-8px) rotate(4deg)} }
+@keyframes v87-orbit { to { transform:rotate(360deg); } }
+@keyframes v87-button-orbit { to { transform:rotate(360deg); } }
+@keyframes v87-orbit-breathe { 0%,100%{transform:scale(.94);opacity:.72}50%{transform:scale(1.04);opacity:1} }
+@keyframes v87-map-dash { to { stroke-dashoffset:-80; } }
+@keyframes v87-star-pulse { 0%,100%{transform:scale(.7);opacity:.42}50%{transform:scale(1.5);opacity:1} }
+@keyframes v87-card-glow { to { transform:translate(-22px,18px) scale(1.08);opacity:.76; } }
+@keyframes v87-sheen { 0%,24%{transform:translateX(-48%) rotate(7deg)}58%,100%{transform:translateX(48%) rotate(7deg)} }
+@keyframes v87-gradient-drift { to { background-position:100% 50%; } }
+
+@media (max-width:1180px) {
+  body.v87-constellation .v78-topbar { position:relative;top:auto; }
+  .v87-live-map { width:42%;right:3%; }
+}
+
+@media (max-width:760px) {
+  body.v87-constellation::after { opacity:.34; }
+  body.v87-constellation .v78-main { padding-left:10px!important;padding-right:10px!important; }
+  body.v87-constellation .v78-topbar { border-radius:18px;padding:0 2px; }
+  body.v87-constellation .v83-today-game { border-radius:22px!important; }
+  .v87-live-map { width:58%;right:-10%;opacity:.45; }
+  .v87-assistant-orb { width:56px;height:56px;right:12px;bottom:12px;opacity:.48; }
+  body.v87-constellation :is(.v78-card,.v78-folder-panel,.v83-goal-card):hover { transform:none; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  body.v87-constellation::after,
+  body.v87-constellation .v78-brand-orb,
+  body.v87-constellation .v78-brand-orb::after,
+  body.v87-constellation .v83-today-game::before,
+  body.v87-constellation .v78-card::before,
+  body.v87-constellation .v85-automation-strip button::after,
+  body.v87-constellation .v86-capture-fab,
+  .v87-theme-toggle::after,
+  .v87-live-map *,
+  .v87-assistant-orb,
+  .v87-assistant-orb::before,
+  .v87-assistant-orb::after { animation:none!important; }
+  body.v87-constellation *,body.v87-constellation *::before,body.v87-constellation *::after { scroll-behavior:auto!important;transition-duration:.01ms!important; }
+}
