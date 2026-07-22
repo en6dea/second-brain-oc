@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#fbf9ff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-space-v862-goal-wizard-fix-20260722-r1">
+  <meta name="second-brain-build" content="second-brain-space-v864-goals-recovery-20260722-r1">
   <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest?v=v86-r1">
@@ -616,7 +616,7 @@ body{font-size:15px!important}
 
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-space-v862-goal-wizard-fix-20260722-r1">
+<body class="v80-booting" data-sbos-build="second-brain-space-v864-goals-recovery-20260722-r1">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -723,8 +723,8 @@ body{font-size:15px!important}
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v863-goals-route-hardening-20260722-r1';
-  const LABEL = 'V86.3 · GOALS ROUTE FIX';
+  const BUILD = 'second-brain-space-v864-goals-recovery-20260722-r1';
+  const LABEL = 'V86.4 · GOALS RECOVERY';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
@@ -909,13 +909,13 @@ body{font-size:15px!important}
       book.quoteEntries=book.quoteEntries.filter(Boolean).map(q=>({id:clean(q.id)||makeId(),text:clean(q.text||q.quote),page:Math.max(0,number(q.page))||'',date:clean(q.date||''),note:clean(q.note||''),createdAt:q.createdAt||nowIso()}));
       if(book.status==='finished'&&book.pagesTotal&&!book.currentPage)book.currentPage=book.pagesTotal;
     });
-    state.goals = Array.isArray(state.goals)?state.goals:[];
+    state.goals = (Array.isArray(state.goals)?state.goals:[]).filter(goal=>goal&&typeof goal==='object');
     state.goals.forEach(goal=>{
       goal.id=clean(goal.id)||makeId(); goal.title=clean(goal.title)||'Цель'; goal.type=clean(goal.type)||'result';
       goal.why=clean(goal.why||goal.reason||''); goal.metric=clean(goal.metric||''); goal.target=number(goal.target); goal.current=number(goal.current);
       goal.unit=clean(goal.unit||''); goal.due=clean(goal.due||goal.date||''); goal.status=clean(goal.status)||'active'; goal.nextAction=clean(goal.nextAction||goal.note||'');
-      goal.actionMinutes=Math.max(5,number(goal.actionMinutes)||15); goal.stages=Array.isArray(goal.stages)?goal.stages:[];
-      goal.stages=goal.stages.map((stage,index)=>typeof stage==='string'?{id:makeId(),title:stage,done:false,order:index}:{id:clean(stage.id)||makeId(),title:clean(stage.title)||`Этап ${index+1}`,done:Boolean(stage.done),order:number(stage.order)||index});
+      goal.actionMinutes=Math.max(5,number(goal.actionMinutes)||15); goal.stages=(Array.isArray(goal.stages)?goal.stages:[]).filter(Boolean);
+      goal.stages=goal.stages.map((stage,index)=>typeof stage==='string'?{id:makeId(),title:stage,done:false,order:index}:{id:clean(stage?.id)||makeId(),title:clean(stage?.title)||`Этап ${index+1}`,done:Boolean(stage?.done),order:number(stage?.order)||index});
     });
     if(!['day','week','month','archive'].includes(state.settings.v82.calendarView)) state.settings.v82.calendarView='week';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(clean(state.settings.v82.calendarAnchor))) state.settings.v82.calendarAnchor=todayKey();
@@ -1573,7 +1573,17 @@ body{font-size:15px!important}
   function deleteReward(id){const reward=state.gameLife.rewards.find(r=>r.id===id);if(!reward)return;if(!confirm(`Удалить награду «${reward.title}»? История получений останется в журнале HP.`))return;archiveSnapshot(`Удалённая награда: ${reward.title}`,'deleted-reward',reward);state.gameLife.rewards=state.gameLife.rewards.filter(r=>r.id!==id);save();renderPremium();toast('Награда удалена, копия сохранена в архиве');}
   function redeemReward(id,originEl=null){const reward=state.gameLife.rewards.find(r=>r.id===id);if(!reward)return;const availability=rewardAvailability(reward);if(!availability.ok)return toast(availability.text);if(!confirm(`Обменять ${reward.cost} HP на «${reward.title}»?`))return;state.gameLife.coins-=number(reward.cost);reward.redeemedCount=number(reward.redeemedCount)+1;reward.lastRedeemedAt=nowIso();reward.updatedAt=nowIso();state.gameLife.logs.unshift({id:makeId(),source:`reward:${makeId()}`,date:todayKey(),xp:0,coins:-number(reward.cost),skill:'reward',title:`Награда: ${reward.title}`,createdAt:nowIso()});syncAchievements();save();renderPremium();toast('Награда получена — используй её без чувства вины');celebrate(originEl,'🎁');}
 
-  function goalsPage(){const active=array('goals').filter(g=>g.status!=='archived'&&g.status!=='done'),done=array('goals').filter(g=>g.status==='done'),automation=goalAutomationItems();return `<section class="v78-page v83-goals-page"><header class="v78-page-head"><div><span>Цели как игровые кампании</span><h1>Цели</h1><p>Каждая цель обязана отвечать на вопрос: что конкретно сделать следующим шагом за 5–20 минут?</p></div><button class="v78-primary" data-v83-action="goal-wizard">＋ Создать цель с мастером</button></header>${automation.length?card('Цели, которым нужна помощь',`${automation.length} автоматических подсказок`,goalAutomationHtml(automation),'v85-goal-automation-card'):''}<section class="v83-goal-principles"><article><i>1</i><span><b>Результат</b><small>Что должно конкретно измениться?</small></span></article><article><i>2</i><span><b>Этапы</b><small>3–5 понятных контрольных точек.</small></span></article><article><i>3</i><span><b>Следующий шаг</b><small>Физическое действие максимум на 20 минут.</small></span></article></section><section class="v83-goal-grid">${active.map(goalCard).join('')||'<div class="v78-empty-big">Активных кампаний пока нет. Создай первую цель через мастер.</div>'}</section>${done.length?card('Завершённые кампании',`${done.length} целей`, `<div class="v83-finished-goals">${done.map(g=>`<article><button data-v78-route="goal-${encodeURIComponent(g.id)}" type="button"><i>🏆</i><span><b>${safe(g.title)}</b><small>${safe(formatDate(g.due))}</small></span><em>100%</em></button><button class="v833-goal-delete" data-v83-action="delete-goal" data-id="${safe(g.id)}" type="button">Удалить</button></article>`).join('')}</div>`,'v83-finished-card'):''}</section>`;}
+  function goalProgress(goal){
+    if(!goal||typeof goal!=='object')return 0;
+    if(clean(goal.status).toLowerCase()==='done')return 100;
+    const target=Math.max(0,number(goal.target)),current=Math.max(0,number(goal.current));
+    if(target>0)return Math.max(0,Math.min(100,Math.round(current/target*100)));
+    const stages=(Array.isArray(goal.stages)?goal.stages:[]).filter(Boolean);
+    if(stages.length)return Math.max(0,Math.min(100,Math.round(stages.filter(stage=>Boolean(stage?.done)).length/stages.length*100)));
+    return 0;
+  }
+
+  function goalsPage(){const valid=array('goals').filter(g=>g&&typeof g==='object'),active=valid.filter(g=>g.status!=='archived'&&g.status!=='done'),done=valid.filter(g=>g.status==='done'),automation=goalAutomationItems();return `<section class="v78-page v83-goals-page"><header class="v78-page-head"><div><span>Цели как игровые кампании</span><h1>Цели</h1><p>Каждая цель обязана отвечать на вопрос: что конкретно сделать следующим шагом за 5–20 минут?</p></div><button class="v78-primary" data-v83-action="goal-wizard">＋ Создать цель с мастером</button></header>${automation.length?card('Цели, которым нужна помощь',`${automation.length} автоматических подсказок`,goalAutomationHtml(automation),'v85-goal-automation-card'):''}<section class="v83-goal-principles"><article><i>1</i><span><b>Результат</b><small>Что должно конкретно измениться?</small></span></article><article><i>2</i><span><b>Этапы</b><small>3–5 понятных контрольных точек.</small></span></article><article><i>3</i><span><b>Следующий шаг</b><small>Физическое действие максимум на 20 минут.</small></span></article></section><section class="v83-goal-grid">${active.map(goalCard).join('')||'<div class="v78-empty-big">Активных кампаний пока нет. Создай первую цель через мастер.</div>'}</section>${done.length?card('Завершённые кампании',`${done.length} целей`, `<div class="v83-finished-goals">${done.map(g=>`<article><button data-v78-route="goal-${encodeURIComponent(g.id)}" type="button"><i>🏆</i><span><b>${safe(g.title)}</b><small>${safe(formatDate(g.due))}</small></span><em>100%</em></button><button class="v833-goal-delete" data-v83-action="delete-goal" data-id="${safe(g.id)}" type="button">Удалить</button></article>`).join('')}</div>`,'v83-finished-card'):''}</section>`;}
   function goalTypeLabel(type){
     const key=clean(type||'result').toLowerCase();
     if(key==='process')return 'Цель-процесс';
@@ -1643,11 +1653,28 @@ body{font-size:15px!important}
 
   function renderPremium() {
     clearTimeout(renderTimer);
-    ensureData();
-    if(syncAchievements()) setTimeout(()=>save(),0);
     const route = routeNow();
-    premiumShell(customPage(route));
-    afterRender();
+    try {
+      ensureData();
+      if(syncAchievements()) setTimeout(()=>save(),0);
+      premiumShell(customPage(route));
+      afterRender();
+    } catch(error) {
+      console.error('[V86.4 route render]',route,error);
+      if(route!=='today'){
+        try { history.replaceState(null,'','#today'); } catch(routeError) { location.hash='today'; }
+        try {
+          ensureData();
+          premiumShell(todayPage());
+          afterRender();
+          setTimeout(()=>toast('Раздел временно восстановлен. Ошибка сохранена в консоли.'),50);
+          return;
+        } catch(fallbackError) {
+          console.error('[V86.4 fallback render]',fallbackError);
+        }
+      }
+      throw error;
+    }
   }
 
   function afterRender() {
@@ -2175,7 +2202,7 @@ body{font-size:15px!important}
   } catch (error) {
     console.error('[V86 Autopilot Runtime]', error);
     document.body.classList.remove('v80-booting','v79-booting','v78-booting');
-    document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
+    document.getElementById('app').innerHTML=`<main style="padding:40px;font-family:Onest,sans-serif;max-width:760px"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Ошибка: <code>${safe(error?.message||String(error))}</code></p><p><a href="#today" onclick="location.hash='today';location.reload();return false" style="display:inline-flex;padding:12px 18px;border:1px solid #dcd3f4;border-radius:14px;color:#6f4bd8;text-decoration:none">Открыть безопасный главный экран</a></p></main>`;
   }
 })();
 </script>
