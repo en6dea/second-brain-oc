@@ -2,8 +2,8 @@
 
 /* Second Brain OS V88 — visual runtime only. Reads state, never migrates or deletes data. */
 (() => {
-  const VISUAL_BUILD = 'obsidian-constellation-v88-r1';
-  const BUILD_LABEL = 'V88 · CONSTELLATION';
+  const VISUAL_BUILD = 'obsidian-constellation-v881-functional-r1';
+  const BUILD_LABEL = 'V88.1 · FUNCTIONAL';
   const THEME_KEY = 'secondBrainOS.visualThemeMode';
   const LEGACY_THEME_KEY = 'secondBrainOS.visualTheme';
   const MOTION_KEY = 'secondBrainOS.visualMotion';
@@ -17,6 +17,14 @@
 
   const icons = {
     home:'<path d="M3.5 10.5 12 3l8.5 7.5"/><path d="M5.5 9.5V21h13V9.5M9 21v-7h6v7"/>',
+    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+    project:'<path d="M3 7h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M3 7V5a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/>',
+    knowledge:'<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v18H7.5A3.5 3.5 0 0 0 4 23V5.5ZM20 5.5A3.5 3.5 0 0 0 16.5 2H13v18h3.5A3.5 3.5 0 0 1 20 23V5.5Z"/><path d="M7 7h2M15 7h2"/>',
+    bookmark:'<path d="M6 3h12v19l-6-4-6 4V3Z"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    course:'<path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5M22 9v6"/>',
     sparkle:'<path d="m12 2 1.45 4.55L18 8l-4.55 1.45L12 14l-1.45-4.55L6 8l4.55-1.45L12 2Z"/><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/>',
     target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="m12 12 7-7M16 5h3v3"/>',
     review:'<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
@@ -90,8 +98,12 @@
   function iconFor(value) {
     const text = textKey(value);
     if (/главн|сегодня/.test(text)) return 'home';
-    if (/gamelife|подсказ|помощ/.test(text)) return 'sparkle';
+    if (/gamelife|подсказ|помощ|ассист/.test(text)) return 'sparkle';
     if (/цел|фокус/.test(text)) return 'target';
+    if (/проект/.test(text)) return 'project';
+    if (/знани|обучен|курс/.test(text)) return 'knowledge';
+    if (/ресурс/.test(text)) return 'bookmark';
+    if (/панел/.test(text)) return 'grid';
     if (/разоб|очеред/.test(text)) return 'review';
     if (/календар|недел|событ/.test(text)) return 'calendar';
     if (/финанс|кошел|баланс/.test(text)) return 'wallet';
@@ -134,7 +146,7 @@
       '📖':'book','🧠':'bulb','💧':'water','🏃':'movement','🏋️':'training','🧘':'meditation','🌙':'evening','☀️':'morning',
       '🥗':'food','💰':'wallet','📝':'note','🎯':'focus','🚶':'walk','🧹':'clean','📵':'detox','❤️':'heart','💗':'heart','💊':'health',
       '🎓':'learning','🎨':'art','🌿':'leaf','⏱️':'timer','✅':'habit','🛡️':'shield','✨':'sparkle','👥':'users','💡':'bulb',
-      '🌸':'flower','📄':'document','📚':'book','🎬':'film','✈️':'plane','🔐':'lock','📥':'inbox','▦':'operations','◌':'analytics',
+      '🌸':'flower','📄':'document','📚':'book','🎬':'film','✈️':'plane','🔐':'lock','📥':'inbox','📁':'project','🔖':'bookmark','▦':'operations','◌':'analytics',
       '◷':'planning','⇩':'export','!':'debt','⇄':'transfer','↗':'arrow','↘':'back','✎':'edit','×':'close','＋':'plus','◇':'review'
     };
     return map[icon] || iconFor(label || icon);
@@ -150,10 +162,14 @@
   }
 
   function setIcon(host, name, preserveBadge = false) {
-    if (!host || host.dataset.v88Icon === name) return false;
+    if (!host) return false;
+    const resolved = icons[name] ? name : 'sparkle';
+    if (host.dataset.v88Icon === resolved && host.querySelector(':scope > .v88-icon')) return false;
     const badge = preserveBadge ? host.querySelector('em')?.outerHTML || '' : '';
-    host.innerHTML = `${svg(name)}${badge}`;
-    host.dataset.v88Icon = name;
+    host.innerHTML = `${svg(resolved)}${badge}`;
+    host.dataset.v88Icon = resolved;
+    host.classList.add('v88-icon-host');
+    host.setAttribute('aria-hidden','true');
     writeCount++;
     return true;
   }
@@ -304,6 +320,8 @@
       if (text === '→') { button.setAttribute('aria-label','Следующий период'); setIcon(button,'arrow'); }
     });
     document.querySelectorAll('.v82-habit-icon,.v78-habit-chip>i').forEach(host => setIcon(host,iconForStored(host.textContent,host.parentElement?.textContent)));
+    document.querySelectorAll('.v8612-live-icon,.v8612-category-row>i,.v8612-plan-row>i,.v8611-allocation-row>i,.v869-plan-row>i,.v78-obligation-row>i,.v78-wish-row>i').forEach(host => setIcon(host,iconForStored(host.textContent,host.parentElement?.textContent)));
+    document.querySelectorAll('.v78-folder-card>i,.v78-folder-row>i,.v78-library-card>i').forEach(host => setIcon(host,iconFor(host.parentElement?.textContent)));
     document.querySelectorAll('.v82-icon-picker [data-v82-action="select-habit-icon"]').forEach(button => {
       const host = button.querySelector('i');
       setIcon(host,iconForStored(button.dataset.icon,button.textContent));

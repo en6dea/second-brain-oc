@@ -507,3 +507,36 @@ body.v88-route-changing .v78-content { opacity:.82;transform:translateY(2px);tra
   body.v88-constellation *::before,
   body.v88-constellation *::after { animation:none!important;transition-duration:.01ms!important;scroll-behavior:auto!important; }
 }
+
+
+/* V88.1 — centered universal icons and safe click layers */
+body.v88-constellation .v88-icon-host,
+body.v88-constellation :is(.v78-side-link,.v78-top-tab,.v78-mobile-nav a,.v85-automation-strip button,.v78-info-folder,.v78-finance-folder,.v78-operation-folder button,.v82-habit-card,.v8612-category-row,.v8612-plan-row) > i {
+  display:inline-grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  line-height:0!important;
+  text-align:center!important;
+  overflow:hidden!important;
+}
+body.v88-constellation .v88-icon {
+  display:block!important;
+  width:20px!important;
+  height:20px!important;
+  margin:auto!important;
+  flex:0 0 auto!important;
+  stroke-width:1.75!important;
+  vector-effect:non-scaling-stroke;
+  transform:translate3d(0,0,0);
+}
+body.v88-constellation .v78-side-link>i .v88-icon,
+body.v88-constellation .v78-mobile-nav a>i .v88-icon { width:19px!important;height:19px!important; }
+body.v88-constellation .v78-top-tab>i .v88-icon { width:16px!important;height:16px!important; }
+body.v88-constellation .v85-automation-strip button>i .v88-icon { width:21px!important;height:21px!important; }
+body.v88-constellation .v8612-live-icon { color:var(--icon-color,var(--v88-blue))!important;background:color-mix(in srgb,var(--icon-color,var(--v88-blue)) 13%,var(--v88-panel-solid))!important; }
+body.v88-constellation :is(.v8612-live-icon,.v8612-category-row>i,.v8612-plan-row>i) .v88-icon { width:19px!important;height:19px!important; }
+body.v88-constellation :is(button,a,[role="button"],input,select,textarea,label) { pointer-events:auto!important; }
+body.v88-constellation :is(.v88-live-map,.v88-assistant-orb,.v88-constellation-legend,.v78-liquid-art,.v78-liquid-art>i) { pointer-events:none!important; }
+body.v88-constellation *::before,body.v88-constellation *::after { pointer-events:none; }

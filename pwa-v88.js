@@ -32,7 +32,7 @@
   async function register(){
     if(!('serviceWorker' in navigator))return;
     try{
-      const registration=await navigator.serviceWorker.register('./sw.js?v=v88-r1',{scope:'./',updateViaCache:'none'});
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v881-r1',{scope:'./',updateViaCache:'none'});
       state.registered=true;
       registration.addEventListener('updatefound',()=>{
         const worker=registration.installing;
@@ -67,7 +67,7 @@
     location.reload();
   }
 
-  navigator.serviceWorker?.addEventListener?.('controllerchange',()=>location.reload());
+  navigator.serviceWorker?.addEventListener?.('controllerchange',()=>{try{if(sessionStorage.getItem('sbos-v881-reloaded')==='1')return;sessionStorage.setItem('sbos-v881-reloaded','1');location.reload();}catch(_){location.reload();}});
   window.SecondBrainPWA={install,applyUpdate,getStatus:()=>({...state,canPrompt:Boolean(deferredPrompt)})};
   window.addEventListener('load',async()=>{
     await register();
