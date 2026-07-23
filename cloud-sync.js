@@ -1,1 +1,16 @@
-(function(){if(window.SecondBrainCloud)return;const status={configured:false,ready:false,user:null,status:'Облако не настроено',lastSync:''};const note=()=>window.SecondBrainApp?.toast?.('Синхронизация будет доступна после настройки Firebase');window.SecondBrainCloud={init:async()=>status,login:note,register:note,pushNow:note,pullNow:note,logout:()=>{},schedulePush:()=>{},getStatus:()=>({...status})};})();
+# Backup и откат V86
+
+## Перед обновлением
+Скачайте JSON-копию данных из приложения.
+
+## Автоматическая защита
+При первом запуске V86 сохраняет снимок предыдущего состояния V85 в IndexedDB. Затем создаётся не более 14 ежедневных локальных снимков.
+
+## Ручное восстановление
+Откройте `Настройки → Локальные резервные копии`, выберите снимок и нажмите «Восстановить».
+
+## Полный откат к V85
+1. Загрузите файлы из архива `second-brain-oc-backup-v85-before-v86.zip`.
+2. Сделайте Commit changes.
+3. Откройте `force-update.html`.
+4. При необходимости импортируйте JSON-копию.

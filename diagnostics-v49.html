@@ -1,54 +1,39 @@
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Second Brain OS · диагностика V49</title>
-  <style>
-    body{margin:0;font-family:Manrope,Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:linear-gradient(180deg,#fff,#eef7ff);color:#0f172a;min-height:100vh;padding:32px}
-    .card{max-width:920px;margin:0 auto;background:#fff;border:1px solid #e6edf7;border-radius:28px;padding:24px;box-shadow:0 20px 60px rgba(15,23,42,.08)}
-    h1{margin:0 0 8px;font-size:34px;letter-spacing:-.05em}.muted{color:#64748b}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.row{border:1px solid #eaf0f8;border-radius:18px;padding:14px;background:#fbfdff}.ok{color:#059669}.warn{color:#d97706}.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}button,a{border:1px solid #dbe7f6;background:#fff;border-radius:15px;padding:12px 14px;font-weight:900;color:#2563eb;text-decoration:none;cursor:pointer}.primary{border:0;background:linear-gradient(135deg,#2563eb,#38bdf8);color:#fff}.log{margin-top:18px;white-space:pre-wrap;background:#0f172a;color:#fff;border-radius:18px;padding:14px;font-size:12px;line-height:1.5}@media(max-width:760px){body{padding:14px}.grid{grid-template-columns:1fr}h1{font-size:28px}}
-  </style>
-</head>
-<body>
-  <main class="card">
-    <h1>Диагностика Second Brain OS V49</h1>
-    <p class="muted">Проверка версии, localStorage, service worker и быстрый сброс кэша. Данные приложения не удаляются, если не нажимать экспорт/очистку вручную.</p>
-    <div class="grid" id="checks"></div>
-    <div class="btns">
-      <a class="primary" href="./index.html?v=second-brain-space-v49-focus-path-goals-20260708#focus-path">Открыть Фокус дня</a>
-      <a href="./index.html?v=second-brain-space-v49-focus-path-goals-20260708#tasks">Открыть задачи</a>
-      <a href="./index.html?v=second-brain-space-v49-focus-path-goals-20260708#goals">Открыть цели</a>
-      <button onclick="clearRuntimeCache()">Очистить SW/cache и перезагрузить</button>
-      <button onclick="exportState()">Экспорт данных JSON</button>
-    </div>
-    <pre class="log" id="log">Готово к проверке.</pre>
-  </main>
-<script>
-const BUILD='second-brain-space-v49-focus-path-goals-20260708';
-function log(x){document.getElementById('log').textContent += '\n' + x;}
-function readState(){try{return JSON.parse(localStorage.getItem('secondBrainOS.v1')||'{}')}catch(e){return {error:String(e)}}}
-function renderChecks(){
-  const st=readState(); const raw=localStorage.getItem('secondBrainOS.v1');
-  const rows=[
-    ['Сборка', BUILD, true],
-    ['Данные localStorage', raw?Math.round(raw.length/1024)+' КБ':'нет данных', Boolean(raw)],
-    ['Service Worker', 'serviceWorker' in navigator?'доступен':'не доступен', 'serviceWorker' in navigator],
-    ['Cache API', 'caches' in window?'доступен':'не доступен', 'caches' in window],
-    ['Задачи', Array.isArray(st.tasks)?st.tasks.length:'—', Array.isArray(st.tasks)],
-    ['Цели', Array.isArray(st.goals)?st.goals.length:'—', Array.isArray(st.goals)],
-    ['Входящие V49', Array.isArray(st.inbox)?st.inbox.length:'будут созданы', true],
-    ['Текущая сборка', localStorage.getItem('secondBrainOS.currentBuild')||'—', true]
-  ];
-  document.getElementById('checks').innerHTML=rows.map(r=>`<div class="row"><b>${r[0]}</b><div class="${r[2]?'ok':'warn'}">${r[1]}</div></div>`).join('');
-}
-async function clearRuntimeCache(){
-  if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); log('Service Worker удалён: '+regs.length);}
-  if('caches' in window){const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); log('Caches удалены: '+keys.join(', '));}
-  location.href='./index.html?v='+BUILD+'#focus-path';
-}
-function exportState(){const blob=new Blob([localStorage.getItem('secondBrainOS.v1')||'{}'],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='second-brain-os-backup-v49.json';a.click();URL.revokeObjectURL(a.href);}
-renderChecks();
-</script>
-</body>
-</html>
+import http from 'node:http';
+import { createReadStream, statSync } from 'node:fs';
+import { extname, resolve, sep } from 'node:path';
+
+const root = resolve(process.cwd());
+const port = Number(process.env.PORT || 4180);
+const mime = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webmanifest': 'application/manifest+json; charset=utf-8'
+};
+
+const server = http.createServer((request, response) => {
+  try {
+    const pathname = decodeURIComponent(new URL(request.url || '/', 'http://127.0.0.1').pathname);
+    const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+    const file = resolve(root, requested);
+    if (file !== root && !file.startsWith(`${root}${sep}`)) throw new Error('outside root');
+    if (!statSync(file).isFile()) throw new Error('not a file');
+    response.writeHead(200, {
+      'Content-Type': mime[extname(file).toLowerCase()] || 'application/octet-stream',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    createReadStream(file).pipe(response);
+  } catch (error) {
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    response.end('Not found');
+  }
+});
+
+server.listen(port, '127.0.0.1', () => {
+  console.log(`Second Brain OS dev server: http://127.0.0.1:${port}/`);
+});

@@ -1,22 +1,25 @@
-# Карта автоматизации V86
+import fs from 'node:fs';
 
-## Каждый день
-- предложение утреннего check-in;
-- отображение главного квеста;
-- глобальная быстрая фиксация;
-- предложение вечернего итога;
-- перенос незавершённых задач при сохранении итога;
-- создание локального backup.
+const html = fs.readFileSync('index.html', 'utf8');
+const required = [
+  'second-brain-space-v86-autopilot-20260721-r1',
+  "const LABEL = 'V86 · AUTOPILOT'",
+  'v86-capture-fab',
+  'autoDailySnapshot',
+  'activateScheduledHabitIfDue',
+  'restoreSnapshot'
+];
 
-## Каждую неделю
-- автоматическая статистика привычек, задач и расходов;
-- выбор одного фокуса;
-- выбор следующей привычки из вишлиста;
-- активация привычки в следующий понедельник.
+for (const token of required) {
+  if (!html.includes(token)) throw new Error(`Missing required token: ${token}`);
+}
 
-## По событиям
-- завершение шага цели → следующий шаг;
-- при включённой настройке → новая задача цели;
-- сессия чтения → прогресс, XP и HP;
-- достижения → HP;
-- очередь без решения → раздел «Разобрать».
+const match = html.match(/<script>'use strict';\n([\s\S]*?)<\/script>/);
+if (!match) throw new Error('Main inline JavaScript was not found');
+new Function(`'use strict';\n${match[1]}`);
+
+for (const file of ['force-update.html', 'manifest.webmanifest', 'offline.html']) {
+  if (!fs.existsSync(file)) throw new Error(`Missing file: ${file}`);
+}
+
+console.log('Second Brain OS V86 QA passed');

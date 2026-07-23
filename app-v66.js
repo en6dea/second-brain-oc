@@ -1,619 +1,774 @@
 'use strict';
 
 (() => {
-  const V66_BUILD = 'second-brain-space-v66-trading-balance-20260716-r1';
-  const V66_LABEL = 'V66 · SAFE PERSONAL OS';
-  const CUSTOM_ROUTES = new Set(['trading', 'sleep']);
-  const arr = key => Array.isArray(state?.[key]) ? state[key] : [];
-  const cleanText = value => String(value ?? '').trim();
-  const done = item => ['готово', 'сделано', 'закрыто', 'done', 'closed', 'выполнено'].includes(cleanText(item?.status).toLocaleLowerCase('ru-RU'));
-  let pendingRestore = null;
-  let postQueued = false;
+  const V65_BUILD = 'second-brain-space-v65-premium-life-20260714-5';
+  const V65_LABEL = 'V65 · PREMIUM LIFE OS';
+  let polishQueued = false;
+  const HIDDEN_ROUTES = new Set(['daily', 'command', 'focus-path', 'attention', 'learning', 'reviews', 'expense-review', 'global-search', 'diagnostics']);
 
+  const list = key => Array.isArray(state?.[key]) ? state[key] : [];
+  const text = value => String(value || '').trim();
+  const lower = value => text(value).toLocaleLowerCase('ru-RU');
+  const statusDone = item => ['готово', 'сделано', 'закрыт', 'закрыто', 'done', 'выполнено'].includes(lower(item?.status));
+  const personalOnly = item => !/(^|\s)(работа|работы|работе|работу|рабоч\w*|найм\w*)(\s|$)/i.test(`${item?.area || ''} ${item?.role || ''} ${item?.kind || ''} ${item?.folder || ''}`);
+  const matches = (item, pattern) => pattern.test(`${item?.title || ''} ${item?.name || ''} ${item?.area || ''} ${item?.category || ''} ${item?.note || ''}`);
+  const uniq = items => items.filter((item, index, all) => all.findIndex(other => String(other?.id) === String(item?.id)) === index);
   state.settings = state.settings || {};
-  state.settings.v66 = Object.assign({
-    sleepTarget: 6,
-    tradeView: 'demo',
-    tradingRisk: { accountBalance: 0, perTradePct: 0.5, dailyPct: 2, weeklyPct: 5 },
-    security: { pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 },
-    notifications: { morning: '09:00', evening: '20:00', channel: 'iphone', enabled: false }
-  }, state.settings.v66 || {});
-  state.settings.v66.tradingRisk = Object.assign({ accountBalance: 0, perTradePct: 0.5, dailyPct: 2, weeklyPct: 5 }, state.settings.v66.tradingRisk || {});
-  state.settings.v66.security = Object.assign({ pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 }, state.settings.v66.security || {});
-  state.settings.v66.notifications = Object.assign({ morning: '09:00', evening: '20:00', channel: 'iphone', enabled: false }, state.settings.v66.notifications || {});
-  state.sleepEntries = arr('sleepEntries');
-  state.trades = arr('trades');
+  state.settings.v65 = Object.assign({ incomeGoal: 300000, incomeGoalDeadline: '2026-12-31', debtMonthlyBudget: 0, syncPreference: 'devices', taskPostponeWarning: 3 }, state.settings.v65 || {});
+  try {
+    const debtFields = schemas?.debt?.fields;
+    if (Array.isArray(debtFields) && !debtFields.some(field => field[0] === 'rate')) debtFields.splice(5, 0, ['rate', 'Ставка, % годовых', 'number']);
+    if (Array.isArray(debtFields) && !debtFields.some(field => field[0] === 'minPayment')) debtFields.splice(6, 0, ['minPayment', 'Минимальный платёж', 'number']);
+    const taskFields = schemas?.task?.fields;
+    if (Array.isArray(taskFields) && !taskFields.some(field => field[0] === 'fixed')) {
+      const noteIndex = taskFields.findIndex(field => field[0] === 'note');
+      taskFields.splice(noteIndex < 0 ? taskFields.length : noteIndex, 0, ['fixed', 'Можно ли переносить', 'select', [['false', 'Да, помощник может предложить перенос'], ['true', 'Нет, задача закреплена']]]);
+    }
+  } catch (error) {}
+  const greeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return 'Доброй ночи';
+    if (hour < 12) return 'Доброе утро';
+    if (hour < 18) return 'Добрый день';
+    return 'Добрый вечер';
+  };
+  const shortDate = date => date ? new Date(`${date}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'без даты';
+  const escapeId = value => esc(String(value || ''));
+  const countLabel = (value, one, few, many) => {
+    const number = Math.abs(Number(value) || 0) % 100;
+    const last = number % 10;
+    if (number > 10 && number < 20) return `${value} ${many}`;
+    if (last === 1) return `${value} ${one}`;
+    if (last > 1 && last < 5) return `${value} ${few}`;
+    return `${value} ${many}`;
+  };
 
-  const COLLECTIONS = [
-    ['people', 'Люди', true], ['goals', 'Цели', true], ['habits', 'Привычки', true], ['tasks', 'Задачи', true],
-    ['notes', 'Заметки', true], ['ideas', 'Идеи', true], ['personal', 'Личная память', true], ['subconsciousEntries', 'Дневник подсознания', true],
-    ['documents', 'Документы', true], ['books', 'Книги', true], ['films', 'Фильмы', true], ['trips', 'Путешествия', true],
-    ['wishes', 'Желания', true], ['purchases', 'Покупки', true], ['events', 'События', true], ['inbox', 'Входящие', true],
-    ['reviews', 'Обзоры', true], ['dailyReviews', 'Итоги дня', true], ['sleepEntries', 'Сон', true], ['trades', 'Торговый журнал', true],
-    ['folders', 'Папки', true], ['archive', 'Архив', true], ['operations', 'Финансовые операции', false], ['debts', 'Долги', false]
-  ];
-
-  function v66DownloadSnapshot(suffix = 'backup') {
-    const copy = typeof exportableState === 'function' ? exportableState() : JSON.parse(JSON.stringify(state));
-    if (copy.settings?.sync) delete copy.settings.sync.token;
-    if (copy.settings) delete copy.settings.alfaWorkerKey;
-    if (copy.settings?.v66) delete copy.settings.v66.security;
-    const blob = new Blob([JSON.stringify({ version: V66_BUILD, createdAt: new Date().toISOString(), state: copy }, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `second-brain-${suffix}-${today()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1200);
+  function taskPriority(item) {
+    return ({ A: 1, B: 2, C: 3, D: 4 }[item?.priority] || 9) * 100000 + (item?.time ? Number(item.time.replace(':', '')) || 9999 : 9999);
   }
 
-  function v66OpenVault() {
-    pendingRestore = null;
-    openModal('Хранилище и безопасное восстановление', `<div class="v66-vault"><section class="v66-vault-intro"><span>⛨</span><div><h3>Личные данные не заменяются вслепую</h3><p>Сначала приложение покажет только количество записей. По умолчанию выбран режим объединения, а финансы и долги выключены.</p></div></section><div class="v66-vault-actions"><button data-v66-action="downloadBackup" type="button">Скачать текущую копию</button><label class="v66-file-picker"><span>Выбрать JSON-копию</span><input id="v66_restore_file" type="file" accept=".json,application/json"></label><button class="is-primary" data-v66-action="previewBackup" type="button">Показать состав</button></div><p class="v66-vault-note">Файл читается только в браузере и никуда не отправляется.</p></div>`);
+  const taskFixed = item => item?.fixed === true || item?.fixed === 'true' || item?.fixed === 1 || item?.fixed === '1';
+  const postponeThreshold = () => Math.max(2, num(state.settings?.v65?.taskPostponeWarning) || 3);
+
+  function v65Sphere({ id, icon, title, value, detail, tone }) {
+    return `<button class="v65-sphere ${tone}" data-go="${id}" type="button">
+      <span class="v65-sphere-icon" aria-hidden="true">${icon}</span>
+      <span class="v65-sphere-copy"><b>${esc(title)}</b><small>${esc(detail)}</small></span>
+      <strong>${esc(value)}</strong>
+      <span class="v65-sphere-arrow" aria-hidden="true">↗</span>
+    </button>`;
   }
 
-  function v66CollectionRows(incoming) {
-    return COLLECTIONS.map(([key, label, selected]) => {
-      const incomingCount = Array.isArray(incoming[key]) ? incoming[key].length : 0;
-      const currentCount = arr(key).length;
-      return `<label class="v66-restore-row ${incomingCount ? '' : 'is-empty'}"><input class="v66-restore-check" type="checkbox" value="${esc(key)}" ${selected && incomingCount ? 'checked' : ''} ${incomingCount ? '' : 'disabled'}><span><b>${esc(label)}</b><small>сейчас ${currentCount} · в копии ${incomingCount}</small></span><em>${selected ? 'личное' : 'вручную'}</em></label>`;
+  function v65TimelineRow(item) {
+    const overdue = item.date && item.date < today() && !statusDone(item);
+    const time = item.time || (overdue ? 'сейчас' : 'в течение дня');
+    return `<button class="v65-timeline-row ${overdue ? 'is-overdue' : ''}" data-action="editRecord" data-type="task" data-id="${escapeId(item.id)}" type="button">
+      <time>${esc(time)}</time>
+      <span class="v65-timeline-mark" aria-hidden="true"></span>
+      <span class="v65-timeline-copy"><b>${esc(item.title || 'Задача')}</b><small>${esc(item.area || 'Личное')} · ${shortDate(item.date)}</small></span>
+      <span class="v65-row-status">${overdue ? 'просрочено' : (item.priority === 'A' ? 'важно' : 'план')}</span>
+    </button>`;
+  }
+
+  function v65WeekRhythm(habits, tasks) {
+    const days = Array.from({ length: 7 }, (_, index) => iso(addDays(new Date(), index - 6)));
+    const max = Math.max(1, ...days.map(date => habits.filter(habit => habit.marks?.[date]).length + tasks.filter(task => task.date === date && statusDone(task)).length));
+    return days.map(date => {
+      const doneHabits = habits.filter(habit => habit.marks?.[date]).length;
+      const doneTasks = tasks.filter(task => task.date === date && statusDone(task)).length;
+      const activity = doneHabits + doneTasks;
+      const height = activity ? Math.max(18, Math.round(activity / max * 100)) : 8;
+      const label = new Date(`${date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '');
+      return `<div class="v65-week-day ${date === today() ? 'is-today' : ''}" aria-label="${esc(label)}: ${activity} выполнено"><span><i style="height:${height}%"></i></span><small>${esc(label)}</small></div>`;
     }).join('');
   }
 
-  async function v66PreviewBackup() {
-    const file = document.getElementById('v66_restore_file')?.files?.[0];
-    if (!file) return toast('Выберите JSON-копию');
-    if (file.size > 25 * 1024 * 1024) return toast('Файл больше 25 МБ — проверьте, что это копия приложения');
-    try {
-      const parsed = JSON.parse(await file.text());
-      const incoming = parsed?.state || parsed;
-      if (!incoming || typeof incoming !== 'object') throw new Error('Некорректная структура');
-      const total = COLLECTIONS.reduce((sum, [key]) => sum + (Array.isArray(incoming[key]) ? incoming[key].length : 0), 0);
-      if (!total) throw new Error('В копии не найдены поддерживаемые разделы');
-      pendingRestore = { incoming, fileName: file.name, version: parsed?.version || 'без версии', createdAt: parsed?.createdAt || '' };
-      openModal('Предпросмотр резервной копии', `<div class="v66-vault"><section class="v66-vault-intro is-ready"><span>✓</span><div><h3>${esc(file.name)}</h3><p>${total} записей в поддерживаемых разделах · ${esc(pendingRestore.version)}</p></div></section><div class="v66-restore-mode"><label><input type="radio" name="v66_restore_mode" value="merge" checked><span><b>Объединить безопасно</b><small>Текущие записи сохраняются, недостающие добавляются</small></span></label><label><input type="radio" name="v66_restore_mode" value="replace"><span><b>Заменить выбранные разделы</b><small>Только отмеченные коллекции будут заменены</small></span></label></div><div class="v66-restore-list">${v66CollectionRows(incoming)}</div><div class="v66-vault-actions"><button data-v66-action="openVault" type="button">Выбрать другой файл</button><button class="is-primary" data-v66-action="applyRestore" type="button">Восстановить выбранное</button></div><p class="v66-vault-note">Перед применением приложение автоматически скачает копию текущего состояния.</p></div>`);
-    } catch (error) {
-      pendingRestore = null;
-      toast(`Не удалось прочитать копию: ${error.message || error}`);
-    }
-  }
-
-  function v66RecordKey(collection, item) {
-    if (item?.id) return `id:${item.id}`;
-    const base = collection === 'people' ? [item?.name, item?.birthday, item?.phone]
-      : collection === 'goals' ? [item?.title, item?.deadline]
-        : collection === 'habits' ? [item?.name]
-          : collection === 'tasks' ? [item?.title, item?.date, item?.time]
-            : collection === 'sleepEntries' ? [item?.date]
-              : collection === 'subconsciousEntries' ? [item?.date]
-                : collection === 'trades' ? [item?.date, item?.pair, item?.entry, item?.direction]
-                  : [item?.title || item?.name || item?.person, item?.date || item?.due, item?.type || item?.area];
-    return `sig:${base.map(value => cleanText(value).toLocaleLowerCase('ru-RU')).join('|')}`;
-  }
-
-  function v66MergeCollection(collection, current, incoming) {
-    const result = current.map(item => ({ ...item }));
-    const index = new Map(result.map((item, position) => [v66RecordKey(collection, item), position]));
-    incoming.forEach(item => {
-      if (!item || typeof item !== 'object') return;
-      const key = v66RecordKey(collection, item);
-      if (index.has(key)) {
-        const position = index.get(key);
-        result[position] = { ...item, ...result[position] };
-      } else {
-        index.set(key, result.length);
-        result.push({ ...item, id: item.id || uid() });
+  function v65AssistantModel() {
+    const habits = list('habits').filter(personalOnly);
+    const pendingHabits = habits.filter(item => !item.marks?.[today()]);
+    const operations = list('operations');
+    const debts = activeDebts();
+    const outgoing = debts.filter(item => item.direction === 'out');
+    const overdueDebts = outgoing.filter(item => item.due && item.due < today());
+    const weekEnd = iso(addDays(new Date(), 7));
+    const dueSoon = outgoing.filter(item => item.due && item.due >= today() && item.due <= weekEnd);
+    const goals = list('goals').filter(personalOnly).filter(item => !statusDone(item));
+    const goalsWithoutStep = goals.filter(goal => !list('tasks').some(task => String(task.goalId || '') === String(goal.id) && !statusDone(task)));
+    const openTasks = list('tasks').filter(personalOnly).filter(item => !statusDone(item));
+    const overdueTasks = openTasks.filter(item => item.date && item.date < today());
+    const todayOpen = openTasks.filter(item => item.date === today());
+    const taskLoad = uniq([...overdueTasks, ...todayOpen]);
+    const stuckTasks = openTasks.filter(item => num(item.postponeCount) >= postponeThreshold());
+    const financeReady = operations.length > 0 || num(state.settings?.currentBalance) !== 0 || debts.length > 0;
+    const finance = financeTotals(periodInfo('month'));
+    const forecast = finance.netWithUpcoming ?? finance.net ?? 0;
+    const diaryToday = list('subconsciousEntries').some(entry => entry.date === today());
+    const items = [
+      {
+        id: 'finance', icon: '₽', title: 'Финансы', route: 'finance',
+        value: financeReady ? money(forecast) : '—',
+        detail: financeReady ? (forecast < 0 ? 'прогноз месяца ниже нуля' : 'прогноз по внесённым данным') : 'ожидают вашей выгрузки',
+        tone: financeReady && forecast < 0 ? 'alert' : 'calm'
+      },
+      {
+        id: 'debts', icon: '↙', title: 'Долги', route: 'debts',
+        value: outgoing.length ? money(outgoing.reduce((sum, item) => sum + num(item.amount), 0)) : '—',
+        detail: overdueDebts.length ? `${overdueDebts.length} просрочено` : (dueSoon.length ? `${dueSoon.length} сроков в ближайшие 7 дней` : (outgoing.length ? 'ближайших сроков нет' : 'активных долгов нет')),
+        tone: overdueDebts.length ? 'alert' : (dueSoon.length ? 'warn' : 'ok')
+      },
+      {
+        id: 'habits', icon: '◎', title: 'Привычки', route: 'habits',
+        value: habits.length ? `${habits.length - pendingHabits.length}/${habits.length}` : '—',
+        detail: habits.length ? (pendingHabits.length ? `${pendingHabits.length} ещё не отмечено сегодня` : 'ритм на сегодня выполнен') : 'ритм пока не задан',
+        tone: habits.length && !pendingHabits.length ? 'ok' : 'calm'
+      },
+      {
+        id: 'tasks', icon: '✓', title: 'Задачи', route: 'tasks',
+        value: String(taskLoad.length),
+        detail: overdueTasks.length ? `${overdueTasks.length} просрочено — сначала критичное` : (stuckTasks.length ? `${countLabel(stuckTasks.length, 'задача переносилась', 'задачи переносились', 'задач переносились')} ${postponeThreshold()}+ раз` : (taskLoad.length > 6 ? 'день перегружен — предлагаю сократить план' : (taskLoad.length ? 'нагрузка дня выглядит выполнимой' : 'обязательных задач на сегодня нет'))),
+        tone: overdueTasks.length ? 'alert' : (stuckTasks.length || taskLoad.length > 6 ? 'warn' : 'calm')
+      },
+      {
+        id: 'goals', icon: '↗', title: 'Цели', route: 'goals',
+        value: String(goals.length),
+        detail: goalsWithoutStep.length ? `${goalsWithoutStep.length} без следующего шага` : (goals.length ? 'у каждой есть активный шаг' : 'можно добавить первую цель'),
+        tone: goalsWithoutStep.length ? 'warn' : 'calm'
       }
+    ];
+    const priority = items.find(item => item.tone === 'alert') || items.find(item => item.tone === 'warn') || items.find(item => item.id === 'habits' && pendingHabits.length) || items[0];
+    const voice = items.some(item => item.tone === 'alert')
+      ? 'Сейчас говорю прямо: сначала закрываем риск, затем возвращаемся к обычному ритму.'
+      : taskLoad.length > 6
+        ? 'День выглядит перегруженным. Я предложу убрать менее важное, но ничего не переставлю без подтверждения.'
+        : 'Темп спокойный: можно двигаться без давления и добавить только один следующий шаг.';
+    return { items, priority, diaryToday, taskLoad, voice };
+  }
+
+  function v65AssistantStrip(model) {
+    return `<section class="v65-assistant-strip">
+      <div class="v65-assistant-lead"><span class="v65-assistant-orb" aria-hidden="true">✦</span><div><span class="v65-overline">Внутренний помощник</span><h3>${esc(model.priority.title)} · ${esc(model.priority.detail)}</h3><p>${esc(model.voice)}</p></div></div>
+      <div class="v65-assistant-actions"><button data-v65-action="openAssistant" type="button">Разобрать всё</button><button data-v65-action="openDayPlan" type="button">План утра</button><button data-v65-action="openEveningReview" type="button">Итог вечера</button></div>
+    </section>`;
+  }
+
+  function v65OpenAssistant() {
+    const model = v65AssistantModel();
+    openModal('Внутренний помощник', `<div class="v65-assistant-modal">
+      <div class="v65-assistant-intro"><span>✦</span><div><h3>Пять главных контуров</h3><p>${esc(model.voice)} Выводы построены только на ваших сохранённых данных.</p></div><button data-v65-action="openDayPlan" type="button">Предложить порядок дня</button></div>
+      <div class="v65-assistant-grid">${model.items.map(item => `<article class="v65-assistant-signal is-${item.tone}"><div><span>${item.icon}</span><small>${esc(item.title)}</small></div><strong>${esc(item.value)}</strong><p>${esc(item.detail)}</p><button data-v65-action="openSection" data-route="${esc(item.route)}" type="button">Открыть раздел</button></article>`).join('')}</div>
+      <article class="v65-assistant-diary"><div><span>🪞</span><div><b>Дневник подсознания</b><small>${model.diaryToday ? 'сегодняшний отклик сохранён' : 'сегодняшнего отклика пока нет'}</small></div></div><button data-v65-action="openSection" data-route="subconscious" type="button">${model.diaryToday ? 'Открыть' : 'Записать отклик'}</button></article>
+      <p class="v65-assistant-disclaimer">Это инструмент самоанализа и планирования, а не медицинская или психологическая диагностика.</p>
+    </div>`);
+  }
+
+  function v65OpenDayPlan() {
+    const tasks = list('tasks').filter(personalOnly).filter(item => !statusDone(item));
+    const relevant = tasks.filter(item => !item.date || item.date <= today()).sort((a, b) => {
+      const aOverdue = a.date && a.date < today() ? 0 : 1;
+      const bOverdue = b.date && b.date < today() ? 0 : 1;
+      return aOverdue - bOverdue || Number(taskFixed(b)) - Number(taskFixed(a)) || taskPriority(a) - taskPriority(b) || String(a.date || '').localeCompare(String(b.date || ''));
+    });
+    const overload = relevant.length > 6;
+    const candidates = overload ? relevant.filter((item, index) => index >= 6 && item.date === today() && !taskFixed(item) && ['C', 'D'].includes(item.priority || 'B')) : [];
+    const planRows = relevant.slice(0, 6).map((item, index) => `<article><span>${index + 1}</span><div><b>${esc(item.title || 'Задача')}</b><small>${item.date && item.date < today() ? 'просрочено · ' : ''}${esc(item.priority || 'B')} · ${esc(item.area || 'Личное')} · ${shortDate(item.date)}${taskFixed(item) ? ' · закреплена' : ''}${num(item.postponeCount) ? ` · переносов: ${num(item.postponeCount)}` : ''}</small></div></article>`).join('') || '<p>На сегодня обязательных задач нет.</p>';
+    const postponeRows = candidates.length ? `<section class="v65-postpone"><div><span class="v65-overline">Можно убрать из перегруженного дня</span><h3>Перенести выбранное на завтра</h3><p>Помощник выбрал только незакреплённые задачи с низким приоритетом C/D. Вы можете снять любую галочку.</p></div><div class="v65-postpone-list">${candidates.map(item => `<label><input class="v65-postpone-check" type="checkbox" value="${escapeId(item.id)}" checked><span><b>${esc(item.title || 'Задача')}</b><small>${esc(item.priority || 'D')} · ${esc(item.area || 'Личное')}${num(item.postponeCount) ? ` · уже переносилась ${num(item.postponeCount)} раз` : ''}</small></span></label>`).join('')}</div></section>` : (overload ? '<section class="v65-postpone is-empty"><b>Безопасных кандидатов на перенос нет</b><p>Просроченные, закреплённые и задачи A/B помощник оставил на месте. Изменить их можно вручную в разделе задач.</p></section>' : '');
+    openModal('Предлагаемый порядок дня', `<div class="v65-plan-modal"><div class="v65-plan-summary ${overload ? 'is-warn' : ''}"><span>${overload ? '!' : '✓'}</span><div><h3>${overload ? 'День стоит сократить' : 'Нагрузка выглядит выполнимой'}</h3><p>${overload ? 'Показываю шесть первых пунктов по сроку и приоритету. Ничего не переношу без вашего подтверждения.' : 'Сначала просроченное и закреплённое, затем приоритет A и остальные личные задачи.'}</p></div></div><div class="v65-plan-list">${planRows}</div>${postponeRows}<p class="v65-assistant-disclaimer">Каждый перенос сохраняется в истории задачи. После ${postponeThreshold()} переносов помощник отдельно предупредит, что задача застряла.</p><div class="v65-plan-actions">${candidates.length ? '<button data-v65-action="applyPostponements" type="button">Перенести выбранные</button>' : '<button data-v65-action="openSection" data-route="tasks" type="button">Открыть задачи</button>'}<button data-v65-action="closeModal" type="button">Оставить как есть</button></div></div>`);
+  }
+
+  function v65ApplyPostponements() {
+    const selected = [...document.querySelectorAll('.v65-postpone-check:checked')].map(input => input.value);
+    if (!selected.length) return toast('Выберите хотя бы одну задачу');
+    const destination = iso(addDays(new Date(), 1));
+    if (!window.confirm(`Перенести выбранные задачи (${selected.length}) на ${fmt(destination)}?`)) return;
+    const at = new Date().toISOString();
+    const warnedIds = [];
+    state.tasks = list('tasks').map(item => {
+      if (!selected.includes(String(item.id)) || taskFixed(item) || item.date !== today()) return item;
+      const postponeCount = num(item.postponeCount) + 1;
+      if (postponeCount >= postponeThreshold()) warnedIds.push(String(item.id));
+      return {
+        ...item,
+        date: destination,
+        postponeCount,
+        lastPostponedAt: at,
+        postponeHistory: [...(Array.isArray(item.postponeHistory) ? item.postponeHistory : []), { from: item.date, to: destination, at }].slice(-20)
+      };
+    });
+    save(); closeModal(); render();
+    toast(warnedIds.length ? `Перенесено. ${warnedIds.length} задач требуют решения` : `Перенесено задач: ${selected.length}`);
+    if (warnedIds.length) setTimeout(() => v65OpenStuckTask(warnedIds[0], warnedIds.length), 120);
+  }
+
+  function v65OpenStuckTask(id, total = 1) {
+    const task = list('tasks').find(item => String(item.id) === String(id));
+    if (!task) return;
+    const nextDate = task.date || iso(addDays(new Date(), 1));
+    openModal('Задача переносится снова', `<div class="v65-stuck-task"><section><span>↻</span><div><small>${num(task.postponeCount)} переносов${total > 1 ? ` · ещё ${total - 1}` : ''}</small><h3>${esc(task.title || 'Задача')}</h3><p>Помощник не принимает решение без подтверждения. Выберите, что действительно поможет.</p></div></section><label><span>Минимальная версия или первый шаг</span><input id="v65_stuck_step" value="" placeholder="Например: открыть урок и пройти 15 минут"></label><label><span>Новая конкретная дата</span><input id="v65_stuck_date" type="date" value="${esc(nextDate)}"></label><div class="v65-stuck-actions"><button data-v65-action="resolveStuckTask" data-mode="simplify" data-id="${esc(task.id)}" type="button">Упростить</button><button data-v65-action="resolveStuckTask" data-mode="split" data-id="${esc(task.id)}" type="button">Разбить на шаги</button><button data-v65-action="resolveStuckTask" data-mode="date" data-id="${esc(task.id)}" type="button">Назначить дату</button><button class="is-danger" data-v65-action="resolveStuckTask" data-mode="archive" data-id="${esc(task.id)}" type="button">Убрать в архив</button></div><p class="v65-assistant-disclaimer">При удалении задача сначала сохраняется в архиве, поэтому данные не теряются.</p></div>`);
+  }
+
+  function v65ResolveStuckTask(id, mode) {
+    const task = list('tasks').find(item => String(item.id) === String(id));
+    if (!task) return closeModal();
+    const originalTitle = task.title || 'Задача';
+    const step = document.getElementById('v65_stuck_step')?.value?.trim() || '';
+    const newDate = document.getElementById('v65_stuck_date')?.value || task.date || today();
+    if ((mode === 'simplify' || mode === 'split') && !step) return toast('Запишите минимальную версию или первый шаг');
+    if (mode === 'simplify') {
+      task.title = step;
+      task.priority = ['A', 'B'].includes(task.priority) ? task.priority : 'B';
+      task.postponeResolution = { type: 'simplified', at: new Date().toISOString(), previousTitle: originalTitle };
+    }
+    if (mode === 'split') {
+      state.tasks.unshift({ id: uid(), title: step, area: task.area || 'Личное', date: newDate, time: task.time || '', priority: task.priority || 'B', status: 'Активно', fixed: false, parentTaskId: task.id, note: `Первый шаг для: ${task.title}`, createdAt: new Date().toISOString() });
+      task.note = `${task.note || ''}${task.note ? '\n' : ''}Разбита на шаги ${new Date().toLocaleDateString('ru-RU')}`;
+    }
+    if (mode === 'date') task.date = newDate;
+    if (mode === 'archive') {
+      if (!window.confirm('Убрать задачу из активного списка? Копия останется в архиве.')) return;
+      state.archive = list('archive');
+      state.archive.unshift({ ...task, id: `archived-${task.id}-${Date.now().toString(36)}`, archivedFrom: 'tasks', originalId: task.id, archivedAt: new Date().toISOString() });
+      state.tasks = list('tasks').filter(item => String(item.id) !== String(id));
+    } else {
+      task.postponeResolvedAt = new Date().toISOString();
+      task.postponeResolutionType = mode;
+    }
+    save(); closeModal(); render(); toast(mode === 'archive' ? 'Задача сохранена в архиве' : 'Решение по задаче сохранено');
+  }
+
+  function v65OpenEveningReview() {
+    state.dailyReviews = list('dailyReviews');
+    const existing = state.dailyReviews.find(item => item.date === today()) || {};
+    const completed = list('tasks').filter(personalOnly).filter(item => item.date === today() && statusDone(item)).length;
+    const habits = list('habits').filter(personalOnly);
+    const habitsDone = habits.filter(item => item.marks?.[today()]).length;
+    const expenses = list('operations').filter(item => item.type === 'expense' && item.date === today()).reduce((sum, item) => sum + num(item.amount), 0);
+    openModal('Короткий итог вечера', `<div class="v65-evening-review"><section><span class="v65-overline">Только факты · 2–3 минуты</span><h3>Закрыть день без длинного отчёта</h3><p>Помощник сохранит итог отдельно от дневника подсознания.</p></section><div class="v65-evening-facts"><article><span>Задачи</span><b>${completed}</b><small>выполнено сегодня</small></article><article><span>Привычки</span><b>${habitsDone}/${habits.length}</b><small>отмечено сегодня</small></article><article><span>Расходы</span><b>${expenses ? money(expenses) : '—'}</b><small>по внесённым операциям</small></article></div><label class="v65-evening-score"><span>Оценка дня · 1–10</span><input id="v65_evening_score" type="number" min="1" max="10" step="1" value="${esc(existing.score || '')}" placeholder="Например, 7"><small>Это ваша субъективная оценка, а не рейтинг продуктивности.</small></label><label><span>Что сегодня получилось?</span><textarea id="v65_evening_win" placeholder="Один короткий факт…">${esc(existing.win || '')}</textarea></label><label><span>Что перенеслось и почему?</span><textarea id="v65_evening_move" placeholder="Без самокритики: причина и решение…">${esc(existing.moved || '')}</textarea></label><label><span>Первый шаг завтра</span><input id="v65_evening_first" value="${esc(existing.firstStep || '')}" placeholder="Одно конкретное действие"></label><div class="v65-plan-actions"><button data-v65-action="saveEveningReview" type="button">Сохранить итог</button><button data-v65-action="closeModal" type="button">Закрыть</button></div></div>`);
+  }
+
+  function v65SaveEveningReview() {
+    state.dailyReviews = list('dailyReviews');
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    const existing = state.dailyReviews.find(item => item.date === today()) || {};
+    const score = num(value('v65_evening_score'));
+    if (score < 1 || score > 10) return toast('Оцените день от 1 до 10');
+    const review = { ...existing, id: existing.id || uid(), date: today(), score, win: value('v65_evening_win'), moved: value('v65_evening_move'), firstStep: value('v65_evening_first'), updatedAt: new Date().toISOString() };
+    if (!review.win && !review.moved && !review.firstStep) return toast('Добавьте хотя бы один короткий итог');
+    state.dailyReviews = [review, ...state.dailyReviews.filter(item => item.date !== today())];
+    save(); closeModal(); render(); toast('Итог дня сохранён');
+  }
+
+  const DIARY_STOP_WORDS = new Set('который которая которые этого чтобы потому очень просто сегодня сейчас потом только когда если меня тебе себя было были будет этот эта еще уже как для про что чем или при без над под мой моя мои ваше наш там тут где день дней один одна'.split(' '));
+  const diaryText = entry => [entry.trigger, entry.emotion, entry.body, entry.thought, entry.fear, entry.cause, entry.pattern, entry.need, entry.summary, entry.nextStep, entry.promise, ...(Array.isArray(entry.answers) ? entry.answers : [])].filter(Boolean).join(' ');
+
+  function v65DiaryThemes(entries) {
+    const counts = new Map();
+    entries.forEach(entry => diaryText(entry).toLocaleLowerCase('ru-RU').match(/[а-яёa-z]{4,}/giu)?.forEach(word => {
+      if (!DIARY_STOP_WORDS.has(word)) counts.set(word, (counts.get(word) || 0) + 1);
+    }));
+    return [...counts.entries()].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).slice(0, 6);
+  }
+
+  function v65DiaryStats(entries) {
+    const dates = new Set(entries.map(entry => entry.date));
+    let streak = 0;
+    let date = new Date(`${today()}T12:00:00`);
+    while (dates.has(iso(date))) { streak += 1; date = addDays(date, -1); }
+    const moods = entries.map(entry => num(entry.mood)).filter(value => value > 0);
+    return { streak, average: moods.length ? (moods.reduce((sum, value) => sum + value, 0) / moods.length).toFixed(1) : '—' };
+  }
+
+  function v65SubconsciousPage() {
+    state.settings = state.settings || {};
+    state.subconsciousEntries = list('subconsciousEntries');
+    const entries = state.subconsciousEntries.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const currentDate = state.settings.subconsciousCurrentDate || today();
+    const entry = entries.find(item => item.date === currentDate) || { date: currentDate };
+    const stats = v65DiaryStats(entries);
+    const themes = v65DiaryThemes(entries.slice(0, 30));
+    const legacyAnswers = Array.isArray(entry.answers) ? entry.answers.filter(Boolean) : [];
+    return layout('Дневник подсознания', 'Спокойная фиксация состояния, повторяющихся тем и одного бережного следующего шага.', `
+      <section class="v65-diary-page">
+        <div class="v65-diary-stats"><article><span>Записей</span><strong>${entries.length}</strong><small>вся история сохранена</small></article><article><span>Ритм</span><strong>${stats.streak}</strong><small>дней подряд</small></article><article><span>Состояние</span><strong>${stats.average}</strong><small>среднее по записям</small></article><article><span>Сегодня</span><strong>${entries.some(item => item.date === today()) ? '✓' : '—'}</strong><small>${entries.some(item => item.date === today()) ? 'отклик есть' : 'можно заполнить'}</small></article></div>
+        <div class="v65-diary-layout">
+          <article class="v65-diary-editor">
+            <div class="v65-diary-head"><div><span class="v65-overline">Отклик дня</span><h2>${fmt(currentDate)}</h2><p>Можно отвечать коротко. Важна честная фиксация, а не идеальная формулировка.</p></div><span class="v65-diary-time">5–7 минут</span></div>
+            <div class="v65-diary-fields v65-diary-fields-three"><label><span>Дата</span><input id="v65_diary_date" type="date" value="${esc(currentDate)}"></label><label><span>Состояние · 1–10</span><input id="v65_diary_mood" type="number" min="1" max="10" value="${esc(entry.mood || '')}"></label><label><span>Энергия · 1–10</span><input id="v65_diary_energy" type="number" min="1" max="10" value="${esc(entry.energy || '')}"></label></div>
+            <div class="v65-diary-fields"><label><span>Главная эмоция</span><input id="v65_diary_emotion" value="${esc(entry.emotion || '')}" placeholder="Например: спокойствие, тревога, радость"></label><label><span>Что произошло или зацепило?</span><textarea id="v65_diary_trigger" placeholder="Ситуация без оценки и обвинений…">${esc(entry.trigger || '')}</textarea></label><label><span>Что я заметил в теле?</span><textarea id="v65_diary_body" placeholder="Напряжение, лёгкость, усталость, тепло…">${esc(entry.body || '')}</textarea></label><label><span>Какая мысль появилась автоматически?</span><textarea id="v65_diary_thought" placeholder="Запишите мысль как она прозвучала…">${esc(entry.thought || '')}</textarea></label><label><span>Чего я боялся или избегал?</span><textarea id="v65_diary_fear" placeholder="Страх, ожидание или то, от чего хотелось уйти…">${esc(entry.fear || '')}</textarea></label><label><span>Почему я мог так отреагировать?</span><textarea id="v65_diary_cause" placeholder="Возможная причина своими словами, без диагноза…">${esc(entry.cause || '')}</textarea></label><label><span>Какой сценарий повторяется?</span><textarea id="v65_diary_pattern" placeholder="Например: откладываю разговор, когда боюсь конфликта…">${esc(entry.pattern || '')}</textarea></label><label><span>Какая потребность за этим стоит?</span><textarea id="v65_diary_need" placeholder="Безопасность, отдых, ясность, близость, свобода…">${esc(entry.need || '')}</textarea></label><label class="v65-diary-required"><span>Что я понял? · обязательно</span><textarea id="v65_diary_summary" placeholder="Один честный практический вывод…">${esc(entry.summary || '')}</textarea></label><label class="v65-diary-required"><span>Одно действие · обязательно</span><textarea id="v65_diary_next" placeholder="Что конкретно сделать без перегруза?">${esc(entry.nextStep || entry.promise || '')}</textarea></label></div>
+            ${legacyAnswers.length ? `<details class="v65-diary-legacy"><summary>Ранее сохранённые ответы (${legacyAnswers.length})</summary>${legacyAnswers.map((answer, index) => `<p><b>${index + 1}.</b> ${esc(answer)}</p>`).join('')}</details>` : ''}
+            <div class="v65-diary-actions"><button class="v65-primary-action" data-v65-action="saveDiary" type="button">Сохранить отклик</button><button data-v65-action="diaryDate" data-direction="-1" type="button">← Предыдущий день</button><button data-v65-action="diaryToday" type="button">Сегодня</button><button data-v65-action="diaryDate" data-direction="1" type="button">Следующий день →</button>${entry.id ? '<button class="is-danger" data-v65-action="deleteDiary" type="button">Удалить запись</button>' : ''}</div>
+          </article>
+          <aside class="v65-diary-rail">
+            <article class="v65-diary-insight"><span class="v65-overline">Повторяющиеся темы</span><h3>Слова из ваших записей</h3>${themes.length ? `<div class="v65-theme-list">${themes.map(([word, count]) => `<span>${esc(word)} <b>${count}</b></span>`).join('')}</div><p>Показаны часто повторяющиеся слова без интерпретации и диагнозов.</p>` : '<p>После нескольких содержательных записей здесь появятся повторяющиеся темы.</p>'}</article>
+            <article class="v65-diary-history"><div class="v65-diary-history-head"><div><span class="v65-overline">История</span><h3>Последние отклики</h3></div><span>${entries.length}</span></div><div>${entries.slice(0, 12).map(item => `<button data-v65-action="openDiary" data-date="${esc(item.date)}" type="button"><span><b>${fmt(item.date)}</b><small>состояние ${esc(item.mood || '—')} · энергия ${esc(item.energy || '—')}</small></span><em>${esc((item.summary || item.emotion || 'отклик').slice(0, 48))}</em></button>`).join('') || '<p class="v65-diary-empty">Пока нет записей. Начните с сегодняшнего состояния.</p>'}</div></article>
+            <article class="v65-diary-note"><b>Важно</b><p>Дневник помогает замечать собственные закономерности, но не ставит диагнозы. При тяжёлом или длительном состоянии лучше обратиться к квалифицированному специалисту.</p></article>
+          </aside>
+        </div>
+      </section>`);
+  }
+
+  function v65ShowDiary() {
+    const route = (location.hash || '').replace('#', '') || page || 'dashboard';
+    if (route !== 'subconscious') return;
+    const view = document.getElementById('view');
+    if (view && !view.querySelector('.v65-diary-page')) view.innerHTML = v65SubconsciousPage();
+  }
+
+  function v65SaveDiary() {
+    state.settings = state.settings || {};
+    state.subconsciousEntries = list('subconsciousEntries');
+    const date = document.getElementById('v65_diary_date')?.value || today();
+    const existing = state.subconsciousEntries.find(item => item.date === date) || {};
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    const record = { ...existing, id: existing.id || uid(), date, mood: value('v65_diary_mood'), energy: value('v65_diary_energy'), emotion: value('v65_diary_emotion'), trigger: value('v65_diary_trigger'), body: value('v65_diary_body'), thought: value('v65_diary_thought'), fear: value('v65_diary_fear'), cause: value('v65_diary_cause'), pattern: value('v65_diary_pattern'), need: value('v65_diary_need'), summary: value('v65_diary_summary'), nextStep: value('v65_diary_next'), promise: value('v65_diary_next'), updatedAt: new Date().toISOString() };
+    if (!record.summary || !record.nextStep) return toast('Добавьте один вывод и одно конкретное действие');
+    state.subconsciousEntries = [record, ...state.subconsciousEntries.filter(item => item.date !== date)];
+    state.settings.subconsciousCurrentDate = date;
+    save(); render(); setTimeout(v65ShowDiary, 0); toast('Отклик сохранён');
+  }
+
+  function v65SetDiaryDate(date) {
+    state.settings = state.settings || {};
+    state.settings.subconsciousCurrentDate = date;
+    save(); render(); setTimeout(v65ShowDiary, 0);
+  }
+
+  function v65DeleteDiary() {
+    const date = state.settings?.subconsciousCurrentDate || today();
+    if (!window.confirm(`Удалить отклик за ${fmt(date)}? Остальные записи останутся без изменений.`)) return;
+    state.subconsciousEntries = list('subconsciousEntries').filter(item => item.date !== date);
+    save(); render(); setTimeout(v65ShowDiary, 0); toast('Отклик удалён');
+  }
+
+  function v65PreviousPeriod(period) {
+    const start = new Date(`${period.start}T12:00:00`);
+    const end = new Date(`${period.end}T12:00:00`);
+    const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    const previousEnd = addDays(start, -1);
+    const previousStart = addDays(previousEnd, -(days - 1));
+    return { start: iso(previousStart), end: iso(previousEnd), title: 'предыдущий равный период' };
+  }
+
+  function v65CategoryTotals(period) {
+    const result = {};
+    list('operations').filter(item => item.type === 'expense' && inPeriod(item.date, period)).forEach(item => {
+      const category = text(item.category) || 'Без категории';
+      result[category] = (result[category] || 0) + num(item.amount);
     });
     return result;
   }
 
-  function v66ApplyRestore() {
-    if (!pendingRestore) return toast('Сначала выберите и проверьте копию');
-    const selected = [...document.querySelectorAll('.v66-restore-check:checked')].map(input => input.value);
-    if (!selected.length) return toast('Выберите хотя бы один раздел');
-    const mode = document.querySelector('input[name="v66_restore_mode"]:checked')?.value || 'merge';
-    const question = mode === 'replace'
-      ? `Заменить выбранные разделы (${selected.length}) данными из копии? Текущее состояние сначала будет скачано.`
-      : `Объединить выбранные разделы (${selected.length}) с текущими данными?`;
-    if (!window.confirm(question)) return;
-    v66DownloadSnapshot('before-restore');
-    selected.forEach(collection => {
-      const incoming = Array.isArray(pendingRestore.incoming[collection]) ? pendingRestore.incoming[collection] : [];
-      state[collection] = mode === 'replace' ? incoming.map(item => ({ ...item, id: item?.id || uid() })) : v66MergeCollection(collection, arr(collection), incoming);
-    });
-    state = typeof normalize === 'function' ? normalize(state) : state;
-    state.settings = state.settings || {};
-    state.settings.v66 = state.settings.v66 || {};
-    state.settings.v66.lastRestore = { at: new Date().toISOString(), fileName: pendingRestore.fileName, mode, collections: selected };
-    pendingRestore = null;
-    save(); closeModal(); render(); toast('Выбранные данные восстановлены');
+  function v65FinancePage() {
+    const period = periodInfo(state.settings.financePeriod || 'month');
+    const previous = v65PreviousPeriod(period);
+    const totals = financeTotals(period);
+    const currentBalance = num(state.settings.currentBalance);
+    const outgoing = activeDebts().filter(item => item.direction === 'out');
+    const obligations = outgoing.filter(item => item.due && item.due <= period.end);
+    const obligationTotal = obligations.reduce((sum, item) => sum + num(item.amount), 0);
+    const planned = list('purchases').filter(item => item.includeInBudget !== false && inPeriod(item.date, period));
+    const plannedTotal = planned.reduce((sum, item) => sum + num(item.amount), 0);
+    const hasFacts = list('operations').length > 0 || currentBalance !== 0 || outgoing.length > 0 || planned.length > 0;
+    const periodStillOpen = period.end >= today();
+    const budgetStart = period.start > today() ? period.start : today();
+    const daysLeft = periodStillOpen ? Math.max(1, Math.round((new Date(`${period.end}T12:00:00`) - new Date(`${budgetStart}T12:00:00`)) / 86400000) + 1) : 0;
+    const freeAfterPlans = currentBalance - obligationTotal - plannedTotal;
+    const dayLimit = hasFacts && daysLeft ? Math.max(0, freeAfterPlans / daysLeft) : null;
+    const weekLimit = dayLimit === null ? null : dayLimit * 7;
+    const forecast = totals.netWithUpcoming ?? (currentBalance + totals.inc - totals.exp - plannedTotal);
+    const currentCategories = v65CategoryTotals(period);
+    const previousCategories = v65CategoryTotals(previous);
+    const categoryRows = Object.entries(currentCategories).map(([name, amount]) => ({ name, amount, previous: previousCategories[name] || 0, delta: amount - (previousCategories[name] || 0) })).sort((a, b) => b.amount - a.amount).slice(0, 7);
+    const hasPreviousExpenses = Object.values(previousCategories).some(Boolean);
+    const operations = list('operations').slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 8);
+    const goal = num(state.settings.v65?.incomeGoal) || 300000;
+    const goalDeadline = state.settings.v65?.incomeGoalDeadline || '2026-12-31';
+    return layout('Финансы', 'Остаток, безопасные лимиты, обязательства и причины изменений по категориям — без выдуманных цифр.', `
+      <section class="v65-finance-hero">
+        <div><span class="v65-kicker">₽ Финансовая ясность</span><h2>${hasFacts ? (forecast < 0 ? 'План периода требует корректировки' : 'Цифры собраны в один понятный прогноз') : 'Загрузите фактические данные'}</h2><p>${hasFacts ? 'Лимиты рассчитаны консервативно: из текущего остатка вычтены обязательства и запланированные покупки.' : 'Сначала укажите остаток и загрузите операции. До этого приложение показывает прочерки и ничего не додумывает.'}</p><div class="v65-finance-actions"><button class="v65-primary-action" data-action="setActualBalance" type="button">Указать остаток</button><button data-action="openRecordForm" data-type="operation" type="button">＋ Операция</button><button data-go="debts" type="button">План долгов</button></div></div>
+        <aside><span>Цель дохода</span><strong>${money(goal)} / месяц</strong><small>до ${fmt(goalDeadline)} · трейдинг и подработки, без найма</small><button data-v65-action="addStarterGoal" data-key="income" type="button">Добавить в цели</button></aside>
+      </section>
+      <section class="v65-finance-tabs">${[['month', 'Месяц'], ['last', 'Прошлый'], ['next', 'Следующий'], ['quarter', '3 месяца'], ['year', 'Год']].map(([key, label]) => `<button class="${period.key === key ? 'active' : ''}" data-action="setFinancePeriod" data-period="${key}" type="button">${label}</button>`).join('')}</section>
+      <section class="v65-money-kpis">
+        <article><span>Остаток сейчас</span><strong>${hasFacts ? money(currentBalance) : '—'}</strong><small>указанный фактический остаток</small></article>
+        <article><span>Лимит дня</span><strong>${dayLimit === null ? '—' : money(dayLimit)}</strong><small>${daysLeft ? `${daysLeft} дней до конца периода` : 'для прошедшего периода не считается'}</small></article>
+        <article><span>Лимит недели</span><strong>${weekLimit === null ? '—' : money(weekLimit)}</strong><small>7 × безопасный дневной лимит</small></article>
+        <article><span>Обязательные платежи</span><strong>${outgoing.length ? money(obligationTotal) : '—'}</strong><small>${obligations.length ? countLabel(obligations.length, 'платёж', 'платежа', 'платежей') : 'в выбранном периоде нет'}</small></article>
+      </section>
+      <section class="v65-finance-layout">
+        <article class="v65-card v65-finance-flow"><div class="v65-card-head"><div><span class="v65-overline">Движение денег</span><h3>${period.title}</h3><p>${fmt(period.start)} — ${fmt(period.end)}</p></div><span class="v65-fact-chip">факт</span></div><div class="v65-flow-grid"><div><span>Доходы</span><strong class="is-income">${money(totals.inc)}</strong></div><div><span>Расходы</span><strong class="is-expense">${money(totals.exp)}</strong></div><div><span>Планы</span><strong>${money(plannedTotal)}</strong></div><div><span>Прогноз</span><strong class="${forecast < 0 ? 'is-expense' : 'is-income'}">${hasFacts ? money(forecast) : '—'}</strong></div></div><p class="v65-finance-formula">Безопасный лимит = остаток − обязательства − покупки, разделённые на оставшиеся дни.</p></article>
+        <article class="v65-card v65-category-change"><div class="v65-card-head"><div><span class="v65-overline">Причины просадки</span><h3>Категории и изменение</h3><p>${hasPreviousExpenses ? 'Сравнение с предыдущим равным периодом.' : 'Пока показана структура; для причин нужен прошлый период.'}</p></div></div><div>${categoryRows.map(row => `<div class="v65-category-row"><span><b>${esc(row.name)}</b><small>${money(row.amount)} за период</small></span><strong class="${row.delta > 0 ? 'up' : row.delta < 0 ? 'down' : ''}">${hasPreviousExpenses ? `${row.delta > 0 ? '+' : ''}${money(row.delta)}` : '—'}</strong></div>`).join('') || '<p class="v65-finance-empty">Расходов за период пока нет.</p>'}</div></article>
+        <article class="v65-card v65-finance-operations"><div class="v65-card-head"><div><span class="v65-overline">Последние записи</span><h3>Операции</h3></div><button data-action="openRecordForm" data-type="operation" type="button">＋ Добавить</button></div><div>${operations.map(item => `<div class="v65-operation-row"><span class="${item.type === 'income' ? 'income' : 'expense'}">${item.type === 'income' ? '↗' : '↘'}</span><div><b>${esc(item.category || (item.type === 'income' ? 'Доход' : 'Расход'))}</b><small>${fmt(item.date)} · ${esc(item.note || 'без комментария')}</small></div><strong class="${item.type === 'income' ? 'is-income' : 'is-expense'}">${item.type === 'income' ? '+' : '−'}${money(item.amount)}</strong><button data-action="editRecord" data-type="operation" data-id="${esc(item.id)}" type="button">Изменить</button></div>`).join('') || '<p class="v65-finance-empty">Операций пока нет.</p>'}</div></article>
+        <aside class="v65-card v65-finance-learning"><span class="v65-overline">Финансовая грамотность</span><h3>Что проверять каждую неделю</h3><ol><li><b>Остаток</b><span>совпадает ли он с банком</span></li><li><b>Обязательства</b><span>нет ли срока в ближайшие 7 дней</span></li><li><b>Просадка</b><span>какая категория выросла и почему</span></li><li><b>Доход</b><span>какой шаг приближает к 300 000 ₽</span></li></ol><details><summary>Импорт выписки</summary><input type="file" id="csvFile" accept=".csv,text/csv"><button data-action="importBankCsv" type="button">Импортировать CSV</button><small>Повторяющиеся строки будут пропущены.</small></details></aside>
+      </section>`);
   }
 
-  const bytesToBase64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
-  const base64ToBytes = value => Uint8Array.from(atob(value), character => character.charCodeAt(0));
-
-  async function v66PinHash(pin, salt) {
-    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
-    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 120000, hash: 'SHA-256' }, key, 256);
-    return bytesToBase64(bits);
-  }
-
-  function v66OpenSecurity() {
-    const security = state.settings.v66.security;
-    const pinLength = num(security.pinLength) || 4;
-    if (!security.pinEnabled) {
-      openModal('PIN-защита устройства', `<div class="v66-security"><section><span>●</span><div><h3>Четырёхзначный PIN</h3><p>PIN блокирует интерфейс на этом устройстве. Это дополнительная защита, но не замена серверному шифрованию.</p></div></section><label><span>Новый PIN</span><input id="v66_pin_first" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><label><span>Повторите PIN</span><input id="v66_pin_second" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><label><span>Автоблокировка</span><select id="v66_pin_timeout"><option value="5">через 5 минут</option><option value="15" selected>через 15 минут</option><option value="30">через 30 минут</option><option value="60">через 1 час</option></select></label><div class="v66-vault-actions"><button class="is-primary" data-v66-action="setupPin" type="button">Включить PIN</button><button data-v66-action="closeModal" type="button">Отмена</button></div></div>`);
-      return;
-    }
-    openModal('PIN-защита устройства', `<div class="v66-security"><section class="is-enabled"><span>✓</span><div><h3>PIN включён</h3><p>${pinLength} цифры · автоблокировка через ${num(security.autoLockMinutes) || 15} минут бездействия.</p></div></section><label><span>Текущий PIN для отключения</span><input id="v66_pin_current" type="password" inputmode="numeric" maxlength="${pinLength}" autocomplete="current-password"></label><label><span>Автоблокировка</span><select id="v66_pin_timeout">${[5, 15, 30, 60].map(minutes => `<option value="${minutes}" ${num(security.autoLockMinutes) === minutes ? 'selected' : ''}>${minutes === 60 ? 'через 1 час' : `через ${minutes} минут`}</option>`).join('')}</select></label><div class="v66-vault-actions"><button data-v66-action="savePinTimeout" type="button">Сохранить интервал</button><button class="is-primary" data-v66-action="lockNow" type="button">Заблокировать сейчас</button><button class="is-danger" data-v66-action="disablePin" type="button">Отключить PIN</button></div></div>`);
-  }
-
-  async function v66SetupPin() {
-    const first = document.getElementById('v66_pin_first')?.value || '';
-    const second = document.getElementById('v66_pin_second')?.value || '';
-    if (!/^\d{4}$/.test(first)) return toast('PIN должен состоять из 4 цифр');
-    if (first !== second) return toast('PIN-коды не совпадают');
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const hash = await v66PinHash(first, salt);
-    state.settings.v66.security = { pinEnabled: true, pinSalt: bytesToBase64(salt), pinHash: hash, pinLength: 4, autoLockMinutes: num(document.getElementById('v66_pin_timeout')?.value) || 15, failedAttempts: 0, lockedUntil: 0 };
-    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
-    save(); closeModal(); render(); toast('PIN-защита включена');
-  }
-
-  async function v66CheckPin(pin) {
-    const security = state.settings.v66.security;
-    if (!security.pinEnabled || !security.pinSalt || !security.pinHash) return false;
-    const actual = await v66PinHash(pin, base64ToBytes(security.pinSalt));
-    return actual === security.pinHash;
-  }
-
-  function v66ShowLock() {
-    if (document.querySelector('.v66-lock')) return;
-    const pinLength = num(state.settings?.v66?.security?.pinLength) || 4;
-    const overlay = document.createElement('section');
-    overlay.className = 'v66-lock';
-    overlay.innerHTML = `<div><span class="v66-lock-mark">◆</span><small>Second Brain OS</small><h1>Личные данные защищены</h1><p>Введите ${pinLength === 4 ? 'четырёхзначный' : `${pinLength}-значный`} PIN этого устройства.</p><input id="v66_unlock_pin" type="password" inputmode="numeric" maxlength="${pinLength}" autocomplete="current-password" aria-label="PIN устройства"><button data-v66-action="unlockPin" type="button">Открыть приложение</button><em id="v66_unlock_error"></em></div>`;
-    document.body.appendChild(overlay);
-    setTimeout(() => document.getElementById('v66_unlock_pin')?.focus(), 0);
-  }
-
-  function v66EnsureLock(force = false) {
-    const security = state.settings?.v66?.security || {};
-    if (!security.pinEnabled) return document.querySelector('.v66-lock')?.remove();
-    const unlockedAt = num(sessionStorage.getItem('secondBrainOS.v66.pinUnlockedAt'));
-    const expired = !unlockedAt || Date.now() - unlockedAt > (num(security.autoLockMinutes) || 15) * 60000;
-    if (force || expired) v66ShowLock();
-  }
-
-  async function v66UnlockPin() {
-    const input = document.getElementById('v66_unlock_pin');
-    const error = document.getElementById('v66_unlock_error');
-    const security = state.settings.v66.security;
-    if (num(security.lockedUntil) > Date.now()) {
-      const seconds = Math.ceil((num(security.lockedUntil) - Date.now()) / 1000);
-      if (error) error.textContent = `Слишком много попыток · подождите ${seconds} сек.`;
-      return;
-    }
-    const pinLength = num(state.settings?.v66?.security?.pinLength) || 4;
-    if (!(new RegExp(`^\\d{${pinLength}}$`)).test(input?.value || '')) { if (error) error.textContent = `Введите ${pinLength} цифры`; return; }
-    if (await v66CheckPin(input.value)) {
-      state.settings.v66.security.failedAttempts = 0;
-      state.settings.v66.security.lockedUntil = 0;
-      sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
-      save(); document.querySelector('.v66-lock')?.remove(); toast('Приложение разблокировано');
-    } else {
-      const failedAttempts = num(state.settings.v66.security.failedAttempts) + 1;
-      state.settings.v66.security.failedAttempts = failedAttempts;
-      if (failedAttempts >= 5) state.settings.v66.security.lockedUntil = Date.now() + Math.min(300000, 30000 * Math.pow(2, Math.floor((failedAttempts - 5) / 5)));
-      save(); input.value = '';
-      if (error) error.textContent = failedAttempts >= 5 ? 'Слишком много попыток · пауза 30 секунд' : 'Неверный PIN';
-    }
-  }
-
-  async function v66DisablePin() {
-    const pin = document.getElementById('v66_pin_current')?.value || '';
-    if (!(await v66CheckPin(pin))) return toast('Текущий PIN не подходит');
-    if (!window.confirm('Отключить PIN-защиту на этом устройстве?')) return;
-    state.settings.v66.security = { pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 };
-    sessionStorage.removeItem('secondBrainOS.v66.pinUnlockedAt');
-    save(); closeModal(); render(); toast('PIN-защита отключена');
-  }
-
-  function v66SavePinTimeout() {
-    state.settings.v66.security.autoLockMinutes = num(document.getElementById('v66_pin_timeout')?.value) || 15;
-    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
-    save(); closeModal(); render(); toast('Интервал сохранён');
-  }
-
-  function v66SleepPage() {
-    state.sleepEntries = arr('sleepEntries');
-    const target = num(state.settings.v66.sleepTarget) || 6;
-    const days = Array.from({ length: 14 }, (_, index) => iso(addDays(new Date(), index - 13)));
-    const map = new Map(state.sleepEntries.map(entry => [entry.date, entry]));
-    const last7 = days.slice(-7).map(date => map.get(date)).filter(entry => num(entry?.hours) > 0);
-    const average = last7.length ? last7.reduce((sum, entry) => sum + num(entry.hours), 0) / last7.length : 0;
-    const stable = last7.filter(entry => Math.abs(num(entry.hours) - target) <= 1).length;
-    const todayEntry = map.get(today()) || {};
-    const debt = last7.reduce((sum, entry) => sum + Math.max(0, target - num(entry.hours)), 0);
-    return layout('Сон', 'Количество часов, недельная динамика и спокойная рекомендация без выдуманных показателей.', `<section class="v66-sleep-page"><div class="v66-sleep-kpis"><article><span>Среднее · 7 дней</span><b>${average ? `${average.toFixed(1)} ч` : '—'}</b><small>${last7.length} ночей с данными</small></article><article><span>Минимальная цель</span><b>от ${target} ч</b><small>можно изменить ниже</small></article><article><span>Не ниже минимума</span><b>${last7.length ? `${last7.filter(entry => num(entry.hours) >= target).length}/${last7.length}` : '—'}</b><small>ритм важнее идеальности</small></article><article><span>Недобор · 7 дней</span><b>${last7.length ? `${debt.toFixed(1)} ч` : '—'}</b><small>сумма относительно минимума</small></article></div><div class="v66-sleep-layout"><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">Сегодня</span><h3>Зафиксировать сон</h3><p>Достаточно количества часов. Комментарий необязателен.</p></div></div><div class="v66-sleep-form"><label><span>Дата</span><input id="v66_sleep_date" type="date" value="${today()}"></label><label><span>Часов сна</span><input id="v66_sleep_hours" type="number" min="0.25" max="24" step="0.25" value="${esc(todayEntry.hours || '')}" placeholder="Например, 7.5"></label><label><span>Минимум, часов</span><input id="v66_sleep_target" type="number" min="4" max="12" step="0.25" value="${target}"></label><label class="is-wide"><span>Короткая заметка</span><input id="v66_sleep_note" value="${esc(todayEntry.note || '')}" placeholder="Например: поздно лёг, проснулся спокойно"></label></div><button class="v66-primary" data-v66-action="saveSleep" type="button">Сохранить сон</button><p class="v66-fineprint">Оценки самочувствия и медицинские выводы приложение не придумывает.</p></article><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">14 дней</span><h3>Динамика часов</h3><p>Пунктирный минимум — ${target} часов.</p></div></div><div class="v66-sleep-chart" style="--sleep-target:${Math.min(100, target / 12 * 100)}%">${days.map(date => { const hours = num(map.get(date)?.hours); return `<div title="${fmt(date)} · ${hours || 'нет данных'}"><span><i style="height:${hours ? Math.min(100, hours / 12 * 100) : 3}%"></i></span><small>${new Date(`${date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2)}</small></div>`; }).join('')}</div><div class="v66-sleep-history">${state.sleepEntries.slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 7).map(entry => `<article><span>${fmt(entry.date)}</span><b>${num(entry.hours).toFixed(1)} ч</b><small>${esc(entry.note || 'без заметки')}</small></article>`).join('') || '<p>Пока нет записей сна.</p>'}</div></article></div></section>`);
-  }
-
-  function v66SaveSleep() {
-    const date = document.getElementById('v66_sleep_date')?.value || today();
-    const hours = num(document.getElementById('v66_sleep_hours')?.value);
-    const target = num(document.getElementById('v66_sleep_target')?.value);
-    if (hours <= 0 || hours > 24) return toast('Укажите сон от 0,25 до 24 часов');
-    if (target < 4 || target > 12) return toast('Цель сна должна быть от 4 до 12 часов');
-    const existing = arr('sleepEntries').find(entry => entry.date === date) || {};
-    const record = { ...existing, id: existing.id || uid(), date, hours, note: cleanText(document.getElementById('v66_sleep_note')?.value), updatedAt: new Date().toISOString() };
-    state.sleepEntries = [record, ...arr('sleepEntries').filter(entry => entry.date !== date)];
-    state.settings.v66.sleepTarget = target;
-    save(); render(); toast('Сон сохранён');
-  }
-
-  const tradeRisk = () => state.settings.v66.tradingRisk;
-  const monday = date => { const value = new Date(`${date}T12:00:00`); return iso(addDays(value, -((value.getDay() + 6) % 7))); };
-
-  function v66TradeStats(mode) {
-    const trades = arr('trades').filter(trade => trade.mode === mode);
-    const closed = trades.filter(trade => num(trade.resultAmount) !== 0);
-    const wins = closed.filter(trade => num(trade.resultAmount) > 0);
-    const net = closed.reduce((sum, trade) => sum + num(trade.resultAmount), 0);
-    const followed = trades.filter(trade => trade.followedPlan === true || trade.followedPlan === 'true').length;
-    const violations = trades.filter(trade => trade.riskViolation).length;
-    return { trades, closed, wins, net, followed, violations, winRate: closed.length ? Math.round(wins.length / closed.length * 100) : 0 };
-  }
-
-  function v66TradingPage() {
-    state.trades = arr('trades');
-    const mode = state.settings.v66.tradeView === 'real' ? 'real' : 'demo';
-    const stats = v66TradeStats(mode);
-    const risk = tradeRisk();
-    const balance = num(risk.accountBalance);
-    const maxTrade = balance * num(risk.perTradePct) / 100;
-    const realTrades = arr('trades').filter(trade => trade.mode === 'real');
-    const dayLoss = realTrades.filter(trade => trade.date === today() && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
-    const weekStart = monday(today());
-    const weekLoss = realTrades.filter(trade => trade.date >= weekStart && trade.date <= today() && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
-    const dayLimit = balance * num(risk.dailyPct) / 100;
-    const weekLimit = balance * num(risk.weeklyPct) / 100;
-    return layout('Forex-журнал', 'Демо и реальные сделки разделены. Журнал оценивает соблюдение ваших правил, но не выдаёт торговых сигналов.', `<section class="v66-trading-page"><div class="v66-trade-hero"><div><span class="v65-overline">Контроль процесса</span><h2>${mode === 'demo' ? 'Демо-счёт' : 'Реальный счёт'}</h2><p>${mode === 'demo' ? 'Учитесь исполнять план без смешивания с реальными результатами.' : 'Перед каждой сделкой сверяйте риск и дневной лимит.'}</p><div class="v66-trade-tabs"><button class="${mode === 'demo' ? 'active' : ''}" data-v66-action="tradeMode" data-mode="demo" type="button">Демо</button><button class="${mode === 'real' ? 'active' : ''}" data-v66-action="tradeMode" data-mode="real" type="button">Реальный</button></div></div><div class="v66-trade-hero-actions"><button data-v66-action="openRisk" type="button">Лимиты риска</button><button class="v66-primary" data-v66-action="openTrade" type="button">＋ Записать сделку</button></div></div>${mode === 'real' ? `<div class="v66-risk-strip ${balance && dayLoss <= dayLimit && weekLoss <= weekLimit ? 'is-ok' : 'is-warn'}"><article class="v66-balance-cell"><span>Фактический баланс до сделок</span><div class="v66-inline-balance"><input id="v66_inline_balance" type="number" min="0.01" step="0.01" inputmode="decimal" value="${balance || ''}" placeholder="Введите баланс"><button data-v66-action="saveBalance" type="button">Сохранить</button></div><small>${balance ? `Сейчас: ${money(balance)}` : 'Нужен для расчёта лимитов риска'}</small></article><article><span>Макс. риск / сделка</span><b>${balance ? money(maxTrade) : '—'}</b></article><article><span>Убыток сегодня</span><b>${money(dayLoss)} / ${balance ? money(dayLimit) : '—'}</b></article><article><span>Убыток недели</span><b>${money(weekLoss)} / ${balance ? money(weekLimit) : '—'}</b></article></div>` : ''}<div class="v66-trade-kpis"><article><span>Сделок</span><b>${stats.trades.length}</b><small>${mode === 'demo' ? 'демо' : 'реальных'}</small></article><article><span>Результат</span><b class="${stats.net > 0 ? 'is-positive' : stats.net < 0 ? 'is-negative' : ''}">${stats.closed.length ? money(stats.net) : '—'}</b><small>по закрытым записям</small></article><article><span>Win rate</span><b>${stats.closed.length ? `${stats.winRate}%` : '—'}</b><small>${stats.closed.length} закрытых</small></article><article><span>Следование плану</span><b>${stats.trades.length ? `${stats.followed}/${stats.trades.length}` : '—'}</b><small>${stats.violations ? `${stats.violations} нарушений риска` : 'нарушений риска нет'}</small></article></div><div class="v66-trade-layout"><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">История</span><h3>${mode === 'demo' ? 'Демо-сделки' : 'Реальные сделки'}</h3></div><button data-v66-action="openTrade" type="button">＋ Добавить</button></div><div class="v66-trade-list">${stats.trades.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).map(trade => `<article class="${trade.riskViolation ? 'is-violation' : ''}"><div><span>${trade.direction === 'sell' ? '↓' : '↑'}</span><div><b>${esc(trade.pair || 'FOREX')}</b><small>${fmt(trade.date)} · ${trade.direction === 'sell' ? 'Sell' : 'Buy'} · риск ${money(trade.riskAmount)}</small></div></div><strong class="${num(trade.resultAmount) > 0 ? 'is-positive' : num(trade.resultAmount) < 0 ? 'is-negative' : ''}">${num(trade.resultAmount) ? money(trade.resultAmount) : 'без результата'}</strong><em>${trade.followedPlan === true || trade.followedPlan === 'true' ? 'план соблюдён' : 'план нарушен'}${trade.riskViolation ? ' · риск превышен' : ''}${trade.screenshotsComplete ? ' · фото до/после' : (num(trade.resultAmount) ? ' · нужны фото' : '')}</em><div><button data-v66-action="openTrade" data-id="${esc(trade.id)}" type="button">Открыть</button><button data-v66-action="deleteTrade" data-id="${esc(trade.id)}" type="button">Удалить</button></div></article>`).join('') || '<p class="v66-empty">Сделок в этом режиме пока нет.</p>'}</div></article><aside class="v66-panel v66-trade-rules"><div class="v66-panel-head"><div><span class="v65-overline">Правила</span><h3>Перед реальной сделкой</h3></div></div><ol><li><b>План</b><span>Пара, направление, вход, Stop Loss и Take Profit записаны заранее.</span></li><li><b>Скриншоты</b><span>Сохраняйте график до входа и после выхода для честного разбора.</span></li><li><b>Риск</b><span>Не выше ${num(risk.perTradePct)}% баланса на одну сделку.</span></li><li><b>Стоп дня</b><span>После убытка ${num(risk.dailyPct)}% новые реальные сделки не открываются.</span></li><li><b>Стоп недели</b><span>После убытка ${num(risk.weeklyPct)}% — разбор, а не попытка отыграться.</span></li></ol><p class="v66-fineprint">Это журнал дисциплины и финансовой грамотности, а не инвестиционная рекомендация.</p></aside></div></section>`);
-  }
-
-  function v66SaveInlineBalance() {
-    const input = document.getElementById('v66_inline_balance');
-    const accountBalance = num(input?.value);
-    if (accountBalance <= 0) {
-      input?.focus();
-      return toast('Введите фактический баланс больше нуля');
-    }
-    state.settings.v66.tradingRisk = Object.assign({}, tradeRisk(), { accountBalance });
-    save();
-    render();
-    toast('Фактический баланс сохранён');
-  }
-
-  function v66OpenRisk() {
-    const risk = tradeRisk();
-    openModal('Лимиты риска Forex', `<div class="v66-risk-form"><p>Значения используются только для предупреждений и статистики. По умолчанию установлены осторожные лимиты, их нужно подтвердить под вашу стратегию.</p><label><span>Баланс реального счёта, ₽</span><input id="v66_risk_balance" type="number" min="0" value="${num(risk.accountBalance) || ''}"></label><label><span>Максимум на сделку, %</span><input id="v66_risk_trade" type="number" min="0.1" max="10" step="0.1" value="${num(risk.perTradePct)}"></label><label><span>Стоп на день, %</span><input id="v66_risk_day" type="number" min="0.1" max="20" step="0.1" value="${num(risk.dailyPct)}"></label><label><span>Стоп на неделю, %</span><input id="v66_risk_week" type="number" min="0.1" max="30" step="0.1" value="${num(risk.weeklyPct)}"></label><div class="v66-vault-actions"><button class="is-primary" data-v66-action="saveRisk" type="button">Сохранить лимиты</button><button data-v66-action="closeModal" type="button">Отмена</button></div></div>`);
-  }
-
-  function v66SaveRisk() {
-    const values = { accountBalance: num(document.getElementById('v66_risk_balance')?.value), perTradePct: num(document.getElementById('v66_risk_trade')?.value), dailyPct: num(document.getElementById('v66_risk_day')?.value), weeklyPct: num(document.getElementById('v66_risk_week')?.value) };
-    if (values.accountBalance < 0 || values.perTradePct <= 0 || values.dailyPct <= 0 || values.weeklyPct <= 0) return toast('Проверьте баланс и проценты');
-    if (values.perTradePct > values.dailyPct || values.dailyPct > values.weeklyPct) return toast('Лимиты должны расти: сделка ≤ день ≤ неделя');
-    state.settings.v66.tradingRisk = values;
-    save(); closeModal(); render(); toast('Лимиты риска сохранены');
-  }
-
-  const v66ReadAsDataUrl = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Не удалось прочитать изображение'));
-    reader.readAsDataURL(file);
-  });
-
-  async function v66CompressTradeImage(inputId) {
-    const file = document.getElementById(inputId)?.files?.[0];
-    if (!file) return '';
-    if (!/^image\//i.test(file.type)) throw new Error('Выберите изображение');
-    if (file.size > 12 * 1024 * 1024) throw new Error('Скриншот больше 12 МБ');
-    if (typeof createImageBitmap !== 'function') {
-      if (file.size > 450 * 1024) throw new Error('На этом устройстве выберите скриншот меньше 450 КБ');
-      return v66ReadAsDataUrl(file);
-    }
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 900 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close?.();
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .68));
-    if (!blob) throw new Error('Не удалось сжать скриншот');
-    if (blob.size > 500 * 1024) throw new Error('После сжатия скриншот всё ещё слишком большой');
-    return v66ReadAsDataUrl(blob);
-  }
-
-  function v66OpenTrade(id = '') {
-    if (!id && window.SecondBrainLife?.beforeOpenTrade && window.SecondBrainLife.beforeOpenTrade(state.settings.v66.tradeView || 'demo') === false) return;
-    const trade = id ? arr('trades').find(item => String(item.id) === String(id)) || {} : { date: today(), mode: state.settings.v66.tradeView || 'demo', direction: 'buy', followedPlan: 'true' };
-    openModal(id ? 'Редактировать сделку' : 'Записать сделку', `<div class="v66-trade-form"><label><span>Режим</span><select id="v66_trade_mode"><option value="demo" ${trade.mode !== 'real' ? 'selected' : ''}>Демо</option><option value="real" ${trade.mode === 'real' ? 'selected' : ''}>Реальный</option></select></label><label><span>Дата</span><input id="v66_trade_date" type="date" value="${esc(trade.date || today())}"></label><label><span>Валютная пара</span><input id="v66_trade_pair" value="${esc(trade.pair || '')}" placeholder="EUR/USD"></label><label><span>Направление</span><select id="v66_trade_direction"><option value="buy" ${trade.direction !== 'sell' ? 'selected' : ''}>Buy</option><option value="sell" ${trade.direction === 'sell' ? 'selected' : ''}>Sell</option></select></label><label><span>Вход</span><input id="v66_trade_entry" type="number" step="any" value="${esc(trade.entry || '')}"></label><label><span>Stop Loss</span><input id="v66_trade_stop" type="number" step="any" value="${esc(trade.stopLoss || '')}"></label><label><span>Take Profit</span><input id="v66_trade_take" type="number" step="any" value="${esc(trade.takeProfit || '')}"></label><label><span>Риск, ₽</span><input id="v66_trade_risk" type="number" min="0" step="any" value="${esc(trade.riskAmount || '')}"></label><label><span>Результат, ₽</span><input id="v66_trade_result" type="number" step="any" value="${esc(trade.resultAmount ?? '')}" placeholder="Можно заполнить после закрытия"></label><label><span>План соблюдён?</span><select id="v66_trade_plan"><option value="true" ${trade.followedPlan !== false && trade.followedPlan !== 'false' ? 'selected' : ''}>Да</option><option value="false" ${trade.followedPlan === false || trade.followedPlan === 'false' ? 'selected' : ''}>Нет</option></select></label><label class="is-wide"><span>Сетап / причина входа</span><textarea id="v66_trade_setup" placeholder="Что должно было произойти по плану?">${esc(trade.setup || '')}</textarea></label><label><span>Эмоция</span><input id="v66_trade_emotion" value="${esc(trade.emotion || '')}" placeholder="Спокойствие, страх, FOMO…"></label><label><span>Короткий разбор</span><textarea id="v66_trade_note" placeholder="Что повторить или изменить?">${esc(trade.note || '')}</textarea></label><section class="v66-trade-images is-wide"><article><span>Скриншот до сделки</span>${trade.beforeImage ? `<img src="${esc(trade.beforeImage)}" alt="Скриншот до сделки"><label><input id="v66_trade_remove_before" type="checkbox"> удалить текущий</label>` : '<small>План и контекст графика</small>'}<input id="v66_trade_before" type="file" accept="image/*"></article><article><span>Скриншот после сделки</span>${trade.afterImage ? `<img src="${esc(trade.afterImage)}" alt="Скриншот после сделки"><label><input id="v66_trade_remove_after" type="checkbox"> удалить текущий</label>` : '<small>Результат и точка выхода</small>'}<input id="v66_trade_after" type="file" accept="image/*"></article></section></div><div class="v66-vault-actions"><button class="is-primary" data-v66-action="saveTrade" data-id="${esc(id)}" type="button">Сохранить сделку</button><button data-v66-action="closeModal" type="button">Отмена</button></div>`);
-  }
-
-  async function v66SaveTrade(id = '') {
-    const value = field => document.getElementById(field)?.value || '';
-    const existing = id ? arr('trades').find(item => String(item.id) === String(id)) || {} : {};
-    const mode = value('v66_trade_mode') === 'real' ? 'real' : 'demo';
-    if (!id && mode === 'real' && window.SecondBrainLife?.canSaveRealTrade && window.SecondBrainLife.canSaveRealTrade(mode) === false) return;
-    const pair = cleanText(value('v66_trade_pair')).toUpperCase();
-    const riskAmount = num(value('v66_trade_risk'));
-    if (!pair || !value('v66_trade_date')) return toast('Укажите валютную пару и дату');
-    const risk = tradeRisk();
-    if (mode === 'real' && num(risk.accountBalance) <= 0) return toast('Сначала укажите баланс реального счёта в лимитах риска');
-    if (mode === 'real' && riskAmount <= 0) return toast('Для реальной сделки укажите риск');
-    const maxRisk = num(risk.accountBalance) * num(risk.perTradePct) / 100;
-    if (mode === 'real') {
-      const realTrades = arr('trades').filter(trade => trade.mode === 'real' && String(trade.id) !== String(existing.id || ''));
-      const dayLoss = realTrades.filter(trade => trade.date === value('v66_trade_date') && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
-      const weekStart = monday(value('v66_trade_date'));
-      const weekLoss = realTrades.filter(trade => trade.date >= weekStart && trade.date <= value('v66_trade_date') && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
-      const warnings = [];
-      if (riskAmount > maxRisk) warnings.push(`риск сделки ${money(riskAmount)} выше лимита ${money(maxRisk)}`);
-      if (dayLoss >= num(risk.accountBalance) * num(risk.dailyPct) / 100) warnings.push('дневной стоп уже достигнут');
-      if (weekLoss >= num(risk.accountBalance) * num(risk.weeklyPct) / 100) warnings.push('недельный стоп уже достигнут');
-      if (warnings.length && !window.confirm(`Нарушение правил риска:\n\n• ${warnings.join('\n• ')}\n\nСохранить запись реальной сделки после дополнительного подтверждения?`)) return;
-    }
-    let beforeImage = document.getElementById('v66_trade_remove_before')?.checked ? '' : (existing.beforeImage || '');
-    let afterImage = document.getElementById('v66_trade_remove_after')?.checked ? '' : (existing.afterImage || '');
-    try {
-      beforeImage = await v66CompressTradeImage('v66_trade_before') || beforeImage;
-      afterImage = await v66CompressTradeImage('v66_trade_after') || afterImage;
-    } catch (error) { return toast(error.message || 'Не удалось обработать скриншот'); }
-    const resultAmount = num(value('v66_trade_result'));
-    const record = { ...existing, id: existing.id || uid(), mode, date: value('v66_trade_date'), pair, direction: value('v66_trade_direction') === 'sell' ? 'sell' : 'buy', entry: num(value('v66_trade_entry')), stopLoss: num(value('v66_trade_stop')), takeProfit: num(value('v66_trade_take')), riskAmount, resultAmount, followedPlan: value('v66_trade_plan') === 'true', setup: cleanText(value('v66_trade_setup')), emotion: cleanText(value('v66_trade_emotion')), note: cleanText(value('v66_trade_note')), beforeImage, afterImage, screenshotsComplete: Boolean(beforeImage && afterImage), riskLimitAtEntry: maxRisk, riskViolation: mode === 'real' && riskAmount > maxRisk, lossReviewRequired: mode === 'real' && resultAmount < 0 && !existing.lossReview?.completedAt, updatedAt: new Date().toISOString(), createdAt: existing.createdAt || new Date().toISOString() };
-    state.trades = [record, ...arr('trades').filter(item => String(item.id) !== String(record.id))];
-    state.settings.v66.tradeView = mode;
-    save(); closeModal(); render();
-    toast(record.riskViolation ? 'Сделка сохранена с предупреждением о риске' : (resultAmount && !record.screenshotsComplete ? 'Сделка сохранена · добавьте скриншоты до и после' : 'Сделка сохранена'));
-  }
-
-  function v66DeleteTrade(id) {
-    const trade = arr('trades').find(item => String(item.id) === String(id));
-    if (!trade || !window.confirm(`Удалить запись ${trade.pair || 'FOREX'} за ${fmt(trade.date)}?`)) return;
-    state.trades = arr('trades').filter(item => String(item.id) !== String(id));
-    save(); render(); toast('Запись сделки удалена');
-  }
-
-  function v66OpenAccountInfo() {
-    if (window.SecondBrainCloud?.openAccount) return window.SecondBrainCloud.openAccount();
-    openModal('Аккаунт и синхронизация', `<div class="v66-account-info"><section><span>◎</span><div><h3>Windows + iPhone</h3><p>Для настоящего входа и синхронизации нужен серверный проект, HTTPS-домен и настройки OAuth. Интерфейс не будет имитировать подключение, которого нет.</p></div></section><div><article><b>Email</b><small>требует почтового подтверждения и восстановления доступа</small><em>готовится</em></article><article><b>Google</b><small>требует OAuth Client ID и разрешённых доменов</small><em>готовится</em></article><article><b>Apple</b><small>требует Apple Developer Service ID и private key на сервере</small><em>готовится</em></article></div><p>До подключения сервера используйте локальный PIN и резервные копии. Токены нельзя хранить в ZIP или клиентском JavaScript.</p></div>`);
-  }
-
-  function v66OpenNotifications() {
-    const settings = state.settings.v66.notifications;
-    const permission = typeof Notification === 'undefined' ? 'не поддерживается' : ({ granted: 'разрешены', denied: 'запрещены', default: 'не запрошены' }[Notification.permission] || Notification.permission);
-    openModal('Ритм уведомлений', `<div class="v66-notifications"><section><span>◷</span><div><h3>iPhone — основной канал</h3><p>Утренний план в ${esc(settings.morning)} и короткий итог в ${esc(settings.evening)}. Пока сервер не подключён, уведомления сработают только когда PWA или вкладка активны.</p></div></section><label><span>Утренний план</span><input id="v66_notify_morning" type="time" value="${esc(settings.morning || '09:00')}"></label><label><span>Вечерний итог</span><input id="v66_notify_evening" type="time" value="${esc(settings.evening || '20:00')}"></label><div class="v66-notification-status"><span>Разрешение браузера</span><b>${esc(permission)}</b></div><div class="v66-vault-actions"><button data-v66-action="requestNotifications" type="button">Разрешить уведомления</button><button class="is-primary" data-v66-action="saveNotifications" type="button">Сохранить время</button></div><p class="v66-vault-note">Для фоновых push-уведомлений на закрытом iPhone потребуется серверная подписка Web Push и установленное PWA.</p></div>`);
-  }
-
-  async function v66RequestNotifications() {
-    if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) return toast('Уведомления не поддерживаются в этом браузере');
-    const permission = await Notification.requestPermission();
-    state.settings.v66.notifications.enabled = permission === 'granted';
-    save();
-    if (permission !== 'granted') return toast('Разрешение не выдано');
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification('Second Brain OS', { body: 'Уведомления включены. План — 09:00, итог — 20:00.', tag: 'sbos-notification-test', icon: './icon-192-v71.png' });
-    } catch (error) {}
-    v66OpenNotifications();
-  }
-
-  function v66SaveNotifications() {
-    const morning = document.getElementById('v66_notify_morning')?.value || '09:00';
-    const evening = document.getElementById('v66_notify_evening')?.value || '20:00';
-    state.settings.v66.notifications = { ...state.settings.v66.notifications, morning, evening, channel: 'iphone' };
-    save(); closeModal(); render(); toast('Время уведомлений сохранено');
-  }
-
-  async function v66NotificationTick() {
-    if (window.SecondBrainLife?.notificationTick) return window.SecondBrainLife.notificationTick();
-    const settings = state.settings?.v66?.notifications || {};
-    if (!settings.enabled || typeof Notification === 'undefined' || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
-    const now = new Date();
-    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const kind = time === settings.morning ? 'morning' : time === settings.evening ? 'evening' : '';
-    if (!kind) return;
-    const key = `secondBrainOS.v66.notification.${today()}.${kind}`;
-    if (localStorage.getItem(key)) return;
-    localStorage.setItem(key, new Date().toISOString());
-    const registration = await navigator.serviceWorker.ready;
-    await registration.showNotification(kind === 'morning' ? 'План утра' : 'Итог вечера', {
-      body: kind === 'morning' ? 'Откройте короткий порядок дня и выберите главный шаг.' : 'Зафиксируйте результат дня и первый шаг на завтра.',
-      tag: `sbos-${kind}-${today()}`, icon: './icon-192-v71.png', data: { url: kind === 'morning' ? './#dashboard' : './#dashboard' }
+  function v65DebtOrder(items) {
+    return items.slice().sort((a, b) => {
+      const aOverdue = a.due && a.due < today() ? 0 : 1;
+      const bOverdue = b.due && b.due < today() ? 0 : 1;
+      return aOverdue - bOverdue || num(b.rate) - num(a.rate) || String(a.due || '9999').localeCompare(String(b.due || '9999')) || num(b.amount) - num(a.amount);
     });
   }
 
-  function v66DebtAdviceHtml() {
-    const outgoing = (typeof activeDebts === 'function' ? activeDebts() : arr('debts')).filter(item => item.direction === 'out');
-    const budget = num(state.settings?.v65?.debtMonthlyBudget);
-    const minimumTotal = outgoing.reduce((sum, item) => sum + num(item.minPayment), 0);
+  function v65DebtReason(item) {
+    if (item.due && item.due < today()) return 'просрочен — первый приоритет';
+    if (num(item.rate) > 0) return `ставка ${num(item.rate)}% · затем срок`;
+    if (item.due) return `ближайший срок ${fmt(item.due)}`;
+    return 'добавьте срок или ставку для точного приоритета';
+  }
+
+  function v65DebtsPage() {
+    const outgoing = v65DebtOrder(activeDebts().filter(item => item.direction === 'out'));
+    const incoming = activeDebts().filter(item => item.direction === 'in').slice().sort((a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')));
+    const totalOut = outgoing.reduce((sum, item) => sum + num(item.amount), 0);
+    const totalIn = incoming.reduce((sum, item) => sum + num(item.amount), 0);
     const overdue = outgoing.filter(item => item.due && item.due < today());
-    const highRate = outgoing.slice().sort((a, b) => num(b.rate) - num(a.rate))[0];
-    const soon = outgoing.filter(item => item.due && item.due >= today() && item.due <= iso(addDays(new Date(), 14))).sort((a, b) => String(a.due).localeCompare(String(b.due)))[0];
-    const smallest = outgoing.slice().sort((a, b) => num(a.amount) - num(b.amount))[0];
-    let title = 'Добавьте долги для рекомендации';
-    let detail = 'Помощник сравнит просрочку, обязательные платежи, ставку, срок и психологическую нагрузку.';
-    let method = 'ожидаю данные';
-    if (overdue.length) {
-      title = `Сначала остановить просрочку: ${overdue[0].person || 'долг'}`;
-      detail = 'Просрочка важнее экономии по ставке: уточните сумму, штрафы и минимальный платёж, затем пересчитайте план.';
-      method = 'защита от штрафов';
-    } else if (budget && minimumTotal > budget) {
-      title = 'Бюджета не хватает на минимальные платежи';
-      detail = `Не хватает ${money(minimumTotal - budget)}. Приоритет — обязательные минимумы и ранний контакт с кредиторами, а не досрочное погашение.`;
-      method = 'стабилизация';
-    } else if (highRate && num(highRate.rate) > 0) {
-      title = `Основной удар по ставке: ${highRate.person || 'долг'}`;
-      detail = `${num(highRate.rate)}% годовых — после всех минимумов направляйте свободный бюджет сюда, если рядом нет критичного срока.`;
-      method = 'лавина';
-    } else if (soon) {
-      title = `Ближайший срок: ${soon.person || 'долг'}`;
-      detail = `Срок ${fmt(soon.due)}. Сначала обеспечьте этот платёж, затем распределяйте остаток.`;
-      method = 'по сроку';
-    } else if (smallest) {
-      title = `Можно быстро закрыть: ${smallest.person || 'долг'}`;
-      detail = 'При одинаковых рисках небольшой долг можно закрыть первым, чтобы освободить внимание и один обязательный платёж.';
-      method = 'маленькая победа';
-    }
-    return `<section class="v66-debt-advice"><span>✦</span><div><small>Динамическая рекомендация · ${esc(method)}</small><h3>${esc(title)}</h3><p>${esc(detail)}</p></div><button data-v66-action="openDebtMethod" type="button">Как выбрано</button></section>`;
+    const weekEnd = iso(addDays(new Date(), 7));
+    const dueSoon = outgoing.filter(item => item.due && item.due >= today() && item.due <= weekEnd);
+    const monthlyBudget = num(state.settings.v65?.debtMonthlyBudget);
+    const minimumTotal = outgoing.reduce((sum, item) => sum + num(item.minPayment), 0);
+    const extra = Math.max(0, monthlyBudget - minimumTotal);
+    return layout('Долги', 'Учёт, приоритеты, предупреждения и план погашения без скрытых допущений.', `
+      <section class="v65-debt-hero"><div><span class="v65-kicker">↙ План обязательств</span><h2>${overdue.length ? 'Сначала закрываем просроченное' : dueSoon.length ? 'Есть сроки в ближайшие 7 дней' : outgoing.length ? 'План можно выполнять спокойно' : 'Активных долгов нет'}</h2><p>Приоритет: просрочка → высокая ставка → ближайший срок. Если ставка или минимальный платёж не заполнены, система прямо сообщает об этом.</p><div class="v65-finance-actions"><button class="v65-primary-action" data-action="openDebtOut" type="button">＋ Я должен</button><button data-action="openDebtIn" type="button">＋ Мне должны</button></div></div><aside><span>Общий долг</span><strong>${outgoing.length ? money(totalOut) : '—'}</strong><small>${overdue.length ? `${overdue.length} просрочено` : dueSoon.length ? `${dueSoon.length} скоро` : 'критичных сроков нет'}</small></aside></section>
+      <section class="v65-money-kpis"><article><span>Я должен</span><strong>${outgoing.length ? money(totalOut) : '—'}</strong><small>${outgoing.length} активных</small></article><article><span>Мне должны</span><strong>${incoming.length ? money(totalIn) : '—'}</strong><small>${incoming.length} активных</small></article><article><span>Просрочено</span><strong>${overdue.length ? money(overdue.reduce((sum, item) => sum + num(item.amount), 0)) : '—'}</strong><small>${overdue.length} обязательств</small></article><article><span>7 дней</span><strong>${dueSoon.length ? money(dueSoon.reduce((sum, item) => sum + num(item.amount), 0)) : '—'}</strong><small>${dueSoon.length} ближайших сроков</small></article></section>
+      <section class="v65-debt-layout"><article class="v65-card v65-debt-plan"><div class="v65-card-head"><div><span class="v65-overline">План погашения</span><h3>Приоритеты и платёж месяца</h3><p>${monthlyBudget && minimumTotal > monthlyBudget ? `Бюджет ниже суммы минимальных платежей на ${money(minimumTotal - monthlyBudget)}.` : 'Укажите сумму, которую реально готовы направлять на долги.'}</p></div></div><div class="v65-debt-budget"><label><span>Бюджет на погашение в месяц</span><input id="v65_debt_budget" type="number" min="0" value="${monthlyBudget || ''}" placeholder="Например, 30 000"></label><button data-v65-action="saveDebtBudget" type="button">Сохранить</button></div><div class="v65-debt-priority-list">${outgoing.map((item, index) => { const minimum = num(item.minPayment); const suggested = monthlyBudget ? (minimumTotal && monthlyBudget < minimumTotal ? monthlyBudget * minimum / minimumTotal : minimum + (index === 0 ? extra : 0)) : 0; return `<article class="${item.due && item.due < today() ? 'is-overdue' : ''}"><span class="v65-debt-rank">${index + 1}</span><div><b>${esc(item.person || 'Долг')}</b><small>${esc(v65DebtReason(item))}</small><em>${minimum ? `минимум ${money(minimum)}` : 'минимальный платёж не указан'}</em></div><strong>${money(item.amount)}</strong><div class="v65-debt-suggest"><span>План месяца</span><b>${suggested ? money(Math.min(num(item.amount), suggested)) : '—'}</b></div><div class="v65-debt-tools"><button data-action="editRecord" data-type="debt" data-id="${esc(item.id)}" type="button">Изменить</button><button data-action="debtReminder" data-id="${esc(item.id)}" type="button">Напомнить</button><button data-action="closeDebt" data-id="${esc(item.id)}" type="button">Закрыть</button></div></article>`; }).join('') || '<p class="v65-finance-empty">Добавьте долг, чтобы построить план.</p>'}</div><p class="v65-assistant-disclaimer">План не учитывает проценты, если ставка не заполнена. Перед платежом сверяйте сумму с банком или кредитором.</p></article><aside class="v65-card v65-debt-incoming"><div class="v65-card-head"><div><span class="v65-overline">Возвраты</span><h3>Мне должны</h3></div><button data-action="openDebtIn" type="button">＋ Добавить</button></div><div>${incoming.map(item => `<article><div><b>${esc(item.person || 'Человек')}</b><small>${item.due ? `до ${fmt(item.due)}` : 'срок не указан'}</small></div><strong>${money(item.amount)}</strong><button data-action="debtReminder" data-id="${esc(item.id)}" type="button">Напомнить</button></article>`).join('') || '<p class="v65-finance-empty">Активных возвратов нет.</p>'}</div></aside></section>`);
   }
 
-  function v66OpenDebtMethod() {
-    openModal('Как помощник выбирает приоритет долга', '<div class="v66-debt-method"><p>Рекомендация пересчитывается при изменении данных и не использует один метод всегда.</p><ol><li><b>1. Просрочка и штрафы</b><span>Сначала убирается риск ухудшения ситуации.</span></li><li><b>2. Минимальные платежи</b><span>План должен покрывать обязательный минимум.</span></li><li><b>3. Высокая ставка</b><span>Экономия процентов методом лавины.</span></li><li><b>4. Близкий срок</b><span>Платёж, который нельзя отложить.</span></li><li><b>5. Небольшой долг</b><span>Быстрое закрытие, если финансовые риски сопоставимы.</span></li></ol><p>Перед фактическим платежом сверяйте сумму и условия с банком или кредитором.</p></div>');
+  function v65SaveDebtBudget() {
+    state.settings.v65 = state.settings.v65 || {};
+    state.settings.v65.debtMonthlyBudget = Math.max(0, num(document.getElementById('v65_debt_budget')?.value));
+    save(); render(); toast('Бюджет погашения сохранён');
   }
 
-  function v66SystemCards() {
-    const security = state.settings.v66.security;
-    const lastRestore = state.settings.v66.lastRestore;
-    const notifications = state.settings.v66.notifications;
-    return `<section class="v66-system-grid"><article><span>⛨</span><div><b>Хранилище данных</b><small>${lastRestore ? `последнее восстановление ${new Date(lastRestore.at).toLocaleString('ru-RU')}` : 'предпросмотр, выбор разделов и безопасное объединение'}</small></div><button data-v66-action="openVault" type="button">Открыть</button></article><article><span>●</span><div><b>PIN устройства</b><small>${security.pinEnabled ? `включён · блокировка через ${num(security.autoLockMinutes)} минут` : 'пока выключен · PIN хранится только в виде хеша'}</small></div><button data-v66-action="openSecurity" type="button">${security.pinEnabled ? 'Настроить' : 'Включить'}</button></article><article><span>◷</span><div><b>Ритм уведомлений</b><small>${notifications.morning} план · ${notifications.evening} итог · iPhone</small></div><button data-v66-action="openNotifications" type="button">Настроить</button></article><article data-v66-account-card><span>◎</span><div><b>Вход по аккаунту</b><small>Email, Google и Apple · проверяем подключение</small></div><button data-v66-action="openAccountInfo" type="button">Статус</button></article></section>`;
+  const V65_HABIT_STARTERS = {
+    sleep: { name: 'Сон по режиму', area: 'Здоровье', icon: '☾', color: '#446fd7' },
+    plan: { name: 'План дня', area: 'Самоорганизация', icon: '☷', color: '#2f7ee9' },
+    clean: { name: 'Без алкоголя и наркотиков', area: 'Здоровье', icon: '◇', color: '#18a779' },
+    reading: { name: 'Чтение', area: 'Личное развитие', icon: '▤', color: '#7c5bd6' },
+    trading: { name: 'Обучение трейдингу', area: 'Финансовая грамотность', icon: '↗', color: '#d89428' }
+  };
+
+  const V65_GOAL_STARTERS = {
+    income: { title: 'Доход 300 000 ₽ в месяц', area: 'Финансы', kind: 'Финансовая', target: 300000, current: 0, deadline: '2026-12-31', note: 'Источники: трейдинг и подработки. Работу по найму в расчёт не включать.' },
+    trading: { title: 'Обучиться трейдингу и получить первый доход', area: 'Трейдинг', kind: 'Личная', target: 1, current: 0, deadline: '2026-12-31', note: 'Сначала обучение и риск-менеджмент, затем только подтверждённый результат.' }
+  };
+
+  function v65AddStarterHabit(key) {
+    const starter = V65_HABIT_STARTERS[key];
+    if (!starter) return;
+    if (list('habits').some(item => lower(item.name) === lower(starter.name))) return toast('Такая привычка уже есть');
+    state.habits = list('habits');
+    state.habits.push({ id: uid(), ...starter, marks: {} });
+    save(); render(); toast(`Добавлена привычка «${starter.name}»`);
   }
 
-  function v66NavButton(route, icon, label, color) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `v59-nav-item v66-nav-item ${(location.hash || '').replace('#', '') === route ? 'active' : ''}`;
-    button.dataset.go = route;
-    button.innerHTML = `<span class="v59-nav-ico" style="background:${color}">${icon}</span><span class="label">${label}</span><span></span>`;
-    return button;
+  function v65AddStarterGoal(key) {
+    const starter = V65_GOAL_STARTERS[key];
+    if (!starter) return;
+    if (list('goals').some(item => lower(item.title) === lower(starter.title))) return toast('Такая цель уже есть');
+    state.goals = list('goals');
+    state.goals.unshift({ id: uid(), ...starter });
+    save(); render(); toast(`Добавлена цель «${starter.title}»`);
   }
 
-  function v66InjectNavigation() {
-    const nav = document.querySelector('.v59-nav-scroll');
-    if (!nav) return;
-    if (!nav.querySelector('[data-go="trading"]')) {
-      const finance = nav.querySelector('.v59-nav-item[data-go="finance"]');
-      finance?.insertAdjacentElement('afterend', v66NavButton('trading', '↗', 'Трейдинг', 'linear-gradient(135deg,#5b49d8,#8b5cf6)'));
-    }
-    if (!nav.querySelector('[data-go="sleep"]')) {
-      const habits = nav.querySelector('.v59-nav-item[data-go="habits"]');
-      habits?.insertAdjacentElement('afterend', v66NavButton('sleep', '☾', 'Сон', 'linear-gradient(135deg,#2864a8,#38bdf8)'));
-    }
-    const route = (location.hash || '').replace('#', '') || page || 'dashboard';
-    nav.querySelectorAll('.v59-nav-item').forEach(button => button.classList.toggle('active', button.dataset.go === route));
-  }
-
-  function v66PostRender() {
-    document.body.classList.add('v66-safe-core');
-    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
-    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
-    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
-    const v67Active = document.body.classList.contains('v67-cloud-safe');
-    if (!v67Active) {
-      document.body.dataset.sbosBuild = V66_BUILD;
-      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', V66_BUILD);
-    }
-    const version = document.querySelector('.v59-version,.version');
-    if (version) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : (v67Active ? 'V67.8 · LIVING PERSONAL OS' : V66_LABEL)));
-    const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : (v67Active ? 'V67.8' : 'V66')));
-    v66InjectNavigation();
+  function v65InjectPersonalSetup() {
     const route = (location.hash || '').replace('#', '') || page || 'dashboard';
     const view = document.getElementById('view');
-    if (!view) return;
-    if (route === 'trading' && !view.querySelector('.v66-trading-page')) view.innerHTML = v66TradingPage();
-    if (route === 'sleep' && !view.querySelector('.v66-sleep-page')) view.innerHTML = v66SleepPage();
-    const hero = view.querySelector('.hero,.v59-hero,.v60-hero');
-    if (route === 'system' && hero && !view.querySelector('.v66-system-grid')) {
-      const anchor = view.querySelector('.v65-sync-card') || hero;
-      anchor.insertAdjacentHTML('afterend', v66SystemCards());
+    const hero = view?.querySelector('.v59-hero,.hero');
+    if (!view || !hero) return;
+    if (route === 'habits' && !view.querySelector('.v65-habit-starters')) {
+      hero.insertAdjacentHTML('afterend', `<section class="v65-habit-starters"><div><span class="v65-overline">Ваш основной ритм</span><h3>Привычки, которые вы назвали главными</h3><p>Добавляются только по нажатию. Существующие привычки не меняются.</p></div><div>${Object.entries(V65_HABIT_STARTERS).map(([key, starter]) => { const exists = list('habits').some(item => lower(item.name) === lower(starter.name)); return `<button ${exists ? 'disabled' : `data-v65-action="addStarterHabit" data-key="${key}"`} type="button"><span style="--starter:${starter.color}">${starter.icon}</span><b>${esc(starter.name)}</b><small>${exists ? 'уже добавлена' : 'добавить'}</small></button>`; }).join('')}</div></section>`);
     }
-    if (route === 'debts' && hero && !view.querySelector('.v66-debt-advice')) hero.insertAdjacentHTML('afterend', v66DebtAdviceHtml());
-    if (route === 'finance' && hero && !view.querySelector('.v66-route-card')) hero.insertAdjacentHTML('afterend', '<section class="v66-route-card"><span>↗</span><div><b>Forex-журнал</b><small>Демо и реальные сделки, дисциплина и лимиты риска</small></div><button data-go="trading" type="button">Открыть</button></section>');
-    if (route === 'habits' && hero && !view.querySelector('.v66-route-card')) hero.insertAdjacentHTML('afterend', '<section class="v66-route-card"><span>☾</span><div><b>Сон в часах</b><small>Короткая фиксация и динамика за 14 дней</small></div><button data-go="sleep" type="button">Открыть</button></section>');
-    v66EnsureLock();
+    if (route === 'goals' && !view.querySelector('.v65-goal-starters')) {
+      hero.insertAdjacentHTML('afterend', `<section class="v65-goal-starters"><div><span class="v65-overline">Ориентиры до конца 2026 года</span><h3>Доход и трейдинг</h3><p>Цели появятся в системе только после вашего нажатия.</p></div>${Object.entries(V65_GOAL_STARTERS).map(([key, starter]) => { const exists = list('goals').some(item => lower(item.title) === lower(starter.title)); return `<article><span>${key === 'income' ? '₽' : '↗'}</span><div><b>${esc(starter.title)}</b><small>до ${fmt(starter.deadline)} · ${esc(starter.note)}</small></div><button ${exists ? 'disabled' : `data-v65-action="addStarterGoal" data-key="${key}"`} type="button">${exists ? 'Добавлена' : 'Добавить цель'}</button></article>`; }).join('')}</section>`);
+    }
+    if (route === 'system' && !view.querySelector('.v65-sync-card')) {
+      const sync = state.settings?.sync || {};
+      hero.insertAdjacentHTML('afterend', `<section class="v65-sync-card"><div><span>⇄</span><div><b>Синхронизация между устройствами</b><small>${sync.gistId ? (sync.auto ? 'автоматическая синхронизация включена' : 'подключение настроено, автоматический режим выключен') : 'пока не настроена — локальные данные продолжают работать'}</small></div></div><button data-go="personal" type="button">Настроить</button></section>`);
+    }
   }
 
-  function v66SchedulePost() {
-    if (postQueued) return;
-    postQueued = true;
-    requestAnimationFrame(() => { postQueued = false; v66PostRender(); });
-  }
+  function v65Dashboard() {
+    const allTasks = list('tasks').filter(personalOnly);
+    const openTasks = allTasks.filter(item => !statusDone(item));
+    const todayTasks = openTasks.filter(item => item.date === today()).sort((a, b) => taskPriority(a) - taskPriority(b));
+    const overdue = openTasks.filter(item => item.date && item.date < today()).sort((a, b) => String(a.date).localeCompare(String(b.date)) || taskPriority(a) - taskPriority(b));
+    const timeline = uniq([...overdue, ...todayTasks]).slice(0, 5);
+    const focus = timeline[0] || openTasks.slice().sort((a, b) => taskPriority(a) - taskPriority(b))[0];
+    const habits = list('habits').filter(personalOnly);
+    const habitsDone = habits.filter(item => item.marks?.[today()]).length;
+    const goals = list('goals').filter(personalOnly).filter(item => !statusDone(item));
+    const people = list('people').filter(personalOnly);
+    const purchases = list('purchases').filter(personalOnly);
+    const operations = list('operations');
+    const debts = activeDebts();
+    const outgoingDebts = debts.filter(item => item.direction === 'out');
+    const outgoingDebtTotal = outgoingDebts.reduce((sum, item) => sum + num(item.amount), 0);
+    const monthPeriod = periodInfo('month');
+    const finance = financeTotals(monthPeriod);
+    const financeReady = operations.length > 0 || num(state.settings?.currentBalance) !== 0 || debts.length > 0;
+    const forecast = finance.netWithUpcoming ?? finance.net ?? 0;
+    const name = state.settings?.name || 'Алексей';
+    const dailyLoad = timeline.length;
+    const energyMode = overdue.length > 2 || dailyLoad > 6
+      ? ['Насыщенный день', 'Сначала обязательное, остальное можно перенести']
+      : dailyLoad > 3
+        ? ['Сбалансированный день', 'Темп нормальный — не добавляйте лишнего']
+        : ['Спокойный день', 'Есть место для одного осознанного шага'];
 
-  const previousRender = typeof render === 'function' ? render : null;
-  if (previousRender) {
-    render = function () {
-      const result = previousRender.apply(this, arguments);
-      v66SchedulePost();
-      return result;
-    };
+    const healthHabits = habits.filter(item => matches(item, /здоров|спорт|движ|прогул|сон|медитац|вода|йог|дых/i));
+    const healthDone = healthHabits.filter(item => item.marks?.[today()]).length;
+    const homeItems = [...openTasks.filter(item => matches(item, /дом|быт|ремонт|квартир|уборк|продукт/i)), ...purchases.filter(item => matches(item, /дом|быт|ремонт|квартир|мебел|техник/i))];
+    const relationTasks = openTasks.filter(item => matches(item, /семь|мам|пап|родител|отношен|друг|встреч|позвон/i));
+    const growthItems = [...goals, ...list('books').filter(personalOnly)];
+    const impressions = [...list('trips').filter(personalOnly), ...list('wishes').filter(personalOnly), ...list('films').filter(personalOnly)];
+    const sphereRows = [
+      v65Sphere({ id: 'habits', icon: '♡', title: 'Здоровье', value: healthHabits.length ? `${healthDone}/${healthHabits.length}` : '—', detail: healthHabits.length ? 'привычек выполнено сегодня' : 'добавьте первый ритм', tone: 'tone-health' }),
+      v65Sphere({ id: 'finance', icon: '₽', title: 'Финансы', value: financeReady ? money(forecast) : '—', detail: financeReady ? 'прогноз текущего месяца' : 'ожидают вашей выгрузки', tone: 'tone-money' }),
+      v65Sphere({ id: 'planning', icon: '⌂', title: 'Дом и быт', value: String(homeItems.length), detail: countLabel(homeItems.length, 'активный пункт', 'активных пункта', 'активных пунктов'), tone: 'tone-home' }),
+      v65Sphere({ id: 'people', icon: '∞', title: 'Отношения', value: String(people.length), detail: relationTasks.length ? countLabel(relationTasks.length, 'важное действие', 'важных действия', 'важных действий') : 'важные люди и даты', tone: 'tone-people' }),
+      v65Sphere({ id: 'goals', icon: '↗', title: 'Развитие', value: String(growthItems.length), detail: goals.length ? countLabel(goals.length, 'активная цель', 'активные цели', 'активных целей') : 'цели, книги и обучение', tone: 'tone-growth' }),
+      v65Sphere({ id: 'wishes', icon: '✦', title: 'Впечатления', value: String(impressions.length), detail: 'желания, поездки и фильмы', tone: 'tone-life' })
+    ].join('');
+
+    const nextGoal = goals[0];
+    const goalProgress = nextGoal?.target ? clamp(num(nextGoal.current) / Math.max(1, num(nextGoal.target)) * 100) : 0;
+    const focusButton = focus
+      ? `<button class="v65-primary-action" data-action="editRecord" data-type="task" data-id="${escapeId(focus.id)}" type="button">Открыть задачу</button>`
+      : '<button class="v65-primary-action" data-action="openRecordForm" data-type="task" type="button">Создать первый шаг</button>';
+
+    const assistant = v65AssistantModel();
+
+    return layout(`${greeting()}, ${esc(name)}`, 'Личная жизнь без информационного шума: один фокус, честные данные и спокойный ритм.', `
+      <section class="v65-prime">
+        <div class="v65-prime-copy">
+          <span class="v65-kicker">◆ Личный фокус</span>
+          <h2>${focus ? esc(focus.title) : 'Выберите один хороший шаг'}</h2>
+          <p>${focus ? 'Система подняла эту задачу по сроку и приоритету. Остальное останется на своих местах.' : 'Сегодня нет обязательного пункта. Зафиксируйте то, что действительно улучшит день.'}</p>
+          <div class="v65-prime-actions">${focusButton}<button data-action="openQuick" type="button">＋ Зафиксировать</button><button data-go="tasks" type="button">План дня</button></div>
+        </div>
+        <div class="v65-prime-stats">
+          <article><span>Финансы</span><strong>${financeReady ? money(forecast) : '—'}</strong><small>${financeReady ? 'прогноз месяца' : 'данные не загружены'}</small></article>
+          <article><span>Долги</span><strong>${outgoingDebts.length ? money(outgoingDebtTotal) : '—'}</strong><small>${outgoingDebts.length ? countLabel(outgoingDebts.length, 'активный долг', 'активных долга', 'активных долгов') : 'активных долгов нет'}</small></article>
+          <article><span>Привычки</span><strong>${habitsDone}/${habits.length}</strong><small>${habits.length ? 'выполнено сегодня' : 'ритм ещё не задан'}</small></article>
+          <article><span>Цели</span><strong>${goals.length}</strong><small>${goals.length ? 'в активном фокусе' : 'можно добавить позже'}</small></article>
+        </div>
+      </section>
+
+      ${v65AssistantStrip(assistant)}
+
+      <section class="v65-life-layout">
+        <div class="v65-life-main">
+          <article class="v65-card v65-day-stream">
+            <div class="v65-card-head"><div><span class="v65-overline">Лента дня</span><h3>${energyMode[0]}</h3><p>${energyMode[1]}</p></div><button data-go="tasks" type="button">Все задачи</button></div>
+            <div class="v65-timeline">${timeline.map(v65TimelineRow).join('') || '<div class="v65-empty"><span>✓</span><div><b>Обязательных пунктов нет</b><small>Можно выбрать один небольшой шаг или оставить день свободным.</small></div></div>'}</div>
+          </article>
+
+          <article class="v65-card v65-spheres-card">
+            <div class="v65-card-head"><div><span class="v65-overline">Сферы жизни</span><h3>Всё личное — на одном экране</h3><p>Только фактические записи, без искусственного рейтинга баланса.</p></div><span class="v65-fact-chip">без работы</span></div>
+            <div class="v65-spheres">${sphereRows}</div>
+          </article>
+        </div>
+
+        <aside class="v65-life-rail">
+          <article class="v65-card v65-capture-card">
+            <div class="v65-card-head"><div><span class="v65-overline">Быстрый захват</span><h3>Не держите в голове</h3></div></div>
+            <textarea id="quickText" aria-label="Быстрый захват" placeholder="Мысль, задача, идея или ссылка…"></textarea>
+            <div class="v65-capture-grid"><button data-action="capture" data-type="task" type="button"><span>✓</span>Задача</button><button data-action="capture" data-type="note" type="button"><span>⌁</span>Заметка</button><button data-action="capture" data-type="idea" type="button"><span>✦</span>Идея</button><button data-action="openRecordForm" data-type="operation" type="button"><span>₽</span>Операция</button></div>
+          </article>
+
+          <article class="v65-card v65-week-card">
+            <div class="v65-card-head"><div><span class="v65-overline">Ритм недели</span><h3>Фактическая активность</h3></div><span class="v65-fact-chip">7 дней</span></div>
+            <div class="v65-week-chart">${v65WeekRhythm(habits, allTasks)}</div>
+            <p>Столбцы учитывают только выполненные задачи и отмеченные привычки.</p>
+          </article>
+
+          <article class="v65-card v65-goal-card">
+            <div class="v65-card-head"><div><span class="v65-overline">Ближайший горизонт</span><h3>${nextGoal ? esc(nextGoal.title) : 'Цель ещё не выбрана'}</h3></div><button data-go="goals" type="button">Цели</button></div>
+            ${nextGoal ? `${prog(goalProgress)}<p>${Math.round(goalProgress)}% · ${esc(nextGoal.note || 'задайте следующий конкретный шаг')}</p>` : '<p>Добавьте результат, к которому хотите прийти, и один следующий шаг.</p>'}
+          </article>
+        </aside>
+      </section>
+    `);
   }
 
   const previousSave = typeof save === 'function' ? save : null;
   if (previousSave) {
     save = function () {
       const result = previousSave.apply(this, arguments);
-      if (!document.body.classList.contains('v67-cloud-safe')) {
-        try { localStorage.setItem('secondBrainOS.currentBuild', V66_BUILD); } catch (error) {}
+      if (!document.body.classList.contains('v66-safe-core') && !document.body.classList.contains('v67-cloud-safe')) {
+        try { localStorage.setItem('secondBrainOS.currentBuild', V65_BUILD); } catch (error) {}
       }
       return result;
     };
   }
 
-  window.addEventListener('click', event => {
-    const action = event.target.closest?.('[data-v66-action]');
-    if (!action) return;
-    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-    const name = action.dataset.v66Action;
-    if (name === 'openVault') return v66OpenVault();
-    if (name === 'downloadBackup') { v66DownloadSnapshot('backup'); return toast('Резервная копия подготовлена'); }
-    if (name === 'previewBackup') return v66PreviewBackup();
-    if (name === 'applyRestore') return v66ApplyRestore();
-    if (name === 'openSecurity') return v66OpenSecurity();
-    if (name === 'setupPin') return v66SetupPin();
-    if (name === 'unlockPin') return v66UnlockPin();
-    if (name === 'lockNow') { closeModal(); sessionStorage.removeItem('secondBrainOS.v66.pinUnlockedAt'); return v66EnsureLock(true); }
-    if (name === 'disablePin') return v66DisablePin();
-    if (name === 'savePinTimeout') return v66SavePinTimeout();
-    if (name === 'saveSleep') return v66SaveSleep();
-    if (name === 'tradeMode') { state.settings.v66.tradeView = action.dataset.mode === 'real' ? 'real' : 'demo'; save(); return render(); }
-    if (name === 'saveBalance') return v66SaveInlineBalance();
-    if (name === 'openRisk') return v66OpenRisk();
-    if (name === 'saveRisk') return v66SaveRisk();
-    if (name === 'openTrade') return v66OpenTrade(action.dataset.id || '');
-    if (name === 'saveTrade') return v66SaveTrade(action.dataset.id || '');
-    if (name === 'deleteTrade') return v66DeleteTrade(action.dataset.id || '');
-    if (name === 'openAccountInfo') return v66OpenAccountInfo();
-    if (name === 'openNotifications') return v66OpenNotifications();
-    if (name === 'requestNotifications') return v66RequestNotifications();
-    if (name === 'saveNotifications') return v66SaveNotifications();
-    if (name === 'openDebtMethod') return v66OpenDebtMethod();
-    if (name === 'closeModal') return closeModal();
-  }, true);
+  dashboard = v65Dashboard;
+  financePage = v65FinancePage;
+  debtsPage = v65DebtsPage;
 
-  window.addEventListener('keydown', event => {
-    if (event.key === 'Enter' && event.target?.id === 'v66_unlock_pin') { event.preventDefault(); v66UnlockPin(); }
-    if (event.key === 'Enter' && event.target?.id === 'v66_inline_balance') { event.preventDefault(); v66SaveInlineBalance(); }
-  }, true);
-  let lastPinTouch = 0;
-  const v66TouchPinSession = () => {
-    if (!state.settings?.v66?.security?.pinEnabled || document.querySelector('.v66-lock')) return;
-    if (Date.now() - lastPinTouch < 10000) return;
-    lastPinTouch = Date.now();
-    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(lastPinTouch));
-  };
-  window.addEventListener('pointerdown', v66TouchPinSession, { capture: true, passive: true });
-  window.addEventListener('keydown', v66TouchPinSession, true);
-  window.addEventListener('hashchange', () => [0, 80, 240].forEach(delay => setTimeout(v66PostRender, delay)));
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v66EnsureLock(); });
+  const previousGo = typeof go === 'function' ? go : null;
+  if (previousGo) {
+    go = function (id) {
+      if (id === 'coach') return v65OpenAssistant();
+      return previousGo(HIDDEN_ROUTES.has(id) ? 'dashboard' : id);
+    };
+  }
+
+  const initialRoute = (location.hash || '').replace('#', '') || page || 'dashboard';
+  if (HIDDEN_ROUTES.has(initialRoute)) {
+    page = 'dashboard';
+    try { history.replaceState(null, '', '#dashboard'); } catch (error) {}
+  }
+
+  function setText(element, value) {
+    if (element && element.textContent !== value) element.textContent = value;
+  }
+
+  function tidyNavigation() {
+    const nav = document.querySelector('.v59-nav-scroll');
+    if (!nav) return;
+    const v70Navigation = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Navigation = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const labels = { dashboard: v70Navigation ? 'Главное сейчас' : (v69Navigation ? 'Мой день' : 'Главная'), coach: 'Помощник', habits: 'Привычки', finance: 'Финансы', debts: 'Долги', goals: 'Цели', subconscious: 'Дневник', tasks: 'Задачи', planning: 'Планы', personal: 'Личная память' };
+    nav.querySelectorAll('.v59-nav-item[data-go]').forEach(button => {
+      const route = button.dataset.go;
+      button.hidden = HIDDEN_ROUTES.has(route);
+      if (labels[route]) setText(button.querySelector('.label'), labels[route]);
+    });
+
+    const mainList = nav.querySelector('.v59-nav-list');
+    if (mainList && !nav.classList.contains('v68-nav-ready')) {
+      const priorityButtons = ['dashboard', 'coach', 'finance', 'debts', 'habits', 'tasks', 'goals', 'subconscious']
+        .map(route => route === 'coach'
+          ? nav.querySelector('.v59-nav-item[data-go="coach"],.v59-nav-item[data-v65-action="openAssistant"]')
+          : nav.querySelector(`.v59-nav-item[data-go="${route}"]`))
+        .filter(button => button && !button.hidden);
+      mainList.prepend(...priorityButtons);
+      const heading = mainList.previousElementSibling?.querySelector('span');
+      setText(heading, 'ГЛАВНОЕ');
+    }
+
+    nav.querySelectorAll('.v59-nav-list').forEach(listElement => {
+      const hasVisible = [...listElement.querySelectorAll(':scope > .v59-nav-item')].some(button => !button.hidden);
+      listElement.hidden = !hasVisible;
+      const heading = listElement.previousElementSibling;
+      if (heading?.classList.contains('v59-section')) heading.hidden = !hasVisible;
+    });
+  }
+
+  function replaceLegacyAssistantControls() {
+    document.querySelectorAll('[data-v59-action="coach"],[data-go="coach"]').forEach(button => {
+      button.removeAttribute('data-v59-action');
+      button.removeAttribute('data-go');
+      button.dataset.v65Action = 'openAssistant';
+      if (button.closest('.v59-ai-card')) setText(button, 'Разобрать');
+    });
+    document.querySelectorAll('.v59-ai-card [data-v59-action="dayPlan"],.v59-ai-card [data-go="command"]').forEach(button => {
+      button.removeAttribute('data-v59-action');
+      button.removeAttribute('data-go');
+      button.dataset.v65Action = 'openSection';
+      button.dataset.route = 'subconscious';
+      setText(button, 'Дневник');
+    });
+  }
+
+  function applyPremiumPolish() {
+    const currentRoute = (location.hash || '').replace('#', '') || page || 'dashboard';
+    if (HIDDEN_ROUTES.has(currentRoute)) {
+      page = 'dashboard';
+      try { history.replaceState(null, '', `${location.pathname}${location.search}#dashboard`); } catch (error) {}
+      try { previousGo?.('dashboard'); } catch (error) {}
+      return;
+    }
+    document.body.classList.add('v65-premium');
+    const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
+    const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
+    const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
+    const v67Active = document.body.classList.contains('v67-cloud-safe');
+    const v66Active = document.body.classList.contains('v66-safe-core');
+    if (!v67Active && !v66Active) document.body.dataset.sbosBuild = V65_BUILD;
+    document.documentElement.lang = 'ru';
+    document.title = 'Second Brain OS — личная жизнь в порядке';
+    if (!v67Active && !v66Active) document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', V65_BUILD);
+    if (!v67Active) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b1530');
+    setText(document.querySelector('.v59-version,.version'), v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : (v67Active ? 'V67.8 · LIVING PERSONAL OS' : (v66Active ? 'V66 · SAFE PERSONAL OS' : V65_LABEL)))));
+    setText(document.querySelector('.v59-core-pill'), v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : (v67Active ? 'V67.8' : (v66Active ? 'V66' : 'V65')))));
+    setText(document.querySelector('.v59-sub'), 'личная операционная система');
+    setText(document.querySelector('.v59-ai-card h3'), 'Личный помощник');
+    const helperText = document.querySelector('.v59-ai-card p');
+    setText(helperText, 'Собирает личный день без рабочих задач и перегруза.');
+    tidyNavigation();
+    replaceLegacyAssistantControls();
+    document.querySelectorAll('.v63-injected').forEach(element => element.remove());
+    v65ShowDiary();
+    v65InjectPersonalSetup();
+
+    const profile = document.querySelector('.v59-user-pill');
+    if (profile) {
+      profile.setAttribute('aria-label', `Личный профиль: ${state.settings?.name || 'Алексей'}`);
+      profile.title = 'Личный профиль';
+    }
+
+    document.querySelectorAll('.v65-timeline-row').forEach(row => {
+      const title = row.querySelector('b')?.textContent?.trim() || 'задачу';
+      row.setAttribute('aria-label', `Открыть: ${title}`);
+    });
+    document.querySelectorAll('.v65-sphere').forEach(row => {
+      const title = row.querySelector('b')?.textContent?.trim() || 'сферу';
+      row.setAttribute('aria-label', `Открыть сферу: ${title}`);
+    });
+    document.querySelectorAll('.v65-card button,.v65-prime button').forEach(button => {
+      if (!button.hasAttribute('type')) button.type = 'button';
+    });
+  }
+
+  function schedulePremiumPolish() {
+    if (polishQueued) return;
+    polishQueued = true;
+    requestAnimationFrame(() => {
+      polishQueued = false;
+      applyPremiumPolish();
+    });
+  }
+
   const app = document.getElementById('app');
-  if (app) new MutationObserver(v66SchedulePost).observe(app, { childList: true, subtree: true });
-  setInterval(() => { v66EnsureLock(); v66NotificationTick().catch(() => {}); }, 30000);
+  if (app) new MutationObserver(schedulePremiumPolish).observe(app, { childList: true, subtree: true });
 
-  try { render(); } catch (error) { console.error('[V66 render]', error); }
-  v66PostRender();
-  [150, 600, 1800].forEach(delay => setTimeout(v66PostRender, delay));
+  window.addEventListener('click', event => {
+    const action = event.target.closest?.('[data-v65-action]');
+    if (!action) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    const name = action.dataset.v65Action;
+    if (name === 'openAssistant') return v65OpenAssistant();
+    if (name === 'openDayPlan') return v65OpenDayPlan();
+    if (name === 'applyPostponements') return v65ApplyPostponements();
+    if (name === 'resolveStuckTask') return v65ResolveStuckTask(action.dataset.id || '', action.dataset.mode || 'date');
+    if (name === 'openEveningReview') return v65OpenEveningReview();
+    if (name === 'saveEveningReview') return v65SaveEveningReview();
+    if (name === 'closeModal') return closeModal();
+    if (name === 'openSection') {
+      closeModal();
+      return go(action.dataset.route || 'dashboard');
+    }
+    if (name === 'saveDiary') return v65SaveDiary();
+    if (name === 'saveDebtBudget') return v65SaveDebtBudget();
+    if (name === 'addStarterHabit') return v65AddStarterHabit(action.dataset.key);
+    if (name === 'addStarterGoal') return v65AddStarterGoal(action.dataset.key);
+    if (name === 'diaryToday') return v65SetDiaryDate(today());
+    if (name === 'openDiary') return v65SetDiaryDate(action.dataset.date || today());
+    if (name === 'deleteDiary') return v65DeleteDiary();
+    if (name === 'diaryDate') {
+      const current = state.settings?.subconsciousCurrentDate || today();
+      return v65SetDiaryDate(iso(addDays(new Date(`${current}T12:00:00`), Number(action.dataset.direction) || 0)));
+    }
+  }, true);
+
+  window.addEventListener('hashchange', () => [0, 120, 260].forEach(delay => setTimeout(applyPremiumPolish, delay)));
+
+  try { render(); } catch (error) { console.error('[V65 render]', error); }
+  applyPremiumPolish();
+  [150, 600, 1800, 3400, 5200].forEach(delay => setTimeout(applyPremiumPolish, delay));
 })();

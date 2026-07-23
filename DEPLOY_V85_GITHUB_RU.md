@@ -1,17 +1,39 @@
-# Установка V85 в GitHub Pages
+# DELETE_OLD_FILES_V48.txt
+# Эти файлы можно удалить из репозитория после создания backup-ветки/скачивания ZIP.
+# Не удаляйте index.html, app.js, sw.js, data.json, стили, manifest, Firebase/PWA-файлы.
 
-1. В текущем приложении скачайте JSON через «Экспорт данных».
-2. Распакуйте архив `second-brain-oc-v85-automation-hp-update-only.zip`.
-3. Загрузите файлы из архива в корень репозитория `second-brain-oc` с заменой.
-4. Проверьте, что `index.html` находится рядом с `manifest.webmanifest`, а не во вложенной папке.
-5. Выполните Commit changes.
-6. Дождитесь завершения публикации GitHub Pages.
-7. Один раз откройте:
-
-   `https://en6dea.github.io/second-brain-oc/force-update.html`
-
-Страница удаляет только старый кэш интерфейса. Личные данные браузера не очищаются.
-
-## Откат
-
-Для отката используйте архив `second-brain-oc-backup-v833-before-v85.zip`: загрузите его файлы в корень репозитория с заменой и снова откройте `force-update.html`.
+README_AUTH_NUCLEAR_RU.md
+README_BANK_IMPORT_PRIVATE_V40_2_RU.md
+README_BUTTON_CARD_BALANCE_PRIVATE_V40_8_RU.md
+README_BUTTON_HARDWIRE_PRIVATE_V40_12_RU.md
+README_BUTTON_RUNTIME_BALANCE_PRIVATE_V40_10_RU.md
+README_CLEAN_RPG_REBUILD_V29_RU.md
+README_CLOUD_SYNC_RU.md
+README_DATA_CORE_PRIVATE_V39_RU.md
+README_DATA_GUARD_BALANCE_PRIVATE_V40_9_RU.md
+README_FINANCE_DASHBOARD_RPG_V38_RU.md
+README_LIFESTYLE_PLANNING_RECONCILE_PRIVATE_V40_7_RU.md
+README_MOBILE_UX_PRIVATE_V37_RU.md
+README_MODAL_ACTIONS_FIX_PRIVATE_V40_4_RU.md
+README_OPERATIONS_CLEANUP_PRIVATE_V40_3_RU.md
+README_OPERATION_REVIEW_PRIVATE_V40_5_RU.md
+README_PWA_FOUNDATION_PRIVATE_V36_RU.md
+README_QA_POLISH_PRIVATE_V40_1_RU.md
+README_RECONCILIATION_PLANNING_PRIVATE_V40_6_RU.md
+README_REFERENCE_LOCK_FINAL_V33_RU.md
+README_REFERENCE_PREMIUM_REBUILD_V30_RU.md
+README_SELF_CONTAINED_FINAL_V34_RU.md
+README_SEPARATE_PAGES_UI_FIX_V31_RU.md
+README_STABLE_SELF_CONTAINED_FIX_V35_RU.md
+README_UPDATE_SAFE_PRIVATE_V40_11_RU.md
+README_V41_IMPORT_REVIEW_RU.md
+README_V42_PRODUCT_ENGINE_RU.md
+README_V43_PERSONAL_OS_RU.md
+README_V44_FINANCE_MENTOR_RU.md
+README_V45_ANALYTICS_BUDGET_COACH_RU.md
+README_V45_1_VERSION_BADGE_HOTFIX_RU.md
+README_V46_FINANCIAL_ROADMAP_RU.md
+README_V47_LIFE_CATEGORIES_CORE_RU.md
+README_V47_1_LIFE_LOAD_HOTFIX_RU.md
+index.script.js
+app.goal.nuclear.js

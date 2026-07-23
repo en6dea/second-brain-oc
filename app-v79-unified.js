@@ -2,90 +2,13 @@
 
 /* Second Brain OS V78 — единый премиальный интерфейс, профиль, привычки и прозрачные финансы.
    Миграция только дополняет state. Существующие коллекции и записи не очищаются. */
-(async () => {
-
-  const STORE_KEY = 'secondBrainOS.v1';
-  const DB_NAME = 'SecondBrainOSDurableStorage';
-  const DB_STORE = 'records';
-  const DB_MAIN = 'main-state';
-  let state = {};
-  let saveChain = Promise.resolve();
-  let toastTimer = 0;
-  let vaultSession = { key: null, entries: [], unlocked: false, revealed: new Set(), lastActivity: 0 };
-
-  const uid = () => `${Math.random().toString(36).slice(2,10)}${Date.now().toString(36)}`;
-  const today = () => new Date().toISOString().slice(0,10);
-  const money = value => `${Number(value||0).toLocaleString('ru-RU',{maximumFractionDigits:2})} ₽`;
-
-  function coreClone(value){ return JSON.parse(JSON.stringify(value ?? null)); }
-  function coreStamp(source){
-    source.settings = source.settings && typeof source.settings === 'object' ? source.settings : {};
-    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:79,updatedAt:new Date().toISOString(),reason:'v79-save',fullStateInIndexedDB:false});
-    return source.settings.storageGuard.updatedAt;
-  }
-  function coreNormalize(raw){
-    const next = raw && typeof raw === 'object' ? raw : {};
-    next.settings = next.settings && typeof next.settings === 'object' ? next.settings : {};
-    const arrays = ['tasks','operations','debts','purchases','wishes','notes','ideas','people','goals','habits','documents','books','films','trips','personal','archive','polinaDays','inbox','subconsciousEntries','habitWishlist'];
-    arrays.forEach(key => { if(!Array.isArray(next[key])) next[key]=[]; });
-    if(!Number.isFinite(Number(next.settings.currentBalance))) next.settings.currentBalance=0;
-    next.settings.profile = Object.assign({name:next.settings.name||'Алексей',lastName:'',birthDate:'',city:'',email:'',phone:'',subtitle:next.settings.subtitle||'Фокус на рост',bio:'',avatar:''},next.settings.profile||{});
-    return next;
-  }
-  function coreOpenDb(){
-    return new Promise((resolve,reject)=>{
-      if(!('indexedDB' in window)) return reject(new Error('IndexedDB unavailable'));
-      const req=indexedDB.open(DB_NAME,1);
-      req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(DB_STORE)) req.result.createObjectStore(DB_STORE); };
-      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
-    });
-  }
-  async function coreDbGet(key){ const db=await coreOpenDb(); return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const req=tx.objectStore(DB_STORE).get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);}); }
-  async function coreDbPut(key,value){ const db=await coreOpenDb(); return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);}); }
-  function coreParseLocal(){
-    try{const raw=localStorage.getItem(STORE_KEY);if(!raw)return null;const parsed=JSON.parse(raw);return parsed?.state&&typeof parsed.state==='object'?parsed.state:parsed;}catch(error){return null;}
-  }
-  function coreUpdatedAt(source){return String(source?.settings?.storageGuard?.updatedAt||source?.settings?.v78?.updatedAt||source?.settings?.v77?.updatedAt||'');}
-  async function coreLoad(){
-    const local=coreParseLocal(); let durable=null;
-    try{durable=await coreDbGet(DB_MAIN);}catch(error){}
-    const durableState=durable?.state&&typeof durable.state==='object'?durable.state:null;
-    const localCompact=Boolean(local?.settings?.storageGuard?.fullStateInIndexedDB||local?.settings?.storageGuard?.compactMirror);
-    const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
-    const loaded=coreNormalize(chooseDurable?durableState:local);
-    try{
-      const marker='secondBrainOS.v79.backupCreated';
-      if(!localStorage.getItem(marker)){
-        await coreDbPut(`backup:v78-before-v79:${new Date().toISOString()}`,{version:79,createdAt:new Date().toISOString(),reason:'automatic-before-clean-runtime',state:coreClone(loaded)});
-        localStorage.setItem(marker,new Date().toISOString());
-      }
-    }catch(error){}
-    return loaded;
-  }
-  function save(){
-    coreStamp(state);
-    window.state=state;
-    let localOk=false;
-    try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V79 local save]',error);}
-    const snapshot=coreClone(state),updatedAt=coreUpdatedAt(state);
-    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:79,updatedAt,reason:'v79-save',state:snapshot}).catch(error=>console.warn('[V79 durable save]',error)));
-    document.body.dataset.sbosStorage=localOk?'durable':'indexeddb-only';
-    return localOk;
-  }
-  function toast(message){
-    const el=document.getElementById('toast'); if(!el)return; clearTimeout(toastTimer); el.textContent=String(message||'');el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
-  }
-  function openModal(title,html){ const modal=document.getElementById('modal');if(!modal)return;document.getElementById('modalTitle').textContent=title||'Окно';document.getElementById('modalBody').innerHTML=html||'';modal.classList.add('show'); }
-  function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
-  function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
-  async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v79-clean-runtime-20260720-r2';
-  const LABEL = 'V79 · CLEAN UNIFIED';
+(() => {
+  const BUILD = 'second-brain-space-v78-premium-unified-20260720-r1';
+  const LABEL = 'V78 · PREMIUM UNIFIED';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
-    'habit-wishlist', 'calendar', 'archive', 'coach', 'system', 'subconscious',
-    'people', 'notes', 'wishes', 'ideas', 'personal', 'polina', 'documents', 'books', 'films', 'trips', 'passwords', 'inbox', 'tasks', 'goals', 'purchases'
+    'habit-wishlist'
   ]);
   const LEGACY_ALIASES = { dashboard: 'today', discipline: 'habits', library: 'information' };
   const DAY = 86400000;
@@ -270,7 +193,7 @@
       <nav class="v78-mobile-nav">${[['today','⌂','Сегодня'],['habits','✓','Привычки'],['finance','₽','Финансы'],['information','▣','Информация'],['profile','●','Профиль']].map(([r,i,l])=>`<button class="${current===r||(r==='habits'&&current.startsWith('habit-'))||(r==='finance'&&current.startsWith('finance-'))?'active':''}" data-v78-route="${r}" type="button"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>
       <div class="v78-build">${LABEL}</div>
     </div>`;
-    document.body.classList.remove('v79-booting','v78-booting','v70-booting','v67-theme-dark');
+    document.body.classList.remove('v78-booting', 'v70-booting', 'v67-theme-dark');
     document.documentElement.classList.remove('v70-theme-dark');
     document.documentElement.classList.add('v70-theme-light');
     document.documentElement.dataset.v70Theme = 'light';
@@ -379,12 +302,12 @@
     const ops = array('operations');
     const income = ops.filter(item => item.type === 'income').length;
     const expense = ops.length - income;
-    return card('Папка операций', 'Все финансовые записи в одном месте', `<div class="v78-operation-folder"><button data-v78-route="finance-operations" type="button"><i>▦</i><span>Все операции</span><b>${ops.length}</b></button><button data-v78-route="finance-operations" data-v78-filter="income" type="button"><i>↗</i><span>Доходы</span><b>${income}</b></button><button data-v78-route="finance-operations" data-v78-filter="expense" type="button"><i>↘</i><span>Расходы</span><b>${expense}</b></button><button data-v79-action="open-record-form" data-type="operation" type="button"><i>＋</i><span>Новая операция</span><b>добавить</b></button></div>`, 'v78-operations-folder');
+    return card('Папка операций', 'Все финансовые записи в одном месте', `<div class="v78-operation-folder"><button data-v78-route="finance-operations" type="button"><i>▦</i><span>Все операции</span><b>${ops.length}</b></button><button data-v78-route="finance-operations" data-v78-filter="income" type="button"><i>↗</i><span>Доходы</span><b>${income}</b></button><button data-v78-route="finance-operations" data-v78-filter="expense" type="button"><i>↘</i><span>Расходы</span><b>${expense}</b></button><button data-action="openRecordForm" data-type="operation" type="button"><i>＋</i><span>Новая операция</span><b>добавить</b></button></div>`, 'v78-operations-folder');
   }
 
   function financeHero() {
     const f = financeSnapshot();
-    return `<article class="v78-card v78-finance-hero"><header><div><h2>Финансы сегодня</h2><p>Факты, операции и понятная структура денег</p></div><div class="v78-chip-actions"><button data-v78-route="finance-operations" type="button">Операции</button><button data-v78-route="finance-export" type="button">Экспорт CSV</button></div></header><div class="v78-finance-hero-body"><div class="v78-finance-numbers"><div><b class="positive">+ ${safe(moneyText(f.income))}</b><small>Доходы месяца</small></div><div><b class="negative">− ${safe(moneyText(f.expense))}</b><small>Расходы месяца</small></div><div class="balance"><small>Фактический баланс</small><strong>${safe(moneyText(f.balance))}</strong><button data-v79-action="set-actual-balance" type="button">Изменить</button></div></div><div class="v78-pie-art"><i></i><i></i><i></i><i></i></div></div></article>`;
+    return `<article class="v78-card v78-finance-hero"><header><div><h2>Финансы сегодня</h2><p>Факты, операции и понятная структура денег</p></div><div class="v78-chip-actions"><button data-v78-route="finance-operations" type="button">Операции</button><button data-v78-route="finance-export" type="button">Экспорт CSV</button></div></header><div class="v78-finance-hero-body"><div class="v78-finance-numbers"><div><b class="positive">+ ${safe(moneyText(f.income))}</b><small>Доходы месяца</small></div><div><b class="negative">− ${safe(moneyText(f.expense))}</b><small>Расходы месяца</small></div><div class="balance"><small>Фактический баланс</small><strong>${safe(moneyText(f.balance))}</strong><button data-action="setActualBalance" type="button">Изменить</button></div></div><div class="v78-pie-art"><i></i><i></i><i></i><i></i></div></div></article>`;
   }
 
   function todayPage() {
@@ -468,7 +391,7 @@
       ['passwords','🔐','Пароли и доступы','Зашифрованное личное хранилище',Array.isArray(state.passwordVault)?state.passwordVault:[]],
       ['inbox','📥','Входящие','Несортированные мысли на разбор',array('inbox')]
     ];
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Архив и необязательные разделы</span><h1>Информация</h1><p>На каждой карточке сразу видно, что лежит внутри. Открывать всё подряд больше не нужно.</p></div><div><button class="v78-secondary" data-v78-action="open-search" type="button">⌕ Найти информацию</button><button class="v78-primary" data-v79-action="open-quick" type="button">＋ Добавить</button></div></header><section class="v78-information-grid">${groups.map(infoFolder).join('')}</section></section>`;
+    return `<section class="v78-page"><header class="v78-page-head"><div><span>Архив и необязательные разделы</span><h1>Информация</h1><p>На каждой карточке сразу видно, что лежит внутри. Открывать всё подряд больше не нужно.</p></div><div><button class="v78-secondary" data-v78-action="open-search" type="button">⌕ Найти информацию</button><button class="v78-primary" data-action="openQuick" type="button">＋ Добавить</button></div></header><section class="v78-information-grid">${groups.map(infoFolder).join('')}</section></section>`;
   }
 
   function infoFolder([route,icon,title,subtitle,items]) {
@@ -478,7 +401,7 @@
 
   function financePage() {
     const f = financeSnapshot();
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Финансовая осознанность</span><h1>Финансы</h1><p>Все суммы строятся только из фактических операций, покупок и обязательств.</p></div><div><button class="v78-secondary" data-v79-action="set-actual-balance" type="button">Изменить баланс</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><span>Финансовая осознанность</span><h1>Финансы</h1><p>Все суммы строятся только из фактических операций, покупок и обязательств.</p></div><div><button class="v78-secondary" data-action="setActualBalance" type="button">Изменить баланс</button><button class="v78-primary" data-action="openRecordForm" data-type="operation" type="button">＋ Операция</button></div></header>
       <section class="v78-finance-folders">${financeFolder('finance-operations','▦','Операции',`${array('operations').length} записей`,`Доходы, расходы, переводы и полный многостраничный список`)}${financeFolder('finance-analytics','◌','Анализ категорий',safe(moneyText(categoryData().sum)),'Структура расходов и доля каждой категории')}${financeFolder('finance-export','⇩','Экспорт CSV','Все операции','Выгрузка абсолютно всех записей в UTF-8')}${financeFolder('debts','!','Источники долгов',safe(moneyText(f.debtTotal)),`${f.debts.length} активных обязательств — каждая сумма объяснена`)}</section>
       <section class="v78-kpi-row"><article><small>Фактический баланс</small><b>${safe(moneyText(f.balance))}</b><span>указанный остаток</span></article><article><small>Доходы месяца</small><b class="positive">${safe(moneyText(f.income))}</b><span>по операциям</span></article><article><small>Расходы месяца</small><b class="negative">${safe(moneyText(f.expense))}</b><span>по операциям</span></article><article><small>Обязательные покупки</small><b>${safe(moneyText(f.planned))}</b><span>в текущем месяце</span></article></section>
       <section class="v78-two-cols">${operationsFolderMini()}${categoryMini()}</section>
@@ -508,7 +431,7 @@
     const visible = filtered.slice(start, start + PAGE_SIZE);
     state.settings.v78.operationPage = operationPage;
     state.settings.v78.operationType = operationType;
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Папка финансов</span><h1>Операции</h1><p>Полный список без обрезания. На одной странице отображается ${PAGE_SIZE} операций.</p></div><div><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">⇩ Экспорт списка</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Папка финансов</span><h1>Операции</h1><p>Полный список без обрезания. На одной странице отображается ${PAGE_SIZE} операций.</p></div><div><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">⇩ Экспорт списка</button><button class="v78-primary" data-action="openRecordForm" data-type="operation" type="button">＋ Операция</button></div></header>
       <section class="v78-operation-toolbar"><div class="v78-segment">${[['all','Все'],['income','Доходы'],['expense','Расходы']].map(([key,label])=>`<button class="${operationType===key?'active':''}" data-v78-action="operation-type" data-type="${key}" type="button">${label}</button>`).join('')}</div><label>⌕<input data-v78-operation-search value="${safe(operationQuery)}" placeholder="Категория, сумма, комментарий..."></label><span>${filtered.length} ${plural(filtered.length,'операция','операции','операций')}</span></section>
       <section class="v78-operation-table"><header><span>Дата</span><span>Тип</span><span>Категория</span><span>Комментарий / счёт</span><span>Сумма</span><span></span></header>${visible.map(operationRow).join('') || '<div class="v78-empty-big">Операций по выбранному фильтру нет.</div>'}</section>
       <footer class="v78-pagination"><span>Страница ${operationPage} из ${pages}</span><div><button data-v78-action="operation-page" data-page="${Math.max(1,operationPage-1)}" ${operationPage===1?'disabled':''} type="button">←</button>${paginationButtons(operationPage,pages).map(page=>`<button class="${page===operationPage?'active':''}" data-v78-action="operation-page" data-page="${page}" type="button">${page}</button>`).join('')}<button data-v78-action="operation-page" data-page="${Math.min(pages,operationPage+1)}" ${operationPage===pages?'disabled':''} type="button">→</button></div></footer>
@@ -522,7 +445,7 @@
 
   function operationRow(item) {
     const income = item.type === 'income';
-    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span>${safe(item.category||'Без категории')}</span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu"><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">✎</button><button data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">×</button></span></article>`;
+    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span>${safe(item.category||'Без категории')}</span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu"><button data-action="editRecord" data-type="operation" data-id="${safe(item.id)}" type="button">✎</button><button data-action="deleteRecord" data-type="operation" data-id="${safe(item.id)}" type="button">×</button></span></article>`;
   }
 
   function financeAnalyticsPage() {
@@ -550,19 +473,19 @@
 
   function debtsPage() {
     const out = activeDebtsOut(); const incoming = activeDebtsIn();
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Прозрачные источники суммы</span><h1>Долги и обязательства</h1><p>Итог всегда равен сумме конкретных записей ниже. Никаких скрытых расчётов.</p></div><div><button class="v78-secondary" data-v79-action="open-debt-in" type="button">＋ Мне должны</button><button class="v78-primary" data-v79-action="open-debt-out" type="button">＋ Я должен</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><span>Прозрачные источники суммы</span><h1>Долги и обязательства</h1><p>Итог всегда равен сумме конкретных записей ниже. Никаких скрытых расчётов.</p></div><div><button class="v78-secondary" data-action="openDebtIn" type="button">＋ Мне должны</button><button class="v78-primary" data-action="openDebtOut" type="button">＋ Я должен</button></div></header>
       <section class="v78-kpi-row"><article><small>Я должен</small><b class="negative">${safe(moneyText(total(out)))}</b><span>${out.length} активных записей</span></article><article><small>Мне должны</small><b class="positive">${safe(moneyText(total(incoming)))}</b><span>${incoming.length} активных записей</span></article><article><small>Чистая позиция</small><b>${safe(moneyText(total(incoming)-total(out)))}</b><span>возвраты минус обязательства</span></article><article><small>Ближайший срок</small><b>${safe(formatShort(out.filter(item=>item.due).sort((a,b)=>String(a.due).localeCompare(String(b.due)))[0]?.due))}</b><span>по активным обязательствам</span></article></section>
       <section class="v78-two-cols">${debtColumn('Я должен',out,'negative')}${debtColumn('Мне должны',incoming,'positive')}</section>
     </section>`;
   }
 
   function debtColumn(title, items, tone) {
-    return card(title, `Итого ${moneyText(total(items))}`, `<div class="v78-debt-list">${items.map(item=>`<article><i>${tone==='negative'?'↘':'↗'}</i><span><b>${safe(item.person||'Без названия')}</b><small>${safe(item.note||'Без комментария')}${item.due?` · ${formatShort(item.due)}`:''}</small></span><strong class="${tone}">${safe(moneyText(item.amount))}</strong><div><button data-v79-action="edit-record" data-type="debt" data-id="${safe(item.id)}" type="button">Изменить</button><button data-v79-action="close-debt" data-id="${safe(item.id)}" type="button">Закрыть</button></div></article>`).join('') || '<div class="v78-empty">Записей нет.</div>'}</div>`, `v78-debt-column ${tone}`);
+    return card(title, `Итого ${moneyText(total(items))}`, `<div class="v78-debt-list">${items.map(item=>`<article><i>${tone==='negative'?'↘':'↗'}</i><span><b>${safe(item.person||'Без названия')}</b><small>${safe(item.note||'Без комментария')}${item.due?` · ${formatShort(item.due)}`:''}</small></span><strong class="${tone}">${safe(moneyText(item.amount))}</strong><div><button data-action="editRecord" data-type="debt" data-id="${safe(item.id)}" type="button">Изменить</button><button data-action="closeDebt" data-id="${safe(item.id)}" type="button">Закрыть</button></div></article>`).join('') || '<div class="v78-empty">Записей нет.</div>'}</div>`, `v78-debt-column ${tone}`);
   }
 
   function profilePage() {
     const p = profile(); const age = ageFromBirth(p.birthDate);
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Персонализация системы</span><h1>Мой профиль</h1><p>Имя и фотография отображаются во всём приложении.</p></div><div><button class="v78-secondary" data-v79-action="export-data" type="button">Экспорт данных</button><button class="v78-primary" data-v78-action="edit-profile" type="button">Редактировать профиль</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><span>Персонализация системы</span><h1>Мой профиль</h1><p>Имя и фотография отображаются во всём приложении.</p></div><div><button class="v78-secondary" data-action="exportData" type="button">Экспорт данных</button><button class="v78-primary" data-v78-action="edit-profile" type="button">Редактировать профиль</button></div></header>
       <section class="v78-profile-hero"><div class="v78-profile-visual">${avatarHtml('xl')}<span class="v78-brand-orb"></span></div><div><span>Персональный профиль</span><h2>${safe([p.name,p.lastName].filter(Boolean).join(' ') || 'Алексей')}</h2><p>${safe(p.subtitle || 'Фокус на рост')}</p><div class="v78-profile-tags">${age!==''?`<span>${age} ${plural(age,'год','года','лет')}</span>`:''}${p.birthDate?`<span>🎂 ${formatDate(p.birthDate)}</span>`:''}${p.city?`<span>⌖ ${safe(p.city)}</span>`:''}</div></div></section>
       <section class="v78-profile-grid"><article><small>О себе</small><p>${safe(p.bio || 'Добавьте короткое описание, чтобы профиль стал по-настоящему вашим.')}</p></article><article><small>Email</small><p>${safe(p.email || 'Не указан')}</p></article><article><small>Телефон</small><p>${safe(p.phone || 'Не указан')}</p></article><article><small>Дата рождения</small><p>${safe(p.birthDate ? formatDate(p.birthDate) : 'Не указана')}</p></article></section>
       ${card('Безопасность данных', 'Профиль сохраняется вместе с общей базой приложения.', `<div class="v78-security-list"><span>✓ Обновление не очищает существующие записи</span><span>✓ Фотография уменьшается перед сохранением</span><span>✓ Профиль входит в JSON-экспорт</span><span>✓ Работает с защитным хранилищем V76</span></div>`, 'v78-security-card')}
@@ -573,62 +496,6 @@
     return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Привычки</button><span>Следующие этапы дисциплины</span><h1>Вишлист привычек</h1><p>Храните идеи здесь и внедряйте только одну следующую привычку за раз.</p></div><button class="v78-primary" data-v78-action="open-wishlist-form" type="button">＋ Добавить идею</button></header><section class="v78-wishlist-full">${state.habitWishlist.map(item=>`<article><i>${safe(item.icon||'✦')}</i><span><b>${safe(item.title)}</b><small>${safe(item.schedule||'Без графика')}</small><p>${safe(item.note||'')}</p></span><div><button data-v78-action="promote-wishlist" data-id="${safe(item.id)}" type="button">Внедрить</button><button data-v78-action="edit-wishlist" data-id="${safe(item.id)}" type="button">✎</button><button data-v78-action="delete-wishlist" data-id="${safe(item.id)}" type="button">×</button></div></article>`).join('') || '<div class="v78-empty-big">Вишлист пока пуст.</div>'}</section></section>`;
   }
 
-
-  const RECORDS = {
-    operation:{arr:'operations',title:'Операция',fields:[['date','Дата','date'],['type','Тип','select',[['expense','Расход'],['income','Доход']]],['amount','Сумма','number'],['category','Категория','text'],['account','Счёт','text'],['incomeSource','Источник дохода','text'],['note','Комментарий','textarea']]},
-    debt:{arr:'debts',title:'Обязательство',fields:[['person','Название / человек','text'],['direction','Направление','select',[['out','Я должен'],['in','Мне должны']]],['amount','Сумма','number'],['due','Срок','date'],['status','Статус','text'],['note','Комментарий','textarea']]},
-    task:{arr:'tasks',title:'Задача',fields:[['title','Название','text'],['date','Дата','date'],['time','Время','time'],['area','Сфера','text'],['priority','Приоритет','text'],['status','Статус','text'],['note','Комментарий','textarea']]},
-    person:{arr:'people',title:'Человек',fields:[['name','Имя','text'],['role','Кто это','text'],['phone','Телефон','text'],['email','Email','email'],['birthday','Дата рождения','date'],['note','Контекст и заметки','textarea']]},
-    note:{arr:'notes',title:'Заметка',fields:[['title','Название','text'],['folder','Папка','text'],['date','Дата','date'],['text','Текст','textarea']]},
-    idea:{arr:'ideas',title:'Идея',fields:[['title','Название','text'],['date','Дата','date'],['text','Описание','textarea']]},
-    wish:{arr:'wishes',title:'Желание',fields:[['title','Название','text'],['date','Дата','date'],['amount','Бюджет','number'],['url','Ссылка','text'],['note','Описание','textarea']]},
-    document:{arr:'documents',title:'Документ',fields:[['title','Название','text'],['type','Тип','text'],['date','Дата','date'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','text'],['url','Ссылка','text'],['quotes','Цитаты и заметки','textarea']]},
-    film:{arr:'films',title:'Фильм',fields:[['title','Название','text'],['status','Статус','text'],['url','Ссылка','text'],['note','Впечатления','textarea']]},
-    trip:{arr:'trips',title:'Путешествие',fields:[['title','Название','text'],['place','Место','text'],['date','Дата','date'],['budget','Бюджет','number'],['url','Ссылка','text'],['note','План','textarea']]},
-    personal:{arr:'personal',title:'Личная запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Запись','textarea']]},
-    inbox:{arr:'inbox',title:'Входящая запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Содержание','textarea']]},
-    goal:{arr:'goals',title:'Цель',fields:[['title','Название','text'],['date','Срок','date'],['target','Целевое значение','number'],['status','Статус','text'],['note','Следующий шаг','textarea']]},
-    purchase:{arr:'purchases',title:'Покупка',fields:[['title','Название','text'],['amount','Сумма','number'],['date','Дата','date'],['area','Категория','text'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    archive:{arr:'archive',title:'Архивная запись',fields:[['title','Название','text'],['date','Дата','date'],['type','Тип','text'],['note','Комментарий','textarea']]}
-  };
-  const ROUTE_RECORD = {people:'person',notes:'note',ideas:'idea',wishes:'wish',documents:'document',books:'book',films:'film',trips:'trip',personal:'personal',inbox:'inbox',tasks:'task',goals:'goal',purchases:'purchase',archive:'archive'};
-  const ROUTE_META = {
-    people:['👥','Люди','Контакты, отношения и важный контекст'],notes:['📝','Заметки','Мысли, решения, планы и наблюдения'],ideas:['💡','Идеи','Задумки и возможные проекты'],wishes:['💗','Желания','Мечты и будущие покупки'],documents:['📄','Документы','Ссылки, договоры и материалы'],books:['📚','Книги','Книги, цитаты и конспекты'],films:['🎬','Фильмы','Фильмы, сериалы и впечатления'],trips:['✈️','Путешествия','Маршруты, бюджеты и планы'],personal:['🌿','Личная память','Дневник, события и личные записи'],inbox:['📥','Входящие','Несортированные мысли на разбор'],tasks:['✓','Задачи','Конкретные действия и сроки'],goals:['↗','Цели','Направления и следующие шаги'],purchases:['🛒','Покупки','Плановые и обязательные покупки'],archive:['▣','Архив','Удалённые и отложенные записи']
-  };
-
-  function fieldValue(item,key){return safe(item?.[key]??'');}
-  function recordFormField(field,item){const [key,label,type,options]=field;const value=fieldValue(item,key);if(type==='textarea')return `<label class="v79-field span-2"><span>${label}</span><textarea id="v79_f_${key}">${value}</textarea></label>`;if(type==='select')return `<label class="v79-field"><span>${label}</span><select id="v79_f_${key}">${options.map(([v,l])=>`<option value="${safe(v)}" ${String(item?.[key]??'')===v?'selected':''}>${safe(l)}</option>`).join('')}</select></label>`;return `<label class="v79-field"><span>${label}</span><input id="v79_f_${key}" type="${type}" value="${value}"></label>`;}
-  function openRecordForm(type,id='',preset={}){const schema=RECORDS[type];if(!schema)return toast('Форма не найдена');const item=id?array(schema.arr).find(x=>x.id===id)||{}:Object.assign({date:todayKey()},preset);openModal(`${id?'Редактировать':'Добавить'}: ${schema.title}`,`<div class="v79-form-grid">${schema.fields.map(f=>recordFormField(f,item)).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-record" data-type="${type}" data-id="${safe(id)}">Сохранить</button>${id?`<button class="v79-danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveRecord(type,id){const schema=RECORDS[type];if(!schema)return;const old=id?array(schema.arr).find(x=>x.id===id):null;const item=Object.assign({},old||{id:makeId(),createdAt:nowIso()});schema.fields.forEach(([key,,kind])=>{const el=document.getElementById(`v79_f_${key}`);if(!el)return;item[key]=kind==='number'?number(el.value):clean(el.value);});item.updatedAt=nowIso();if(id)state[schema.arr]=array(schema.arr).map(x=>x.id===id?item:x);else state[schema.arr].unshift(item);save();closeModal();renderPremium();toast('Сохранено');}
-  function deleteRecord(type,id){const schema=RECORDS[type];if(!schema)return;state[schema.arr]=array(schema.arr).filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Удалено');}
-  function openQuick(){openModal('Быстро добавить',`<div class="v79-quick-grid">${[['task','✓','Задача'],['operation','₽','Операция'],['note','📝','Заметка'],['idea','💡','Идея'],['person','👥','Человек'],['wish','💗','Желание']].map(([t,i,l])=>`<button data-v79-action="open-record-form" data-type="${t}"><i>${i}</i><b>${l}</b></button>`).join('')}</div>`);}
-  function openBalance(){openModal('Фактический баланс',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Сколько денег фактически сейчас?</span><input id="v79_balance" type="number" step="0.01" value="${number(state.settings.currentBalance)}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-balance">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function genericRecordPage(route){const type=ROUTE_RECORD[route],schema=RECORDS[type],meta=ROUTE_META[route],items=array(schema.arr).slice().sort((a,b)=>String(b.date||b.updatedAt||'').localeCompare(String(a.date||a.updatedAt||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>${meta[0]} Раздел</span><h1>${meta[1]}</h1><p>${meta[2]}</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="${type}">＋ Добавить</button></header><section class="v79-record-grid">${items.map(item=>recordTile(type,item)).join('')||'<div class="v78-empty-big">Пока пусто. Добавьте первую запись.</div>'}</section></section>`;}
-  function recordTile(type,item){const title=item.title||item.name||item.person||item.category||'Запись';const sub=item.role||item.author||item.area||item.folder||item.place||item.type||item.date||'';const text=item.note||item.text||item.quotes||'';const amount=item.amount||item.budget||item.target;return `<article class="v79-record-card"><header><div><small>${safe(sub)}</small><h2>${safe(title)}</h2></div>${amount?`<b>${safe(moneyText(amount))}</b>`:''}</header><p>${safe(String(text).slice(0,320))||'Без дополнительного описания.'}</p><footer><button data-v79-action="edit-record" data-type="${type}" data-id="${safe(item.id)}">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(item.id)}">Удалить</button></footer></article>`;}
-
-  function calendarPage(){const dates=Array.from({length:7},(_,i)=>addDaysKey(todayKey(),i));return `<section class="v78-page"><header class="v78-page-head"><div><span>Неделя по дням</span><h1>Календарь</h1><p>Задачи, события и ближайшая нагрузка без старых слоёв интерфейса.</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="task">＋ Задача</button></header><section class="v79-calendar-grid">${dates.map(date=>{const rows=array('tasks').filter(t=>String(t.date||'').slice(0,10)===date);return `<article><header><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></header><div>${rows.map(t=>`<button data-v79-action="edit-record" data-type="task" data-id="${safe(t.id)}"><b>${safe(t.time||'В течение дня')}</b><span>${safe(t.title||'Задача')}</span></button>`).join('')||'<p>Пусто</p>'}</div></article>`}).join('')}</section></section>`;}
-  function archivePage(){return genericRecordPage('archive');}
-  function coachPage(){const f=financeSnapshot(),undone=habitsActive().filter(h=>!completedHabit(h));return `<section class="v78-page"><header class="v78-page-head"><div><span>Персональный подсказчик</span><h1>Подсказчик AI</h1><p>Подсказки строятся только из фактов, уже записанных в приложении.</p></div></header><section class="v79-coach-hero"><div class="v78-robot"><i></i><b>••</b><em></em></div><div><h2>${undone.length?`Начните с «${safe(undone[0].name)}»`:'Главное на сегодня выполнено'}</h2><p>${undone.length?'Сделайте минимальную версию, чтобы сохранить движение без перегруза.':'Можно спокойно подвести итог дня и не добавлять новых обязательств.'}</p><div><button class="v78-primary" data-v78-route="${undone[0]?`habit-${encodeURIComponent(undone[0].id)}`:'today'}">Открыть следующий шаг</button><button class="v78-secondary" data-v78-route="subconscious">Интервью с подсознанием</button></div></div></section><section class="v78-kpi-row"><article><small>Баланс</small><b>${safe(moneyText(f.balance))}</b><span>фактический остаток</span></article><article><small>Обязательства</small><b>${safe(moneyText(f.debtTotal))}</b><span>${f.debts.length} активных</span></article><article><small>Привычки</small><b>${habitsDone()}/${habitsActive().length}</b><span>выполнено сегодня</span></article><article><small>Задачи</small><b>${array('tasks').filter(t=>t.date===todayKey()).length}</b><span>на сегодня</span></article></section>${interviewCard()}</section>`;}
-  function subconsciousPage(){const entries=array('subconsciousEntries').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits">← Привычки</button><span>Мягкая рефлексия</span><h1>Интервью с подсознанием</h1><p>Три коротких вопроса, чтобы заметить внутреннее сопротивление.</p></div><button class="v78-primary" data-v79-action="open-interview">＋ Новое интервью</button></header><section class="v79-interview-list">${entries.map(e=>`<article><small>${safe(formatDate(e.date||todayKey()))}</small><h2>${safe(e.question||'Что меня сейчас останавливает?')}</h2><p>${safe(e.answer||e.note||'')}</p></article>`).join('')||'<div class="v78-empty-big">Интервью пока нет.</div>'}</section></section>`;}
-  function openInterview(){openModal('Интервью с подсознанием',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Что меня сейчас останавливает?</span><textarea id="v79_int_1"></textarea></label><label class="v79-field span-2"><span>Что я могу сделать проще?</span><textarea id="v79_int_2"></textarea></label><label class="v79-field span-2"><span>Какой один шаг я сделаю сегодня?</span><textarea id="v79_int_3"></textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-interview">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveInterview(){const a=clean(document.getElementById('v79_int_1')?.value),b=clean(document.getElementById('v79_int_2')?.value),c=clean(document.getElementById('v79_int_3')?.value);state.subconsciousEntries.unshift({id:makeId(),date:todayKey(),question:'Что меня сейчас останавливает?',answer:a,note:[b,c].filter(Boolean).join('\n'),createdAt:nowIso()});save();closeModal();renderPremium();toast('Интервью сохранено');}
-  function systemPage(){const stats=[['Операции',array('operations').length],['Долги',array('debts').length],['Задачи',array('tasks').length],['Покупки',array('purchases').length],['Желания',array('wishes').length],['Заметки',array('notes').length],['Идеи',array('ideas').length],['Люди',array('people').length],['Привычки',array('habits').length],['Цели',array('goals').length],['Документы',array('documents').length],['Книги',array('books').length],['Фильмы',array('films').length],['Поездки',array('trips').length],['Личная память',array('personal').length]];return `<section class="v78-page"><header class="v78-page-head"><div><span>Защита данных и обслуживание</span><h1>Настройки</h1><p>Один чистый runtime. Старые версии больше не подключаются и не реагируют на клики.</p></div></header><section class="v79-system-actions"><article><i>⇩</i><div><h2>Резервная копия</h2><p>Скачайте JSON перед крупными изменениями.</p></div><button data-v79-action="export-data">Скачать</button></article><article><i>⇧</i><div><h2>Импорт данных</h2><p>Верните ранее сохранённую копию.</p></div><label><input id="v79_import_file" type="file" accept="application/json"><span>Выбрать</span></label></article><article><i>↻</i><div><h2>Обновить интерфейс</h2><p>Удаляет только кэш файлов, личные данные остаются.</p></div><button data-v79-action="clear-ui-cache">Очистить кэш</button></article></section><section class="v79-data-stats">${stats.map(([l,v])=>`<article><small>${l}</small><b>${v}</b></article>`).join('')}</section></section>`;}
-
-  function polinaPage(){const key=state.settings.polinaMonth||monthKey(todayKey());const [y,m]=key.split('-').map(Number);const first=new Date(y,m-1,1,12),days=new Date(y,m,0,12).getDate(),offset=(first.getDay()+6)%7;const cells=Array(offset).fill('').concat(Array.from({length:days},(_,i)=>`${key}-${String(i+1).padStart(2,'0')}`));const entries=new Map(array('polinaDays').map(e=>[String(e.date).slice(0,10),e]));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Состояние и цикл</span><h1>Состояние Полины</h1><p>Хорошее — зелёным, нейтральное — жёлтым, плохое — красным. Заполняется вся ячейка.</p></div><div><button class="v78-secondary" data-v79-action="polina-month" data-delta="-1">←</button><button class="v78-primary" data-v79-action="polina-month" data-delta="1">→</button></div></header><section class="v79-polina-card"><header><h2>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</h2><div><span class="good">Хорошее</span><span class="neutral">Нейтральное</span><span class="bad">Плохое</span></div></header><div class="v79-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</div><div class="v79-polina-grid">${cells.map(date=>{if(!date)return '<i></i>';const e=entries.get(date)||{};return `<button class="${safe(e.status||'')} ${e.periodMarker?'period':''}" data-v79-action="open-polina-day" data-date="${date}"><b>${Number(date.slice(8))}</b><span>${safe(e.status==='good'?'Хорошее':e.status==='neutral'?'Нейтральное':e.status==='bad'?'Плохое':'Без отметки')}</span><small>${safe(e.comment||'Добавить комментарий')}</small>${e.periodMarker?`<em>${e.periodMarker==='start'?'Начало':e.periodMarker==='end'?'Конец':'Месячные'}</em>`:''}</button>`}).join('')}</div></section></section>`;}
-  function openPolinaDay(date){const e=array('polinaDays').find(x=>x.date===date)||{};openModal(`Состояние Полины · ${formatDate(date)}`,`<div class="v79-form-grid"><label class="v79-field"><span>Состояние</span><select id="v79_p_status"><option value="">Без отметки</option><option value="good" ${e.status==='good'?'selected':''}>Хорошее</option><option value="neutral" ${e.status==='neutral'?'selected':''}>Нейтральное</option><option value="bad" ${e.status==='bad'?'selected':''}>Плохое</option></select></label><label class="v79-field"><span>Цикл</span><select id="v79_p_period"><option value="">Нет отметки</option><option value="start" ${e.periodMarker==='start'?'selected':''}>Начало месячных</option><option value="period" ${e.periodMarker==='period'?'selected':''}>Месячные</option><option value="end" ${e.periodMarker==='end'?'selected':''}>Конец месячных</option></select></label><label class="v79-field span-2"><span>Комментарий</span><textarea id="v79_p_comment">${safe(e.comment||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-polina-day" data-date="${date}">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function savePolinaDay(date){const status=clean(document.getElementById('v79_p_status')?.value),periodMarker=clean(document.getElementById('v79_p_period')?.value),comment=clean(document.getElementById('v79_p_comment')?.value);const old=array('polinaDays').find(x=>x.date===date);state.polinaDays=array('polinaDays').filter(x=>x.date!==date);if(status||periodMarker||comment)state.polinaDays.push({id:old?.id||makeId(),date,status,periodMarker,comment,updatedAt:nowIso()});save();closeModal();renderPremium();toast('Состояние сохранено');}
-
-  const enc=new TextEncoder(),dec=new TextDecoder();
-  const bytesToB64=bytes=>{let s='';new Uint8Array(bytes).forEach(b=>s+=String.fromCharCode(b));return btoa(s)};const b64ToBytes=v=>{const s=atob(String(v||'')),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a};
-  async function vaultKey(password,salt,iterations=310000){const base=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
-  async function vaultEncrypt(entries,key,salt,iterations=310000){const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify({entries})));return {version:1,cipher:'AES-GCM-256',kdf:'PBKDF2-SHA256',iterations,salt:bytesToB64(salt),iv:bytesToB64(iv),ciphertext:bytesToB64(cipher),updatedAt:nowIso()};}
-  async function vaultDecrypt(vault,key){const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(vault.iv)},key,b64ToBytes(vault.ciphertext));return JSON.parse(dec.decode(plain)).entries||[];}
-  function passwordsPage(){const vault=state.passwordVault;if(!vault)return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>Мастер-пароль нигде не сохраняется.</p></div></header><section class="v79-vault-box"><i>🔐</i><h2>Создать защищённое хранилище</h2><input id="v79_vault_new" type="password" placeholder="Мастер-пароль, минимум 10 символов"><input id="v79_vault_repeat" type="password" placeholder="Повторите пароль"><button class="v78-primary" data-v79-action="create-vault">Создать</button></section></section>`;if(!vaultSession.unlocked)return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>Данные сохранены и заблокированы.</p></div></header><section class="v79-vault-box"><i>🔒</i><h2>Разблокировать</h2><input id="v79_vault_unlock" type="password" placeholder="Введите мастер-пароль"><button class="v78-primary" data-v79-action="unlock-vault">Открыть</button></section></section>`;return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>${vaultSession.entries.length} записей. Автоблокировка через 15 минут.</p></div><div><button class="v78-secondary" data-v79-action="lock-vault">Заблокировать</button><button class="v78-primary" data-v79-action="open-vault-entry">＋ Запись</button></div></header><section class="v79-vault-grid">${vaultSession.entries.map(e=>`<article><header><i>🔑</i><div><small>${safe(e.category||'Другое')}</small><h2>${safe(e.title||'Без названия')}</h2></div></header><p><b>${safe(e.login||'—')}</b></p><p class="secret">${vaultSession.revealed.has(e.id)?safe(e.secret||'—'):'••••••••••••'}</p><footer><button data-v79-action="reveal-vault" data-id="${safe(e.id)}">${vaultSession.revealed.has(e.id)?'Скрыть':'Показать'}</button><button data-v79-action="copy-vault" data-id="${safe(e.id)}">Копировать</button><button data-v79-action="open-vault-entry" data-id="${safe(e.id)}">Изменить</button></footer></article>`).join('')||'<div class="v78-empty-big">Хранилище пустое.</div>'}</section></section>`;}
-  async function createVault(){const p=String(document.getElementById('v79_vault_new')?.value||''),r=String(document.getElementById('v79_vault_repeat')?.value||'');if(p.length<10)return toast('Минимум 10 символов');if(p!==r)return toast('Пароли не совпадают');const salt=crypto.getRandomValues(new Uint8Array(16)),key=await vaultKey(p,salt);state.passwordVault=await vaultEncrypt([],key,salt);vaultSession={key,entries:[],unlocked:true,revealed:new Set(),lastActivity:Date.now()};save();renderPremium();}
-  async function unlockVault(){try{const p=String(document.getElementById('v79_vault_unlock')?.value||''),v=state.passwordVault,key=await vaultKey(p,b64ToBytes(v.salt),Number(v.iterations)||310000),entries=await vaultDecrypt(v,key);vaultSession={key,entries,unlocked:true,revealed:new Set(),lastActivity:Date.now()};renderPremium();toast('Хранилище открыто');}catch(error){toast('Неверный мастер-пароль');}}
-  function openVaultEntry(id=''){const e=vaultSession.entries.find(x=>x.id===id)||{};openModal(id?'Изменить запись':'Новая запись',`<div class="v79-form-grid"><label class="v79-field"><span>Название</span><input id="v79_ve_title" value="${safe(e.title||'')}"></label><label class="v79-field"><span>Категория</span><input id="v79_ve_category" value="${safe(e.category||'')}"></label><label class="v79-field"><span>Логин</span><input id="v79_ve_login" value="${safe(e.login||'')}"></label><label class="v79-field"><span>Пароль / секрет</span><input id="v79_ve_secret" value="${safe(e.secret||'')}"></label><label class="v79-field span-2"><span>Ссылка</span><input id="v79_ve_url" value="${safe(e.url||'')}"></label><label class="v79-field span-2"><span>Комментарий</span><textarea id="v79_ve_note">${safe(e.note||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-vault-entry" data-id="${safe(id)}">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  async function saveVaultEntry(id){const e={id:id||makeId(),title:clean(document.getElementById('v79_ve_title')?.value)||'Без названия',category:clean(document.getElementById('v79_ve_category')?.value)||'Другое',login:clean(document.getElementById('v79_ve_login')?.value),secret:String(document.getElementById('v79_ve_secret')?.value||''),url:clean(document.getElementById('v79_ve_url')?.value),note:clean(document.getElementById('v79_ve_note')?.value),updatedAt:nowIso()};vaultSession.entries=vaultSession.entries.filter(x=>x.id!==id);vaultSession.entries.unshift(e);state.passwordVault=await vaultEncrypt(vaultSession.entries,vaultSession.key,b64ToBytes(state.passwordVault.salt),Number(state.passwordVault.iterations)||310000);save();closeModal();renderPremium();toast('Запись сохранена');}
   function customPage(route) {
     const normalized = LEGACY_ALIASES[route] || route;
     if (normalized === 'today') return todayPage();
@@ -641,42 +508,67 @@
     if (normalized === 'debts') return debtsPage();
     if (normalized === 'profile') return profilePage();
     if (normalized === 'habit-wishlist') return wishlistPage();
-    if (normalized === 'calendar') return calendarPage();
-    if (normalized === 'archive') return archivePage();
-    if (normalized === 'coach') return coachPage();
-    if (normalized === 'system') return systemPage();
-    if (normalized === 'subconscious') return subconsciousPage();
-    if (normalized === 'polina') return polinaPage();
-    if (normalized === 'passwords') return passwordsPage();
-    if (ROUTE_RECORD[normalized]) return genericRecordPage(normalized);
     if (normalized.startsWith('habit-')) return habitPage(decodeURIComponent(normalized.slice(6)));
     return todayPage();
   }
 
   function isCustom(route) { const normalized = LEGACY_ALIASES[route] || route; return CUSTOM_ROUTES.has(route) || CUSTOM_ROUTES.has(normalized) || normalized.startsWith('habit-'); }
 
+  const legacyRender = typeof render === 'function' ? render : null;
+  const legacyGo = typeof go === 'function' ? go : null;
+  const legacyV70Navigate = typeof window.v70Navigate === 'function' ? window.v70Navigate : null;
+
   function renderPremium() {
     clearTimeout(renderTimer);
     ensureData();
     const route = routeNow();
-    premiumShell(customPage(route));
-    afterRender();
+    const normalized = LEGACY_ALIASES[route] || route;
+    try { page = normalized; } catch (error) {}
+    if (isCustom(route)) {
+      premiumShell(customPage(route));
+      afterRender();
+      return;
+    }
+    if (legacyRender) {
+      try { legacyRender(); }
+      catch (error) { console.error('[V78 legacy render]', error); premiumShell(`<section class="v78-page"><div class="v78-empty-big">Раздел не удалось открыть.<button data-v78-route="today">Вернуться на главную</button></div></section>`); }
+      afterRender();
+      return;
+    }
+    premiumShell(customPage('today'));
   }
 
   function afterRender() {
     setBuild();
-    document.body.classList.remove('v79-booting','v78-booting','v70-booting','v67-theme-dark');
-    document.documentElement.className='v79-light';
-    document.documentElement.style.colorScheme='light';
-    try { window.scrollTo(0,0); } catch(error){}
+    document.body.classList.remove('v78-booting', 'v70-booting', 'v67-theme-dark');
+    document.documentElement.classList.remove('v70-theme-dark');
+    document.documentElement.classList.add('v70-theme-light');
+    document.querySelectorAll('.v59-version,.version,.v77-bottom-nav,.bottom-nav').forEach(el => { if (!el.classList.contains('v78-mobile-nav')) el.style.display = 'none'; });
+    try { window.scrollTo(0, 0); } catch (error) {}
   }
 
   function navigate(route, options = {}) {
     const target = LEGACY_ALIASES[route] || route || 'today';
+    if (target === 'coach') {
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.dataset.v65Action = 'openAssistant';
+      trigger.hidden = true;
+      document.body.appendChild(trigger);
+      trigger.click();
+      trigger.remove();
+      return;
+    }
     if (options.filter) operationType = options.filter;
-    try { history.pushState(null,'',`#${encodeURIComponent(target)}`); } catch(error) { location.hash=target; }
+    try { page = target; } catch (error) {}
+    try { history.pushState(null, '', `#${encodeURIComponent(target)}`); } catch (error) { location.hash = target; }
     renderPremium();
   }
+
+  renderShell = premiumShell;
+  render = renderPremium;
+  go = navigate;
+  window.v70Navigate = navigate;
 
   function toggleHabit(id, date = todayKey(), force) {
     const habit = array('habits').find(item => item.id === id);
@@ -833,35 +725,6 @@
       if (filter) { operationType = filter; operationPage = 1; }
       return navigate(routeButton.dataset.v78Route, { filter });
     }
-    const v79 = event.target.closest?.('[data-v79-action]');
-    if (v79) {
-      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-      const action=v79.dataset.v79Action;
-      if(action==='open-record-form')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
-      if(action==='edit-record')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
-      if(action==='save-record')return saveRecord(v79.dataset.type,v79.dataset.id||'');
-      if(action==='delete-record')return deleteRecord(v79.dataset.type,v79.dataset.id||'');
-      if(action==='open-quick')return openQuick();
-      if(action==='set-actual-balance')return openBalance();
-      if(action==='save-balance'){state.settings.currentBalance=number(document.getElementById('v79_balance')?.value);save();closeModal();renderPremium();return toast('Баланс сохранён');}
-      if(action==='open-debt-in')return openRecordForm('debt','',{direction:'in'});
-      if(action==='open-debt-out')return openRecordForm('debt','',{direction:'out'});
-      if(action==='close-debt'){const d=array('debts').find(x=>x.id===v79.dataset.id);if(d)d.status='Закрыт';save();renderPremium();return toast('Обязательство закрыто');}
-      if(action==='export-data')return downloadJson();
-      if(action==='open-interview')return openInterview();
-      if(action==='save-interview')return saveInterview();
-      if(action==='polina-month'){const cur=state.settings.polinaMonth||monthKey(todayKey()),d=new Date(`${cur}-01T12:00:00`);d.setMonth(d.getMonth()+number(v79.dataset.delta));state.settings.polinaMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;save();return renderPremium();}
-      if(action==='open-polina-day')return openPolinaDay(v79.dataset.date);
-      if(action==='save-polina-day')return savePolinaDay(v79.dataset.date);
-      if(action==='create-vault')return createVault();
-      if(action==='unlock-vault')return unlockVault();
-      if(action==='lock-vault'){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};return renderPremium();}
-      if(action==='open-vault-entry')return openVaultEntry(v79.dataset.id||'');
-      if(action==='save-vault-entry')return saveVaultEntry(v79.dataset.id||'');
-      if(action==='reveal-vault'){vaultSession.revealed.has(v79.dataset.id)?vaultSession.revealed.delete(v79.dataset.id):vaultSession.revealed.add(v79.dataset.id);return renderPremium();}
-      if(action==='copy-vault'){const e=vaultSession.entries.find(x=>x.id===v79.dataset.id);if(e?.secret)navigator.clipboard?.writeText(e.secret);return toast('Скопировано');}
-      if(action==='clear-ui-cache')return (async()=>{try{const regs=await navigator.serviceWorker?.getRegistrations?.()||[];await Promise.all(regs.map(r=>r.unregister()));const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)));toast('Кэш очищен. Перезагрузка…');setTimeout(()=>location.reload(),600);}catch(error){toast('Не удалось очистить кэш');}})();
-    }
     const button = event.target.closest?.('[data-v78-action]');
     if (!button) return;
     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
@@ -904,27 +767,21 @@
     if (operationSearch) { operationQuery = operationSearch.value; operationPage = 1; renderPremium(); return; }
     const avatar = event.target.closest?.('#v78_avatar_file'); if (avatar?.files?.[0]) compressAvatar(avatar.files[0]).catch(error=>{console.error(error); if(typeof toast==='function')toast('Не удалось обработать изображение');});
     const period = event.target.closest?.('[data-v78-category-period]'); if(period){state.settings.v78.categoryPeriod=period.value;persist();renderPremium();}
-    const importFile=event.target.closest?.('#v79_import_file');if(importFile?.files?.[0])importJson(importFile.files[0]);
   });
 
   window.addEventListener('popstate', renderPremium);
   window.addEventListener('hashchange', () => { clearTimeout(renderTimer); renderTimer = setTimeout(renderPremium, 10); });
   window.addEventListener('storage', event => { if (event.key === 'secondBrainOS.v1') { clearTimeout(renderTimer); renderTimer=setTimeout(renderPremium,80); } });
 
-  window.V79Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage };
+  window.V78Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage };
 
   try {
-    state = await coreLoad();
-    window.state = state;
     ensureData();
-    save();
     const initialRoute = routeNow();
-    if (!location.hash || ['dashboard','focus-path'].includes(initialRoute)) history.replaceState(null,'','#today');
+    if (!location.hash || ['dashboard','focus-path'].includes(initialRoute)) history.replaceState(null, '', '#today');
     renderPremium();
-    setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
   } catch (error) {
-    console.error('[V79 Clean Runtime]', error);
-    document.body.classList.remove('v79-booting','v78-booting');
-    document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
+    console.error('[V78 Premium]', error);
+    document.body.classList.remove('v78-booting');
   }
 })();

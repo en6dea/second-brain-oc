@@ -1,6 +1,6 @@
 'use strict';
 
-/* Second Brain OS V80 — readable premium interface, habits, interviews, people and finance analytics.
+/* Second Brain OS V78 — единый премиальный интерфейс, профиль, привычки и прозрачные финансы.
    Миграция только дополняет state. Существующие коллекции и записи не очищаются. */
 (async () => {
 
@@ -20,7 +20,7 @@
   function coreClone(value){ return JSON.parse(JSON.stringify(value ?? null)); }
   function coreStamp(source){
     source.settings = source.settings && typeof source.settings === 'object' ? source.settings : {};
-    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:80,updatedAt:new Date().toISOString(),reason:'v80-save',fullStateInIndexedDB:false});
+    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:79,updatedAt:new Date().toISOString(),reason:'v79-save',fullStateInIndexedDB:false});
     return source.settings.storageGuard.updatedAt;
   }
   function coreNormalize(raw){
@@ -54,9 +54,9 @@
     const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
     const loaded=coreNormalize(chooseDurable?durableState:local);
     try{
-      const marker='secondBrainOS.v80.backupCreated';
+      const marker='secondBrainOS.v79.backupCreated';
       if(!localStorage.getItem(marker)){
-        await coreDbPut(`backup:v79-before-v80:${new Date().toISOString()}`,{version:80,createdAt:new Date().toISOString(),reason:'automatic-before-v80-readable-runtime',state:coreClone(loaded)});
+        await coreDbPut(`backup:v78-before-v79:${new Date().toISOString()}`,{version:79,createdAt:new Date().toISOString(),reason:'automatic-before-clean-runtime',state:coreClone(loaded)});
         localStorage.setItem(marker,new Date().toISOString());
       }
     }catch(error){}
@@ -66,9 +66,9 @@
     coreStamp(state);
     window.state=state;
     let localOk=false;
-    try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V80 local save]',error);}
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V79 local save]',error);}
     const snapshot=coreClone(state),updatedAt=coreUpdatedAt(state);
-    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:80,updatedAt,reason:'v80-save',state:snapshot}).catch(error=>console.warn('[V80 durable save]',error)));
+    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:79,updatedAt,reason:'v79-save',state:snapshot}).catch(error=>console.warn('[V79 durable save]',error)));
     document.body.dataset.sbosStorage=localOk?'durable':'indexeddb-only';
     return localOk;
   }
@@ -79,8 +79,8 @@
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v80-readable-data-20260720-r1';
-  const LABEL = 'V80 · READABLE UNIFIED';
+  const BUILD = 'second-brain-space-v79-clean-runtime-20260720-r2';
+  const LABEL = 'V79 · CLEAN UNIFIED';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
@@ -91,7 +91,6 @@
   const DAY = 86400000;
   const PAGE_SIZE = 25;
   let pendingAvatar = '';
-  let pendingPersonAvatar = '';
   let operationPage = 1;
   let operationType = 'all';
   let operationQuery = '';
@@ -118,27 +117,6 @@
   const monthKey = value => String(value || todayKey()).slice(0, 7);
   const initial = name => clean(name).slice(0, 1).toUpperCase() || 'А';
   const plural = (n, one, few, many) => { const v = Math.abs(Number(n || 0)) % 100; const l = v % 10; if (v > 10 && v < 20) return many; if (l === 1) return one; if (l >= 2 && l <= 4) return few; return many; };
-  const normalizedUrl = value => { const raw=clean(value); if(!raw)return ''; if(/^data:image\//i.test(raw))return raw; if(/^https?:\/\//i.test(raw))return raw; if(/^\/\//.test(raw))return `https:${raw}`; return `https://${raw}`; };
-  function operationKind(item){
-    const raw=clean(item?.type||item?.kind||item?.operationType||item?.direction||item?.flow).toLowerCase();
-    if(['income','доход','приход','поступление','зачисление','получено'].some(v=>raw===v||raw.includes(v))) return 'income';
-    if(['expense','расход','трата','списание','оплата','покупка'].some(v=>raw===v||raw.includes(v))) return 'expense';
-    const hint=clean([item?.category,item?.incomeSource,item?.note,item?.title,item?.name].join(' ')).toLowerCase();
-    if(/зарплат|доход|поступлен|возврат|подар|подработ|аванс|дивиденд|процент/.test(hint))return 'income';
-    return number(item?.amount)<0 ? 'expense' : 'expense';
-  }
-  const operationAmount = item => Math.abs(number(item?.amount));
-  const operationDate = item => String(item?.date||item?.operationDate||item?.createdAt||todayKey()).slice(0,10);
-  function archiveSnapshot(title,type,item){
-    state.archive = Array.isArray(state.archive)?state.archive:[];
-    state.archive.unshift({id:makeId(),title,date:todayKey(),type,note:'Автоматическая копия перед удалением или миграцией.',original:coreClone(item),createdAt:nowIso()});
-  }
-  function birthdayDays(person){
-    if(!person?.birthday)return null; const birth=dateAtNoon(person.birthday),now=dateAtNoon(todayKey());
-    let next=new Date(now.getFullYear(),birth.getMonth(),birth.getDate(),12); if(next<now)next=new Date(now.getFullYear()+1,birth.getMonth(),birth.getDate(),12);
-    return Math.ceil((next-now)/DAY);
-  }
-  function upcomingBirthdays(limit=45){return array('people').filter(person=>person.birthdayReminderEnabled!==false).map(person=>({person,days:birthdayDays(person)})).filter(x=>x.days!==null&&x.days<=Math.min(limit,Math.max(0,number(x.person.birthdayReminderDays)||7))).sort((a,b)=>a.days-b.days);}
 
   function persist(message = '') {
     state.settings.v78.updatedAt = nowIso();
@@ -224,17 +202,6 @@
     }
     operationPage = Math.max(1, number(state.settings.v78.operationPage) || 1);
     operationType = ['all', 'income', 'expense'].includes(state.settings.v78.operationType) ? state.settings.v78.operationType : 'all';
-    state.settings.v80 = Object.assign({version:1,createdAt:nowIso(),interviewLeakMigrated:false},state.settings.v80||{});
-    state.operations.forEach(item=>{
-      const previous=clean(item.type); const kind=operationKind(item); if(previous&&previous!==kind&&!item.originalType)item.originalType=previous;
-      item.type=kind; item.amount=operationAmount(item); item.date=operationDate(item); item.category=clean(item.category||item.group||item.area)||'Другое';
-    });
-    state.people.forEach(person=>{ person.id=clean(person.id)||makeId(); person.name=clean(person.name||person.person)||'Без имени'; person.avatar=clean(person.avatar||person.photo||person.photoUrl); person.birthdayReminderEnabled=person.birthdayReminderEnabled!==false; person.birthdayReminderDays=Math.max(0,number(person.birthdayReminderDays)||7); });
-    if(!state.settings.v80.interviewLeakMigrated){
-      const patterns=/подсозн|что меня сейчас останавливает|что я могу отпустить|что я могу сделать проще|какой один шаг|внутренн(ее|ий) сопротивлен/i;
-      ['notes','personal'].forEach(key=>{const keep=[];array(key).forEach(item=>{const blob=JSON.stringify(item);if(patterns.test(blob)||item.question||item.answers){const sourceId=`migrated-${key}-${item.id||makeId()}`;if(!state.subconsciousEntries.some(e=>e.sourceId===sourceId)){state.subconsciousEntries.unshift({id:makeId(),sourceId,date:item.date||todayKey(),question:item.question||item.title||'Перенесённое интервью',answer:item.answer||item.text||item.note||'',note:item.note||'',questions:Array.isArray(item.questions)?item.questions:[],createdAt:item.createdAt||nowIso()});archiveSnapshot(`Резервная копия: ${item.title||'интервью'}`,'interview-migration',item);}}else keep.push(item);});state[key]=keep;});
-      state.settings.v80.interviewLeakMigrated=true;
-    }
   }
 
   function ageFromBirth(value) {
@@ -303,7 +270,7 @@
       <nav class="v78-mobile-nav">${[['today','⌂','Сегодня'],['habits','✓','Привычки'],['finance','₽','Финансы'],['information','▣','Информация'],['profile','●','Профиль']].map(([r,i,l])=>`<button class="${current===r||(r==='habits'&&current.startsWith('habit-'))||(r==='finance'&&current.startsWith('finance-'))?'active':''}" data-v78-route="${r}" type="button"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>
       <div class="v78-build">${LABEL}</div>
     </div>`;
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting','v70-booting','v67-theme-dark');
+    document.body.classList.remove('v79-booting','v78-booting','v70-booting','v67-theme-dark');
     document.documentElement.classList.remove('v70-theme-dark');
     document.documentElement.classList.add('v70-theme-light');
     document.documentElement.dataset.v70Theme = 'light';
@@ -333,22 +300,22 @@
   function financeSnapshot() {
     const ops = array('operations');
     const key = monthKey(todayKey());
-    const monthOps = ops.filter(item => monthKey(operationDate(item)) === key);
-    const income = monthOps.filter(item => operationKind(item) === 'income').reduce((s, item) => s + operationAmount(item), 0);
-    const expense = monthOps.filter(item => operationKind(item) === 'expense').reduce((s, item) => s + operationAmount(item), 0);
+    const monthOps = ops.filter(item => monthKey(item.date) === key);
+    const income = monthOps.filter(item => item.type === 'income').reduce((s, item) => s + number(item.amount), 0);
+    const expense = monthOps.filter(item => item.type !== 'income').reduce((s, item) => s + number(item.amount), 0);
     const balance = number(state.settings.currentBalance);
     const debts = activeDebtsOut();
-    const planned = array('purchases').filter(item => item.includeInBudget !== false && monthKey(item.date) === key).reduce((s, item) => s + Math.abs(number(item.amount)), 0);
+    const planned = array('purchases').filter(item => item.includeInBudget !== false && monthKey(item.date) === key).reduce((s, item) => s + number(item.amount), 0);
     return { income, expense, balance, debts, debtTotal: total(debts), planned, available: balance - planned };
   }
 
   function categoryData(period = state.settings.v78.categoryPeriod || monthKey(todayKey())) {
-    const expenses = array('operations').filter(item => operationKind(item) === 'expense' && monthKey(operationDate(item)) === period);
+    const expenses = array('operations').filter(item => item.type !== 'income' && monthKey(item.date) === period);
     const map = new Map();
-    expenses.forEach(item => { const key = clean(item.category||item.group||item.area) || 'Другое'; map.set(key, (map.get(key) || 0) + operationAmount(item)); });
+    expenses.forEach(item => { const key = clean(item.category) || 'Другое'; map.set(key, (map.get(key) || 0) + number(item.amount)); });
     const rows = [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     const sum = rows.reduce((s, row) => s + row.value, 0);
-    return { rows, sum, period, count:expenses.length };
+    return { rows, sum, period };
   }
 
   function donutStyle(rows, sum) {
@@ -387,29 +354,9 @@
     return card('Мои обязательства', `${debts.length} ${plural(debts.length,'активное','активных','активных')}`, `${rows || '<div class="v78-empty">Активных обязательств нет.</div>'}<button class="v78-link-button" data-v78-route="debts" type="button">Все обязательства →</button>`, 'v78-obligations-card');
   }
 
-  const INTERVIEW_QUESTION_SETS = [
-    ['Что я сейчас на самом деле чувствую, если не пытаться это исправить?','Какое действие я откладываю и чего именно в нём избегаю?','Какой самый маленький честный шаг вернёт мне движение сегодня?'],
-    ['Где сегодня я действую из страха, а не из своих ценностей?','Что я пытаюсь контролировать, хотя могу отпустить?','Как я могу поддержать себя без поблажек и самокритики?'],
-    ['Какая мысль сегодня забирает у меня больше всего энергии?','Что в этой мысли является фактом, а что моей интерпретацией?','Какое действие возможно даже при сохранении этой тревоги?'],
-    ['Что я обещал себе, но снова перенёс?','Какую скрытую выгоду я получаю от бездействия?','Как упростить задачу до действия на пять минут?'],
-    ['Где я сейчас предаю собственный приоритет ради быстрого удовольствия?','Какую цену я плачу за это через неделю или месяц?','Какой выбор сегодня подтвердит, кем я хочу стать?'],
-    ['Что в моём дне действительно важно, а что создаёт только видимость занятости?','От чего я могу отказаться сегодня без реального ущерба?','Какое одно дело сделает день завершённым?'],
-    ['Какая эмоция стоит за моими импульсивными расходами или желаниями?','Что мне хочется получить через покупку на эмоциональном уровне?','Как удовлетворить эту потребность без вреда для финансов?'],
-    ['Что помогло мне вчера двигаться, даже если день был неидеальным?','Какой контекст или сигнал стоит повторить сегодня?','Что я отмечу как маленькую победу вечером?'],
-    ['Где я жду мотивации вместо того, чтобы создать условия?','Что можно подготовить заранее, чтобы начать было легче?','Во сколько и после какого события я выполню действие?'],
-    ['Какая часть меня сопротивляется дисциплине и от чего она меня защищает?','Что этой части важно услышать от меня?','Как совместить заботу о себе и выполнение обещания?'],
-    ['Что я сейчас усложняю сильнее, чем требуется?','Как выглядела бы достаточно хорошая версия результата?','Что я закончу сегодня без дальнейшего улучшения?'],
-    ['Что я хочу изменить в своей жизни, но поддерживаю ежедневными действиями обратное?','Какое повторяющееся действие создаёт это противоречие?','Чем я заменю его сегодня хотя бы один раз?'],
-    ['Какая незакрытая ситуация постоянно занимает фон моего внимания?','Что зависит от меня в этой ситуации прямо сейчас?','Какое сообщение, решение или действие закроет следующий шаг?'],
-    ['Что сегодня вызвало у меня раздражение или защитную реакцию?','Какая потребность или граница за этим стоит?','Как выразить её спокойно и прямо?']
-  ];
-  function interviewQuestions(date=todayKey()){
-    const day=Math.floor(dateAtNoon(date).getTime()/DAY); return INTERVIEW_QUESTION_SETS[Math.abs(day)%INTERVIEW_QUESTION_SETS.length];
-  }
-  function todayInterview(){return array('subconsciousEntries').find(e=>String(e.date||'').slice(0,10)===todayKey());}
   function interviewCard() {
-    const session=todayInterview(),questions=interviewQuestions();
-    return card('Интервью с подсознанием', session?'Сегодняшнее интервью сохранено':'Каждый день — три новых вопроса', `<div class="v80-interview-preview"><div><span class="v80-daily-tag">${session?'✓ Пройдено сегодня':'Вопрос дня'}</span><p>${safe(questions[0])}</p><button class="v78-primary" data-v78-route="subconscious" type="button">${session?'Открыть ответы':'Начать интервью'} <i>→</i></button></div><div class="v80-mind-art"><i></i><b></b><em></em><span>✦</span></div></div>`, 'v78-interview-card v80-interview-card');
+    const latest = array('subconsciousEntries').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+    return card('Интервью с подсознанием', 'Ответьте на 3 вопроса и получите ясный инсайт дня', `<div class="v78-interview-body"><div><p>${safe(latest?.answer || latest?.note || 'Что я могу отпустить, чтобы стать свободнее уже сейчас?')}</p><button class="v78-primary" data-v78-route="subconscious" type="button">Начать интервью <i>→</i></button></div><div class="v78-pearl-art"><i></i><b></b><em></em></div></div>`, 'v78-interview-card');
   }
 
   function assistantCard() {
@@ -430,8 +377,8 @@
 
   function operationsFolderMini() {
     const ops = array('operations');
-    const income = ops.filter(item => operationKind(item) === 'income').length;
-    const expense = ops.filter(item => operationKind(item) === 'expense').length;
+    const income = ops.filter(item => item.type === 'income').length;
+    const expense = ops.length - income;
     return card('Папка операций', 'Все финансовые записи в одном месте', `<div class="v78-operation-folder"><button data-v78-route="finance-operations" type="button"><i>▦</i><span>Все операции</span><b>${ops.length}</b></button><button data-v78-route="finance-operations" data-v78-filter="income" type="button"><i>↗</i><span>Доходы</span><b>${income}</b></button><button data-v78-route="finance-operations" data-v78-filter="expense" type="button"><i>↘</i><span>Расходы</span><b>${expense}</b></button><button data-v79-action="open-record-form" data-type="operation" type="button"><i>＋</i><span>Новая операция</span><b>добавить</b></button></div>`, 'v78-operations-folder');
   }
 
@@ -468,8 +415,8 @@
   }
 
   function habitCard(habit) {
-    const week = habitWeekDone(habit),percent=Math.round(week/7*100);
-    return `<article class="v78-habit-tile v80-habit-tile" style="--habit:${safe(habit.color)}"><button class="v78-habit-open" data-v78-route="habit-${encodeURIComponent(habit.id)}" type="button"><i>${safe(habit.icon)}</i><span><b>${safe(habit.name)}</b><small>${safe(habit.frequency)} · ${habit.target} ${safe(habit.unit)}</small></span><em>›</em></button><div class="v80-habit-progress"><span><b>${week}/7</b><small>за неделю</small></span><u><i style="width:${percent}%"></i></u><em>${percent}%</em></div><div class="v78-habit-tile-bottom"><button class="${completedHabit(habit)?'done':''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено сегодня':'○ Отметить сегодня'}</button><button class="v80-icon-action" title="Настроить" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">✎</button></div></article>`;
+    const week = habitWeekDone(habit);
+    return `<article class="v78-habit-tile" style="--habit:${safe(habit.color)}"><button class="v78-habit-open" data-v78-route="habit-${encodeURIComponent(habit.id)}" type="button"><i>${safe(habit.icon)}</i><span><b>${safe(habit.name)}</b><small>${safe(habit.frequency)} · цель ${habit.target} ${safe(habit.unit)}</small></span><em>›</em></button><div class="v78-habit-tile-bottom"><span><b>${week}/7</b><small>за неделю</small></span><button class="${completedHabit(habit)?'done':''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено':'○ Отметить'}</button></div></article>`;
   }
 
   function habitPage(id) {
@@ -481,7 +428,7 @@
     const best = longestStreak(habit);
     const reading = /чтен/i.test(habit.name);
     const sessions = reading ? state.discipline.sessions.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))) : [];
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Все привычки</button><span>Отдельная страница привычки</span><h1>${safe(habit.icon)} ${safe(habit.name)}</h1><p>${safe(habit.note || 'Последовательное повторение и честная фиксация результата.')}</p></div><div><button class="v80-delete-button" data-v80-action="delete-habit" data-id="${safe(habit.id)}" type="button">Удалить</button><button class="v78-secondary" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">Настроить</button><button class="v78-primary" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено сегодня':'Отметить сегодня'}</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Все привычки</button><span>Отдельная страница привычки</span><h1>${safe(habit.icon)} ${safe(habit.name)}</h1><p>${safe(habit.note || 'Последовательное повторение и честная фиксация результата.')}</p></div><div><button class="v78-secondary" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">Настроить</button><button class="v78-primary" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено сегодня':'Отметить сегодня'}</button></div></header>
       <section class="v78-kpi-row"><article><small>Выполнено</small><b>${completed}/${days}</b><span>за выбранный период</span></article><article><small>Последние 7 дней</small><b>${habitWeekDone(habit)}/7</b><span>стабильность, не серия</span></article><article><small>Лучшая серия</small><b>${best} дн.</b><span>без обнуления мотивации</span></article><article><small>Цель</small><b>${habit.target} ${safe(habit.unit)}</b><span>${safe(habit.frequency)}</span></article></section>
       ${card(`Карта повторений · ${days} дней`, 'Нажмите на любой день, чтобы изменить отметку.', `<div class="v78-habit-calendar">${dates.map(date=>`<button class="${completedHabit(habit,date)?'done':''} ${date===todayKey()?'today':''}" data-v78-action="toggle-habit-date" data-id="${safe(habit.id)}" data-date="${date}" type="button"><b>${dateAtNoon(date).getDate()}</b><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{month:'short'})}</small></button>`).join('')}</div>`, 'v78-habit-calendar-card')}
       <section class="v78-two-cols">${reading ? readingDetailCard(habit, sessions) : habitNotesCard(habit)}${wishlistCard()}</section>
@@ -550,7 +497,7 @@
 
   function financeOperationsPage() {
     const all = array('operations').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    let filtered = all.filter(item => operationType === 'all' || operationKind(item) === operationType);
+    let filtered = all.filter(item => operationType === 'all' || item.type === operationType);
     if (operationQuery) {
       const q = operationQuery.toLowerCase();
       filtered = filtered.filter(item => [item.date,item.type,item.amount,item.category,item.account,item.note,item.incomeSource].some(value=>String(value||'').toLowerCase().includes(q)));
@@ -574,13 +521,13 @@
   }
 
   function operationRow(item) {
-    const income = operationKind(item) === 'income';
-    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span>${safe(item.category||'Без категории')}</span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu"><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">Удалить</button></span></article>`;
+    const income = item.type === 'income';
+    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span>${safe(item.category||'Без категории')}</span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu"><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">✎</button><button data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">×</button></span></article>`;
   }
 
   function financeAnalyticsPage() {
     const data = categoryData();
-    const months = [...new Set(array('operations').map(item=>monthKey(operationDate(item))).filter(Boolean))].sort().reverse();
+    const months = [...new Set(array('operations').map(item=>monthKey(item.date)).filter(Boolean))].sort().reverse();
     return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Финансовая аналитика</span><h1>Анализ по категориям</h1><p>Каждая категория рассчитывается только из фактических расходных операций.</p></div><div><select class="v78-select" data-v78-category-period>${months.map(key=>`<option value="${key}" ${key===data.period?'selected':''}>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</option>`).join('') || `<option value="${monthKey(todayKey())}">Текущий месяц</option>`}</select><button class="v78-primary" data-v78-route="finance-operations" type="button">Открыть операции</button></div></header>
       <section class="v78-analysis-hero"><div class="v78-donut large" style="${donutStyle(data.rows,data.sum)}"><span><b>${safe(moneyText(data.sum))}</b><small>расходы</small></span></div><div><h2>Структура расходов</h2><p>${data.rows.length ? 'Категории отсортированы от крупнейшей к меньшей.' : 'Добавьте расходные операции, чтобы появился анализ.'}</p><div class="v78-analysis-list">${data.rows.map((row,index)=>`<article><i class="c${index}"></i><span><b>${safe(row.name)}</b><small>${safe(moneyText(row.value))}</small></span><em>${data.sum?Math.round(row.value/data.sum*100):0}%</em><u><b style="width:${data.sum?row.value/data.sum*100:0}%"></b></u></article>`).join('')}</div></div></section>
       ${card('Что изменилось по сравнению с предыдущим месяцем', 'Сравнение строится по тем же категориям.', categoryComparison(data.period), 'v78-comparison-card')}
@@ -634,11 +581,11 @@
     person:{arr:'people',title:'Человек',fields:[['name','Имя','text'],['role','Кто это','text'],['phone','Телефон','text'],['email','Email','email'],['birthday','Дата рождения','date'],['note','Контекст и заметки','textarea']]},
     note:{arr:'notes',title:'Заметка',fields:[['title','Название','text'],['folder','Папка','text'],['date','Дата','date'],['text','Текст','textarea']]},
     idea:{arr:'ideas',title:'Идея',fields:[['title','Название','text'],['date','Дата','date'],['text','Описание','textarea']]},
-    wish:{arr:'wishes',title:'Желание',fields:[['title','Название','text'],['date','Дата','date'],['amount','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Прямая ссылка на товар','url'],['note','Описание','textarea']]},
+    wish:{arr:'wishes',title:'Желание',fields:[['title','Название','text'],['date','Дата','date'],['amount','Бюджет','number'],['url','Ссылка','text'],['note','Описание','textarea']]},
     document:{arr:'documents',title:'Документ',fields:[['title','Название','text'],['type','Тип','text'],['date','Дата','date'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','text'],['imageUrl','URL обложки','url'],['url','Ссылка на книгу','url'],['quotes','Цитаты и заметки','textarea']]},
-    film:{arr:'films',title:'Фильм',fields:[['title','Название','text'],['status','Статус','text'],['imageUrl','URL постера','url'],['url','Ссылка на фильм','url'],['note','Впечатления','textarea']]},
-    trip:{arr:'trips',title:'Путешествие',fields:[['title','Название','text'],['place','Место','text'],['date','Дата','date'],['budget','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Ссылка на тур / место','url'],['note','План','textarea']]},
+    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','text'],['url','Ссылка','text'],['quotes','Цитаты и заметки','textarea']]},
+    film:{arr:'films',title:'Фильм',fields:[['title','Название','text'],['status','Статус','text'],['url','Ссылка','text'],['note','Впечатления','textarea']]},
+    trip:{arr:'trips',title:'Путешествие',fields:[['title','Название','text'],['place','Место','text'],['date','Дата','date'],['budget','Бюджет','number'],['url','Ссылка','text'],['note','План','textarea']]},
     personal:{arr:'personal',title:'Личная запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Запись','textarea']]},
     inbox:{arr:'inbox',title:'Входящая запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Содержание','textarea']]},
     goal:{arr:'goals',title:'Цель',fields:[['title','Название','text'],['date','Срок','date'],['target','Целевое значение','number'],['status','Статус','text'],['note','Следующий шаг','textarea']]},
@@ -654,32 +601,18 @@
   function recordFormField(field,item){const [key,label,type,options]=field;const value=fieldValue(item,key);if(type==='textarea')return `<label class="v79-field span-2"><span>${label}</span><textarea id="v79_f_${key}">${value}</textarea></label>`;if(type==='select')return `<label class="v79-field"><span>${label}</span><select id="v79_f_${key}">${options.map(([v,l])=>`<option value="${safe(v)}" ${String(item?.[key]??'')===v?'selected':''}>${safe(l)}</option>`).join('')}</select></label>`;return `<label class="v79-field"><span>${label}</span><input id="v79_f_${key}" type="${type}" value="${value}"></label>`;}
   function openRecordForm(type,id='',preset={}){const schema=RECORDS[type];if(!schema)return toast('Форма не найдена');const item=id?array(schema.arr).find(x=>x.id===id)||{}:Object.assign({date:todayKey()},preset);openModal(`${id?'Редактировать':'Добавить'}: ${schema.title}`,`<div class="v79-form-grid">${schema.fields.map(f=>recordFormField(f,item)).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-record" data-type="${type}" data-id="${safe(id)}">Сохранить</button>${id?`<button class="v79-danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
   function saveRecord(type,id){const schema=RECORDS[type];if(!schema)return;const old=id?array(schema.arr).find(x=>x.id===id):null;const item=Object.assign({},old||{id:makeId(),createdAt:nowIso()});schema.fields.forEach(([key,,kind])=>{const el=document.getElementById(`v79_f_${key}`);if(!el)return;item[key]=kind==='number'?number(el.value):clean(el.value);});item.updatedAt=nowIso();if(id)state[schema.arr]=array(schema.arr).map(x=>x.id===id?item:x);else state[schema.arr].unshift(item);save();closeModal();renderPremium();toast('Сохранено');}
-  function deleteRecord(type,id){const schema=RECORDS[type];if(!schema)return;const item=array(schema.arr).find(x=>x.id===id);if(!item)return;if(!confirm(`Удалить «${item.title||item.name||item.person||schema.title}»? Копия останется в архиве.`))return;archiveSnapshot(`Удалено: ${item.title||item.name||item.person||schema.title}`,`deleted-${type}`,item);state[schema.arr]=array(schema.arr).filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Удалено, копия сохранена в архиве');}
-  function openQuick(){openModal('Быстро добавить',`<div class="v79-quick-grid">${[['task','✓','Задача'],['operation','₽','Операция'],['note','📝','Заметка'],['idea','💡','Идея'],['wish','💗','Желание']].map(([t,i,l])=>`<button data-v79-action="open-record-form" data-type="${t}"><i>${i}</i><b>${l}</b></button>`).join('')}<button data-v80-action="open-person-form"><i>👥</i><b>Человек</b></button></div>`);}
+  function deleteRecord(type,id){const schema=RECORDS[type];if(!schema)return;state[schema.arr]=array(schema.arr).filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Удалено');}
+  function openQuick(){openModal('Быстро добавить',`<div class="v79-quick-grid">${[['task','✓','Задача'],['operation','₽','Операция'],['note','📝','Заметка'],['idea','💡','Идея'],['person','👥','Человек'],['wish','💗','Желание']].map(([t,i,l])=>`<button data-v79-action="open-record-form" data-type="${t}"><i>${i}</i><b>${l}</b></button>`).join('')}</div>`);}
   function openBalance(){openModal('Фактический баланс',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Сколько денег фактически сейчас?</span><input id="v79_balance" type="number" step="0.01" value="${number(state.settings.currentBalance)}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-balance">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
   function genericRecordPage(route){const type=ROUTE_RECORD[route],schema=RECORDS[type],meta=ROUTE_META[route],items=array(schema.arr).slice().sort((a,b)=>String(b.date||b.updatedAt||'').localeCompare(String(a.date||a.updatedAt||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>${meta[0]} Раздел</span><h1>${meta[1]}</h1><p>${meta[2]}</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="${type}">＋ Добавить</button></header><section class="v79-record-grid">${items.map(item=>recordTile(type,item)).join('')||'<div class="v78-empty-big">Пока пусто. Добавьте первую запись.</div>'}</section></section>`;}
-  function recordTile(type,item){const title=item.title||item.name||item.person||item.category||'Запись';const sub=item.role||item.author||item.area||item.folder||item.place||item.type||item.date||'';const body=item.note||item.text||item.quotes||'';const amount=item.amount||item.budget||item.target;const image=normalizedUrl(item.imageUrl||item.coverUrl||item.posterUrl||'');const link=normalizedUrl(item.url||item.productUrl||'');return `<article class="v79-record-card ${image?'has-image':''}">${image?`<div class="v80-record-image"><img src="${safe(image)}" alt="${safe(title)}" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}<header><div><small>${safe(sub)}</small><h2>${safe(title)}</h2></div>${amount?`<b>${safe(moneyText(amount))}</b>`:''}</header><p>${safe(String(body).slice(0,320))||'Без дополнительного описания.'}</p>${link?`<a class="v80-external-link" href="${safe(link)}" target="_blank" rel="noopener">Открыть ссылку ↗</a>`:''}<footer><button data-v79-action="edit-record" data-type="${type}" data-id="${safe(item.id)}">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(item.id)}">Удалить</button></footer></article>`;}
-
-  function personAvatar(person,size='card'){const src=normalizedUrl(person.avatar||person.photoUrl||'');return src?`<img class="v80-person-avatar ${size}" src="${safe(src)}" alt="${safe(person.name)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;v80-person-avatar fallback ${size}&quot;>${safe(initial(person.name))}</span>'">`:`<span class="v80-person-avatar fallback ${size}">${safe(initial(person.name))}</span>`;}
-  function peoplePage(){const people=array('people').slice().sort((a,b)=>clean(a.name).localeCompare(clean(b.name),'ru')),birthdays=upcomingBirthdays(60);return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Личные связи</span><h1>Люди</h1><p>Анкеты, важные даты, предпочтения, вишлисты и контекст отношений.</p></div><button class="v78-primary" data-v80-action="open-person-form">＋ Добавить человека</button></header>${birthdays.length?`<section class="v80-birthday-strip"><header><h2>Ближайшие дни рождения</h2><p>Напоминания отображаются заранее по настройкам каждой анкеты.</p></header><div>${birthdays.slice(0,6).map(({person,days})=>`<button data-v80-action="open-person-form" data-id="${safe(person.id)}">${personAvatar(person,'sm')}<span><b>${safe(person.name)}</b><small>${days===0?'сегодня':days===1?'завтра':`через ${days} дн.`}</small></span></button>`).join('')}</div></section>`:''}<section class="v80-people-grid">${people.map(person=>{const days=birthdayDays(person),wish=clean(person.wishlist||person.giftIdeas);return `<article class="v80-person-card"><header>${personAvatar(person)}<div><small>${safe(person.role||person.relation||'Человек')}</small><h2>${safe(person.name)}</h2>${person.city?`<p>⌖ ${safe(person.city)}</p>`:''}</div><button data-v80-action="open-person-form" data-id="${safe(person.id)}">✎</button></header><div class="v80-person-facts">${person.birthday?`<span><small>День рождения</small><b>${safe(formatDate(person.birthday))}</b><em>${days===0?'Сегодня':days===1?'Завтра':`через ${days} дн.`}</em></span>`:''}${person.phone?`<span><small>Телефон</small><b>${safe(person.phone)}</b></span>`:''}${person.telegram?`<span><small>Telegram</small><b>${safe(person.telegram)}</b></span>`:''}</div><p>${safe(person.note||person.about||'Добавьте важный контекст об этом человеке.')}</p>${wish?`<div class="v80-person-wishlist"><small>Вишлист и идеи подарков</small><p>${safe(wish.slice(0,220))}</p></div>`:''}<footer><button data-v80-action="open-person-form" data-id="${safe(person.id)}">Открыть анкету</button><button class="danger" data-v80-action="delete-person" data-id="${safe(person.id)}">Удалить</button></footer></article>`}).join('')||'<div class="v78-empty-big">Добавьте первую анкету человека.</div>'}</section></section>`;}
-  function openPersonForm(id=''){const p=array('people').find(x=>x.id===id)||{};pendingPersonAvatar=p.avatar||p.photoUrl||'';const preview=pendingPersonAvatar?`<img src="${safe(normalizedUrl(pendingPersonAvatar))}">`:`<span>${safe(initial(p.name||'Ч'))}</span>`;openModal(id?'Анкета человека':'Новый человек',`<div class="v80-person-editor"><div class="v78-avatar-editor"><div id="v80_person_avatar_preview">${preview}</div><label><input id="v80_person_avatar_file" type="file" accept="image/*"><span>Загрузить фотографию</span></label><small>Фото хранится вместе с базой приложения.</small></div><div class="v79-form-grid"><label class="v79-field"><span>Имя</span><input id="v80_p_name" value="${safe(p.name||'')}"></label><label class="v79-field"><span>Кто это / роль</span><input id="v80_p_role" value="${safe(p.role||p.relation||'')}"></label><label class="v79-field"><span>Дата рождения</span><input id="v80_p_birthday" type="date" value="${safe(p.birthday||'')}"></label><label class="v79-field"><span>Напомнить за сколько дней</span><input id="v80_p_reminder" type="number" min="0" max="60" value="${number(p.birthdayReminderDays)||7}"></label><label class="v79-field"><span>Телефон</span><input id="v80_p_phone" value="${safe(p.phone||'')}"></label><label class="v79-field"><span>Email</span><input id="v80_p_email" type="email" value="${safe(p.email||'')}"></label><label class="v79-field"><span>Telegram / соцсеть</span><input id="v80_p_telegram" value="${safe(p.telegram||'')}"></label><label class="v79-field"><span>Город</span><input id="v80_p_city" value="${safe(p.city||'')}"></label><label class="v79-field span-2"><span>Интересы, любимое и предпочтения</span><textarea id="v80_p_interests">${safe(p.interests||'')}</textarea></label><label class="v79-field span-2"><span>Что не любит / важные границы</span><textarea id="v80_p_dislikes">${safe(p.dislikes||'')}</textarea></label><label class="v79-field span-2"><span>Вишлист человека</span><textarea id="v80_p_wishlist">${safe(p.wishlist||'')}</textarea></label><label class="v79-field span-2"><span>Идеи подарков</span><textarea id="v80_p_gifts">${safe(p.giftIdeas||'')}</textarea></label><label class="v79-field span-2"><span>Важные даты и события</span><textarea id="v80_p_dates">${safe(p.importantDates||'')}</textarea></label><label class="v79-field span-2"><span>Контекст и заметки</span><textarea id="v80_p_note">${safe(p.note||p.about||'')}</textarea></label></div></div><div class="v79-modal-actions"><button class="v78-primary" data-v80-action="save-person" data-id="${safe(id)}">Сохранить анкету</button>${id?`<button class="v79-danger" data-v80-action="delete-person" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
-  function savePerson(id=''){const old=array('people').find(x=>x.id===id),p=Object.assign({},old||{id:makeId(),createdAt:nowIso()});p.name=clean(document.getElementById('v80_p_name')?.value)||'Без имени';p.role=clean(document.getElementById('v80_p_role')?.value);p.birthday=clean(document.getElementById('v80_p_birthday')?.value);p.birthdayReminderDays=Math.max(0,number(document.getElementById('v80_p_reminder')?.value)||7);p.birthdayReminderEnabled=true;p.phone=clean(document.getElementById('v80_p_phone')?.value);p.email=clean(document.getElementById('v80_p_email')?.value);p.telegram=clean(document.getElementById('v80_p_telegram')?.value);p.city=clean(document.getElementById('v80_p_city')?.value);p.interests=clean(document.getElementById('v80_p_interests')?.value);p.dislikes=clean(document.getElementById('v80_p_dislikes')?.value);p.wishlist=clean(document.getElementById('v80_p_wishlist')?.value);p.giftIdeas=clean(document.getElementById('v80_p_gifts')?.value);p.importantDates=clean(document.getElementById('v80_p_dates')?.value);p.note=clean(document.getElementById('v80_p_note')?.value);p.avatar=pendingPersonAvatar||'';p.updatedAt=nowIso();state.people=old?array('people').map(x=>x.id===id?p:x):[p,...array('people')];save();closeModal();renderPremium();toast('Анкета сохранена');}
-  function deletePerson(id){const p=array('people').find(x=>x.id===id);if(!p)return;if(!confirm(`Удалить анкету «${p.name}»? Резервная копия останется в архиве.`))return;archiveSnapshot(`Удалённая анкета: ${p.name}`,'deleted-person',p);state.people=array('people').filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Анкета перенесена в архив');}
+  function recordTile(type,item){const title=item.title||item.name||item.person||item.category||'Запись';const sub=item.role||item.author||item.area||item.folder||item.place||item.type||item.date||'';const text=item.note||item.text||item.quotes||'';const amount=item.amount||item.budget||item.target;return `<article class="v79-record-card"><header><div><small>${safe(sub)}</small><h2>${safe(title)}</h2></div>${amount?`<b>${safe(moneyText(amount))}</b>`:''}</header><p>${safe(String(text).slice(0,320))||'Без дополнительного описания.'}</p><footer><button data-v79-action="edit-record" data-type="${type}" data-id="${safe(item.id)}">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(item.id)}">Удалить</button></footer></article>`;}
 
   function calendarPage(){const dates=Array.from({length:7},(_,i)=>addDaysKey(todayKey(),i));return `<section class="v78-page"><header class="v78-page-head"><div><span>Неделя по дням</span><h1>Календарь</h1><p>Задачи, события и ближайшая нагрузка без старых слоёв интерфейса.</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="task">＋ Задача</button></header><section class="v79-calendar-grid">${dates.map(date=>{const rows=array('tasks').filter(t=>String(t.date||'').slice(0,10)===date);return `<article><header><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></header><div>${rows.map(t=>`<button data-v79-action="edit-record" data-type="task" data-id="${safe(t.id)}"><b>${safe(t.time||'В течение дня')}</b><span>${safe(t.title||'Задача')}</span></button>`).join('')||'<p>Пусто</p>'}</div></article>`}).join('')}</section></section>`;}
   function archivePage(){return genericRecordPage('archive');}
   function coachPage(){const f=financeSnapshot(),undone=habitsActive().filter(h=>!completedHabit(h));return `<section class="v78-page"><header class="v78-page-head"><div><span>Персональный подсказчик</span><h1>Подсказчик AI</h1><p>Подсказки строятся только из фактов, уже записанных в приложении.</p></div></header><section class="v79-coach-hero"><div class="v78-robot"><i></i><b>••</b><em></em></div><div><h2>${undone.length?`Начните с «${safe(undone[0].name)}»`:'Главное на сегодня выполнено'}</h2><p>${undone.length?'Сделайте минимальную версию, чтобы сохранить движение без перегруза.':'Можно спокойно подвести итог дня и не добавлять новых обязательств.'}</p><div><button class="v78-primary" data-v78-route="${undone[0]?`habit-${encodeURIComponent(undone[0].id)}`:'today'}">Открыть следующий шаг</button><button class="v78-secondary" data-v78-route="subconscious">Интервью с подсознанием</button></div></div></section><section class="v78-kpi-row"><article><small>Баланс</small><b>${safe(moneyText(f.balance))}</b><span>фактический остаток</span></article><article><small>Обязательства</small><b>${safe(moneyText(f.debtTotal))}</b><span>${f.debts.length} активных</span></article><article><small>Привычки</small><b>${habitsDone()}/${habitsActive().length}</b><span>выполнено сегодня</span></article><article><small>Задачи</small><b>${array('tasks').filter(t=>t.date===todayKey()).length}</b><span>на сегодня</span></article></section>${interviewCard()}</section>`;}
-  function subconsciousPage(){
-    const entries=array('subconsciousEntries').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))),questions=interviewQuestions(),done=todayInterview();
-    const streak=(()=>{let n=0,d=todayKey();while(entries.some(e=>String(e.date||'').slice(0,10)===d)){n++;d=addDaysKey(d,-1);}return n;})();
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits">← Привычки</button><span>Ежедневная осознанность</span><h1>Интервью с подсознанием</h1><p>Вопросы меняются каждый день и помогают заметить сопротивление без самокритики.</p></div><button class="v78-primary" data-v79-action="open-interview">${done?'Изменить ответы':'Начать интервью сегодня'}</button></header>
-      <section class="v80-interview-hero"><div class="v80-interview-orb"><i></i><b></b><em></em></div><div><span>${formatDate(todayKey())}</span><h2>${done?'Сегодня вы уже остановились и услышали себя':'Три вопроса на сегодня'}</h2><p>${safe(questions[0])}</p><div><strong>${streak}</strong><small>${plural(streak,'день','дня','дней')} подряд с интервью</small></div></div></section>
-      <section class="v80-question-grid">${questions.map((q,i)=>`<article><i>0${i+1}</i><span><small>${['Состояние','Сопротивление','Действие'][i]}</small><h2>${safe(q)}</h2></span></article>`).join('')}</section>
-      <section class="v80-interview-history"><header><div><h2>История интервью</h2><p>Ответы хранятся только здесь и больше не попадают в заметки или личную память.</p></div></header><div>${entries.map(e=>{const qs=Array.isArray(e.questions)&&e.questions.length?e.questions:[{question:e.question||'Вопрос',answer:e.answer||e.note||''}];return `<article><header><span>${safe(formatDate(e.date||todayKey()))}</span><b>${safe(e.theme||'Ежедневное интервью')}</b></header>${qs.map(x=>`<div><small>${safe(x.question||'Вопрос')}</small><p>${safe(x.answer||'Без ответа')}</p></div>`).join('')}</article>`}).join('')||'<div class="v78-empty-big">Первое интервью появится после сохранения ответов.</div>'}</div></section></section>`;
-  }
-  function openInterview(){const existing=todayInterview(),questions=interviewQuestions(),answers=Array.isArray(existing?.questions)?existing.questions.map(x=>x.answer||''):[existing?.answer||'',...(String(existing?.note||'').split('\n'))];openModal('Сегодняшнее интервью',`<div class="v80-interview-modal"><header><span>${formatDate(todayKey())}</span><h2>Ответьте честно, но без требования идеального ответа</h2><p>Ответы можно изменить в течение дня.</p></header>${questions.map((q,i)=>`<label class="v79-field"><span><i>0${i+1}</i>${safe(q)}</span><textarea id="v80_int_${i}" placeholder="Запишите первое, что приходит в голову…">${safe(answers[i]||'')}</textarea></label>`).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-interview">Сохранить интервью</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveInterview(){const questions=interviewQuestions(),answers=questions.map((q,i)=>clean(document.getElementById(`v80_int_${i}`)?.value));const old=todayInterview();const item={id:old?.id||makeId(),date:todayKey(),theme:'Ежедневное интервью',question:questions[0],answer:answers[0],note:answers.slice(1).join('\n'),questions:questions.map((question,i)=>({question,answer:answers[i]})),createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.id!==old?.id);state.subconsciousEntries.unshift(item);save();closeModal();renderPremium();toast('Интервью сохранено');}
-
+  function subconsciousPage(){const entries=array('subconsciousEntries').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits">← Привычки</button><span>Мягкая рефлексия</span><h1>Интервью с подсознанием</h1><p>Три коротких вопроса, чтобы заметить внутреннее сопротивление.</p></div><button class="v78-primary" data-v79-action="open-interview">＋ Новое интервью</button></header><section class="v79-interview-list">${entries.map(e=>`<article><small>${safe(formatDate(e.date||todayKey()))}</small><h2>${safe(e.question||'Что меня сейчас останавливает?')}</h2><p>${safe(e.answer||e.note||'')}</p></article>`).join('')||'<div class="v78-empty-big">Интервью пока нет.</div>'}</section></section>`;}
+  function openInterview(){openModal('Интервью с подсознанием',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Что меня сейчас останавливает?</span><textarea id="v79_int_1"></textarea></label><label class="v79-field span-2"><span>Что я могу сделать проще?</span><textarea id="v79_int_2"></textarea></label><label class="v79-field span-2"><span>Какой один шаг я сделаю сегодня?</span><textarea id="v79_int_3"></textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-interview">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
+  function saveInterview(){const a=clean(document.getElementById('v79_int_1')?.value),b=clean(document.getElementById('v79_int_2')?.value),c=clean(document.getElementById('v79_int_3')?.value);state.subconsciousEntries.unshift({id:makeId(),date:todayKey(),question:'Что меня сейчас останавливает?',answer:a,note:[b,c].filter(Boolean).join('\n'),createdAt:nowIso()});save();closeModal();renderPremium();toast('Интервью сохранено');}
   function systemPage(){const stats=[['Операции',array('operations').length],['Долги',array('debts').length],['Задачи',array('tasks').length],['Покупки',array('purchases').length],['Желания',array('wishes').length],['Заметки',array('notes').length],['Идеи',array('ideas').length],['Люди',array('people').length],['Привычки',array('habits').length],['Цели',array('goals').length],['Документы',array('documents').length],['Книги',array('books').length],['Фильмы',array('films').length],['Поездки',array('trips').length],['Личная память',array('personal').length]];return `<section class="v78-page"><header class="v78-page-head"><div><span>Защита данных и обслуживание</span><h1>Настройки</h1><p>Один чистый runtime. Старые версии больше не подключаются и не реагируют на клики.</p></div></header><section class="v79-system-actions"><article><i>⇩</i><div><h2>Резервная копия</h2><p>Скачайте JSON перед крупными изменениями.</p></div><button data-v79-action="export-data">Скачать</button></article><article><i>⇧</i><div><h2>Импорт данных</h2><p>Верните ранее сохранённую копию.</p></div><label><input id="v79_import_file" type="file" accept="application/json"><span>Выбрать</span></label></article><article><i>↻</i><div><h2>Обновить интерфейс</h2><p>Удаляет только кэш файлов, личные данные остаются.</p></div><button data-v79-action="clear-ui-cache">Очистить кэш</button></article></section><section class="v79-data-stats">${stats.map(([l,v])=>`<article><small>${l}</small><b>${v}</b></article>`).join('')}</section></section>`;}
 
   function polinaPage(){const key=state.settings.polinaMonth||monthKey(todayKey());const [y,m]=key.split('-').map(Number);const first=new Date(y,m-1,1,12),days=new Date(y,m,0,12).getDate(),offset=(first.getDay()+6)%7;const cells=Array(offset).fill('').concat(Array.from({length:days},(_,i)=>`${key}-${String(i+1).padStart(2,'0')}`));const entries=new Map(array('polinaDays').map(e=>[String(e.date).slice(0,10),e]));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Состояние и цикл</span><h1>Состояние Полины</h1><p>Хорошее — зелёным, нейтральное — жёлтым, плохое — красным. Заполняется вся ячейка.</p></div><div><button class="v78-secondary" data-v79-action="polina-month" data-delta="-1">←</button><button class="v78-primary" data-v79-action="polina-month" data-delta="1">→</button></div></header><section class="v79-polina-card"><header><h2>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</h2><div><span class="good">Хорошее</span><span class="neutral">Нейтральное</span><span class="bad">Плохое</span></div></header><div class="v79-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</div><div class="v79-polina-grid">${cells.map(date=>{if(!date)return '<i></i>';const e=entries.get(date)||{};return `<button class="${safe(e.status||'')} ${e.periodMarker?'period':''}" data-v79-action="open-polina-day" data-date="${date}"><b>${Number(date.slice(8))}</b><span>${safe(e.status==='good'?'Хорошее':e.status==='neutral'?'Нейтральное':e.status==='bad'?'Плохое':'Без отметки')}</span><small>${safe(e.comment||'Добавить комментарий')}</small>${e.periodMarker?`<em>${e.periodMarker==='start'?'Начало':e.periodMarker==='end'?'Конец':'Месячные'}</em>`:''}</button>`}).join('')}</div></section></section>`;}
@@ -713,7 +646,6 @@
     if (normalized === 'coach') return coachPage();
     if (normalized === 'system') return systemPage();
     if (normalized === 'subconscious') return subconsciousPage();
-    if (normalized === 'people') return peoplePage();
     if (normalized === 'polina') return polinaPage();
     if (normalized === 'passwords') return passwordsPage();
     if (ROUTE_RECORD[normalized]) return genericRecordPage(normalized);
@@ -733,7 +665,7 @@
 
   function afterRender() {
     setBuild();
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting','v70-booting','v67-theme-dark');
+    document.body.classList.remove('v79-booting','v78-booting','v70-booting','v67-theme-dark');
     document.documentElement.className='v79-light';
     document.documentElement.style.colorScheme='light';
     try { window.scrollTo(0,0); } catch(error){}
@@ -772,7 +704,7 @@
 
   function openHabitForm(id = '') {
     const existing = array('habits').find(item => item.id === id) || {};
-    const html = `<div class="v78-modal-form"><label><span>Название</span><input id="v78_habit_name" value="${safe(existing.name||'')}"></label><div class="v78-form-grid"><label><span>Иконка</span><input id="v78_habit_icon" value="${safe(existing.icon||'✨')}" maxlength="4"></label><label><span>Цвет</span><input id="v78_habit_color" type="color" value="${safe(existing.color||'#8b5cf6')}"></label><label><span>Цель</span><input id="v78_habit_target" type="number" min="1" value="${number(existing.target)||1}"></label><label><span>Единица</span><input id="v78_habit_unit" value="${safe(existing.unit||'раз')}"></label></div><label><span>График</span><input id="v78_habit_frequency" value="${safe(existing.frequency||'Ежедневно')}"></label><label><span>Описание</span><textarea id="v78_habit_note">${safe(existing.note||'')}</textarea></label><div class="v78-modal-actions"><button class="v78-primary" data-v78-action="save-habit" data-id="${safe(existing.id||'')}" type="button">Сохранить</button>${existing.id?`<button class="v79-danger" data-v80-action="delete-habit" data-id="${safe(existing.id)}" type="button">Удалить привычку</button>`:''}<button data-v78-action="close-modal" type="button">Отмена</button></div></div>`;
+    const html = `<div class="v78-modal-form"><label><span>Название</span><input id="v78_habit_name" value="${safe(existing.name||'')}"></label><div class="v78-form-grid"><label><span>Иконка</span><input id="v78_habit_icon" value="${safe(existing.icon||'✨')}" maxlength="4"></label><label><span>Цвет</span><input id="v78_habit_color" type="color" value="${safe(existing.color||'#8b5cf6')}"></label><label><span>Цель</span><input id="v78_habit_target" type="number" min="1" value="${number(existing.target)||1}"></label><label><span>Единица</span><input id="v78_habit_unit" value="${safe(existing.unit||'раз')}"></label></div><label><span>График</span><input id="v78_habit_frequency" value="${safe(existing.frequency||'Ежедневно')}"></label><label><span>Описание</span><textarea id="v78_habit_note">${safe(existing.note||'')}</textarea></label><div class="v78-modal-actions"><button class="v78-primary" data-v78-action="save-habit" data-id="${safe(existing.id||'')}" type="button">Сохранить</button><button data-v78-action="close-modal" type="button">Отмена</button></div></div>`;
     if (typeof openModal === 'function') openModal(existing.id ? 'Настроить привычку' : 'Новая привычка', html);
   }
 
@@ -792,8 +724,6 @@
     if (typeof closeModal === 'function') closeModal();
     navigate(`habit-${encodeURIComponent(item.id)}`);
   }
-
-  function deleteHabit(id){const habit=array('habits').find(x=>x.id===id);if(!habit)return;if(!confirm(`Удалить привычку «${habit.name}»? Все отметки будут сохранены в архивной копии.`))return;archiveSnapshot(`Удалённая привычка: ${habit.name}`,'deleted-habit',habit);state.habits=array('habits').filter(x=>x.id!==id);if(state.discipline?.activeHabit?.id===id)state.discipline.activeHabit=null;save();closeModal();navigate('habits');toast('Привычка перенесена в архив');}
 
   function openWishlistForm(id = '') {
     const existing = state.habitWishlist.find(item => item.id === id) || {};
@@ -858,17 +788,15 @@
     const preview = document.getElementById('v78_avatar_preview'); if (preview) preview.innerHTML = `<img src="${safe(pendingAvatar)}">`;
   }
 
-  async function compressPersonAvatar(file){if(!file)return;const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=dataUrl;});const size=420,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d'),scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);pendingPersonAvatar=canvas.toDataURL('image/jpeg',.82);const preview=document.getElementById('v80_person_avatar_preview');if(preview)preview.innerHTML=`<img src="${safe(pendingPersonAvatar)}">`;}
-
   function exportCsv(scope = 'all') {
     let rows = array('operations').slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     if (scope === 'filtered') {
-      rows = rows.filter(item => operationType === 'all' || operationKind(item) === operationType);
+      rows = rows.filter(item => operationType === 'all' || item.type === operationType);
       if (operationQuery) { const q=operationQuery.toLowerCase(); rows=rows.filter(item=>JSON.stringify(item).toLowerCase().includes(q)); }
     }
     const columns = ['ID','Дата','Тип','Сумма','Категория','Счёт','Источник дохода','Комментарий','Создано'];
     const quote = value => `"${String(value ?? '').replace(/"/g,'""')}"`;
-    const csv = '\uFEFF' + [columns.map(quote).join(';'), ...rows.map(item => [item.id,item.date,operationKind(item)==='income'?'Доход':'Расход',operationAmount(item),item.category||'',item.account||'',item.incomeSource||'',item.note||'',item.createdAt||''].map(quote).join(';'))].join('\r\n');
+    const csv = '\uFEFF' + [columns.map(quote).join(';'), ...rows.map(item => [item.id,item.date,item.type==='income'?'Доход':'Расход',number(item.amount),item.category||'',item.account||'',item.incomeSource||'',item.note||'',item.createdAt||''].map(quote).join(';'))].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `second-brain-operations-${todayKey()}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),1000);
     if (typeof toast === 'function') toast(`Экспортировано операций: ${rows.length}`);
   }
@@ -878,7 +806,6 @@
     const lines = [];
     if (undone.length) lines.push(`<div class="v78-suggestion-row"><i>✓</i><span><b>Маленький шаг</b><small>Отметьте «${safe(undone[0].name)}» или выполните минимальную версию.</small></span><button data-v78-route="habit-${encodeURIComponent(undone[0].id)}">Открыть</button></div>`);
     if (!financeDone) lines.push(`<div class="v78-suggestion-row"><i>₽</i><span><b>Проверка финансов</b><small>Сверьте фактический баланс и ближайшие обязательства.</small></span><button data-v78-route="finance">Открыть</button></div>`);
-    const birthday=upcomingBirthdays(14)[0];if(birthday)lines.push(`<div class="v78-suggestion-row"><i>🎂</i><span><b>${safe(birthday.person.name)}</b><small>${birthday.days===0?'День рождения сегодня':`День рождения через ${birthday.days} дн.`}. Проверьте анкету и вишлист.</small></span><button data-v78-route="people">Открыть</button></div>`);
     if (!lines.length) lines.push('<div class="v78-empty">На сегодня всё главное выполнено. Можно спокойно завершать день.</div>');
     if (typeof openModal === 'function') openModal('Подсказчик по текущим данным', `<div class="v78-suggestion-list">${lines.join('')}</div>`);
   }
@@ -905,13 +832,6 @@
       const filter = routeButton.dataset.v78Filter || '';
       if (filter) { operationType = filter; operationPage = 1; }
       return navigate(routeButton.dataset.v78Route, { filter });
-    }
-    const v80 = event.target.closest?.('[data-v80-action]');
-    if(v80){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v80.dataset.v80Action;
-      if(action==='delete-habit')return deleteHabit(v80.dataset.id||'');
-      if(action==='open-person-form')return openPersonForm(v80.dataset.id||'');
-      if(action==='save-person')return savePerson(v80.dataset.id||'');
-      if(action==='delete-person')return deletePerson(v80.dataset.id||'');
     }
     const v79 = event.target.closest?.('[data-v79-action]');
     if (v79) {
@@ -983,7 +903,6 @@
     const operationSearch = event.target.closest?.('[data-v78-operation-search]');
     if (operationSearch) { operationQuery = operationSearch.value; operationPage = 1; renderPremium(); return; }
     const avatar = event.target.closest?.('#v78_avatar_file'); if (avatar?.files?.[0]) compressAvatar(avatar.files[0]).catch(error=>{console.error(error); if(typeof toast==='function')toast('Не удалось обработать изображение');});
-    const personAvatar=event.target.closest?.('#v80_person_avatar_file');if(personAvatar?.files?.[0])compressPersonAvatar(personAvatar.files[0]).catch(error=>{console.error(error);toast('Не удалось обработать фотографию');});
     const period = event.target.closest?.('[data-v78-category-period]'); if(period){state.settings.v78.categoryPeriod=period.value;persist();renderPremium();}
     const importFile=event.target.closest?.('#v79_import_file');if(importFile?.files?.[0])importJson(importFile.files[0]);
   });
@@ -992,7 +911,7 @@
   window.addEventListener('hashchange', () => { clearTimeout(renderTimer); renderTimer = setTimeout(renderPremium, 10); });
   window.addEventListener('storage', event => { if (event.key === 'secondBrainOS.v1') { clearTimeout(renderTimer); renderTimer=setTimeout(renderPremium,80); } });
 
-  window.V80Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage };
+  window.V79Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage };
 
   try {
     state = await coreLoad();
@@ -1004,8 +923,8 @@
     renderPremium();
     setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
   } catch (error) {
-    console.error('[V80 Readable Runtime]', error);
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting');
+    console.error('[V79 Clean Runtime]', error);
+    document.body.classList.remove('v79-booting','v78-booting');
     document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
   }
 })();

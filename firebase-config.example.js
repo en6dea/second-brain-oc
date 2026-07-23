@@ -1,9 +1,40 @@
-// Copy to firebase-config.js only in the private deployment environment.
-window.SECOND_BRAIN_FIREBASE_CONFIG = {
-  apiKey: 'YOUR_FIREBASE_WEB_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT',
-  storageBucket: 'YOUR_PROJECT.firebasestorage.app',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID'
-};
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.md",
+      "data.json",
+      "diagnostics-*.html",
+      "reset-*.html",
+      "preview-render.html",
+      "version-check.html",
+      "app-v31-buttons-hard-fix.js",
+      "app-v32-root-cause-fix.js",
+      "app-v33-polina-root-fix.js",
+      "app.goal.nuclear.js",
+      "styles.pro.nuclear.css",
+      "sb-*.js",
+      "second-brain-alfa-worker-template.js"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}

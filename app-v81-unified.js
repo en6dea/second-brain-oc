@@ -1,6 +1,6 @@
 'use strict';
 
-/* Second Brain OS V81 — readable premium interface, kanban calendar, category editing and celebration effects.
+/* Second Brain OS V80 — readable premium interface, habits, interviews, people and finance analytics.
    Миграция только дополняет state. Существующие коллекции и записи не очищаются. */
 (async () => {
 
@@ -20,7 +20,7 @@
   function coreClone(value){ return JSON.parse(JSON.stringify(value ?? null)); }
   function coreStamp(source){
     source.settings = source.settings && typeof source.settings === 'object' ? source.settings : {};
-    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:81,updatedAt:new Date().toISOString(),reason:'v81-save',fullStateInIndexedDB:false});
+    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:80,updatedAt:new Date().toISOString(),reason:'v80-save',fullStateInIndexedDB:false});
     return source.settings.storageGuard.updatedAt;
   }
   function coreNormalize(raw){
@@ -54,9 +54,9 @@
     const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
     const loaded=coreNormalize(chooseDurable?durableState:local);
     try{
-      const marker='secondBrainOS.v81.backupCreated';
+      const marker='secondBrainOS.v80.backupCreated';
       if(!localStorage.getItem(marker)){
-        await coreDbPut(`backup:v80-before-v81:${new Date().toISOString()}`,{version:81,createdAt:new Date().toISOString(),reason:'automatic-before-v81-kanban-runtime',state:coreClone(loaded)});
+        await coreDbPut(`backup:v79-before-v80:${new Date().toISOString()}`,{version:80,createdAt:new Date().toISOString(),reason:'automatic-before-v80-readable-runtime',state:coreClone(loaded)});
         localStorage.setItem(marker,new Date().toISOString());
       }
     }catch(error){}
@@ -68,39 +68,19 @@
     let localOk=false;
     try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V80 local save]',error);}
     const snapshot=coreClone(state),updatedAt=coreUpdatedAt(state);
-    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:81,updatedAt,reason:'v81-save',state:snapshot}).catch(error=>console.warn('[V80 durable save]',error)));
+    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:80,updatedAt,reason:'v80-save',state:snapshot}).catch(error=>console.warn('[V80 durable save]',error)));
     document.body.dataset.sbosStorage=localOk?'durable':'indexeddb-only';
     return localOk;
   }
   function toast(message){
     const el=document.getElementById('toast'); if(!el)return; clearTimeout(toastTimer); el.textContent=String(message||'');el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
   }
-  function celebrate(originEl=null, accent='✓'){
-    const host=document.body; if(!host) return;
-    const burst=document.createElement('div'); burst.className='v81-confetti-burst';
-    const rect=originEl?.getBoundingClientRect?.();
-    const x=rect?rect.left+rect.width/2:window.innerWidth*0.72;
-    const y=rect?rect.top+rect.height/2:Math.max(120,window.innerHeight*0.22);
-    burst.style.left=`${x}px`; burst.style.top=`${y}px`;
-    const glyphs=['✦','✺','•','◆',accent||'✓','❤','✧','⬢','✳'];
-    for(let i=0;i<18;i+=1){
-      const part=document.createElement('span');
-      part.textContent=glyphs[i%glyphs.length];
-      part.style.setProperty('--dx',`${Math.round((Math.random()-0.5)*220)}px`);
-      part.style.setProperty('--dy',`${Math.round(-80-Math.random()*160)}px`);
-      part.style.setProperty('--rz',`${Math.round((Math.random()-0.5)*520)}deg`);
-      part.style.setProperty('--delay',`${(Math.random()*0.08).toFixed(2)}s`);
-      burst.appendChild(part);
-    }
-    host.appendChild(burst);
-    setTimeout(()=>burst.remove(),1500);
-  }
   function openModal(title,html){ const modal=document.getElementById('modal');if(!modal)return;document.getElementById('modalTitle').textContent=title||'Окно';document.getElementById('modalBody').innerHTML=html||'';modal.classList.add('show'); }
   function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
   function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
   async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v81-kanban-categories-20260720-r1';
-  const LABEL = 'V81 · KANBAN & CATEGORIES';
+  const BUILD = 'second-brain-space-v80-readable-data-20260720-r1';
+  const LABEL = 'V80 · READABLE UNIFIED';
   const CUSTOM_ROUTES = new Set([
     'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
     'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
@@ -245,7 +225,6 @@
     operationPage = Math.max(1, number(state.settings.v78.operationPage) || 1);
     operationType = ['all', 'income', 'expense'].includes(state.settings.v78.operationType) ? state.settings.v78.operationType : 'all';
     state.settings.v80 = Object.assign({version:1,createdAt:nowIso(),interviewLeakMigrated:false},state.settings.v80||{});
-    state.settings.v81 = Object.assign({version:1,createdAt:nowIso(),categoryEditorSeen:false},state.settings.v81||{});
     state.operations.forEach(item=>{
       const previous=clean(item.type); const kind=operationKind(item); if(previous&&previous!==kind&&!item.originalType)item.originalType=previous;
       item.type=kind; item.amount=operationAmount(item); item.date=operationDate(item); item.category=clean(item.category||item.group||item.area)||'Другое';
@@ -363,29 +342,7 @@
     return { income, expense, balance, debts, debtTotal: total(debts), planned, available: balance - planned };
   }
 
-  function bestExpensePeriod(){
-    const expenses=array('operations').filter(item=>operationKind(item)==='expense');
-    const months=[...new Set(expenses.map(item=>monthKey(operationDate(item))).filter(Boolean))].sort().reverse();
-    return months[0] || monthKey(todayKey());
-  }
-
-  function priorityMeta(value){
-    const raw=clean(value).toLowerCase();
-    if(/крит|high|важно 1|urgent|сроч/.test(raw)) return {tone:'critical',label:'Критично',order:1};
-    if(/выс|high 2|важно|major/.test(raw)) return {tone:'high',label:'Высокий',order:2};
-    if(/сред|medium|normal/.test(raw)) return {tone:'medium',label:'Средний',order:3};
-    if(/низ|low|later|не сроч/.test(raw)) return {tone:'low',label:'Низкий',order:4};
-    return {tone:'medium',label:clean(value)||'Средний',order:3};
-  }
-
-  function taskStatusMeta(value){
-    const raw=clean(value).toLowerCase();
-    if(/вып|done|готов/.test(raw)) return {label:'Выполнено',done:true};
-    if(/проц|work|doing/.test(raw)) return {label:'В процессе',done:false};
-    return {label:clean(value)||'Запланировано',done:false};
-  }
-
-  function categoryData(period = state.settings.v78.categoryPeriod || bestExpensePeriod()) {
+  function categoryData(period = state.settings.v78.categoryPeriod || monthKey(todayKey())) {
     const expenses = array('operations').filter(item => operationKind(item) === 'expense' && monthKey(operationDate(item)) === period);
     const map = new Map();
     expenses.forEach(item => { const key = clean(item.category||item.group||item.area) || 'Другое'; map.set(key, (map.get(key) || 0) + operationAmount(item)); });
@@ -511,8 +468,8 @@
   }
 
   function habitCard(habit) {
-    const week = habitWeekDone(habit),percent=Math.round(week/7*100), done=completedHabit(habit);
-    return `<article class="v78-habit-tile v80-habit-tile v81-habit-card" style="--habit:${safe(habit.color)}"><button class="v78-habit-open" data-v78-route="habit-${encodeURIComponent(habit.id)}" type="button"><i>${safe(habit.icon)}</i><span><b>${safe(habit.name)}</b><small>${safe(habit.frequency)} · ${habit.target} ${safe(habit.unit)}</small></span><em>›</em></button><div class="v80-habit-progress"><span><b>${week}/7</b><small>за неделю</small></span><u><i style="width:${percent}%"></i></u><em>${percent}%</em></div><div class="v78-habit-tile-bottom"><button class="v81-habit-check ${done?'done':''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button"><span class="v81-check-glyph">${done?'✓':'✦'}</span><span class="v81-check-copy"><b>${done?'Сделано' :'Отметить'}</b><small>${done?'сегодня закрыто':'одним нажатием'}</small></span></button><button class="v80-icon-action" title="Настроить" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">✎</button></div></article>`;
+    const week = habitWeekDone(habit),percent=Math.round(week/7*100);
+    return `<article class="v78-habit-tile v80-habit-tile" style="--habit:${safe(habit.color)}"><button class="v78-habit-open" data-v78-route="habit-${encodeURIComponent(habit.id)}" type="button"><i>${safe(habit.icon)}</i><span><b>${safe(habit.name)}</b><small>${safe(habit.frequency)} · ${habit.target} ${safe(habit.unit)}</small></span><em>›</em></button><div class="v80-habit-progress"><span><b>${week}/7</b><small>за неделю</small></span><u><i style="width:${percent}%"></i></u><em>${percent}%</em></div><div class="v78-habit-tile-bottom"><button class="${completedHabit(habit)?'done':''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено сегодня':'○ Отметить сегодня'}</button><button class="v80-icon-action" title="Настроить" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">✎</button></div></article>`;
   }
 
   function habitPage(id) {
@@ -524,7 +481,7 @@
     const best = longestStreak(habit);
     const reading = /чтен/i.test(habit.name);
     const sessions = reading ? state.discipline.sessions.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))) : [];
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Все привычки</button><span>Отдельная страница привычки</span><h1>${safe(habit.icon)} ${safe(habit.name)}</h1><p>${safe(habit.note || 'Последовательное повторение и честная фиксация результата.')}</p></div><div><button class="v80-delete-button" data-v80-action="delete-habit" data-id="${safe(habit.id)}" type="button">Удалить</button><button class="v78-secondary" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">Настроить</button><button class="v78-primary" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Сегодня закрыто':'Отметить сегодня'}</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Все привычки</button><span>Отдельная страница привычки</span><h1>${safe(habit.icon)} ${safe(habit.name)}</h1><p>${safe(habit.note || 'Последовательное повторение и честная фиксация результата.')}</p></div><div><button class="v80-delete-button" data-v80-action="delete-habit" data-id="${safe(habit.id)}" type="button">Удалить</button><button class="v78-secondary" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">Настроить</button><button class="v78-primary" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Выполнено сегодня':'Отметить сегодня'}</button></div></header>
       <section class="v78-kpi-row"><article><small>Выполнено</small><b>${completed}/${days}</b><span>за выбранный период</span></article><article><small>Последние 7 дней</small><b>${habitWeekDone(habit)}/7</b><span>стабильность, не серия</span></article><article><small>Лучшая серия</small><b>${best} дн.</b><span>без обнуления мотивации</span></article><article><small>Цель</small><b>${habit.target} ${safe(habit.unit)}</b><span>${safe(habit.frequency)}</span></article></section>
       ${card(`Карта повторений · ${days} дней`, 'Нажмите на любой день, чтобы изменить отметку.', `<div class="v78-habit-calendar">${dates.map(date=>`<button class="${completedHabit(habit,date)?'done':''} ${date===todayKey()?'today':''}" data-v78-action="toggle-habit-date" data-id="${safe(habit.id)}" data-date="${date}" type="button"><b>${dateAtNoon(date).getDate()}</b><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{month:'short'})}</small></button>`).join('')}</div>`, 'v78-habit-calendar-card')}
       <section class="v78-two-cols">${reading ? readingDetailCard(habit, sessions) : habitNotesCard(habit)}${wishlistCard()}</section>
@@ -602,13 +559,10 @@
     operationPage = Math.min(operationPage, pages);
     const start = (operationPage - 1) * PAGE_SIZE;
     const visible = filtered.slice(start, start + PAGE_SIZE);
-    const categories=[...new Map(filtered.filter(item=>operationKind(item)==='expense').map(item=>[clean(item.category)||'Другое',0])).keys()];
-    const catStats=categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
     state.settings.v78.operationPage = operationPage;
     state.settings.v78.operationType = operationType;
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Папка финансов</span><h1>Операции</h1><p>Полный список без обрезания. На одной странице отображается ${PAGE_SIZE} операций.</p></div><div><button class="v78-secondary" data-v81-action="open-category-editor" type="button">Категории CSV</button><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">⇩ Экспорт списка</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Папка финансов</span><h1>Операции</h1><p>Полный список без обрезания. На одной странице отображается ${PAGE_SIZE} операций.</p></div><div><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">⇩ Экспорт списка</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
       <section class="v78-operation-toolbar"><div class="v78-segment">${[['all','Все'],['income','Доходы'],['expense','Расходы']].map(([key,label])=>`<button class="${operationType===key?'active':''}" data-v78-action="operation-type" data-type="${key}" type="button">${label}</button>`).join('')}</div><label>⌕<input data-v78-operation-search value="${safe(operationQuery)}" placeholder="Категория, сумма, комментарий..."></label><span>${filtered.length} ${plural(filtered.length,'операция','операции','операций')}</span></section>
-      <section class="v81-category-hint"><div><b>Редактирование категорий после CSV стало понятнее</b><p>Нажми «Категории CSV», чтобы массово переименовать категорию сразу у всей выписки. В строке операции есть кнопка «Категория» для точечного редактирования.</p></div><div class="v81-category-pills">${catStats.rows.slice(0,6).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}</div></section>
       <section class="v78-operation-table"><header><span>Дата</span><span>Тип</span><span>Категория</span><span>Комментарий / счёт</span><span>Сумма</span><span></span></header>${visible.map(operationRow).join('') || '<div class="v78-empty-big">Операций по выбранному фильтру нет.</div>'}</section>
       <footer class="v78-pagination"><span>Страница ${operationPage} из ${pages}</span><div><button data-v78-action="operation-page" data-page="${Math.max(1,operationPage-1)}" ${operationPage===1?'disabled':''} type="button">←</button>${paginationButtons(operationPage,pages).map(page=>`<button class="${page===operationPage?'active':''}" data-v78-action="operation-page" data-page="${page}" type="button">${page}</button>`).join('')}<button data-v78-action="operation-page" data-page="${Math.min(pages,operationPage+1)}" ${operationPage===pages?'disabled':''} type="button">→</button></div></footer>
     </section>`;
@@ -621,15 +575,14 @@
 
   function operationRow(item) {
     const income = operationKind(item) === 'income';
-    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span><b>${safe(item.category||'Без категории')}</b><small>${income?'доходная запись':'из выписки / вручную'}</small></span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu v81-row-menu"><button data-v81-action="quick-category" data-id="${safe(item.id)}" type="button">Категория</button><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">Удалить</button></span></article>`;
+    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span>${safe(item.category||'Без категории')}</span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu"><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">Удалить</button></span></article>`;
   }
 
   function financeAnalyticsPage() {
     const data = categoryData();
     const months = [...new Set(array('operations').map(item=>monthKey(operationDate(item))).filter(Boolean))].sort().reverse();
-    const fallbackInfo = (!state.settings.v78.categoryPeriod && data.period!==monthKey(todayKey())) ? `Показан последний месяц с расходами: ${new Date(`${data.period}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}.` : '';
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Финансовая аналитика</span><h1>Анализ по категориям</h1><p>Каждая категория рассчитывается только из фактических расходных операций. ${fallbackInfo}</p></div><div><select class="v78-select" data-v78-category-period>${months.map(key=>`<option value="${key}" ${key===data.period?'selected':''}>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</option>`).join('') || `<option value="${monthKey(todayKey())}">Текущий месяц</option>`}</select><button class="v78-secondary" data-v81-action="open-category-editor" type="button">Редактировать категории</button><button class="v78-primary" data-v78-route="finance-operations" type="button">Открыть операции</button></div></header>
-      <section class="v78-analysis-hero"><div class="v78-donut large" style="${donutStyle(data.rows,data.sum)}"><span><b>${safe(moneyText(data.sum))}</b><small>расходы</small></span></div><div><h2>Структура расходов</h2><p>${data.rows.length ? 'Категории отсортированы от крупнейшей к меньшей. Нажмите «Редактировать категории», если нужно поправить данные из CSV.' : 'Добавьте расходные операции, чтобы появился анализ.'}</p><div class="v78-analysis-list">${data.rows.map((row,index)=>`<article><i class="c${index}"></i><span><b>${safe(row.name)}</b><small>${safe(moneyText(row.value))}</small></span><em>${data.sum?Math.round(row.value/data.sum*100):0}%</em><u><b style="width:${data.sum?row.value/data.sum*100:0}%"></b></u></article>`).join('')}</div></div></section>
+    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Финансовая аналитика</span><h1>Анализ по категориям</h1><p>Каждая категория рассчитывается только из фактических расходных операций.</p></div><div><select class="v78-select" data-v78-category-period>${months.map(key=>`<option value="${key}" ${key===data.period?'selected':''}>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</option>`).join('') || `<option value="${monthKey(todayKey())}">Текущий месяц</option>`}</select><button class="v78-primary" data-v78-route="finance-operations" type="button">Открыть операции</button></div></header>
+      <section class="v78-analysis-hero"><div class="v78-donut large" style="${donutStyle(data.rows,data.sum)}"><span><b>${safe(moneyText(data.sum))}</b><small>расходы</small></span></div><div><h2>Структура расходов</h2><p>${data.rows.length ? 'Категории отсортированы от крупнейшей к меньшей.' : 'Добавьте расходные операции, чтобы появился анализ.'}</p><div class="v78-analysis-list">${data.rows.map((row,index)=>`<article><i class="c${index}"></i><span><b>${safe(row.name)}</b><small>${safe(moneyText(row.value))}</small></span><em>${data.sum?Math.round(row.value/data.sum*100):0}%</em><u><b style="width:${data.sum?row.value/data.sum*100:0}%"></b></u></article>`).join('')}</div></div></section>
       ${card('Что изменилось по сравнению с предыдущим месяцем', 'Сравнение строится по тем же категориям.', categoryComparison(data.period), 'v78-comparison-card')}
     </section>`;
   }
@@ -642,10 +595,8 @@
 
   function financeExportPage() {
     const ops = array('operations');
-    const cats=categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
     return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Выгрузка данных</span><h1>Экспорт CSV</h1><p>В файл войдут абсолютно все операции, а не только текущая страница списка.</p></div></header>
       <section class="v78-export-card"><div class="v78-export-icon">⇩</div><div><h2>${ops.length} ${plural(ops.length,'операция','операции','операций')} готовы к экспорту</h2><p>Формат CSV UTF-8 с разделителем «;». Содержит дату, тип, сумму, категорию, счёт, источник дохода и комментарий.</p><div class="v78-export-checks"><span>✓ Все страницы</span><span>✓ Все даты</span><span>✓ Все категории</span><span>✓ Совместимо с Excel</span></div><button class="v78-primary" data-v78-action="export-csv" data-scope="all" type="button">Скачать полный CSV</button></div></section>
-      <section class="v81-category-hint"><div><b>Категории из CSV</b><p>Если категория после импорта названа неудачно, откройте редактор и переименуйте её сразу у всех строк.</p></div><div class="v81-category-pills">${cats.rows.slice(0,8).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}<button class="accent" data-v81-action="open-category-editor" type="button">Открыть редактор</button></div></section>
       ${card('Предпросмотр последних операций', 'Сам файл будет содержать весь список.', `<div class="v78-export-preview">${ops.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,8).map(item=>`<div><span>${formatShort(item.date)}</span><b>${safe(item.category||'Без категории')}</b><em class="${item.type==='income'?'positive':'negative'}">${item.type==='income'?'+':'−'} ${safe(moneyText(item.amount))}</em></div>`).join('') || '<div class="v78-empty">Операций нет.</div>'}</div>`, 'v78-export-preview-card')}
     </section>`;
   }
@@ -679,7 +630,7 @@
   const RECORDS = {
     operation:{arr:'operations',title:'Операция',fields:[['date','Дата','date'],['type','Тип','select',[['expense','Расход'],['income','Доход']]],['amount','Сумма','number'],['category','Категория','text'],['account','Счёт','text'],['incomeSource','Источник дохода','text'],['note','Комментарий','textarea']]},
     debt:{arr:'debts',title:'Обязательство',fields:[['person','Название / человек','text'],['direction','Направление','select',[['out','Я должен'],['in','Мне должны']]],['amount','Сумма','number'],['due','Срок','date'],['status','Статус','text'],['note','Комментарий','textarea']]},
-    task:{arr:'tasks',title:'Задача',fields:[['title','Название','text'],['date','Дата','date'],['time','Время','time'],['area','Сфера / проект','text'],['priority','Приоритет','select',[['critical','Критичный'],['high','Высокий'],['medium','Средний'],['low','Низкий']]],['status','Статус','select',[['planned','Запланировано'],['doing','В процессе'],['done','Выполнено']]],['note','Комментарий','textarea']]},
+    task:{arr:'tasks',title:'Задача',fields:[['title','Название','text'],['date','Дата','date'],['time','Время','time'],['area','Сфера','text'],['priority','Приоритет','text'],['status','Статус','text'],['note','Комментарий','textarea']]},
     person:{arr:'people',title:'Человек',fields:[['name','Имя','text'],['role','Кто это','text'],['phone','Телефон','text'],['email','Email','email'],['birthday','Дата рождения','date'],['note','Контекст и заметки','textarea']]},
     note:{arr:'notes',title:'Заметка',fields:[['title','Название','text'],['folder','Папка','text'],['date','Дата','date'],['text','Текст','textarea']]},
     idea:{arr:'ideas',title:'Идея',fields:[['title','Название','text'],['date','Дата','date'],['text','Описание','textarea']]},
@@ -702,13 +653,8 @@
   function fieldValue(item,key){return safe(item?.[key]??'');}
   function recordFormField(field,item){const [key,label,type,options]=field;const value=fieldValue(item,key);if(type==='textarea')return `<label class="v79-field span-2"><span>${label}</span><textarea id="v79_f_${key}">${value}</textarea></label>`;if(type==='select')return `<label class="v79-field"><span>${label}</span><select id="v79_f_${key}">${options.map(([v,l])=>`<option value="${safe(v)}" ${String(item?.[key]??'')===v?'selected':''}>${safe(l)}</option>`).join('')}</select></label>`;return `<label class="v79-field"><span>${label}</span><input id="v79_f_${key}" type="${type}" value="${value}"></label>`;}
   function openRecordForm(type,id='',preset={}){const schema=RECORDS[type];if(!schema)return toast('Форма не найдена');const item=id?array(schema.arr).find(x=>x.id===id)||{}:Object.assign({date:todayKey()},preset);openModal(`${id?'Редактировать':'Добавить'}: ${schema.title}`,`<div class="v79-form-grid">${schema.fields.map(f=>recordFormField(f,item)).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-record" data-type="${type}" data-id="${safe(id)}">Сохранить</button>${id?`<button class="v79-danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveRecord(type,id,originEl=null){const schema=RECORDS[type];if(!schema)return;const old=id?array(schema.arr).find(x=>x.id===id):null;const item=Object.assign({},old||{id:makeId(),createdAt:nowIso()});schema.fields.forEach(([key,,kind])=>{const el=document.getElementById(`v79_f_${key}`);if(!el)return;item[key]=kind==='number'?number(el.value):clean(el.value);});item.updatedAt=nowIso();if(id)state[schema.arr]=array(schema.arr).map(x=>x.id===id?item:x);else state[schema.arr].unshift(item);save();closeModal();renderPremium();toast(type==='task'&&taskStatusMeta(item.status).done?'Задача сохранена и отмечена как выполненная':'Сохранено'); if(type==='task'&&taskStatusMeta(item.status).done)celebrate(originEl,'✓');}
+  function saveRecord(type,id){const schema=RECORDS[type];if(!schema)return;const old=id?array(schema.arr).find(x=>x.id===id):null;const item=Object.assign({},old||{id:makeId(),createdAt:nowIso()});schema.fields.forEach(([key,,kind])=>{const el=document.getElementById(`v79_f_${key}`);if(!el)return;item[key]=kind==='number'?number(el.value):clean(el.value);});item.updatedAt=nowIso();if(id)state[schema.arr]=array(schema.arr).map(x=>x.id===id?item:x);else state[schema.arr].unshift(item);save();closeModal();renderPremium();toast('Сохранено');}
   function deleteRecord(type,id){const schema=RECORDS[type];if(!schema)return;const item=array(schema.arr).find(x=>x.id===id);if(!item)return;if(!confirm(`Удалить «${item.title||item.name||item.person||schema.title}»? Копия останется в архиве.`))return;archiveSnapshot(`Удалено: ${item.title||item.name||item.person||schema.title}`,`deleted-${type}`,item);state[schema.arr]=array(schema.arr).filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Удалено, копия сохранена в архиве');}
-  function topCategories(limit=10){const counts=new Map(); array('operations').filter(item=>operationKind(item)==='expense').forEach(item=>{const key=clean(item.category)||'Другое'; counts.set(key,(counts.get(key)||0)+1);}); return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit);}
-  function openCategoryEditor(prefill=''){const from=clean(prefill);const cats=topCategories(12);openModal('Редактор категорий CSV',`<div class="v79-form-grid"><label class="v79-field"><span>Старая категория</span><input id="v81_cat_from" value="${safe(from)}" placeholder="Например: Продукты"></label><label class="v79-field"><span>Новая категория</span><input id="v81_cat_to" placeholder="Например: Еда / Магазин"></label><label class="v79-field span-2"><span>Быстрые категории из выписки</span><div class="v81-modal-pills">${cats.map(([name,count])=>`<button type="button" data-v81-action="prefill-category" data-name="${safe(name)}">${safe(name)} <small>${count}</small></button>`).join('') || '<span>Нет категорий</span>'}</div></label><label class="v79-field span-2"><span>Как это работает</span><div class="v81-help-box">Выберите категорию из CSV и задайте новое понятное название. Все операции с этой категорией обновятся сразу.</div></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v81-action="apply-category-bulk">Применить ко всей выписке</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function applyCategoryBulk(originEl=null){const from=clean(document.getElementById('v81_cat_from')?.value),to=clean(document.getElementById('v81_cat_to')?.value);if(!from||!to)return toast('Укажите обе категории');let changed=0; state.operations.forEach(item=>{if((clean(item.category)||'Другое')===from){item.category=to; item.updatedAt=nowIso(); changed+=1;}}); if(!changed)return toast('Совпадений не найдено'); save(); closeModal(); renderPremium(); toast(`Обновлено операций: ${changed}`); celebrate(originEl,'✦');}
-  function openQuickCategory(id){const item=array('operations').find(x=>x.id===id); if(!item)return; const cats=topCategories(8).filter(([name])=>name!==clean(item.category)); openModal('Изменить категорию операции',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Текущая категория</span><div class="v81-help-box">${safe(item.category||'Без категории')} · ${safe(item.note||'Без комментария')}</div></label><label class="v79-field span-2"><span>Новая категория</span><input id="v81_quick_category" value="${safe(item.category||'')}" placeholder="Введите категорию"></label><label class="v79-field span-2"><span>Частые варианты</span><div class="v81-modal-pills">${cats.map(([name,count])=>`<button type="button" data-v81-action="fill-quick-category" data-name="${safe(name)}">${safe(name)} <small>${count}</small></button>`).join('')}</div></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v81-action="save-quick-category" data-id="${safe(id)}">Сохранить категорию</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveQuickCategory(id,originEl=null){const item=array('operations').find(x=>x.id===id); if(!item)return; const next=clean(document.getElementById('v81_quick_category')?.value); if(!next)return toast('Введите категорию'); item.category=next; item.updatedAt=nowIso(); save(); closeModal(); renderPremium(); toast('Категория обновлена'); celebrate(originEl,'✓');}
   function openQuick(){openModal('Быстро добавить',`<div class="v79-quick-grid">${[['task','✓','Задача'],['operation','₽','Операция'],['note','📝','Заметка'],['idea','💡','Идея'],['wish','💗','Желание']].map(([t,i,l])=>`<button data-v79-action="open-record-form" data-type="${t}"><i>${i}</i><b>${l}</b></button>`).join('')}<button data-v80-action="open-person-form"><i>👥</i><b>Человек</b></button></div>`);}
   function openBalance(){openModal('Фактический баланс',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Сколько денег фактически сейчас?</span><input id="v79_balance" type="number" step="0.01" value="${number(state.settings.currentBalance)}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-balance">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
   function genericRecordPage(route){const type=ROUTE_RECORD[route],schema=RECORDS[type],meta=ROUTE_META[route],items=array(schema.arr).slice().sort((a,b)=>String(b.date||b.updatedAt||'').localeCompare(String(a.date||a.updatedAt||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>${meta[0]} Раздел</span><h1>${meta[1]}</h1><p>${meta[2]}</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="${type}">＋ Добавить</button></header><section class="v79-record-grid">${items.map(item=>recordTile(type,item)).join('')||'<div class="v78-empty-big">Пока пусто. Добавьте первую запись.</div>'}</section></section>`;}
@@ -720,7 +666,7 @@
   function savePerson(id=''){const old=array('people').find(x=>x.id===id),p=Object.assign({},old||{id:makeId(),createdAt:nowIso()});p.name=clean(document.getElementById('v80_p_name')?.value)||'Без имени';p.role=clean(document.getElementById('v80_p_role')?.value);p.birthday=clean(document.getElementById('v80_p_birthday')?.value);p.birthdayReminderDays=Math.max(0,number(document.getElementById('v80_p_reminder')?.value)||7);p.birthdayReminderEnabled=true;p.phone=clean(document.getElementById('v80_p_phone')?.value);p.email=clean(document.getElementById('v80_p_email')?.value);p.telegram=clean(document.getElementById('v80_p_telegram')?.value);p.city=clean(document.getElementById('v80_p_city')?.value);p.interests=clean(document.getElementById('v80_p_interests')?.value);p.dislikes=clean(document.getElementById('v80_p_dislikes')?.value);p.wishlist=clean(document.getElementById('v80_p_wishlist')?.value);p.giftIdeas=clean(document.getElementById('v80_p_gifts')?.value);p.importantDates=clean(document.getElementById('v80_p_dates')?.value);p.note=clean(document.getElementById('v80_p_note')?.value);p.avatar=pendingPersonAvatar||'';p.updatedAt=nowIso();state.people=old?array('people').map(x=>x.id===id?p:x):[p,...array('people')];save();closeModal();renderPremium();toast('Анкета сохранена');}
   function deletePerson(id){const p=array('people').find(x=>x.id===id);if(!p)return;if(!confirm(`Удалить анкету «${p.name}»? Резервная копия останется в архиве.`))return;archiveSnapshot(`Удалённая анкета: ${p.name}`,'deleted-person',p);state.people=array('people').filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Анкета перенесена в архив');}
 
-  function calendarPage(){const dates=Array.from({length:7},(_,i)=>addDaysKey(todayKey(),i));const legend=[['critical','Критичный'],['high','Высокий'],['medium','Средний'],['low','Низкий']];return `<section class="v78-page"><header class="v78-page-head"><div><span>Неделя как канбан</span><h1>Календарь</h1><p>Каждый день — отдельная колонка. Задачи подсвечиваются по важности и читаются как рабочая доска.</p></div><div><button class="v78-secondary" data-v81-action="quick-task-day" data-date="${todayKey()}">+ На сегодня</button><button class="v78-primary" data-v79-action="open-record-form" data-type="task">＋ Задача</button></div></header><section class="v81-kanban-legend">${legend.map(([tone,label])=>`<span class="${tone}">${label}</span>`).join('')}</section><section class="v81-kanban-week">${dates.map(date=>{const rows=array('tasks').filter(t=>String(t.date||'').slice(0,10)===date).sort((a,b)=>{const pa=priorityMeta(a.priority).order,pb=priorityMeta(b.priority).order;if(pa!==pb)return pa-pb;return String(a.time||'99:99').localeCompare(String(b.time||'99:99'));});return `<article class="v81-kanban-col"><header><div><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></div><button data-v81-action="quick-task-day" data-date="${date}" type="button">＋</button></header><div class="v81-kanban-stack">${rows.map(t=>{const p=priorityMeta(t.priority),st=taskStatusMeta(t.status);return `<button class="v81-task-card ${p.tone} ${st.done?'done':''}" data-v79-action="edit-record" data-type="task" data-id="${safe(t.id)}" type="button"><div class="v81-task-top"><span class="v81-priority ${p.tone}">${safe(p.label)}</span>${t.time?`<em>${safe(t.time)}</em>`:''}</div><b>${safe(t.title||'Задача')}</b><small>${safe(t.area||st.label)}</small>${t.note?`<p>${safe(t.note)}</p>`:''}<footer><span>${safe(st.label)}</span><u>Открыть</u></footer></button>`}).join('')||`<div class="v81-empty-lane"><span>Пусто</span><button data-v81-action="quick-task-day" data-date="${date}" type="button">Добавить карточку</button></div>`}</div></article>`}).join('')}</section></section>`;}
+  function calendarPage(){const dates=Array.from({length:7},(_,i)=>addDaysKey(todayKey(),i));return `<section class="v78-page"><header class="v78-page-head"><div><span>Неделя по дням</span><h1>Календарь</h1><p>Задачи, события и ближайшая нагрузка без старых слоёв интерфейса.</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="task">＋ Задача</button></header><section class="v79-calendar-grid">${dates.map(date=>{const rows=array('tasks').filter(t=>String(t.date||'').slice(0,10)===date);return `<article><header><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></header><div>${rows.map(t=>`<button data-v79-action="edit-record" data-type="task" data-id="${safe(t.id)}"><b>${safe(t.time||'В течение дня')}</b><span>${safe(t.title||'Задача')}</span></button>`).join('')||'<p>Пусто</p>'}</div></article>`}).join('')}</section></section>`;}
   function archivePage(){return genericRecordPage('archive');}
   function coachPage(){const f=financeSnapshot(),undone=habitsActive().filter(h=>!completedHabit(h));return `<section class="v78-page"><header class="v78-page-head"><div><span>Персональный подсказчик</span><h1>Подсказчик AI</h1><p>Подсказки строятся только из фактов, уже записанных в приложении.</p></div></header><section class="v79-coach-hero"><div class="v78-robot"><i></i><b>••</b><em></em></div><div><h2>${undone.length?`Начните с «${safe(undone[0].name)}»`:'Главное на сегодня выполнено'}</h2><p>${undone.length?'Сделайте минимальную версию, чтобы сохранить движение без перегруза.':'Можно спокойно подвести итог дня и не добавлять новых обязательств.'}</p><div><button class="v78-primary" data-v78-route="${undone[0]?`habit-${encodeURIComponent(undone[0].id)}`:'today'}">Открыть следующий шаг</button><button class="v78-secondary" data-v78-route="subconscious">Интервью с подсознанием</button></div></div></section><section class="v78-kpi-row"><article><small>Баланс</small><b>${safe(moneyText(f.balance))}</b><span>фактический остаток</span></article><article><small>Обязательства</small><b>${safe(moneyText(f.debtTotal))}</b><span>${f.debts.length} активных</span></article><article><small>Привычки</small><b>${habitsDone()}/${habitsActive().length}</b><span>выполнено сегодня</span></article><article><small>Задачи</small><b>${array('tasks').filter(t=>t.date===todayKey()).length}</b><span>на сегодня</span></article></section>${interviewCard()}</section>`;}
   function subconsciousPage(){
@@ -732,7 +678,7 @@
       <section class="v80-interview-history"><header><div><h2>История интервью</h2><p>Ответы хранятся только здесь и больше не попадают в заметки или личную память.</p></div></header><div>${entries.map(e=>{const qs=Array.isArray(e.questions)&&e.questions.length?e.questions:[{question:e.question||'Вопрос',answer:e.answer||e.note||''}];return `<article><header><span>${safe(formatDate(e.date||todayKey()))}</span><b>${safe(e.theme||'Ежедневное интервью')}</b></header>${qs.map(x=>`<div><small>${safe(x.question||'Вопрос')}</small><p>${safe(x.answer||'Без ответа')}</p></div>`).join('')}</article>`}).join('')||'<div class="v78-empty-big">Первое интервью появится после сохранения ответов.</div>'}</div></section></section>`;
   }
   function openInterview(){const existing=todayInterview(),questions=interviewQuestions(),answers=Array.isArray(existing?.questions)?existing.questions.map(x=>x.answer||''):[existing?.answer||'',...(String(existing?.note||'').split('\n'))];openModal('Сегодняшнее интервью',`<div class="v80-interview-modal"><header><span>${formatDate(todayKey())}</span><h2>Ответьте честно, но без требования идеального ответа</h2><p>Ответы можно изменить в течение дня.</p></header>${questions.map((q,i)=>`<label class="v79-field"><span><i>0${i+1}</i>${safe(q)}</span><textarea id="v80_int_${i}" placeholder="Запишите первое, что приходит в голову…">${safe(answers[i]||'')}</textarea></label>`).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-interview">Сохранить интервью</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveInterview(){const questions=interviewQuestions(),answers=questions.map((q,i)=>clean(document.getElementById(`v80_int_${i}`)?.value));const old=todayInterview();const item={id:old?.id||makeId(),date:todayKey(),theme:'Ежедневное интервью',question:questions[0],answer:answers[0],note:answers.slice(1).join('\n'),questions:questions.map((question,i)=>({question,answer:answers[i]})),createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.id!==old?.id);state.subconsciousEntries.unshift(item);save();closeModal();renderPremium();toast('Интервью сохранено');celebrate(null,'✦');}
+  function saveInterview(){const questions=interviewQuestions(),answers=questions.map((q,i)=>clean(document.getElementById(`v80_int_${i}`)?.value));const old=todayInterview();const item={id:old?.id||makeId(),date:todayKey(),theme:'Ежедневное интервью',question:questions[0],answer:answers[0],note:answers.slice(1).join('\n'),questions:questions.map((question,i)=>({question,answer:answers[i]})),createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.id!==old?.id);state.subconsciousEntries.unshift(item);save();closeModal();renderPremium();toast('Интервью сохранено');}
 
   function systemPage(){const stats=[['Операции',array('operations').length],['Долги',array('debts').length],['Задачи',array('tasks').length],['Покупки',array('purchases').length],['Желания',array('wishes').length],['Заметки',array('notes').length],['Идеи',array('ideas').length],['Люди',array('people').length],['Привычки',array('habits').length],['Цели',array('goals').length],['Документы',array('documents').length],['Книги',array('books').length],['Фильмы',array('films').length],['Поездки',array('trips').length],['Личная память',array('personal').length]];return `<section class="v78-page"><header class="v78-page-head"><div><span>Защита данных и обслуживание</span><h1>Настройки</h1><p>Один чистый runtime. Старые версии больше не подключаются и не реагируют на клики.</p></div></header><section class="v79-system-actions"><article><i>⇩</i><div><h2>Резервная копия</h2><p>Скачайте JSON перед крупными изменениями.</p></div><button data-v79-action="export-data">Скачать</button></article><article><i>⇧</i><div><h2>Импорт данных</h2><p>Верните ранее сохранённую копию.</p></div><label><input id="v79_import_file" type="file" accept="application/json"><span>Выбрать</span></label></article><article><i>↻</i><div><h2>Обновить интерфейс</h2><p>Удаляет только кэш файлов, личные данные остаются.</p></div><button data-v79-action="clear-ui-cache">Очистить кэш</button></article></section><section class="v79-data-stats">${stats.map(([l,v])=>`<article><small>${l}</small><b>${v}</b></article>`).join('')}</section></section>`;}
 
@@ -800,7 +746,7 @@
     renderPremium();
   }
 
-  function toggleHabit(id, date = todayKey(), force, originEl=null) {
+  function toggleHabit(id, date = todayKey(), force) {
     const habit = array('habits').find(item => item.id === id);
     if (!habit) return;
     habit.marks = habit.marks || {};
@@ -809,7 +755,6 @@
     if (/чтен/i.test(habit.name)) syncReadingSession(habit, date, next);
     persist(next ? 'Привычка отмечена' : 'Отметка снята');
     renderPremium();
-    if(next) celebrate(originEl,'✓');
   }
 
   function syncReadingSession(habit, date, completed) {
@@ -819,11 +764,10 @@
     if (completed) state.discipline.sessions.unshift({ id: makeId(), sourceId, date, mode: 'full', minutes: number(habit.target)||20, resistance: '', note: 'Отмечено на странице привычки', createdAt: nowIso() });
   }
 
-  function markAllHabits(originEl=null) {
+  function markAllHabits() {
     habitsActive().forEach(habit => { if (!completedHabit(habit)) { habit.marks[todayKey()] = true; if (/чтен/i.test(habit.name)) syncReadingSession(habit,todayKey(),true); } });
     persist('Все активные привычки отмечены');
     renderPremium();
-    celebrate(originEl,'✦');
   }
 
   function openHabitForm(id = '') {
@@ -969,23 +913,13 @@
       if(action==='save-person')return savePerson(v80.dataset.id||'');
       if(action==='delete-person')return deletePerson(v80.dataset.id||'');
     }
-    const v81 = event.target.closest?.('[data-v81-action]');
-    if(v81){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v81.dataset.v81Action;
-      if(action==='open-category-editor')return openCategoryEditor(v81.dataset.from||'');
-      if(action==='apply-category-bulk')return applyCategoryBulk(v81);
-      if(action==='quick-category')return openQuickCategory(v81.dataset.id||'');
-      if(action==='save-quick-category')return saveQuickCategory(v81.dataset.id||'',v81);
-      if(action==='prefill-category'){const input=document.getElementById('v81_cat_from'); if(input)input.value=v81.dataset.name||''; const next=document.getElementById('v81_cat_to'); if(next)next.focus(); return;}
-      if(action==='fill-quick-category'){const input=document.getElementById('v81_quick_category'); if(input){input.value=v81.dataset.name||''; input.focus();} return;}
-      if(action==='quick-task-day')return openRecordForm('task','',{date:v81.dataset.date||todayKey()});
-    }
     const v79 = event.target.closest?.('[data-v79-action]');
     if (v79) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       const action=v79.dataset.v79Action;
       if(action==='open-record-form')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
       if(action==='edit-record')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
-      if(action==='save-record')return saveRecord(v79.dataset.type,v79.dataset.id||'',v79);
+      if(action==='save-record')return saveRecord(v79.dataset.type,v79.dataset.id||'');
       if(action==='delete-record')return deleteRecord(v79.dataset.type,v79.dataset.id||'');
       if(action==='open-quick')return openQuick();
       if(action==='set-actual-balance')return openBalance();
@@ -1012,9 +946,9 @@
     if (!button) return;
     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
     const action = button.dataset.v78Action;
-    if (action === 'toggle-habit') return toggleHabit(button.dataset.id, todayKey(), undefined, button);
-    if (action === 'toggle-habit-date') return toggleHabit(button.dataset.id, button.dataset.date, undefined, button);
-    if (action === 'mark-all-habits') return markAllHabits(button);
+    if (action === 'toggle-habit') return toggleHabit(button.dataset.id);
+    if (action === 'toggle-habit-date') return toggleHabit(button.dataset.id, button.dataset.date);
+    if (action === 'mark-all-habits') return markAllHabits();
     if (action === 'open-habit-form') return openHabitForm();
     if (action === 'edit-habit') return openHabitForm(button.dataset.id);
     if (action === 'save-habit') return saveHabit(button.dataset.id || '');
@@ -1070,7 +1004,7 @@
     renderPremium();
     setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
   } catch (error) {
-    console.error('[V81 Kanban Runtime]', error);
+    console.error('[V80 Readable Runtime]', error);
     document.body.classList.remove('v80-booting','v79-booting','v78-booting');
     document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
   }

@@ -1,1134 +1,502 @@
 'use strict';
 
-/* Second Brain OS V82.1 — readable premium runtime with working archive route,
-   symmetric habits, Google-style calendar views and protected data storage.
-   Миграция только дополняет state. Существующие коллекции и записи не очищаются. */
-(async () => {
+/* Second Brain OS V88 — visual runtime only. Reads state, never migrates or deletes data. */
+(() => {
+  const VISUAL_BUILD = 'obsidian-constellation-v881-functional-r1';
+  const BUILD_LABEL = 'V88.1 · FUNCTIONAL';
+  const THEME_KEY = 'secondBrainOS.visualThemeMode';
+  const LEGACY_THEME_KEY = 'secondBrainOS.visualTheme';
+  const MOTION_KEY = 'secondBrainOS.visualMotion';
+  const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+  const reducedMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let themeMode = readPreference(THEME_KEY) || readPreference(LEGACY_THEME_KEY) || 'system';
+  let motionMode = readPreference(MOTION_KEY) || 'full';
+  let scheduledFrame = 0;
+  let applyCount = 0;
+  let writeCount = 0;
 
-  const STORE_KEY = 'secondBrainOS.v1';
-  const DB_NAME = 'SecondBrainOSDurableStorage';
-  const DB_STORE = 'records';
-  const DB_MAIN = 'main-state';
-  let state = {};
-  let saveChain = Promise.resolve();
-  let toastTimer = 0;
-  let vaultSession = { key: null, entries: [], unlocked: false, revealed: new Set(), lastActivity: 0 };
+  const icons = {
+    home:'<path d="M3.5 10.5 12 3l8.5 7.5"/><path d="M5.5 9.5V21h13V9.5M9 21v-7h6v7"/>',
+    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+    project:'<path d="M3 7h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M3 7V5a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/>',
+    knowledge:'<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v18H7.5A3.5 3.5 0 0 0 4 23V5.5ZM20 5.5A3.5 3.5 0 0 0 16.5 2H13v18h3.5A3.5 3.5 0 0 1 20 23V5.5Z"/><path d="M7 7h2M15 7h2"/>',
+    bookmark:'<path d="M6 3h12v19l-6-4-6 4V3Z"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    course:'<path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5M22 9v6"/>',
+    sparkle:'<path d="m12 2 1.45 4.55L18 8l-4.55 1.45L12 14l-1.45-4.55L6 8l4.55-1.45L12 2Z"/><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/>',
+    target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="m12 12 7-7M16 5h3v3"/>',
+    review:'<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+    wallet:'<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Z"/><path d="M4 8h15M15 12h6v5h-6a2.5 2.5 0 0 1 0-5Z"/>',
+    habit:'<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 8.5"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+    archive:'<path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l-2.86 2.86A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1.4 1.6H9.55A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-2.86-2.86A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-1.6-1v-4A1.7 1.7 0 0 0 4.1 9a1.7 1.7 0 0 0-.34-1.88L6.62 4.26A1.7 1.7 0 0 0 8.5 4.6 1.7 1.7 0 0 0 9.55 3h4.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l2.86 2.86A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.1 1v4a1.7 1.7 0 0 0-1.1 1Z"/>',
+    search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>',
+    moon:'<path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>',
+    system:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4M7 8h10"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    arrow:'<path d="M5 12h14M14 7l5 5-5 5"/>',
+    back:'<path d="M19 12H5M10 7l-5 5 5 5"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
+    users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3.5 3.5 0 0 1 0 7M17 15a6 6 0 0 1 4.5 5"/>',
+    morning:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M4.9 4.9l1.4 1.4M2 12h2M20 12h2M17.7 6.3l1.4-1.4"/>',
+    evening:'<path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/>',
+    chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    folders:'<path d="M3 6h7l2 2h9v11H3V6Z"/>',
+    note:'<path d="M5 3h10l4 4v14H5V3Z"/><path d="M14 3v5h5M8 12h8M8 16h6"/>',
+    heart:'<path d="M20.8 5.8a5.3 5.3 0 0 0-7.5 0L12 7.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 22l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/>',
+    bulb:'<path d="M9 18h6M10 22h4"/><path d="M8.2 14.5A6 6 0 1 1 15.8 14.5C14.7 15.3 14 16.1 14 18h-4c0-1.9-.7-2.7-1.8-3.5Z"/>',
+    leaf:'<path d="M20 4C11 4 5 8 5 15c0 3 2 5 5 5 7 0 10-7 10-16Z"/><path d="M4 21c3-6 7-9 13-12"/>',
+    flower:'<circle cx="12" cy="12" r="2"/><path d="M12 10C7 8 8 3 12 3s5 5 2 8c5-2 8 2 6 5s-6 2-7-2c0 5-5 6-7 3s0-6 4-6c-4-2-3-7 1-8"/>',
+    document:'<path d="M5 3h10l4 4v14H5V3Z"/><path d="M14 3v5h5M8 12h8M8 16h8"/>',
+    book:'<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v18H7.5A3.5 3.5 0 0 0 4 23V5.5ZM20 5.5A3.5 3.5 0 0 0 16.5 2H13v18h3.5A3.5 3.5 0 0 1 20 23V5.5Z"/>',
+    film:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M17 9h4M3 15h4M17 15h4"/>',
+    plane:'<path d="m22 2-9 20-2-9-9-2 20-9Z"/><path d="m11 13 5-5"/>',
+    lock:'<rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
+    inbox:'<path d="M4 4h16v16H4z"/><path d="M4 14h5l2 3h2l2-3h5"/>',
+    operations:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    analytics:'<path d="M4 19V9M10 19V4M16 19v-7M22 19H2"/>',
+    planning:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    export:'<path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v6h14v-6"/>',
+    debt:'<path d="M4 5.5h12a3 3 0 0 1 3 3v10H7a3 3 0 0 1-3-3v-10Z"/><path d="M4 9h15M15 13h6v4h-6a2 2 0 1 1 0-4Z"/>',
+    transfer:'<path d="m7 7-4 4 4 4M3 11h14M17 9l4 4-4 4M21 13H7"/>',
+    edit:'<path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"/><path d="m13.5 7 3.5 3.5"/>',
+    close:'<path d="m6 6 12 12M18 6 6 18"/>',
+    check:'<path d="m5 12 4 4L19 6"/>',
+    water:'<path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13Z"/>',
+    movement:'<path d="M13 4a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="m9 9 3-2 3 3 3 1M12 7l-1 6-4 5M11 13l5 6"/>',
+    training:'<path d="M3 9v6M7 7v10M17 7v10M21 9v6M7 12h10"/>',
+    meditation:'<circle cx="12" cy="5" r="2"/><path d="M12 8v6M8 11l4 3 4-3M5 20c2-4 5-6 7-6s5 2 7 6M7 20h10"/>',
+    food:'<path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 8 0 10v8M17 3v10h3"/>',
+    focus:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    walk:'<circle cx="13" cy="4" r="2"/><path d="m10 22 2-7-3-3 2-5 4 3 3 1M12 15l4 7M8 12l-4 4"/>',
+    clean:'<path d="m4 20 10-10M14 4l6 6-4 4-6-6 4-4ZM3 21l5-1-4-4-1 5Z"/>',
+    detox:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 18h4M3 3l18 18"/>',
+    health:'<path d="M8 3v6a4 4 0 0 0 8 0V3M12 13v2a5 5 0 0 0 10 0v-2M20 11v4"/>',
+    learning:'<path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5"/>',
+    art:'<path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h3a6 6 0 0 0-3-10Z"/><circle cx="7" cy="10" r="1"/><circle cx="9" cy="6" r="1"/><circle cx="14" cy="6" r="1"/>',
+    timer:'<circle cx="12" cy="13" r="8"/><path d="M9 2h6M12 5v3M12 13l3-3"/>',
+    shield:'<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m8 12 2.5 2.5L16 9"/>'
+  };
 
-  const uid = () => `${Math.random().toString(36).slice(2,10)}${Date.now().toString(36)}`;
-  const today = () => new Date().toISOString().slice(0,10);
-  const money = value => `${Number(value||0).toLocaleString('ru-RU',{maximumFractionDigits:2})} ₽`;
+  const svg = (name, className = 'v88-icon') => `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[name] || icons.sparkle}</svg>`;
 
-  function coreClone(value){ return JSON.parse(JSON.stringify(value ?? null)); }
-  function coreStamp(source){
-    source.settings = source.settings && typeof source.settings === 'object' ? source.settings : {};
-    source.settings.storageGuard = Object.assign({}, source.settings.storageGuard || {}, {version:82.1,updatedAt:new Date().toISOString(),reason:'v82.1-save',fullStateInIndexedDB:false});
-    return source.settings.storageGuard.updatedAt;
+  function readPreference(key) {
+    try { return localStorage.getItem(key); } catch (_) { return null; }
   }
-  function coreNormalize(raw){
-    const next = raw && typeof raw === 'object' ? raw : {};
-    next.settings = next.settings && typeof next.settings === 'object' ? next.settings : {};
-    const arrays = ['tasks','operations','debts','purchases','wishes','notes','ideas','people','goals','habits','documents','books','films','trips','personal','archive','polinaDays','inbox','subconsciousEntries','habitWishlist'];
-    arrays.forEach(key => { if(!Array.isArray(next[key])) next[key]=[]; });
-    if(!Number.isFinite(Number(next.settings.currentBalance))) next.settings.currentBalance=0;
-    next.settings.profile = Object.assign({name:next.settings.name||'Алексей',lastName:'',birthDate:'',city:'',email:'',phone:'',subtitle:next.settings.subtitle||'Фокус на рост',bio:'',avatar:''},next.settings.profile||{});
-    return next;
+
+  function savePreference(key, value) {
+    try { localStorage.setItem(key, value); } catch (_) {}
   }
-  function coreOpenDb(){
-    return new Promise((resolve,reject)=>{
-      if(!('indexedDB' in window)) return reject(new Error('IndexedDB unavailable'));
-      const req=indexedDB.open(DB_NAME,1);
-      req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(DB_STORE)) req.result.createObjectStore(DB_STORE); };
-      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
-    });
+
+  function textKey(value) { return String(value || '').trim().toLocaleLowerCase('ru-RU'); }
+
+  function iconFor(value) {
+    const text = textKey(value);
+    if (/главн|сегодня/.test(text)) return 'home';
+    if (/gamelife|подсказ|помощ|ассист/.test(text)) return 'sparkle';
+    if (/цел|фокус/.test(text)) return 'target';
+    if (/проект/.test(text)) return 'project';
+    if (/знани|обучен|курс/.test(text)) return 'knowledge';
+    if (/ресурс/.test(text)) return 'bookmark';
+    if (/панел/.test(text)) return 'grid';
+    if (/разоб|очеред/.test(text)) return 'review';
+    if (/календар|недел|событ/.test(text)) return 'calendar';
+    if (/финанс|кошел|баланс/.test(text)) return 'wallet';
+    if (/привыч|дисциплин/.test(text)) return 'habit';
+    if (/информац/.test(text)) return 'info';
+    if (/архив/.test(text)) return 'archive';
+    if (/настрой|систем/.test(text)) return 'settings';
+    if (/профил/.test(text)) return 'user';
+    if (/люди|контакт/.test(text)) return 'users';
+    if (/замет|дневник/.test(text)) return 'note';
+    if (/желан|отношен|полин/.test(text)) return 'heart';
+    if (/иде/.test(text)) return 'bulb';
+    if (/личная память|спокой/.test(text)) return 'leaf';
+    if (/документ/.test(text)) return 'document';
+    if (/книг|чтен/.test(text)) return 'book';
+    if (/фильм|кино/.test(text)) return 'film';
+    if (/путеше|поезд/.test(text)) return 'plane';
+    if (/парол|доступ/.test(text)) return 'lock';
+    if (/входящ/.test(text)) return 'inbox';
+    if (/операц|запис/.test(text)) return 'operations';
+    if (/аналит|категор/.test(text)) return 'analytics';
+    if (/план|время|итог дня|вечер/.test(text)) return 'planning';
+    if (/экспорт|csv|выгруз|импорт/.test(text)) return 'export';
+    if (/долг|обязательств|источник/.test(text)) return 'debt';
+    if (/перевод/.test(text)) return 'transfer';
+    if (/check|утр/.test(text)) return 'morning';
+    if (/разбор недели/.test(text)) return 'chart';
+    if (/папк/.test(text)) return 'folders';
+    if (/измен|настроить|редакт/.test(text)) return 'edit';
+    if (/удал|закрыть/.test(text)) return 'close';
+    if (/добав|создать|новая|зафикс/.test(text)) return 'plus';
+    if (/доход/.test(text)) return 'arrow';
+    if (/расход/.test(text)) return 'back';
+    return 'sparkle';
   }
-  async function coreDbGet(key){ const db=await coreOpenDb(); return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const req=tx.objectStore(DB_STORE).get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);}); }
-  async function coreDbPut(key,value){ const db=await coreOpenDb(); return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);}); }
-  function coreParseLocal(){
-    try{const raw=localStorage.getItem(STORE_KEY);if(!raw)return null;const parsed=JSON.parse(raw);return parsed?.state&&typeof parsed.state==='object'?parsed.state:parsed;}catch(error){return null;}
+
+  function iconForStored(value, label = '') {
+    const icon = String(value || '');
+    const map = {
+      '📖':'book','🧠':'bulb','💧':'water','🏃':'movement','🏋️':'training','🧘':'meditation','🌙':'evening','☀️':'morning',
+      '🥗':'food','💰':'wallet','📝':'note','🎯':'focus','🚶':'walk','🧹':'clean','📵':'detox','❤️':'heart','💗':'heart','💊':'health',
+      '🎓':'learning','🎨':'art','🌿':'leaf','⏱️':'timer','✅':'habit','🛡️':'shield','✨':'sparkle','👥':'users','💡':'bulb',
+      '🌸':'flower','📄':'document','📚':'book','🎬':'film','✈️':'plane','🔐':'lock','📥':'inbox','📁':'project','🔖':'bookmark','▦':'operations','◌':'analytics',
+      '◷':'planning','⇩':'export','!':'debt','⇄':'transfer','↗':'arrow','↘':'back','✎':'edit','×':'close','＋':'plus','◇':'review'
+    };
+    return map[icon] || iconFor(label || icon);
   }
-  function coreUpdatedAt(source){return String(source?.settings?.storageGuard?.updatedAt||source?.settings?.v78?.updatedAt||source?.settings?.v77?.updatedAt||'');}
-  async function coreLoad(){
-    const local=coreParseLocal(); let durable=null;
-    try{durable=await coreDbGet(DB_MAIN);}catch(error){}
-    const durableState=durable?.state&&typeof durable.state==='object'?durable.state:null;
-    const localCompact=Boolean(local?.settings?.storageGuard?.fullStateInIndexedDB||local?.settings?.storageGuard?.compactMirror);
-    const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
-    const loaded=coreNormalize(chooseDurable?durableState:local);
-    try{
-      const marker='secondBrainOS.v821.backupCreated';
-      if(!localStorage.getItem(marker)){
-        await coreDbPut(`backup:v82-before-v821:${new Date().toISOString()}`,{version:82.1,createdAt:new Date().toISOString(),reason:'automatic-before-v82.1-font-archive-runtime',state:coreClone(loaded)});
-        localStorage.setItem(marker,new Date().toISOString());
-      }
-    }catch(error){}
-    return loaded;
+
+  function toneFor(value) {
+    const text = textKey(value);
+    if (/финанс|привыч|здоров|вода/.test(text)) return 'green';
+    if (/разоб|долг|обяз|удал/.test(text)) return 'coral';
+    if (/gamelife|информац|архив|книг/.test(text)) return 'violet';
+    if (/подсказ|календар|иде/.test(text)) return 'amber';
+    return 'blue';
   }
-  function save(){
-    coreStamp(state);
-    window.state=state;
-    let localOk=false;
-    try{localStorage.setItem(STORE_KEY,JSON.stringify(state));localStorage.setItem('secondBrainOS.currentBuild',BUILD);localOk=true;}catch(error){console.warn('[V80 local save]',error);}
-    const snapshot=coreClone(state),updatedAt=coreUpdatedAt(state);
-    saveChain=saveChain.catch(()=>undefined).then(()=>coreDbPut(DB_MAIN,{version:82.1,updatedAt,reason:'v82.1-save',state:snapshot}).catch(error=>console.warn('[V80 durable save]',error)));
-    document.body.dataset.sbosStorage=localOk?'durable':'indexeddb-only';
-    return localOk;
+
+  function setIcon(host, name, preserveBadge = false) {
+    if (!host) return false;
+    const resolved = icons[name] ? name : 'sparkle';
+    if (host.dataset.v88Icon === resolved && host.querySelector(':scope > .v88-icon')) return false;
+    const badge = preserveBadge ? host.querySelector('em')?.outerHTML || '' : '';
+    host.innerHTML = `${svg(resolved)}${badge}`;
+    host.dataset.v88Icon = resolved;
+    host.classList.add('v88-icon-host');
+    host.setAttribute('aria-hidden','true');
+    writeCount++;
+    return true;
   }
-  function toast(message){
-    const el=document.getElementById('toast'); if(!el)return; clearTimeout(toastTimer); el.textContent=String(message||'');el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+
+  function resolvedTheme() { return themeMode === 'system' ? (themeMedia.matches ? 'dark' : 'light') : themeMode; }
+  function resolvedMotion() { return reducedMedia.matches ? 'off' : motionMode; }
+
+  function setTheme(mode, persist = true) {
+    if (!['light','dark','system'].includes(mode)) mode = 'system';
+    themeMode = mode;
+    if (persist) savePreference(THEME_KEY, mode);
+    applyPreferences();
   }
-  function celebrate(originEl=null, accent='✓'){
-    const host=document.body; if(!host) return;
-    const burst=document.createElement('div'); burst.className='v81-confetti-burst';
-    const rect=originEl && typeof originEl.left==='number' ? originEl : originEl?.getBoundingClientRect?.();
-    const x=rect?rect.left+rect.width/2:window.innerWidth*0.72;
-    const y=rect?rect.top+rect.height/2:Math.max(120,window.innerHeight*0.22);
-    burst.style.left=`${x}px`; burst.style.top=`${y}px`;
-    const glyphs=['✦','✺','•','◆',accent||'✓','❤','✧','⬢','✳'];
-    for(let i=0;i<18;i+=1){
-      const part=document.createElement('span');
-      part.textContent=glyphs[i%glyphs.length];
-      part.style.setProperty('--dx',`${Math.round((Math.random()-0.5)*220)}px`);
-      part.style.setProperty('--dy',`${Math.round(-80-Math.random()*160)}px`);
-      part.style.setProperty('--rz',`${Math.round((Math.random()-0.5)*520)}deg`);
-      part.style.setProperty('--delay',`${(Math.random()*0.08).toFixed(2)}s`);
-      burst.appendChild(part);
+
+  function setMotion(mode, persist = true) {
+    if (!['full','calm','off'].includes(mode)) mode = 'full';
+    motionMode = mode;
+    if (persist) savePreference(MOTION_KEY, mode);
+    applyPreferences();
+  }
+
+  function applyPreferences() {
+    const theme = resolvedTheme();
+    const motion = resolvedMotion();
+    const root = document.documentElement;
+    root.classList.remove('v87-light','v87-dark','v88-light','v88-dark');
+    root.classList.add(`v87-${theme}`,`v88-${theme}`);
+    if (document.body) {
+      document.body.classList.add('v87-constellation','v88-constellation');
+      document.body.classList.toggle('v88-motion-calm',motion === 'calm');
+      document.body.classList.toggle('v88-motion-off',motion === 'off');
+      document.body.dataset.visualBuild = VISUAL_BUILD;
+      document.body.dataset.themeMode = themeMode;
+      document.body.dataset.motionMode = motionMode;
     }
-    host.appendChild(burst);
-    setTimeout(()=>burst.remove(),1500);
-  }
-  function openModal(title,html){ const modal=document.getElementById('modal');if(!modal)return;document.getElementById('modalTitle').textContent=title||'Окно';document.getElementById('modalBody').innerHTML=html||'';modal.classList.add('show'); }
-  function closeModal(){ document.getElementById('modal')?.classList.remove('show'); }
-  function downloadJson(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`second-brain-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия скачана'); }
-  async function importJson(file){ if(!file)return;try{const parsed=JSON.parse(await file.text());state=coreNormalize(parsed?.state||parsed);window.state=state;save();renderPremium();toast('Данные импортированы');}catch(error){toast('Не удалось импортировать JSON');} }
-  const BUILD = 'second-brain-space-v821-font-archive-20260721-r1';
-  const LABEL = 'V82.1 · FONT & ARCHIVE';
-  const CUSTOM_ROUTES = new Set([
-    'today', 'dashboard', 'habits', 'discipline', 'information', 'library', 'profile',
-    'finance', 'finance-operations', 'finance-analytics', 'finance-export', 'debts',
-    'habit-wishlist', 'calendar', 'archive', 'coach', 'system', 'subconscious',
-    'people', 'notes', 'wishes', 'ideas', 'personal', 'polina', 'documents', 'books', 'films', 'trips', 'passwords', 'inbox', 'tasks', 'goals', 'purchases'
-  ]);
-  const LEGACY_ALIASES = { dashboard: 'today', discipline: 'habits', library: 'information' };
-  const DAY = 86400000;
-  const PAGE_SIZE = 25;
-  let pendingAvatar = '';
-  let pendingPersonAvatar = '';
-  let operationPage = 1;
-  let operationType = 'all';
-  let operationQuery = '';
-  let renderTimer = 0;
-
-  const safe = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
-  const clean = value => String(value ?? '').trim();
-  const number = value => Number(String(value ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
-  const makeId = () => typeof uid === 'function' ? uid() : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-  const todayKey = () => typeof today === 'function' ? today() : new Date().toISOString().slice(0, 10);
-  const dateAtNoon = value => new Date(`${String(value || todayKey()).slice(0, 10)}T12:00:00`);
-  const addDaysKey = (value, amount) => { const d = dateAtNoon(value); d.setDate(d.getDate() + Number(amount || 0)); return d.toISOString().slice(0, 10); };
-  const formatDate = value => value ? dateAtNoon(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
-  const formatShort = value => value ? dateAtNoon(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '—';
-  const moneyText = value => typeof money === 'function' ? money(value) : `${number(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ₽`;
-  const routeNow = () => decodeURIComponent((location.hash || '').replace(/^#/, '') || 'today');
-  const nowIso = () => new Date().toISOString();
-  const array = key => Array.isArray(state?.[key]) ? state[key] : [];
-  const isClosedDebt = item => ['закрыт', 'закрыто', 'оплачен', 'оплачено', 'возвращен', 'возвращено', 'готово'].includes(clean(item?.status).toLowerCase());
-  const activeDebtsOut = () => array('debts').filter(item => !isClosedDebt(item) && item.direction !== 'in' && item.direction !== 'incoming');
-  const activeDebtsIn = () => array('debts').filter(item => !isClosedDebt(item) && (item.direction === 'in' || item.direction === 'incoming'));
-  const total = items => items.reduce((sum, item) => sum + number(item.amount), 0);
-  const operationSigned = item => item.type === 'income' ? number(item.amount) : -number(item.amount);
-  const monthKey = value => String(value || todayKey()).slice(0, 7);
-  const initial = name => clean(name).slice(0, 1).toUpperCase() || 'А';
-  const plural = (n, one, few, many) => { const v = Math.abs(Number(n || 0)) % 100; const l = v % 10; if (v > 10 && v < 20) return many; if (l === 1) return one; if (l >= 2 && l <= 4) return few; return many; };
-  const normalizedUrl = value => { const raw=clean(value); if(!raw)return ''; if(/^data:image\//i.test(raw))return raw; if(/^https?:\/\//i.test(raw))return raw; if(/^\/\//.test(raw))return `https:${raw}`; return `https://${raw}`; };
-  function operationKind(item){
-    const raw=clean(item?.type||item?.kind||item?.operationType||item?.direction||item?.flow).toLowerCase();
-    if(['income','доход','приход','поступление','зачисление','получено'].some(v=>raw===v||raw.includes(v))) return 'income';
-    if(['expense','расход','трата','списание','оплата','покупка'].some(v=>raw===v||raw.includes(v))) return 'expense';
-    const hint=clean([item?.category,item?.incomeSource,item?.note,item?.title,item?.name].join(' ')).toLowerCase();
-    if(/зарплат|доход|поступлен|возврат|подар|подработ|аванс|дивиденд|процент/.test(hint))return 'income';
-    return number(item?.amount)<0 ? 'expense' : 'expense';
-  }
-  const operationAmount = item => Math.abs(number(item?.amount));
-  const operationDate = item => String(item?.date||item?.operationDate||item?.createdAt||todayKey()).slice(0,10);
-  function archiveSnapshot(title,type,item){
-    state.archive = Array.isArray(state.archive)?state.archive:[];
-    state.archive.unshift({id:makeId(),title,date:todayKey(),type,note:'Автоматическая копия перед удалением или миграцией.',original:coreClone(item),createdAt:nowIso()});
-  }
-  function birthdayDays(person){
-    if(!person?.birthday)return null; const birth=dateAtNoon(person.birthday),now=dateAtNoon(todayKey());
-    let next=new Date(now.getFullYear(),birth.getMonth(),birth.getDate(),12); if(next<now)next=new Date(now.getFullYear()+1,birth.getMonth(),birth.getDate(),12);
-    return Math.ceil((next-now)/DAY);
-  }
-  function upcomingBirthdays(limit=45){return array('people').filter(person=>person.birthdayReminderEnabled!==false).map(person=>({person,days:birthdayDays(person)})).filter(x=>x.days!==null&&x.days<=Math.min(limit,Math.max(0,number(x.person.birthdayReminderDays)||7))).sort((a,b)=>a.days-b.days);}
-
-  function persist(message = '') {
-    state.settings.v78.updatedAt = nowIso();
-    if (typeof save === 'function') save();
-    if (message && typeof toast === 'function') toast(message);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme === 'dark' ? '#07111d' : '#f5f7fb');
+    updateControlState();
   }
 
-  function ensureData() {
-    if (!state || typeof state !== 'object') return;
-    state.settings = state.settings || {};
-    const oldName = clean(state.settings.name) || 'Алексей';
-    const oldSubtitle = clean(state.settings.subtitle) || 'Фокус на рост';
-    state.settings.profile = Object.assign({
-      name: oldName,
-      lastName: '',
-      birthDate: '',
-      city: '',
-      email: '',
-      phone: '',
-      subtitle: oldSubtitle,
-      bio: '',
-      avatar: ''
-    }, state.settings.profile || {});
-    state.settings.name = clean(state.settings.profile.name) || oldName;
-    state.settings.subtitle = clean(state.settings.profile.subtitle) || oldSubtitle;
-    state.settings.v78 = Object.assign({
-      version: 1,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-      migration: { from: 'v77', appliedAt: nowIso() },
-      operationPage: 1,
-      operationType: 'all',
-      categoryPeriod: monthKey(todayKey())
-    }, state.settings.v78 || {});
+  function controlPanelHtml() {
+    return `<section class="v88-control-panel" aria-label="Внешний вид" hidden>
+      <header><span>${svg('sparkle')}<b>Внешний вид</b></span><small>${BUILD_LABEL}</small></header>
+      <div class="v88-control-group"><span>Тема</span><div role="group" aria-label="Тема интерфейса">
+        <button type="button" data-v88-theme="light">${svg('sun')}<span>Светлая</span></button>
+        <button type="button" data-v88-theme="dark">${svg('moon')}<span>Тёмная</span></button>
+        <button type="button" data-v88-theme="system">${svg('system')}<span>Системная</span></button>
+      </div></div>
+      <div class="v88-control-group"><span>Движение</span><div role="group" aria-label="Интенсивность движения">
+        <button type="button" data-v88-motion="full">${svg('sparkle')}<span>Живое</span></button>
+        <button type="button" data-v88-motion="calm">${svg('planning')}<span>Спокойное</span></button>
+        <button type="button" data-v88-motion="off">${svg('close')}<span>Выключено</span></button>
+      </div></div>
+      <p>Системное ограничение движения всегда имеет приоритет.</p>
+    </section>`;
+  }
 
-    state.habits = array('habits');
-    state.habitWishlist = Array.isArray(state.habitWishlist) ? state.habitWishlist : [];
-    state.subconsciousEntries = Array.isArray(state.subconsciousEntries) ? state.subconsciousEntries : [];
-    state.inbox = Array.isArray(state.inbox) ? state.inbox : [];
-
-    if (!state.discipline || typeof state.discipline !== 'object') {
-      state.discipline = {
-        version: 1,
-        createdAt: nowIso(), updatedAt: nowIso(),
-        activeHabit: { id: 'reading-20', title: 'Чтение', fullMinutes: 20, minimumMinutes: 5, cue: 'После ужина', place: 'В спокойном месте, телефон экраном вниз', startDate: todayKey(), targetDays: 42, reviewEveryDays: 7, status: 'active' },
-        sessions: [], financeChecks: {}, reviews: [], timer: null, xp: 0, level: 1, lastInteractionAt: nowIso()
-      };
-    }
-    state.discipline.sessions = Array.isArray(state.discipline.sessions) ? state.discipline.sessions : [];
-    state.discipline.reviews = Array.isArray(state.discipline.reviews) ? state.discipline.reviews : [];
-    state.discipline.financeChecks = state.discipline.financeChecks && typeof state.discipline.financeChecks === 'object' ? state.discipline.financeChecks : {};
-
-    const reading = state.habits.find(h => /чтен/i.test(clean(h.name || h.title)));
-    if (!reading) {
-      state.habits.unshift({
-        id: 'reading-20', name: 'Чтение 20 минут', icon: '📖', color: '#8b5cf6', marks: {},
-        target: 20, unit: 'мин', frequency: 'Ежедневно', active: true, createdAt: nowIso(),
-        note: '42-дневный эксперимент постепенного внедрения.'
+  function ensureControls() {
+    const actions = document.querySelector('.v78-top-actions');
+    if (!actions) return;
+    let toggle = actions.querySelector('.v88-theme-toggle');
+    if (!toggle) {
+      toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'v88-theme-toggle';
+      toggle.setAttribute('aria-haspopup','dialog');
+      toggle.setAttribute('aria-expanded','false');
+      actions.prepend(toggle);
+      writeCount++;
+      toggle.addEventListener('click',event => {
+        event.stopPropagation();
+        const panel = document.querySelector('.v88-control-panel');
+        if (!panel) return;
+        panel.hidden = !panel.hidden;
+        toggle.setAttribute('aria-expanded',String(!panel.hidden));
       });
-    } else {
-      reading.marks = reading.marks && typeof reading.marks === 'object' ? reading.marks : {};
-      reading.active = reading.active !== false;
     }
+    if (!document.querySelector('.v88-control-panel')) {
+      document.body.insertAdjacentHTML('beforeend',controlPanelHtml());
+      writeCount++;
+      const panel = document.querySelector('.v88-control-panel');
+      panel.addEventListener('click',event => {
+        const themeButton = event.target.closest('[data-v88-theme]');
+        const motionButton = event.target.closest('[data-v88-motion]');
+        if (themeButton) setTheme(themeButton.dataset.v88Theme);
+        if (motionButton) setMotion(motionButton.dataset.v88Motion);
+      });
+    }
+    updateControlState();
+  }
 
-    state.habits.forEach(habit => {
-      habit.id = clean(habit.id) || makeId();
-      habit.name = clean(habit.name || habit.title) || 'Привычка';
-      habit.icon = clean(habit.icon) || '✓';
-      habit.color = clean(habit.color) || '#8b5cf6';
-      habit.marks = habit.marks && typeof habit.marks === 'object' ? habit.marks : {};
-      habit.target = number(habit.target) || (/чтен/i.test(habit.name) ? 20 : 1);
-      habit.unit = clean(habit.unit) || (/чтен|медит|спорт|тренир|прогул/i.test(habit.name) ? 'мин' : 'раз');
-      habit.frequency = clean(habit.frequency) || 'Ежедневно';
-      habit.active = habit.active !== false;
+  function updateControlState() {
+    const toggle = document.querySelector('.v88-theme-toggle');
+    const theme = resolvedTheme();
+    if (toggle) {
+      const iconName = themeMode === 'system' ? 'system' : theme === 'dark' ? 'sun' : 'moon';
+      setIcon(toggle,iconName);
+      toggle.setAttribute('aria-label',`Внешний вид: ${themeMode === 'system' ? 'системная тема' : theme === 'dark' ? 'тёмная тема' : 'светлая тема'}`);
+      toggle.title = 'Тема и движение';
+    }
+    document.querySelectorAll('[data-v88-theme]').forEach(button => {
+      const active = button.dataset.v88Theme === themeMode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
     });
-
-    if (!state.habitWishlist.length) {
-      state.habitWishlist = [
-        { id: makeId(), title: 'Планка 1 минута', icon: '🧘', schedule: '3 раза в неделю', note: '', createdAt: nowIso() },
-        { id: makeId(), title: 'Дневник благодарности', icon: '💗', schedule: 'Каждый день', note: '', createdAt: nowIso() },
-        { id: makeId(), title: 'Цифровой детокс вечером', icon: '📱', schedule: '2 дня в неделю', note: '', createdAt: nowIso() }
-      ];
-    }
-    operationPage = Math.max(1, number(state.settings.v78.operationPage) || 1);
-    operationType = ['all', 'income', 'expense'].includes(state.settings.v78.operationType) ? state.settings.v78.operationType : 'all';
-    state.settings.v80 = Object.assign({version:1,createdAt:nowIso(),interviewLeakMigrated:false},state.settings.v80||{});
-    state.settings.v81 = Object.assign({version:1,createdAt:nowIso(),categoryEditorSeen:false},state.settings.v81||{});
-    state.settings.v82 = Object.assign({version:1,createdAt:nowIso(),calendarView:'week',calendarAnchor:todayKey(),coachStep:0},state.settings.v82||{});
-    if(!['day','week','month','archive'].includes(state.settings.v82.calendarView)) state.settings.v82.calendarView='week';
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(clean(state.settings.v82.calendarAnchor))) state.settings.v82.calendarAnchor=todayKey();
-    if(!state.settings.v81.categoryPeriodAutoFixed){
-      const selected=state.settings.v78.categoryPeriod || monthKey(todayKey());
-      const selectedHasExpense=state.operations.some(item=>operationKind(item)==='expense' && monthKey(operationDate(item))===selected);
-      if(!selectedHasExpense){const fallback=bestExpensePeriod(); if(fallback)state.settings.v78.categoryPeriod=fallback;}
-      state.settings.v81.categoryPeriodAutoFixed=true;
-    }
-    state.operations.forEach(item=>{
-      const previous=clean(item.type); const kind=operationKind(item); if(previous&&previous!==kind&&!item.originalType)item.originalType=previous;
-      item.type=kind; item.amount=operationAmount(item); item.date=operationDate(item); item.category=clean(item.category||item.group||item.area)||'Другое';
+    document.querySelectorAll('[data-v88-motion]').forEach(button => {
+      const active = button.dataset.v88Motion === motionMode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
     });
-    state.people.forEach(person=>{ person.id=clean(person.id)||makeId(); person.name=clean(person.name||person.person)||'Без имени'; person.avatar=clean(person.avatar||person.photo||person.photoUrl); person.birthdayReminderEnabled=person.birthdayReminderEnabled!==false; person.birthdayReminderDays=Math.max(0,number(person.birthdayReminderDays)||7); });
-    if(!state.settings.v80.interviewLeakMigrated){
-      const patterns=/подсозн|что меня сейчас останавливает|что я могу отпустить|что я могу сделать проще|какой один шаг|внутренн(ее|ий) сопротивлен/i;
-      ['notes','personal'].forEach(key=>{const keep=[];array(key).forEach(item=>{const blob=JSON.stringify(item);if(patterns.test(blob)||item.question||item.answers){const sourceId=`migrated-${key}-${item.id||makeId()}`;if(!state.subconsciousEntries.some(e=>e.sourceId===sourceId)){state.subconsciousEntries.unshift({id:makeId(),sourceId,date:item.date||todayKey(),question:item.question||item.title||'Перенесённое интервью',answer:item.answer||item.text||item.note||'',note:item.note||'',questions:Array.isArray(item.questions)?item.questions:[],createdAt:item.createdAt||nowIso()});archiveSnapshot(`Резервная копия: ${item.title||'интервью'}`,'interview-migration',item);}}else keep.push(item);});state[key]=keep;});
-      state.settings.v80.interviewLeakMigrated=true;
-    }
   }
 
-  function ageFromBirth(value) {
-    if (!value) return '';
-    const birth = dateAtNoon(value);
-    const now = new Date();
-    let age = now.getFullYear() - birth.getFullYear();
-    const m = now.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
-    return age >= 0 && age < 130 ? age : '';
+  function decorateNavigation() {
+    document.querySelectorAll('.v78-side-link,.v78-top-tab,.v78-mobile-nav a').forEach(item => {
+      const label = item.querySelector('span')?.textContent || item.textContent;
+      item.dataset.v88Tone = toneFor(label);
+      setIcon(item.querySelector(':scope > i'),iconFor(label));
+    });
   }
 
-  function profile() { ensureData(); return state.settings.profile; }
-  function avatarHtml(size = 'md') {
-    const p = profile();
-    return p.avatar ? `<img class="v78-avatar v78-avatar-${size}" src="${safe(p.avatar)}" alt="${safe(p.name)}">` : `<span class="v78-avatar v78-avatar-${size} v78-avatar-fallback">${safe(initial(p.name))}</span>`;
+  function decorateChrome() {
+    document.querySelectorAll('.v78-top-actions > button').forEach(button => {
+      if (button.classList.contains('v88-theme-toggle') || button.classList.contains('v78-profile-top')) return;
+      const label = button.getAttribute('aria-label') || button.textContent;
+      if (/поиск/i.test(label)) setIcon(button,'search');
+      else if (/подсказ/i.test(label)) setIcon(button,'sparkle',true);
+    });
+    const fab = document.querySelector('.v86-capture-fab');
+    if (fab && !fab.querySelector('.v88-button-icon')) fab.insertAdjacentHTML('afterbegin',`<span class="v88-button-icon">${svg('plus')}</span>`);
   }
 
-  function routeLabel(route) {
-    if (route.startsWith('habit-')) return 'Привычка';
-    return ({ today: 'Сегодня', finance: 'Финансы', 'finance-operations': 'Операции', 'finance-analytics': 'Анализ', 'finance-export': 'Экспорт CSV', habits: 'Привычки', information: 'Информация', profile: 'Профиль', debts: 'Обязательства', calendar: 'Календарь', archive: 'Архив', coach: 'Подсказчик', system: 'Настройки' })[route] || route;
+  function decorateInterfaceIcons() {
+    document.querySelectorAll('.v85-automation-strip button').forEach(button => setIcon(button.querySelector(':scope > i'),iconFor(button.textContent)));
+    document.querySelectorAll('.v85-routine-card>i,.v83-quests article>i,.v83-skills article>i,.v85-achievements article>i').forEach(host => setIcon(host,iconForStored(host.textContent,host.parentElement?.textContent)));
+    document.querySelectorAll('.v78-info-folder').forEach(button => setIcon(button.querySelector(':scope > i'),iconFor(button.textContent)));
+    document.querySelectorAll('.v78-finance-folder').forEach(button => setIcon(button.querySelector(':scope > i'),iconFor(button.textContent)));
+    document.querySelectorAll('.v78-operation-folder button').forEach(button => setIcon(button.querySelector(':scope > i'),iconFor(button.textContent)));
+    document.querySelectorAll('.v82-habit-settings,[data-v85-action="edit-reward"]').forEach(button => {
+      button.setAttribute('aria-label',button.getAttribute('aria-label') || 'Редактировать');
+      setIcon(button,'edit');
+    });
+    document.querySelectorAll('[data-v85-action="delete-reward"]').forEach(button => {
+      button.setAttribute('aria-label',button.getAttribute('aria-label') || 'Удалить');
+      setIcon(button,'close');
+    });
+    document.querySelectorAll('.v82-calendar-nav button').forEach(button => {
+      const text = button.textContent.trim();
+      if (text === '←') { button.setAttribute('aria-label','Предыдущий период'); setIcon(button,'back'); }
+      if (text === '→') { button.setAttribute('aria-label','Следующий период'); setIcon(button,'arrow'); }
+    });
+    document.querySelectorAll('.v82-habit-icon,.v78-habit-chip>i').forEach(host => setIcon(host,iconForStored(host.textContent,host.parentElement?.textContent)));
+    document.querySelectorAll('.v8612-live-icon,.v8612-category-row>i,.v8612-plan-row>i,.v8611-allocation-row>i,.v869-plan-row>i,.v78-obligation-row>i,.v78-wish-row>i').forEach(host => setIcon(host,iconForStored(host.textContent,host.parentElement?.textContent)));
+    document.querySelectorAll('.v78-folder-card>i,.v78-folder-row>i,.v78-library-card>i').forEach(host => setIcon(host,iconFor(host.parentElement?.textContent)));
+    document.querySelectorAll('.v82-icon-picker [data-v82-action="select-habit-icon"]').forEach(button => {
+      const host = button.querySelector('i');
+      setIcon(host,iconForStored(button.dataset.icon,button.textContent));
+    });
+    const habitPreview = document.querySelector('#v82_icon_preview');
+    if (habitPreview && !habitPreview.querySelector('.v88-icon')) setIcon(habitPreview,iconForStored(document.querySelector('#v78_habit_icon')?.value,habitPreview.textContent));
   }
 
-  function navItem(route, icon, label) {
-    const current = routeNow();
-    const active = current === route || (route === 'habits' && (current.startsWith('habit-') || current === 'habit-wishlist')) || (route === 'finance' && current.startsWith('finance-'));
-    return `<button class="v78-side-link ${active ? 'active' : ''}" data-v78-route="${safe(route)}" type="button"><i>${icon}</i><span>${safe(label)}</span></button>`;
+  function ensureFinanceIconPicker() {
+    const select = document.querySelector('#v866_category_icon');
+    if (!select || document.querySelector('.v88-finance-icon-picker')) return;
+    const options = [...select.options].filter(option => option.value).slice(0,30);
+    if (!options.length) return;
+    const picker = document.createElement('div');
+    picker.className = 'v88-finance-icon-picker';
+    picker.setAttribute('role','group');
+    picker.setAttribute('aria-label','Фирменная иконка категории');
+    picker.innerHTML = `<header><b>Фирменная иконка</b><small>Сохранение совместимо с текущими категориями</small></header><div>${options.map(option => `<button type="button" data-v88-finance-icon="${escapeAttribute(option.value)}" title="${escapeAttribute(option.textContent)}">${svg(iconForStored(option.value,option.textContent))}</button>`).join('')}</div>`;
+    select.closest('label')?.insertAdjacentElement('afterend',picker);
+    writeCount++;
+    picker.addEventListener('click',event => {
+      const button = event.target.closest('[data-v88-finance-icon]');
+      if (!button) return;
+      select.value = button.dataset.v88FinanceIcon;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      updateFinancePicker(select,picker);
+    });
+    select.addEventListener('change',() => updateFinancePicker(select,picker));
+    updateFinancePicker(select,picker);
   }
 
-  function topTab(route, icon, label) {
-    const current = routeNow();
-    const active = current === route || (route === 'habits' && (current.startsWith('habit-') || current === 'habit-wishlist')) || (route === 'finance' && current.startsWith('finance-'));
-    return `<button class="v78-top-tab ${active ? 'active' : ''}" data-v78-route="${route}" type="button"><i>${icon}</i>${label}</button>`;
+  function updateFinancePicker(select,picker) {
+    picker.querySelectorAll('[data-v88-finance-icon]').forEach(button => {
+      const active = button.dataset.v88FinanceIcon === select.value;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
   }
 
-  function premiumShell(content) {
-    ensureData();
-    const app = document.getElementById('app');
-    if (!app) return;
-    const p = profile();
-    const current = routeNow();
-    app.innerHTML = `<div class="v78-app">
-      <aside class="v78-sidebar">
-        <button class="v78-brand" data-v78-route="today" type="button"><span class="v78-brand-orb"></span><span><b>Second Brain OS</b><small>Ваш день. Ваш рост.</small></span></button>
-        <nav class="v78-side-nav">
-          ${navItem('today', '⌂', 'Главная')}
-          ${navItem('calendar', '▦', 'Календарь')}
-          ${navItem('finance', '₽', 'Финансы')}
-          ${navItem('habits', '✓', 'Привычки')}
-          ${navItem('information', 'i', 'Информация')}
-          ${navItem('archive', '▣', 'Архив')}
-          ${navItem('coach', '✦', 'Подсказчик')}
-          ${navItem('system', '⚙', 'Настройки')}
-        </nav>
-        <article class="v78-motivation"><div><b>Ты сегодня<br>на 1% лучше,<br>чем вчера</b><span>♥</span></div><div class="v78-liquid-art"><i></i><i></i><i></i></div></article>
-        <button class="v78-profile-mini" data-v78-route="profile" type="button">${avatarHtml('sm')}<span><b>${safe(p.name || 'Алексей')}</b><small>${safe(p.subtitle || 'Фокус на рост')}</small></span><i>›</i></button>
-      </aside>
-      <main class="v78-main">
-        <header class="v78-topbar">
-          <div class="v78-greeting"><span class="v78-brand-orb v78-brand-orb-sm"></span><div><b>Доброе утро, ${safe(p.name || 'Алексей')} <em>✦</em></b><small>${safe(p.subtitle || 'Ваш день. Ваш рост. Ваши результаты.')}</small></div></div>
-          <nav class="v78-top-tabs">${topTab('today', '☼', 'Сегодня')}${topTab('finance', '₽', 'Финансы')}${topTab('habits', '✓', 'Привычки')}${topTab('information', '▣', 'Информация')}</nav>
-          <div class="v78-top-actions"><button data-v78-action="open-search" aria-label="Поиск" type="button">⌕</button><button data-v78-action="show-suggestion" aria-label="Подсказка" type="button">♧<em>${todaySuggestionCount()}</em></button><button class="v78-profile-top" data-v78-route="profile" type="button">${avatarHtml('sm')}</button></div>
-        </header>
-        <section id="view" class="v78-content" data-route="${safe(current)}">${content}</section>
-      </main>
-      <nav class="v78-mobile-nav">${[['today','⌂','Сегодня'],['habits','✓','Привычки'],['finance','₽','Финансы'],['information','▣','Информация'],['profile','●','Профиль']].map(([r,i,l])=>`<button class="${current===r||(r==='habits'&&current.startsWith('habit-'))||(r==='finance'&&current.startsWith('finance-'))?'active':''}" data-v78-route="${r}" type="button"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>
-      <div class="v78-build">${LABEL}</div>
-    </div>`;
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting','v70-booting','v67-theme-dark');
-    document.documentElement.classList.remove('v70-theme-dark');
-    document.documentElement.classList.add('v70-theme-light');
-    document.documentElement.dataset.v70Theme = 'light';
-    document.documentElement.style.colorScheme = 'light';
-    setBuild();
+  function escapeAttribute(value) {
+    return String(value || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   }
 
-  function setBuild() {
-    document.body.dataset.sbosBuild = BUILD;
-    document.body.dataset.v78Premium = 'ready';
-    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', BUILD);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#fbf9ff');
-    try { localStorage.setItem('secondBrainOS.currentBuild', BUILD); } catch (error) {}
+  function visibleState() {
+    const state = window.state || {};
+    const list = key => Array.isArray(state[key]) ? state[key] : [];
+    const goals = list('goals').filter(item => item && !['done','archived'].includes(String(item.status)));
+    const habits = list('habits').filter(item => item && item.active !== false);
+    const tasks = list('tasks').filter(item => item && !item.done && item.status !== 'done' && item.status !== 'archived');
+    const today = new Date().toISOString().slice(0,10);
+    const habitsDone = habits.filter(item => Boolean(item.marks?.[today])).length;
+    return {goals,habits,tasks,habitsDone};
   }
 
-  function card(title, subtitle, body, className = '', action = '') {
-    return `<article class="v78-card ${className}"><header><div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ''}</div>${action}</header>${body}</article>`;
+  function hashSeed(value) {
+    let hash = 2166136261;
+    for (const char of String(value || '')) { hash ^= char.charCodeAt(0); hash = Math.imul(hash,16777619); }
+    return hash >>> 0;
   }
 
-  const HABIT_ICON_OPTIONS = [
-    ['📖','Чтение'],['🧠','Развитие'],['💧','Вода'],['🏃','Движение'],['🏋️','Тренировка'],['🧘','Медитация'],
-    ['🌙','Сон'],['☀️','Утро'],['🥗','Питание'],['💰','Финансы'],['📝','Дневник'],['🎯','Фокус'],
-    ['🚶','Прогулка'],['🧹','Порядок'],['📵','Детокс'],['❤️','Отношения'],['💊','Здоровье'],['🎓','Обучение'],
-    ['🎨','Творчество'],['🌿','Спокойствие'],['⏱️','Таймер'],['✅','Дисциплина'],['🛡️','Защита'],['✨','Другое']
-  ];
-
-  function habitsActive() { return array('habits').filter(h => h.active !== false); }
-  function completedHabit(habit, date = todayKey()) { return Boolean(habit?.marks?.[date]); }
-  function habitsDone(date = todayKey()) { return habitsActive().filter(h => completedHabit(h, date)).length; }
-  function recentDates(days = 7) { return Array.from({ length: days }, (_, index) => addDaysKey(todayKey(), index - (days - 1))); }
-  function habitWeekDone(habit) { return recentDates(7).filter(date => completedHabit(habit, date)).length; }
-  function todaySuggestionCount() { return habitsDone() < habitsActive().length || !state.discipline.financeChecks?.[todayKey()] ? 1 : 0; }
-
-  function financeSnapshot() {
-    const ops = array('operations');
-    const key = monthKey(todayKey());
-    const monthOps = ops.filter(item => monthKey(operationDate(item)) === key);
-    const income = monthOps.filter(item => operationKind(item) === 'income').reduce((s, item) => s + operationAmount(item), 0);
-    const expense = monthOps.filter(item => operationKind(item) === 'expense').reduce((s, item) => s + operationAmount(item), 0);
-    const balance = number(state.settings.currentBalance);
-    const debts = activeDebtsOut();
-    const planned = array('purchases').filter(item => item.includeInBudget !== false && monthKey(item.date) === key).reduce((s, item) => s + Math.abs(number(item.amount)), 0);
-    return { income, expense, balance, debts, debtTotal: total(debts), planned, available: balance - planned };
-  }
-
-  function bestExpensePeriod(){
-    const expenses=array('operations').filter(item=>operationKind(item)==='expense');
-    const months=[...new Set(expenses.map(item=>monthKey(operationDate(item))).filter(Boolean))].sort().reverse();
-    return months[0] || monthKey(todayKey());
-  }
-
-  function priorityMeta(value){
-    const raw=clean(value).toLowerCase();
-    if(/крит|high|важно 1|urgent|сроч/.test(raw)) return {tone:'critical',label:'Критично',order:1};
-    if(/выс|high 2|важно|major/.test(raw)) return {tone:'high',label:'Высокий',order:2};
-    if(/сред|medium|normal/.test(raw)) return {tone:'medium',label:'Средний',order:3};
-    if(/низ|low|later|не сроч/.test(raw)) return {tone:'low',label:'Низкий',order:4};
-    return {tone:'medium',label:clean(value)||'Средний',order:3};
-  }
-
-  function taskStatusMeta(value){
-    const raw=clean(value).toLowerCase();
-    if(/вып|done|готов/.test(raw)) return {label:'Выполнено',done:true};
-    if(/проц|work|doing/.test(raw)) return {label:'В процессе',done:false};
-    return {label:clean(value)||'Запланировано',done:false};
-  }
-
-  function categoryData(period = state.settings.v78.categoryPeriod || bestExpensePeriod()) {
-    const expenses = array('operations').filter(item => operationKind(item) === 'expense' && monthKey(operationDate(item)) === period);
-    const map = new Map();
-    expenses.forEach(item => { const key = clean(item.category||item.group||item.area) || 'Другое'; map.set(key, (map.get(key) || 0) + operationAmount(item)); });
-    const rows = [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-    const sum = rows.reduce((s, row) => s + row.value, 0);
-    return { rows, sum, period, count:expenses.length };
-  }
-
-  function donutStyle(rows, sum) {
-    if (!sum || !rows.length) return 'background:conic-gradient(#eee 0 100%)';
-    const colors = ['#8b5cf6','#44c7b1','#ff9b73','#ffc857','#6aa9ff','#f783ac','#7fd1ae','#a6a1ff'];
-    let cursor = 0;
-    const parts = rows.slice(0, 8).map((row, index) => { const start = cursor; cursor += row.value / sum * 100; return `${colors[index % colors.length]} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`; });
-    if (cursor < 100) parts.push(`#edf0f7 ${cursor.toFixed(2)}% 100%`);
-    return `background:conic-gradient(${parts.join(',')})`;
-  }
-
-  function habitChips(limit = 9) {
-    const habits = habitsActive().slice(0, limit);
-    return `<div class="v78-habit-chip-grid">${habits.map(habit => `<button class="v78-habit-chip ${completedHabit(habit) ? 'done' : ''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button"><i style="--habit:${safe(habit.color)}">${safe(habit.icon)}</i><span><b>${safe(habit.name)}</b><small>${completedHabit(habit) ? 'выполнено сегодня' : `${habit.target} ${safe(habit.unit)}`}</small></span><em>${completedHabit(habit) ? '✓' : '○'}</em></button>`).join('')}<button class="v78-habit-chip add" data-v78-action="open-habit-form" type="button"><i>＋</i><span><b>Добавить привычку</b><small>новая страница и отметки</small></span></button></div>`;
-  }
-
-  function foldersPanel() {
-    const finance = financeSnapshot();
-    const infoCount = array('people').length + array('notes').length + array('wishes').length + array('books').length;
-    return `<article class="v78-folder-panel"><header><h2>Мои папки</h2><button data-v78-action="open-search" type="button">＋</button></header><div class="v78-folder-stack">
-      ${folderCard('habits', 'folder-violet', 'Привычки', 'Дисциплина · Привычки · Интервью', `<span><small>Сегодня</small><b>${habitsDone()}/${habitsActive().length}</b></span><span><small>Неделя</small><b>${habitsActive().length ? Math.round(habitsActive().reduce((s,h)=>s+habitWeekDone(h),0)/(habitsActive().length*7)*100) : 0}%</b></span>`, '✓')}
-      ${folderCard('finance', 'folder-green', 'Финансы', 'Операции · Аналитика · Цели', `<span><small>Баланс</small><b>${safe(moneyText(finance.balance))}</b></span><span><small>Расходы</small><b>${safe(moneyText(finance.expense))}</b></span>`, '₽')}
-      ${folderCard('debts', 'folder-coral', 'Обязательства', 'Долги · Платежи · Источники', `<span><small>К оплате</small><b>${finance.debts.length}</b></span><span><small>Сумма</small><b>${safe(moneyText(finance.debtTotal))}</b></span>`, '!')}
-      ${folderCard('information', 'folder-blue', 'Информация', 'Люди · Заметки · Желания · Библиотека', `<span><small>Люди</small><b>${array('people').length}</b></span><span><small>Заметки</small><b>${array('notes').length}</b></span><span><small>Желания</small><b>${array('wishes').length}</b></span><span><small>Всего</small><b>${infoCount}</b></span>`, 'i')}
-      <button class="v78-archive-row" data-v78-route="archive" type="button"><i>▣</i><span>Архив</span><b>${array('archive').length} ${plural(array('archive').length,'запись','записи','записей')}</b><em>›</em></button>
-    </div></article>`;
-  }
-
-  function folderCard(route, tone, title, subtitle, stats, icon) {
-    return `<button class="v78-folder-card ${tone}" data-v78-route="${route}" type="button"><i class="v78-folder-icon"><span>${icon}</span></i><span class="v78-folder-copy"><b>${title}</b><small>${subtitle}</small><em class="v78-folder-stats">${stats}</em></span><strong>›</strong></button>`;
-  }
-
-  function obligationsMini() {
-    const debts = activeDebtsOut();
-    const rows = debts.slice(0, 2).map(item => `<div class="v78-obligation-row"><i>${/банк|кредит|займ/i.test(clean(item.person || item.note)) ? '▱' : '◇'}</i><span><b>${safe(item.person || 'Обязательство')}</b><small>${item.due ? `до ${formatShort(item.due)}` : 'срок не указан'}</small></span><em>${safe(moneyText(item.amount))}</em></div>`).join('');
-    return card('Мои обязательства', `${debts.length} ${plural(debts.length,'активное','активных','активных')}`, `${rows || '<div class="v78-empty">Активных обязательств нет.</div>'}<button class="v78-link-button" data-v78-route="debts" type="button">Все обязательства →</button>`, 'v78-obligations-card');
-  }
-
-  const INTERVIEW_QUESTION_SETS = [
-    ['Что я сейчас на самом деле чувствую, если не пытаться это исправить?','Какое действие я откладываю и чего именно в нём избегаю?','Какой самый маленький честный шаг вернёт мне движение сегодня?'],
-    ['Где сегодня я действую из страха, а не из своих ценностей?','Что я пытаюсь контролировать, хотя могу отпустить?','Как я могу поддержать себя без поблажек и самокритики?'],
-    ['Какая мысль сегодня забирает у меня больше всего энергии?','Что в этой мысли является фактом, а что моей интерпретацией?','Какое действие возможно даже при сохранении этой тревоги?'],
-    ['Что я обещал себе, но снова перенёс?','Какую скрытую выгоду я получаю от бездействия?','Как упростить задачу до действия на пять минут?'],
-    ['Где я сейчас предаю собственный приоритет ради быстрого удовольствия?','Какую цену я плачу за это через неделю или месяц?','Какой выбор сегодня подтвердит, кем я хочу стать?'],
-    ['Что в моём дне действительно важно, а что создаёт только видимость занятости?','От чего я могу отказаться сегодня без реального ущерба?','Какое одно дело сделает день завершённым?'],
-    ['Какая эмоция стоит за моими импульсивными расходами или желаниями?','Что мне хочется получить через покупку на эмоциональном уровне?','Как удовлетворить эту потребность без вреда для финансов?'],
-    ['Что помогло мне вчера двигаться, даже если день был неидеальным?','Какой контекст или сигнал стоит повторить сегодня?','Что я отмечу как маленькую победу вечером?'],
-    ['Где я жду мотивации вместо того, чтобы создать условия?','Что можно подготовить заранее, чтобы начать было легче?','Во сколько и после какого события я выполню действие?'],
-    ['Какая часть меня сопротивляется дисциплине и от чего она меня защищает?','Что этой части важно услышать от меня?','Как совместить заботу о себе и выполнение обещания?'],
-    ['Что я сейчас усложняю сильнее, чем требуется?','Как выглядела бы достаточно хорошая версия результата?','Что я закончу сегодня без дальнейшего улучшения?'],
-    ['Что я хочу изменить в своей жизни, но поддерживаю ежедневными действиями обратное?','Какое повторяющееся действие создаёт это противоречие?','Чем я заменю его сегодня хотя бы один раз?'],
-    ['Какая незакрытая ситуация постоянно занимает фон моего внимания?','Что зависит от меня в этой ситуации прямо сейчас?','Какое сообщение, решение или действие закроет следующий шаг?'],
-    ['Что сегодня вызвало у меня раздражение или защитную реакцию?','Какая потребность или граница за этим стоит?','Как выразить её спокойно и прямо?']
-  ];
-  function interviewQuestions(date=todayKey()){
-    const day=Math.floor(dateAtNoon(date).getTime()/DAY); return INTERVIEW_QUESTION_SETS[Math.abs(day)%INTERVIEW_QUESTION_SETS.length];
-  }
-  function todayInterview(){return array('subconsciousEntries').find(e=>String(e.date||'').slice(0,10)===todayKey());}
-  function interviewCard() {
-    const session=todayInterview(),questions=interviewQuestions();
-    return card('Интервью с подсознанием', session?'Сегодняшнее интервью сохранено':'Каждый день — три новых вопроса', `<div class="v80-interview-preview"><div><span class="v80-daily-tag">${session?'✓ Пройдено сегодня':'Вопрос дня'}</span><p>${safe(questions[0])}</p><button class="v78-primary" data-v78-route="subconscious" type="button">${session?'Открыть ответы':'Начать интервью'} <i>→</i></button></div><div class="v80-mind-art"><i></i><b></b><em></em><span>✦</span></div></div>`, 'v78-interview-card v80-interview-card');
-  }
-
-  function assistantCard() {
-    const undone = habitsActive().filter(h => !completedHabit(h));
-    const suggestion = undone.length ? `Сегодня достаточно одного маленького шага: ${undone[0].name}.` : 'Привычки на сегодня закрыты. Можно спокойно подвести итог дня.';
-    return card('Подсказчик AI', 'Ваш личный советник', `<div class="v78-assistant-body"><div><p>${safe(suggestion)}</p><button class="v78-primary" data-v78-route="coach" type="button">Спросить совет <i>→</i></button></div><div class="v78-robot"><i></i><b>••</b><em></em></div></div>`, 'v78-assistant-card');
-  }
-
-  function wishlistCard() {
-    const rows = state.habitWishlist.slice(0, 4).map(item => `<div class="v78-wish-row"><i>${safe(item.icon || '✦')}</i><span><b>${safe(item.title)}</b><small>${safe(item.schedule || 'На следующую неделю')}</small></span><button data-v78-action="promote-wishlist" data-id="${safe(item.id)}" type="button">＋</button></div>`).join('');
-    return card('Вишлист привычек', 'Следующие 4 недели', `${rows || '<div class="v78-empty">Вишлист пока пуст.</div>'}<button class="v78-link-button" data-v78-route="habit-wishlist" type="button">Смотреть все идеи →</button>`, 'v78-wishlist-card');
-  }
-
-  function categoryMini() {
-    const data = categoryData();
-    return card('Анализ по категориям', new Date(`${data.period}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}), `<div class="v78-category-layout"><div class="v78-donut" style="${donutStyle(data.rows,data.sum)}"><span><b>${safe(moneyText(data.sum))}</b><small>расходы</small></span></div><div class="v78-category-list">${data.rows.slice(0,6).map((row,index)=>`<div><i class="c${index}"></i><span>${safe(row.name)}</span><b>${data.sum?Math.round(row.value/data.sum*100):0}%</b></div>`).join('') || '<p>Расходов пока нет.</p>'}</div></div><button class="v78-link-button" data-v78-route="finance-analytics" type="button">Полный анализ →</button>`, 'v78-category-card');
-  }
-
-  function operationsFolderMini() {
-    const ops = array('operations');
-    const income = ops.filter(item => operationKind(item) === 'income').length;
-    const expense = ops.filter(item => operationKind(item) === 'expense').length;
-    return card('Папка операций', 'Все финансовые записи в одном месте', `<div class="v78-operation-folder"><button data-v78-route="finance-operations" type="button"><i>▦</i><span>Все операции</span><b>${ops.length}</b></button><button data-v78-route="finance-operations" data-v78-filter="income" type="button"><i>↗</i><span>Доходы</span><b>${income}</b></button><button data-v78-route="finance-operations" data-v78-filter="expense" type="button"><i>↘</i><span>Расходы</span><b>${expense}</b></button><button data-v79-action="open-record-form" data-type="operation" type="button"><i>＋</i><span>Новая операция</span><b>добавить</b></button></div>`, 'v78-operations-folder');
-  }
-
-  function financeHero() {
-    const f = financeSnapshot();
-    return `<article class="v78-card v78-finance-hero"><header><div><h2>Финансы сегодня</h2><p>Факты, операции и понятная структура денег</p></div><div class="v78-chip-actions"><button data-v78-route="finance-operations" type="button">Операции</button><button data-v78-route="finance-export" type="button">Экспорт CSV</button></div></header><div class="v78-finance-hero-body"><div class="v78-finance-numbers"><div><b class="positive">+ ${safe(moneyText(f.income))}</b><small>Доходы месяца</small></div><div><b class="negative">− ${safe(moneyText(f.expense))}</b><small>Расходы месяца</small></div><div class="balance"><small>Фактический баланс</small><strong>${safe(moneyText(f.balance))}</strong><button data-v79-action="set-actual-balance" type="button">Изменить</button></div></div><div class="v78-pie-art"><i></i><i></i><i></i><i></i></div></div></article>`;
-  }
-
-  function todayPage() {
-    const done = habitsDone();
-    const habits = habitsActive();
-    return `<section class="v78-dashboard">
-      <div class="v78-dashboard-main">
-        ${card('Все привычки', `${habits.length} активных · можно отметить прямо здесь`, `<div class="v78-week-strip">${recentDates(7).map(date=>`<span class="${date===todayKey()?'today':''}"><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'short'}).toUpperCase()}</small><b>${dateAtNoon(date).getDate()}</b></span>`).join('')}</div>${habitChips(9)}<div class="v78-card-footer"><span>${done}/${habits.length} выполнено сегодня</span><button data-v78-action="mark-all-habits" type="button">Отметить все</button><button data-v78-route="habits" type="button">Открыть все привычки →</button></div>`, 'v78-all-habits')}
-        <div class="v78-dashboard-lower"><div>${foldersPanel()}</div><div class="v78-center-stack">${interviewCard()}${obligationsMini()}</div><div class="v78-center-stack">${wishlistCard()}${assistantCard()}</div></div>
-      </div>
-      <aside class="v78-dashboard-side">${financeHero()}<div class="v78-side-duo">${operationsFolderMini()}${categoryMini()}</div>${wishlistWeekGrid()}</aside>
-    </section>`;
-  }
-
-  function wishlistWeekGrid() {
-    const items = state.habitWishlist.slice(0, 4);
-    return card('Привычки на следующую неделю', `${items.length} запланировано`, `<div class="v78-week-wishlist">${items.map((item,index)=>`<button data-v78-route="habit-wishlist" type="button"><small>${['ПН','ВТ','СР','ЧТ'][index] || '•'}</small><i>${safe(item.icon||'✦')}</i><b>${safe(item.title)}</b><span>${safe(item.schedule||'')}</span></button>`).join('') || '<div class="v78-empty">Добавьте идеи во вишлист.</div>'}</div><button class="v78-link-button" data-v78-route="habit-wishlist" type="button">Настроить следующую неделю →</button>`, 'v78-next-week');
-  }
-
-  function habitsPage() {
-    const habits = habitsActive();
-    const done = habitsDone();
-    const progress = habits.length ? Math.round(done / habits.length * 100) : 0;
-    return `<section class="v78-page v82-habits-page"><header class="v78-page-head"><div><span>Система дисциплины</span><h1>Привычки</h1><p>Карточки одинакового размера, быстрые отметки и отдельная страница для каждой привычки.</p></div><div><button class="v78-secondary" data-v78-action="open-habit-form" type="button">＋ Новая привычка</button><button class="v78-primary" data-v78-action="mark-all-habits" type="button">✦ Отметить все сегодня</button></div></header>
-      <section class="v82-habit-overview"><div class="v78-progress-ring" style="--progress:${progress}"><b>${done}/${habits.length}</b><small>сегодня</small></div><div><span class="v82-eyebrow">ПРОГРЕСС ДНЯ</span><h2>${done===habits.length&&habits.length?'Все привычки выполнены':'Мои привычки'}</h2><p>${done===habits.length&&habits.length?'Отличная работа. Не добавляйте новые обязательства — закрепите ритм.':'Нажмите цветную кнопку внутри карточки, чтобы отметить выполнение без перехода.'}</p></div><div class="v82-overview-stats"><span><small>Выполнено</small><b>${done}</b></span><span><small>Осталось</small><b>${Math.max(0,habits.length-done)}</b></span><span><small>Стабильность</small><b>${progress}%</b></span></div></section>
-      <section class="v78-habit-cards v82-habit-grid">${habits.map(habitCard).join('') || '<div class="v78-empty-big">Добавьте первую привычку.</div>'}</section>
-      <section class="v78-habit-support-grid">${interviewCard()}${assistantCard()}${wishlistCard()}</section>
-    </section>`;
-  }
-
-  function habitCard(habit) {
-    const week = habitWeekDone(habit), percent = Math.round(week / 7 * 100), done = completedHabit(habit);
-    return `<article class="v82-habit-card ${done?'is-done':''}" style="--habit:${safe(habit.color)}">
-      <header><button class="v82-habit-main" data-v78-route="habit-${encodeURIComponent(habit.id)}" type="button"><span class="v82-habit-icon">${safe(habit.icon)}</span><span><b>${safe(habit.name)}</b><small>${safe(habit.frequency)} · ${habit.target} ${safe(habit.unit)}</small></span><em>›</em></button><button class="v82-habit-settings" title="Настроить привычку" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">✎</button></header>
-      <div class="v82-habit-meter"><div><span>Последние 7 дней</span><b>${week}/7</b></div><u><i style="width:${percent}%"></i></u><small>${percent}% стабильности</small></div>
-      <footer><button class="v82-complete-button ${done?'done':''}" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button"><span>${done?'✓':'✦'}</span><div><b>${done?'Выполнено':'Отметить сегодня'}</b><small>${done?'Нажмите, чтобы отменить':'Сохранить результат дня'}</small></div></button></footer>
-    </article>`;
-  }
-
-  function habitPage(id) {
-    const habit = array('habits').find(item => item.id === id);
-    if (!habit) return `<section class="v78-page"><div class="v78-empty-big">Привычка не найдена.<button data-v78-route="habits">Вернуться к привычкам</button></div></section>`;
-    const days = /чтен/i.test(habit.name) ? 42 : 28;
-    const dates = Array.from({length:days},(_,index)=>addDaysKey(todayKey(), index-(days-1)));
-    const completed = dates.filter(date=>completedHabit(habit,date)).length;
-    const best = longestStreak(habit);
-    const reading = /чтен/i.test(habit.name);
-    const sessions = reading ? state.discipline.sessions.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))) : [];
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Все привычки</button><span>Отдельная страница привычки</span><h1>${safe(habit.icon)} ${safe(habit.name)}</h1><p>${safe(habit.note || 'Последовательное повторение и честная фиксация результата.')}</p></div><div><button class="v80-delete-button" data-v80-action="delete-habit" data-id="${safe(habit.id)}" type="button">Удалить</button><button class="v78-secondary" data-v78-action="edit-habit" data-id="${safe(habit.id)}" type="button">Настроить</button><button class="v78-primary" data-v78-action="toggle-habit" data-id="${safe(habit.id)}" type="button">${completedHabit(habit)?'✓ Сегодня закрыто':'Отметить сегодня'}</button></div></header>
-      <section class="v78-kpi-row"><article><small>Выполнено</small><b>${completed}/${days}</b><span>за выбранный период</span></article><article><small>Последние 7 дней</small><b>${habitWeekDone(habit)}/7</b><span>стабильность, не серия</span></article><article><small>Лучшая серия</small><b>${best} дн.</b><span>без обнуления мотивации</span></article><article><small>Цель</small><b>${habit.target} ${safe(habit.unit)}</b><span>${safe(habit.frequency)}</span></article></section>
-      ${card(`Карта повторений · ${days} дней`, 'Нажмите на любой день, чтобы изменить отметку.', `<div class="v78-habit-calendar">${dates.map(date=>`<button class="${completedHabit(habit,date)?'done':''} ${date===todayKey()?'today':''}" data-v78-action="toggle-habit-date" data-id="${safe(habit.id)}" data-date="${date}" type="button"><b>${dateAtNoon(date).getDate()}</b><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{month:'short'})}</small></button>`).join('')}</div>`, 'v78-habit-calendar-card')}
-      <section class="v78-two-cols">${reading ? readingDetailCard(habit, sessions) : habitNotesCard(habit)}${wishlistCard()}</section>
-    </section>`;
-  }
-
-  function longestStreak(habit) {
-    const dates = Object.keys(habit.marks || {}).filter(date => habit.marks[date]).sort();
-    let best = 0, current = 0, previous = '';
-    dates.forEach(date => { if (previous && Math.round((dateAtNoon(date)-dateAtNoon(previous))/DAY)===1) current += 1; else current = 1; best = Math.max(best,current); previous=date; });
-    return best;
-  }
-
-  function readingDetailCard(habit, sessions) {
-    const totalMinutes = sessions.reduce((s,item)=>s+number(item.minutes),0);
-    const resistance = sessions.filter(item=>item.resistance!==''&&item.resistance!=null).map(item=>number(item.resistance));
-    const avg = resistance.length ? (resistance.reduce((s,v)=>s+v,0)/resistance.length).toFixed(1) : '—';
-    return card('Эксперимент: чтение', '42 дня · фактические действия', `<div class="v78-reading-stats"><div><small>Общее время</small><b>${Math.floor(totalMinutes/60)} ч ${totalMinutes%60} мин</b></div><div><small>Среднее сопротивление</small><b>${avg}/10</b></div><div><small>Сессий</small><b>${sessions.length}</b></div></div><div class="v78-session-list">${sessions.slice(0,6).map(item=>`<div><i>${item.mode==='minimum'?'5':'20'}</i><span><b>${formatShort(item.date)} · ${number(item.minutes)} мин</b><small>${safe(item.note||'Без заметки')}</small></span></div>`).join('') || '<div class="v78-empty">Первая сессия появится после отметки.</div>'}</div>`, 'v78-reading-detail');
-  }
-
-  function habitNotesCard(habit) {
-    return card('Контекст привычки', 'Сделайте начало максимально простым', `<div class="v78-context-list"><div><small>Когда</small><b>${safe(habit.cue || 'Укажите сигнал в настройках')}</b></div><div><small>Где</small><b>${safe(habit.place || 'Укажите место в настройках')}</b></div><div><small>Минимальная версия</small><b>${Math.max(1,Math.round(habit.target/4))} ${safe(habit.unit)}</b></div></div>`, 'v78-context-card');
-  }
-
-  function informationPage() {
-    const groups = [
-      ['people','👥','Люди','Контакты, отношения и важный контекст',array('people')],
-      ['notes','📝','Заметки','Мысли, решения, планы и наблюдения',array('notes')],
-      ['wishes','💗','Желания','Мечты, цели и идеи для будущего',array('wishes')],
-      ['ideas','💡','Идеи','Все задумки и возможные проекты',array('ideas')],
-      ['personal','🌿','Личная память','Дневник, события и личные записи',array('personal')],
-      ['polina','🌸','Состояние Полины','Календарь состояния и цикла',array('polinaDays')],
-      ['documents','📄','Документы','Файлы, ссылки и важные материалы',array('documents')],
-      ['books','📚','Книги','Книги, цитаты и конспекты',array('books')],
-      ['films','🎬','Фильмы','Фильмы, сериалы и список просмотра',array('films')],
-      ['trips','✈️','Путешествия','Маршруты, поездки и идеи',array('trips')],
-      ['passwords','🔐','Пароли и доступы','Зашифрованное личное хранилище',Array.isArray(state.passwordVault)?state.passwordVault:[]],
-      ['inbox','📥','Входящие','Несортированные мысли на разбор',array('inbox')]
+  function constellationData() {
+    const data = visibleState();
+    const entries = [
+      ...data.goals.slice(0,6).map(item => ({type:'goal',id:item.id || item.title,done:false})),
+      ...data.habits.slice(0,7).map(item => ({type:'habit',id:item.id || item.name,done:Boolean(item.marks?.[new Date().toISOString().slice(0,10)] )})),
+      ...data.tasks.slice(0,5).map(item => ({type:'task',id:item.id || item.title,done:false}))
     ];
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Архив и необязательные разделы</span><h1>Информация</h1><p>На каждой карточке сразу видно, что лежит внутри. Открывать всё подряд больше не нужно.</p></div><div><button class="v78-secondary" data-v78-action="open-search" type="button">⌕ Найти информацию</button><button class="v78-primary" data-v79-action="open-quick" type="button">＋ Добавить</button></div></header><section class="v78-information-grid">${groups.map(infoFolder).join('')}</section></section>`;
+    if (!entries.length) entries.push({type:'goal',id:'focus'},{type:'habit',id:'rhythm'},{type:'task',id:'next'});
+    const nodes = entries.map((entry,index) => {
+      const seed = hashSeed(`${entry.type}:${entry.id}:${index}`);
+      return {...entry,x:28 + seed % 306,y:24 + Math.floor(seed / 97) % 166,r:entry.done ? 4.6 : entry.type === 'goal' ? 3.8 : 2.7};
+    });
+    const lines = [];
+    nodes.forEach((node,index) => { if (index) lines.push([nodes[Math.max(0,index - 1)],node]); if (index > 3 && index % 3 === 0) lines.push([nodes[index - 3],node]); });
+    const signature = `${data.goals.length}|${data.habits.length}|${data.tasks.length}|${data.habitsDone}|${nodes.map(node => `${node.type}:${node.id}:${node.done}`).join(',')}`;
+    return {...data,nodes,lines,signature};
   }
 
-  function infoFolder([route,icon,title,subtitle,items]) {
-    const previews = items.slice(0,3).map(item=>clean(item.title||item.name||item.person||item.text||item.note||item.date)).filter(Boolean);
-    return `<button class="v78-info-folder" data-v78-route="${route}" type="button"><i>${icon}</i><span><b>${title}</b><small>${subtitle}</small><em>${previews.length ? previews.map(value=>`<mark>${safe(value.slice(0,34))}</mark>`).join('') : '<mark>Пока пусто</mark>'}</em></span><strong>${items.length}<small>${plural(items.length,'элемент','элемента','элементов')}</small></strong><u>›</u></button>`;
+  function ensureConstellation() {
+    const hero = document.querySelector('.v83-today-game');
+    if (!hero) return;
+    const data = constellationData();
+    let map = hero.querySelector('.v88-live-map');
+    if (map?.dataset.signature === data.signature) return;
+    const html = `<span class="v88-live-map" data-signature="${escapeAttribute(data.signature)}" aria-hidden="true"><svg viewBox="0 0 360 220" fill="none"><g class="v88-map-lines">${data.lines.map(([a,b]) => `<path d="M${a.x} ${a.y} ${b.x} ${b.y}"/>`).join('')}</g><g class="v88-map-points">${data.nodes.map(node => `<circle class="${node.type}${node.done?' done':''}" cx="${node.x}" cy="${node.y}" r="${node.r}"/>`).join('')}</g></svg></span><span class="v88-constellation-legend" aria-label="Активные связи: целей ${data.goals.length}, привычек ${data.habits.length}, задач ${data.tasks.length}"><i class="goal"></i>${data.goals.length}<i class="habit"></i>${data.habits.length}<i class="task"></i>${data.tasks.length}</span>`;
+    map?.remove();
+    hero.querySelector('.v88-constellation-legend')?.remove();
+    hero.insertAdjacentHTML('beforeend',html);
+    hero.classList.add('v88-live-hero');
+    writeCount++;
   }
 
-  function financePage() {
-    const f = financeSnapshot();
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Финансовая осознанность</span><h1>Финансы</h1><p>Все суммы строятся только из фактических операций, покупок и обязательств.</p></div><div><button class="v78-secondary" data-v79-action="set-actual-balance" type="button">Изменить баланс</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
-      <section class="v78-finance-folders">${financeFolder('finance-operations','▦','Операции',`${array('operations').length} записей`,`Доходы, расходы, переводы и полный многостраничный список`)}${financeFolder('finance-analytics','◌','Анализ категорий',safe(moneyText(categoryData().sum)),'Структура расходов и доля каждой категории')}${financeFolder('finance-export','⇩','Экспорт CSV','Все операции','Выгрузка абсолютно всех записей в UTF-8')}${financeFolder('debts','!','Источники долгов',safe(moneyText(f.debtTotal)),`${f.debts.length} активных обязательств — каждая сумма объяснена`)}</section>
-      <section class="v78-kpi-row"><article><small>Фактический баланс</small><b>${safe(moneyText(f.balance))}</b><span>указанный остаток</span></article><article><small>Доходы месяца</small><b class="positive">${safe(moneyText(f.income))}</b><span>по операциям</span></article><article><small>Расходы месяца</small><b class="negative">${safe(moneyText(f.expense))}</b><span>по операциям</span></article><article><small>Обязательные покупки</small><b>${safe(moneyText(f.planned))}</b><span>в текущем месяце</span></article></section>
-      <section class="v78-two-cols">${operationsFolderMini()}${categoryMini()}</section>
-      ${card('Прозрачные обязательства', 'Сумма не берётся из воздуха — ниже показаны все источники.', debtSourceRows(), 'v78-debt-source')}
-    </section>`;
+  function decorateAssistant() {
+    document.querySelectorAll('.v78-assistant-card,.v78-interview-card').forEach(card => {
+      if (!card.querySelector('.v88-assistant-orb')) { card.insertAdjacentHTML('beforeend','<span class="v88-assistant-orb" aria-hidden="true"></span>'); writeCount++; }
+    });
   }
 
-  function financeFolder(route, icon, title, value, subtitle) {
-    return `<button class="v78-finance-folder" data-v78-route="${route}" type="button"><i>${icon}</i><span><small>${title}</small><b>${value}</b><em>${subtitle}</em></span><strong>›</strong></button>`;
+  function setBuildBadge() {
+    const badge = document.querySelector('.v78-build');
+    if (badge && badge.textContent !== BUILD_LABEL) { badge.textContent = BUILD_LABEL; writeCount++; }
   }
 
-  function debtSourceRows() {
-    const debts = activeDebtsOut();
-    return `<div class="v78-source-list">${debts.map(item=>`<button data-v78-route="debts" type="button"><i>!</i><span><b>${safe(item.person||'Обязательство')}</b><small>${safe(item.note||'Без комментария')}${item.due?` · срок ${formatShort(item.due)}`:''}</small></span><em>${safe(moneyText(item.amount))}</em></button>`).join('') || '<div class="v78-empty">Активных долгов и обязательств нет.</div>'}</div><div class="v78-source-total"><span>Итого из ${debts.length} ${plural(debts.length,'источника','источников','источников')}</span><b>${safe(moneyText(total(debts)))}</b></div>`;
+  function ensureUpdateBanner() {
+    if (document.querySelector('.v88-update-banner')) return document.querySelector('.v88-update-banner');
+    const banner = document.createElement('aside');
+    banner.className = 'v88-update-banner';
+    banner.hidden = true;
+    banner.innerHTML = `${svg('export')}<span><b>Доступно обновление</b><small>Данные останутся на месте</small></span><button type="button">Обновить</button>`;
+    document.body.append(banner);
+    banner.querySelector('button').addEventListener('click',() => window.SecondBrainPWA?.applyUpdate?.() || location.reload());
+    return banner;
   }
 
-  function financeOperationsPage() {
-    const all = array('operations').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-    let filtered = all.filter(item => operationType === 'all' || operationKind(item) === operationType);
-    if (operationQuery) {
-      const q = operationQuery.toLowerCase();
-      filtered = filtered.filter(item => [item.date,item.type,item.amount,item.category,item.account,item.note,item.incomeSource].some(value=>String(value||'').toLowerCase().includes(q)));
+  function showUpdateBanner() { const banner = ensureUpdateBanner(); banner.hidden = false; }
+
+  function apply() {
+    applyCount++;
+    applyPreferences();
+    ensureControls();
+    decorateNavigation();
+    decorateChrome();
+    decorateInterfaceIcons();
+    ensureFinanceIconPicker();
+    ensureConstellation();
+    decorateAssistant();
+    setBuildBadge();
+  }
+
+  function schedule() {
+    if (scheduledFrame) return;
+    scheduledFrame = requestAnimationFrame(() => { scheduledFrame = 0; apply(); });
+  }
+
+  function routeChanged() {
+    document.body?.classList.add('v88-route-changing');
+    schedule();
+    window.setTimeout(() => { document.body?.classList.remove('v88-route-changing'); schedule(); },220);
+  }
+
+  document.addEventListener('click',event => {
+    const panel = document.querySelector('.v88-control-panel');
+    const toggle = document.querySelector('.v88-theme-toggle');
+    if (panel && !panel.hidden && !panel.contains(event.target) && !toggle?.contains(event.target)) {
+      panel.hidden = true;
+      toggle?.setAttribute('aria-expanded','false');
     }
-    const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    operationPage = Math.min(operationPage, pages);
-    const start = (operationPage - 1) * PAGE_SIZE;
-    const visible = filtered.slice(start, start + PAGE_SIZE);
-    const categories=[...new Map(filtered.filter(item=>operationKind(item)==='expense').map(item=>[clean(item.category)||'Другое',0])).keys()];
-    const catStats=categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
-    state.settings.v78.operationPage = operationPage;
-    state.settings.v78.operationType = operationType;
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Папка финансов</span><h1>Операции</h1><p>Полный список без обрезания. На одной странице отображается ${PAGE_SIZE} операций.</p></div><div><button class="v78-secondary" data-v81-action="open-category-editor" type="button">Категории CSV</button><button class="v78-secondary" data-v78-action="export-csv" data-scope="filtered" type="button">⇩ Экспорт списка</button><button class="v78-primary" data-v79-action="open-record-form" data-type="operation" type="button">＋ Операция</button></div></header>
-      <section class="v78-operation-toolbar"><div class="v78-segment">${[['all','Все'],['income','Доходы'],['expense','Расходы']].map(([key,label])=>`<button class="${operationType===key?'active':''}" data-v78-action="operation-type" data-type="${key}" type="button">${label}</button>`).join('')}</div><label>⌕<input data-v78-operation-search value="${safe(operationQuery)}" placeholder="Категория, сумма, комментарий..."></label><span>${filtered.length} ${plural(filtered.length,'операция','операции','операций')}</span></section>
-      <section class="v81-category-hint"><div><b>Редактирование категорий после CSV стало понятнее</b><p>Нажми «Категории CSV», чтобы массово переименовать категорию сразу у всей выписки. В строке операции есть кнопка «Категория» для точечного редактирования.</p></div><div class="v81-category-pills">${catStats.rows.slice(0,6).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}</div></section>
-      <section class="v78-operation-table"><header><span>Дата</span><span>Тип</span><span>Категория</span><span>Комментарий / счёт</span><span>Сумма</span><span></span></header>${visible.map(operationRow).join('') || '<div class="v78-empty-big">Операций по выбранному фильтру нет.</div>'}</section>
-      <footer class="v78-pagination"><span>Страница ${operationPage} из ${pages}</span><div><button data-v78-action="operation-page" data-page="${Math.max(1,operationPage-1)}" ${operationPage===1?'disabled':''} type="button">←</button>${paginationButtons(operationPage,pages).map(page=>`<button class="${page===operationPage?'active':''}" data-v78-action="operation-page" data-page="${page}" type="button">${page}</button>`).join('')}<button data-v78-action="operation-page" data-page="${Math.min(pages,operationPage+1)}" ${operationPage===pages?'disabled':''} type="button">→</button></div></footer>
-    </section>`;
-  }
+  });
+  document.addEventListener('keydown',event => {
+    if (event.key !== 'Escape') return;
+    const panel = document.querySelector('.v88-control-panel');
+    if (panel && !panel.hidden) { panel.hidden = true; document.querySelector('.v88-theme-toggle')?.setAttribute('aria-expanded','false'); }
+  });
 
-  function paginationButtons(current, pages) {
-    const set = new Set([1,pages,current-1,current,current+1]);
-    return [...set].filter(page=>page>=1&&page<=pages).sort((a,b)=>a-b);
-  }
+  const observer = new MutationObserver(schedule);
+  const appRoot = document.getElementById('app');
+  const modalRoot = document.getElementById('modal');
+  if (appRoot) observer.observe(appRoot,{childList:true,subtree:true});
+  if (modalRoot) observer.observe(modalRoot,{childList:true,subtree:true});
+  window.addEventListener('hashchange',routeChanged);
+  window.addEventListener('pageshow',schedule);
+  themeMedia.addEventListener?.('change',() => { if (themeMode === 'system') applyPreferences(); });
+  reducedMedia.addEventListener?.('change',applyPreferences);
+  navigator.serviceWorker?.addEventListener?.('controllerchange',showUpdateBanner);
+  window.addEventListener('second-brain-update-ready',showUpdateBanner);
+  window.setInterval(() => { if (window.SecondBrainPWA?.getStatus?.().updateReady) showUpdateBanner(); },60000);
 
-  function operationRow(item) {
-    const income = operationKind(item) === 'income';
-    return `<article><span>${safe(formatShort(item.date))}</span><span><i class="${income?'income':'expense'}">${income?'↗':'↘'}</i>${income?'Доход':'Расход'}</span><span><b>${safe(item.category||'Без категории')}</b><small>${income?'доходная запись':'из выписки / вручную'}</small></span><span><b>${safe(item.note||'Без комментария')}</b><small>${safe(item.account||item.incomeSource||'')}</small></span><strong class="${income?'positive':'negative'}">${income?'+':'−'} ${safe(moneyText(item.amount))}</strong><span class="v78-row-menu v81-row-menu"><button data-v81-action="quick-category" data-id="${safe(item.id)}" type="button">Категория</button><button data-v79-action="edit-record" data-type="operation" data-id="${safe(item.id)}" type="button">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="operation" data-id="${safe(item.id)}" type="button">Удалить</button></span></article>`;
-  }
-
-  function financeAnalyticsPage() {
-    const data = categoryData();
-    const months = [...new Set(array('operations').map(item=>monthKey(operationDate(item))).filter(Boolean))].sort().reverse();
-    const fallbackInfo = (!state.settings.v78.categoryPeriod && data.period!==monthKey(todayKey())) ? `Показан последний месяц с расходами: ${new Date(`${data.period}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}.` : '';
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Финансовая аналитика</span><h1>Анализ по категориям</h1><p>Каждая категория рассчитывается только из фактических расходных операций. ${fallbackInfo}</p></div><div><select class="v78-select" data-v78-category-period>${months.map(key=>`<option value="${key}" ${key===data.period?'selected':''}>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</option>`).join('') || `<option value="${monthKey(todayKey())}">Текущий месяц</option>`}</select><button class="v78-secondary" data-v81-action="open-category-editor" type="button">Редактировать категории</button><button class="v78-primary" data-v78-route="finance-operations" type="button">Открыть операции</button></div></header>
-      <section class="v78-analysis-hero"><div class="v78-donut large" style="${donutStyle(data.rows,data.sum)}"><span><b>${safe(moneyText(data.sum))}</b><small>расходы</small></span></div><div><h2>Структура расходов</h2><p>${data.rows.length ? 'Категории отсортированы от крупнейшей к меньшей. Нажмите «Редактировать категории», если нужно поправить данные из CSV.' : 'Добавьте расходные операции, чтобы появился анализ.'}</p><div class="v78-analysis-list">${data.rows.map((row,index)=>`<article><i class="c${index}"></i><span><b>${safe(row.name)}</b><small>${safe(moneyText(row.value))}</small></span><em>${data.sum?Math.round(row.value/data.sum*100):0}%</em><u><b style="width:${data.sum?row.value/data.sum*100:0}%"></b></u></article>`).join('')}</div></div></section>
-      ${card('Что изменилось по сравнению с предыдущим месяцем', 'Сравнение строится по тем же категориям.', categoryComparison(data.period), 'v78-comparison-card')}
-    </section>`;
-  }
-
-  function categoryComparison(period) {
-    const d = new Date(`${period}-01T12:00:00`); d.setMonth(d.getMonth()-1); const previous = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    const currentData = categoryData(period); const prevData = categoryData(previous); const prevMap = new Map(prevData.rows.map(row=>[row.name,row.value]));
-    return `<div class="v78-comparison-list">${currentData.rows.slice(0,8).map(row=>{const old=prevMap.get(row.name)||0; const diff=row.value-old; return `<div><span><b>${safe(row.name)}</b><small>было ${safe(moneyText(old))}</small></span><em class="${diff>0?'negative':diff<0?'positive':''}">${diff>0?'+':''}${safe(moneyText(diff))}</em></div>`}).join('') || '<div class="v78-empty">Недостаточно операций для сравнения.</div>'}</div>`;
-  }
-
-  function financeExportPage() {
-    const ops = array('operations');
-    const cats=categoryData(state.settings.v78.categoryPeriod || bestExpensePeriod());
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="finance" type="button">← Финансы</button><span>Выгрузка данных</span><h1>Экспорт CSV</h1><p>В файл войдут абсолютно все операции, а не только текущая страница списка.</p></div></header>
-      <section class="v78-export-card"><div class="v78-export-icon">⇩</div><div><h2>${ops.length} ${plural(ops.length,'операция','операции','операций')} готовы к экспорту</h2><p>Формат CSV UTF-8 с разделителем «;». Содержит дату, тип, сумму, категорию, счёт, источник дохода и комментарий.</p><div class="v78-export-checks"><span>✓ Все страницы</span><span>✓ Все даты</span><span>✓ Все категории</span><span>✓ Совместимо с Excel</span></div><button class="v78-primary" data-v78-action="export-csv" data-scope="all" type="button">Скачать полный CSV</button></div></section>
-      <section class="v81-category-hint"><div><b>Категории из CSV</b><p>Если категория после импорта названа неудачно, откройте редактор и переименуйте её сразу у всех строк.</p></div><div class="v81-category-pills">${cats.rows.slice(0,8).map(row=>`<button data-v81-action="open-category-editor" data-from="${safe(row.name)}" type="button">${safe(row.name)} <small>${Math.round(row.value)}</small></button>`).join('') || '<span>Категории появятся после расходных операций</span>'}<button class="accent" data-v81-action="open-category-editor" type="button">Открыть редактор</button></div></section>
-      ${card('Предпросмотр последних операций', 'Сам файл будет содержать весь список.', `<div class="v78-export-preview">${ops.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,8).map(item=>`<div><span>${formatShort(item.date)}</span><b>${safe(item.category||'Без категории')}</b><em class="${item.type==='income'?'positive':'negative'}">${item.type==='income'?'+':'−'} ${safe(moneyText(item.amount))}</em></div>`).join('') || '<div class="v78-empty">Операций нет.</div>'}</div>`, 'v78-export-preview-card')}
-    </section>`;
-  }
-
-  function debtsPage() {
-    const out = activeDebtsOut(); const incoming = activeDebtsIn();
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Прозрачные источники суммы</span><h1>Долги и обязательства</h1><p>Итог всегда равен сумме конкретных записей ниже. Никаких скрытых расчётов.</p></div><div><button class="v78-secondary" data-v79-action="open-debt-in" type="button">＋ Мне должны</button><button class="v78-primary" data-v79-action="open-debt-out" type="button">＋ Я должен</button></div></header>
-      <section class="v78-kpi-row"><article><small>Я должен</small><b class="negative">${safe(moneyText(total(out)))}</b><span>${out.length} активных записей</span></article><article><small>Мне должны</small><b class="positive">${safe(moneyText(total(incoming)))}</b><span>${incoming.length} активных записей</span></article><article><small>Чистая позиция</small><b>${safe(moneyText(total(incoming)-total(out)))}</b><span>возвраты минус обязательства</span></article><article><small>Ближайший срок</small><b>${safe(formatShort(out.filter(item=>item.due).sort((a,b)=>String(a.due).localeCompare(String(b.due)))[0]?.due))}</b><span>по активным обязательствам</span></article></section>
-      <section class="v78-two-cols">${debtColumn('Я должен',out,'negative')}${debtColumn('Мне должны',incoming,'positive')}</section>
-    </section>`;
-  }
-
-  function debtColumn(title, items, tone) {
-    return card(title, `Итого ${moneyText(total(items))}`, `<div class="v78-debt-list">${items.map(item=>`<article><i>${tone==='negative'?'↘':'↗'}</i><span><b>${safe(item.person||'Без названия')}</b><small>${safe(item.note||'Без комментария')}${item.due?` · ${formatShort(item.due)}`:''}</small></span><strong class="${tone}">${safe(moneyText(item.amount))}</strong><div><button data-v79-action="edit-record" data-type="debt" data-id="${safe(item.id)}" type="button">Изменить</button><button data-v79-action="close-debt" data-id="${safe(item.id)}" type="button">Закрыть</button></div></article>`).join('') || '<div class="v78-empty">Записей нет.</div>'}</div>`, `v78-debt-column ${tone}`);
-  }
-
-  function profilePage() {
-    const p = profile(); const age = ageFromBirth(p.birthDate);
-    return `<section class="v78-page"><header class="v78-page-head"><div><span>Персонализация системы</span><h1>Мой профиль</h1><p>Имя и фотография отображаются во всём приложении.</p></div><div><button class="v78-secondary" data-v79-action="export-data" type="button">Экспорт данных</button><button class="v78-primary" data-v78-action="edit-profile" type="button">Редактировать профиль</button></div></header>
-      <section class="v78-profile-hero"><div class="v78-profile-visual">${avatarHtml('xl')}<span class="v78-brand-orb"></span></div><div><span>Персональный профиль</span><h2>${safe([p.name,p.lastName].filter(Boolean).join(' ') || 'Алексей')}</h2><p>${safe(p.subtitle || 'Фокус на рост')}</p><div class="v78-profile-tags">${age!==''?`<span>${age} ${plural(age,'год','года','лет')}</span>`:''}${p.birthDate?`<span>🎂 ${formatDate(p.birthDate)}</span>`:''}${p.city?`<span>⌖ ${safe(p.city)}</span>`:''}</div></div></section>
-      <section class="v78-profile-grid"><article><small>О себе</small><p>${safe(p.bio || 'Добавьте короткое описание, чтобы профиль стал по-настоящему вашим.')}</p></article><article><small>Email</small><p>${safe(p.email || 'Не указан')}</p></article><article><small>Телефон</small><p>${safe(p.phone || 'Не указан')}</p></article><article><small>Дата рождения</small><p>${safe(p.birthDate ? formatDate(p.birthDate) : 'Не указана')}</p></article></section>
-      ${card('Безопасность данных', 'Профиль сохраняется вместе с общей базой приложения.', `<div class="v78-security-list"><span>✓ Обновление не очищает существующие записи</span><span>✓ Фотография уменьшается перед сохранением</span><span>✓ Профиль входит в JSON-экспорт</span><span>✓ Работает с защитным хранилищем V76</span></div>`, 'v78-security-card')}
-    </section>`;
-  }
-
-  function wishlistPage() {
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits" type="button">← Привычки</button><span>Следующие этапы дисциплины</span><h1>Вишлист привычек</h1><p>Храните идеи здесь и внедряйте только одну следующую привычку за раз.</p></div><button class="v78-primary" data-v78-action="open-wishlist-form" type="button">＋ Добавить идею</button></header><section class="v78-wishlist-full">${state.habitWishlist.map(item=>`<article><i>${safe(item.icon||'✦')}</i><span><b>${safe(item.title)}</b><small>${safe(item.schedule||'Без графика')}</small><p>${safe(item.note||'')}</p></span><div><button data-v78-action="promote-wishlist" data-id="${safe(item.id)}" type="button">Внедрить</button><button data-v78-action="edit-wishlist" data-id="${safe(item.id)}" type="button">✎</button><button data-v78-action="delete-wishlist" data-id="${safe(item.id)}" type="button">×</button></div></article>`).join('') || '<div class="v78-empty-big">Вишлист пока пуст.</div>'}</section></section>`;
-  }
-
-
-  const RECORDS = {
-    operation:{arr:'operations',title:'Операция',fields:[['date','Дата','date'],['type','Тип','select',[['expense','Расход'],['income','Доход']]],['amount','Сумма','number'],['category','Категория','text'],['account','Счёт','text'],['incomeSource','Источник дохода','text'],['note','Комментарий','textarea']]},
-    debt:{arr:'debts',title:'Обязательство',fields:[['person','Название / человек','text'],['direction','Направление','select',[['out','Я должен'],['in','Мне должны']]],['amount','Сумма','number'],['due','Срок','date'],['status','Статус','text'],['note','Комментарий','textarea']]},
-    task:{arr:'tasks',title:'Задача',fields:[['title','Название','text'],['date','Дата','date'],['time','Время','time'],['area','Сфера / проект','text'],['location','Место / адрес','text'],['priority','Приоритет','select',[['critical','Критичный'],['high','Высокий'],['medium','Средний'],['low','Низкий']]],['status','Статус','select',[['planned','Запланировано'],['doing','В процессе'],['done','Выполнено']]],['note','Комментарий','textarea']]},
-    person:{arr:'people',title:'Человек',fields:[['name','Имя','text'],['role','Кто это','text'],['phone','Телефон','text'],['email','Email','email'],['birthday','Дата рождения','date'],['note','Контекст и заметки','textarea']]},
-    note:{arr:'notes',title:'Заметка',fields:[['title','Название','text'],['folder','Папка','text'],['date','Дата','date'],['text','Текст','textarea']]},
-    idea:{arr:'ideas',title:'Идея',fields:[['title','Название','text'],['date','Дата','date'],['text','Описание','textarea']]},
-    wish:{arr:'wishes',title:'Желание',fields:[['title','Название','text'],['date','Дата','date'],['amount','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Прямая ссылка на товар','url'],['note','Описание','textarea']]},
-    document:{arr:'documents',title:'Документ',fields:[['title','Название','text'],['type','Тип','text'],['date','Дата','date'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    book:{arr:'books',title:'Книга',fields:[['title','Название','text'],['author','Автор','text'],['status','Статус','text'],['imageUrl','URL обложки','url'],['url','Ссылка на книгу','url'],['quotes','Цитаты и заметки','textarea']]},
-    film:{arr:'films',title:'Фильм',fields:[['title','Название','text'],['status','Статус','text'],['imageUrl','URL постера','url'],['url','Ссылка на фильм','url'],['note','Впечатления','textarea']]},
-    trip:{arr:'trips',title:'Путешествие',fields:[['title','Название','text'],['place','Место','text'],['date','Дата','date'],['budget','Бюджет','number'],['imageUrl','URL изображения','url'],['url','Ссылка на тур / место','url'],['note','План','textarea']]},
-    personal:{arr:'personal',title:'Личная запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Запись','textarea']]},
-    inbox:{arr:'inbox',title:'Входящая запись',fields:[['title','Название','text'],['date','Дата','date'],['text','Содержание','textarea']]},
-    goal:{arr:'goals',title:'Цель',fields:[['title','Название','text'],['date','Срок','date'],['target','Целевое значение','number'],['status','Статус','text'],['note','Следующий шаг','textarea']]},
-    purchase:{arr:'purchases',title:'Покупка',fields:[['title','Название','text'],['amount','Сумма','number'],['date','Дата','date'],['area','Категория','text'],['url','Ссылка','text'],['note','Комментарий','textarea']]},
-    archive:{arr:'archive',title:'Архивная запись',fields:[['title','Название','text'],['date','Дата','date'],['type','Тип','text'],['note','Комментарий','textarea']]}
+  apply();
+  [100,420,1100,2200].forEach(delay => window.setTimeout(schedule,delay));
+  window.SecondBrainVisual = {
+    apply,
+    setTheme,
+    setMotion,
+    build:VISUAL_BUILD,
+    getSettings:() => ({themeMode,motionMode,resolvedTheme:resolvedTheme(),resolvedMotion:resolvedMotion()}),
+    getMetrics:() => ({applyCount,writeCount,scheduled:Boolean(scheduledFrame)})
   };
-  const ROUTE_RECORD = {people:'person',notes:'note',ideas:'idea',wishes:'wish',documents:'document',books:'book',films:'film',trips:'trip',personal:'personal',inbox:'inbox',tasks:'task',goals:'goal',purchases:'purchase',archive:'archive'};
-  const ROUTE_META = {
-    people:['👥','Люди','Контакты, отношения и важный контекст'],notes:['📝','Заметки','Мысли, решения, планы и наблюдения'],ideas:['💡','Идеи','Задумки и возможные проекты'],wishes:['💗','Желания','Мечты и будущие покупки'],documents:['📄','Документы','Ссылки, договоры и материалы'],books:['📚','Книги','Книги, цитаты и конспекты'],films:['🎬','Фильмы','Фильмы, сериалы и впечатления'],trips:['✈️','Путешествия','Маршруты, бюджеты и планы'],personal:['🌿','Личная память','Дневник, события и личные записи'],inbox:['📥','Входящие','Несортированные мысли на разбор'],tasks:['✓','Задачи','Конкретные действия и сроки'],goals:['↗','Цели','Направления и следующие шаги'],purchases:['🛒','Покупки','Плановые и обязательные покупки'],archive:['▣','Архив','Удалённые и отложенные записи']
-  };
-
-  function fieldValue(item,key){return safe(item?.[key]??'');}
-  function recordFormField(field,item){const [key,label,type,options]=field;const value=fieldValue(item,key);if(type==='textarea')return `<label class="v79-field span-2"><span>${label}</span><textarea id="v79_f_${key}">${value}</textarea></label>`;if(type==='select')return `<label class="v79-field"><span>${label}</span><select id="v79_f_${key}">${options.map(([v,l])=>`<option value="${safe(v)}" ${String(item?.[key]??'')===v?'selected':''}>${safe(l)}</option>`).join('')}</select></label>`;return `<label class="v79-field"><span>${label}</span><input id="v79_f_${key}" type="${type}" value="${value}"></label>`;}
-  function openRecordForm(type,id='',preset={}){const schema=RECORDS[type];if(!schema)return toast('Форма не найдена');const item=id?array(schema.arr).find(x=>x.id===id)||{}:Object.assign({date:todayKey()},preset);openModal(`${id?'Редактировать':'Добавить'}: ${schema.title}`,`<div class="v79-form-grid">${schema.fields.map(f=>recordFormField(f,item)).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-record" data-type="${type}" data-id="${safe(id)}">Сохранить</button>${id?`<button class="v79-danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveRecord(type,id,originEl=null){const schema=RECORDS[type];if(!schema)return;const old=id?array(schema.arr).find(x=>x.id===id):null;const item=Object.assign({},old||{id:makeId(),createdAt:nowIso()});schema.fields.forEach(([key,,kind])=>{const el=document.getElementById(`v79_f_${key}`);if(!el)return;item[key]=kind==='number'?number(el.value):clean(el.value);});item.updatedAt=nowIso();if(id)state[schema.arr]=array(schema.arr).map(x=>x.id===id?item:x);else state[schema.arr].unshift(item);save();closeModal();renderPremium();toast(type==='task'&&taskStatusMeta(item.status).done?'Задача сохранена и отмечена как выполненная':'Сохранено'); if(type==='task'&&taskStatusMeta(item.status).done)celebrate(originEl,'✓');}
-  function deleteRecord(type,id){const schema=RECORDS[type];if(!schema)return;const item=array(schema.arr).find(x=>x.id===id);if(!item)return;if(!confirm(`Удалить «${item.title||item.name||item.person||schema.title}»? Копия останется в архиве.`))return;archiveSnapshot(`Удалено: ${item.title||item.name||item.person||schema.title}`,`deleted-${type}`,item);state[schema.arr]=array(schema.arr).filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Удалено, копия сохранена в архиве');}
-  function topCategories(limit=10){const counts=new Map(); array('operations').filter(item=>operationKind(item)==='expense').forEach(item=>{const key=clean(item.category)||'Другое'; counts.set(key,(counts.get(key)||0)+1);}); return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit);}
-  function openCategoryEditor(prefill=''){const from=clean(prefill);const cats=topCategories(12);openModal('Редактор категорий CSV',`<div class="v79-form-grid"><label class="v79-field"><span>Старая категория</span><input id="v81_cat_from" value="${safe(from)}" placeholder="Например: Продукты"></label><label class="v79-field"><span>Новая категория</span><input id="v81_cat_to" placeholder="Например: Еда / Магазин"></label><label class="v79-field span-2"><span>Быстрые категории из выписки</span><div class="v81-modal-pills">${cats.map(([name,count])=>`<button type="button" data-v81-action="prefill-category" data-name="${safe(name)}">${safe(name)} <small>${count}</small></button>`).join('') || '<span>Нет категорий</span>'}</div></label><label class="v79-field span-2"><span>Как это работает</span><div class="v81-help-box">Выберите категорию из CSV и задайте новое понятное название. Все операции с этой категорией обновятся сразу.</div></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v81-action="apply-category-bulk">Применить ко всей выписке</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function applyCategoryBulk(originEl=null){const from=clean(document.getElementById('v81_cat_from')?.value),to=clean(document.getElementById('v81_cat_to')?.value);if(!from||!to)return toast('Укажите обе категории');let changed=0; state.operations.forEach(item=>{if((clean(item.category)||'Другое')===from){item.category=to; item.updatedAt=nowIso(); changed+=1;}}); if(!changed)return toast('Совпадений не найдено'); save(); closeModal(); renderPremium(); toast(`Обновлено операций: ${changed}`); celebrate(originEl,'✦');}
-  function openQuickCategory(id){const item=array('operations').find(x=>x.id===id); if(!item)return; const cats=topCategories(8).filter(([name])=>name!==clean(item.category)); openModal('Изменить категорию операции',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Текущая категория</span><div class="v81-help-box">${safe(item.category||'Без категории')} · ${safe(item.note||'Без комментария')}</div></label><label class="v79-field span-2"><span>Новая категория</span><input id="v81_quick_category" value="${safe(item.category||'')}" placeholder="Введите категорию"></label><label class="v79-field span-2"><span>Частые варианты</span><div class="v81-modal-pills">${cats.map(([name,count])=>`<button type="button" data-v81-action="fill-quick-category" data-name="${safe(name)}">${safe(name)} <small>${count}</small></button>`).join('')}</div></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v81-action="save-quick-category" data-id="${safe(id)}">Сохранить категорию</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveQuickCategory(id,originEl=null){const item=array('operations').find(x=>x.id===id); if(!item)return; const next=clean(document.getElementById('v81_quick_category')?.value); if(!next)return toast('Введите категорию'); item.category=next; item.updatedAt=nowIso(); save(); closeModal(); renderPremium(); toast('Категория обновлена'); celebrate(originEl,'✓');}
-  function openQuick(){openModal('Быстро добавить',`<div class="v79-quick-grid">${[['task','✓','Задача'],['operation','₽','Операция'],['note','📝','Заметка'],['idea','💡','Идея'],['wish','💗','Желание']].map(([t,i,l])=>`<button data-v79-action="open-record-form" data-type="${t}"><i>${i}</i><b>${l}</b></button>`).join('')}<button data-v80-action="open-person-form"><i>👥</i><b>Человек</b></button></div>`);}
-  function openBalance(){openModal('Фактический баланс',`<div class="v79-form-grid"><label class="v79-field span-2"><span>Сколько денег фактически сейчас?</span><input id="v79_balance" type="number" step="0.01" value="${number(state.settings.currentBalance)}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-balance">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function genericRecordPage(route){const type=ROUTE_RECORD[route],schema=RECORDS[type],meta=ROUTE_META[route],items=array(schema.arr).slice().sort((a,b)=>String(b.date||b.updatedAt||'').localeCompare(String(a.date||a.updatedAt||'')));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>${meta[0]} Раздел</span><h1>${meta[1]}</h1><p>${meta[2]}</p></div><button class="v78-primary" data-v79-action="open-record-form" data-type="${type}">＋ Добавить</button></header><section class="v79-record-grid">${items.map(item=>recordTile(type,item)).join('')||'<div class="v78-empty-big">Пока пусто. Добавьте первую запись.</div>'}</section></section>`;}
-  function recordTile(type,item){const title=item.title||item.name||item.person||item.category||'Запись';const sub=item.role||item.author||item.area||item.folder||item.place||item.type||item.date||'';const body=item.note||item.text||item.quotes||'';const amount=item.amount||item.budget||item.target;const image=normalizedUrl(item.imageUrl||item.coverUrl||item.posterUrl||'');const link=normalizedUrl(item.url||item.productUrl||'');return `<article class="v79-record-card ${image?'has-image':''}">${image?`<div class="v80-record-image"><img src="${safe(image)}" alt="${safe(title)}" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}<header><div><small>${safe(sub)}</small><h2>${safe(title)}</h2></div>${amount?`<b>${safe(moneyText(amount))}</b>`:''}</header><p>${safe(String(body).slice(0,320))||'Без дополнительного описания.'}</p>${link?`<a class="v80-external-link" href="${safe(link)}" target="_blank" rel="noopener">Открыть ссылку ↗</a>`:''}<footer><button data-v79-action="edit-record" data-type="${type}" data-id="${safe(item.id)}">Изменить</button><button class="danger" data-v79-action="delete-record" data-type="${type}" data-id="${safe(item.id)}">Удалить</button></footer></article>`;}
-
-  function personAvatar(person,size='card'){const src=normalizedUrl(person.avatar||person.photoUrl||'');return src?`<img class="v80-person-avatar ${size}" src="${safe(src)}" alt="${safe(person.name)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;v80-person-avatar fallback ${size}&quot;>${safe(initial(person.name))}</span>'">`:`<span class="v80-person-avatar fallback ${size}">${safe(initial(person.name))}</span>`;}
-  function peoplePage(){const people=array('people').slice().sort((a,b)=>clean(a.name).localeCompare(clean(b.name),'ru')),birthdays=upcomingBirthdays(60);return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Личные связи</span><h1>Люди</h1><p>Анкеты, важные даты, предпочтения, вишлисты и контекст отношений.</p></div><button class="v78-primary" data-v80-action="open-person-form">＋ Добавить человека</button></header>${birthdays.length?`<section class="v80-birthday-strip"><header><h2>Ближайшие дни рождения</h2><p>Напоминания отображаются заранее по настройкам каждой анкеты.</p></header><div>${birthdays.slice(0,6).map(({person,days})=>`<button data-v80-action="open-person-form" data-id="${safe(person.id)}">${personAvatar(person,'sm')}<span><b>${safe(person.name)}</b><small>${days===0?'сегодня':days===1?'завтра':`через ${days} дн.`}</small></span></button>`).join('')}</div></section>`:''}<section class="v80-people-grid">${people.map(person=>{const days=birthdayDays(person),wish=clean(person.wishlist||person.giftIdeas);return `<article class="v80-person-card"><header>${personAvatar(person)}<div><small>${safe(person.role||person.relation||'Человек')}</small><h2>${safe(person.name)}</h2>${person.city?`<p>⌖ ${safe(person.city)}</p>`:''}</div><button data-v80-action="open-person-form" data-id="${safe(person.id)}">✎</button></header><div class="v80-person-facts">${person.birthday?`<span><small>День рождения</small><b>${safe(formatDate(person.birthday))}</b><em>${days===0?'Сегодня':days===1?'Завтра':`через ${days} дн.`}</em></span>`:''}${person.phone?`<span><small>Телефон</small><b>${safe(person.phone)}</b></span>`:''}${person.telegram?`<span><small>Telegram</small><b>${safe(person.telegram)}</b></span>`:''}</div><p>${safe(person.note||person.about||'Добавьте важный контекст об этом человеке.')}</p>${wish?`<div class="v80-person-wishlist"><small>Вишлист и идеи подарков</small><p>${safe(wish.slice(0,220))}</p></div>`:''}<footer><button data-v80-action="open-person-form" data-id="${safe(person.id)}">Открыть анкету</button><button class="danger" data-v80-action="delete-person" data-id="${safe(person.id)}">Удалить</button></footer></article>`}).join('')||'<div class="v78-empty-big">Добавьте первую анкету человека.</div>'}</section></section>`;}
-  function openPersonForm(id=''){const p=array('people').find(x=>x.id===id)||{};pendingPersonAvatar=p.avatar||p.photoUrl||'';const preview=pendingPersonAvatar?`<img src="${safe(normalizedUrl(pendingPersonAvatar))}">`:`<span>${safe(initial(p.name||'Ч'))}</span>`;openModal(id?'Анкета человека':'Новый человек',`<div class="v80-person-editor"><div class="v78-avatar-editor"><div id="v80_person_avatar_preview">${preview}</div><label><input id="v80_person_avatar_file" type="file" accept="image/*"><span>Загрузить фотографию</span></label><small>Фото хранится вместе с базой приложения.</small></div><div class="v79-form-grid"><label class="v79-field"><span>Имя</span><input id="v80_p_name" value="${safe(p.name||'')}"></label><label class="v79-field"><span>Кто это / роль</span><input id="v80_p_role" value="${safe(p.role||p.relation||'')}"></label><label class="v79-field"><span>Дата рождения</span><input id="v80_p_birthday" type="date" value="${safe(p.birthday||'')}"></label><label class="v79-field"><span>Напомнить за сколько дней</span><input id="v80_p_reminder" type="number" min="0" max="60" value="${number(p.birthdayReminderDays)||7}"></label><label class="v79-field"><span>Телефон</span><input id="v80_p_phone" value="${safe(p.phone||'')}"></label><label class="v79-field"><span>Email</span><input id="v80_p_email" type="email" value="${safe(p.email||'')}"></label><label class="v79-field"><span>Telegram / соцсеть</span><input id="v80_p_telegram" value="${safe(p.telegram||'')}"></label><label class="v79-field"><span>Город</span><input id="v80_p_city" value="${safe(p.city||'')}"></label><label class="v79-field span-2"><span>Интересы, любимое и предпочтения</span><textarea id="v80_p_interests">${safe(p.interests||'')}</textarea></label><label class="v79-field span-2"><span>Что не любит / важные границы</span><textarea id="v80_p_dislikes">${safe(p.dislikes||'')}</textarea></label><label class="v79-field span-2"><span>Вишлист человека</span><textarea id="v80_p_wishlist">${safe(p.wishlist||'')}</textarea></label><label class="v79-field span-2"><span>Идеи подарков</span><textarea id="v80_p_gifts">${safe(p.giftIdeas||'')}</textarea></label><label class="v79-field span-2"><span>Важные даты и события</span><textarea id="v80_p_dates">${safe(p.importantDates||'')}</textarea></label><label class="v79-field span-2"><span>Контекст и заметки</span><textarea id="v80_p_note">${safe(p.note||p.about||'')}</textarea></label></div></div><div class="v79-modal-actions"><button class="v78-primary" data-v80-action="save-person" data-id="${safe(id)}">Сохранить анкету</button>${id?`<button class="v79-danger" data-v80-action="delete-person" data-id="${safe(id)}">Удалить</button>`:''}<button data-v78-action="close-modal">Отмена</button></div>`);}
-  function savePerson(id=''){const old=array('people').find(x=>x.id===id),p=Object.assign({},old||{id:makeId(),createdAt:nowIso()});p.name=clean(document.getElementById('v80_p_name')?.value)||'Без имени';p.role=clean(document.getElementById('v80_p_role')?.value);p.birthday=clean(document.getElementById('v80_p_birthday')?.value);p.birthdayReminderDays=Math.max(0,number(document.getElementById('v80_p_reminder')?.value)||7);p.birthdayReminderEnabled=true;p.phone=clean(document.getElementById('v80_p_phone')?.value);p.email=clean(document.getElementById('v80_p_email')?.value);p.telegram=clean(document.getElementById('v80_p_telegram')?.value);p.city=clean(document.getElementById('v80_p_city')?.value);p.interests=clean(document.getElementById('v80_p_interests')?.value);p.dislikes=clean(document.getElementById('v80_p_dislikes')?.value);p.wishlist=clean(document.getElementById('v80_p_wishlist')?.value);p.giftIdeas=clean(document.getElementById('v80_p_gifts')?.value);p.importantDates=clean(document.getElementById('v80_p_dates')?.value);p.note=clean(document.getElementById('v80_p_note')?.value);p.avatar=pendingPersonAvatar||'';p.updatedAt=nowIso();state.people=old?array('people').map(x=>x.id===id?p:x):[p,...array('people')];save();closeModal();renderPremium();toast('Анкета сохранена');}
-  function deletePerson(id){const p=array('people').find(x=>x.id===id);if(!p)return;if(!confirm(`Удалить анкету «${p.name}»? Резервная копия останется в архиве.`))return;archiveSnapshot(`Удалённая анкета: ${p.name}`,'deleted-person',p);state.people=array('people').filter(x=>x.id!==id);save();closeModal();renderPremium();toast('Анкета перенесена в архив');}
-
-  function startOfWeekKey(value){const d=dateAtNoon(value);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10);}
-  function monthGridDates(value){const d=dateAtNoon(value),first=new Date(d.getFullYear(),d.getMonth(),1,12);const start=startOfWeekKey(first.toISOString().slice(0,10));return Array.from({length:42},(_,i)=>addDaysKey(start,i));}
-  function calendarAnchor(){return state.settings.v82?.calendarAnchor||todayKey();}
-  function calendarView(){return state.settings.v82?.calendarView||'week';}
-  function tasksForDate(date, includeDone=true){return array('tasks').filter(t=>String(t.date||'').slice(0,10)===date&&(includeDone||!taskStatusMeta(t.status).done)).sort((a,b)=>{const p=priorityMeta(a.priority).order-priorityMeta(b.priority).order;return p||String(a.time||'99:99').localeCompare(String(b.time||'99:99'));});}
-  function taskIsArchived(task){return taskStatusMeta(task.status).done || (task.date&&String(task.date).slice(0,10)<todayKey());}
-  function googleCalendarUrl(task){const title=clean(task.title)||'Событие Second Brain OS';const date=String(task.date||todayKey()).slice(0,10).replaceAll('-','');let dates='';if(task.time){const compact=String(task.time).replace(':','').padEnd(4,'0');const start=`${date}T${compact}00`;const startDate=new Date(`${String(task.date||todayKey()).slice(0,10)}T${task.time}:00`);const endDate=new Date(startDate.getTime()+60*60*1000);const end=`${endDate.getFullYear()}${String(endDate.getMonth()+1).padStart(2,'0')}${String(endDate.getDate()).padStart(2,'0')}T${String(endDate.getHours()).padStart(2,'0')}${String(endDate.getMinutes()).padStart(2,'0')}00`;dates=`${start}/${end}`;}else{const next=addDaysKey(task.date||todayKey(),1).replaceAll('-','');dates=`${date}/${next}`;}const params=new URLSearchParams({action:'TEMPLATE',text:title,dates,details:[task.note,task.area?`Сфера: ${task.area}`:'',`Приоритет: ${priorityMeta(task.priority).label}`].filter(Boolean).join('\n'),location:clean(task.location||'')});return `https://calendar.google.com/calendar/render?${params.toString()}`;}
-  function calendarTaskCard(task, compact=false, positioned=false){const p=priorityMeta(task.priority),st=taskStatusMeta(task.status);let position='';if(positioned&&task.time){const [h,m]=String(task.time).split(':').map(Number);const top=Math.max(0,((h||8)-8)*72+(m||0)/60*72);position=` style="--event-top:${top.toFixed(1)}px"`;}return `<article class="v82-calendar-event ${p.tone} ${st.done?'done':''} ${compact?'compact':''} ${positioned?'positioned':''}"${position}><button class="v82-event-open" data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}" type="button"><span class="v82-event-time">${safe(task.time||'Весь день')}</span><b>${safe(task.title||'Событие')}</b>${compact?'':`<small>${safe(task.area||st.label)}</small>`}</button><div class="v82-event-actions"><button title="Добавить в Google Календарь" data-v82-action="google-calendar" data-id="${safe(task.id)}" type="button">G</button><button title="Изменить" data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}" type="button">✎</button></div></article>`;}
-  function calendarNavigation(){const view=calendarView(),anchor=calendarAnchor();return `<div class="v82-calendar-toolbar"><div class="v82-calendar-nav"><button data-v82-action="calendar-shift" data-delta="-1" type="button">←</button><button data-v82-action="calendar-today" type="button">Сегодня</button><button data-v82-action="calendar-shift" data-delta="1" type="button">→</button><strong>${view==='month'?dateAtNoon(anchor).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}):formatDate(anchor)}</strong></div><div class="v82-calendar-views">${[['day','День'],['week','Неделя'],['month','Месяц'],['archive','Архив']].map(([key,label])=>`<button class="${view===key?'active':''}" data-v82-action="calendar-view" data-view="${key}" type="button">${label}</button>`).join('')}</div></div>`;}
-  function calendarDayView(){const date=calendarAnchor(),items=tasksForDate(date);return `<section class="v82-day-calendar"><header><div><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></div><button data-v82-action="quick-task-day" data-date="${date}" type="button">＋ Событие</button></header><div class="v82-day-timeline">${Array.from({length:15},(_,i)=>i+7).map(hour=>{const hourText=`${String(hour).padStart(2,'0')}:00`;const rows=items.filter(t=>String(t.time||'').startsWith(String(hour).padStart(2,'0')));return `<div class="v82-time-row"><time>${hourText}</time><section>${rows.map(t=>calendarTaskCard(t)).join('')||'<span></span>'}</section></div>`}).join('')}</div>${items.filter(t=>!t.time).length?`<div class="v82-all-day"><b>Весь день</b>${items.filter(t=>!t.time).map(t=>calendarTaskCard(t,true)).join('')}</div>`:''}</section>`;}
-  function calendarWeekView(){const start=startOfWeekKey(calendarAnchor()),dates=Array.from({length:7},(_,i)=>addDaysKey(start,i));return `<section class="v82-google-week"><div class="v82-week-head"><span></span>${dates.map(date=>`<button class="${date===todayKey()?'today':''}" data-v82-action="calendar-anchor" data-date="${date}" type="button"><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'short'})}</small><b>${dateAtNoon(date).getDate()}</b></button>`).join('')}</div><div class="v82-week-body"><aside>${Array.from({length:14},(_,i)=>`${String(i+8).padStart(2,'0')}:00`).map(x=>`<span>${x}</span>`).join('')}</aside>${dates.map(date=>`<section class="v82-week-column"><button class="v82-column-add" data-v82-action="quick-task-day" data-date="${date}" type="button">＋</button>${tasksForDate(date).map(t=>calendarTaskCard(t,false,true)).join('')||'<div class="v82-week-empty">Свободно</div>'}</section>`).join('')}</div></section>`;}
-  function calendarMonthView(){const anchor=calendarAnchor(),dates=monthGridDates(anchor),month=dateAtNoon(anchor).getMonth();return `<section class="v82-month-calendar"><header>${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</header><div>${dates.map(date=>{const outside=dateAtNoon(date).getMonth()!==month,items=tasksForDate(date);return `<article class="${outside?'outside':''} ${date===todayKey()?'today':''}"><header><button data-v82-action="calendar-anchor" data-date="${date}" type="button">${dateAtNoon(date).getDate()}</button><button data-v82-action="quick-task-day" data-date="${date}" type="button">＋</button></header><section>${items.slice(0,3).map(t=>calendarTaskCard(t,true)).join('')}${items.length>3?`<button class="v82-more-events" data-v82-action="calendar-anchor" data-date="${date}" type="button">ещё ${items.length-3}</button>`:''}</section></article>`}).join('')}</div></section>`;}
-  function calendarArchiveView(){const items=array('tasks').filter(taskIsArchived).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));return `<section class="v82-task-archive"><header><div><h2>Архив задач</h2><p>Выполненные и прошедшие задачи сохраняются здесь и не теряются.</p></div><b>${items.length}</b></header><div>${items.map(t=>calendarTaskCard(t)).join('')||'<div class="v78-empty-big">Архив пока пуст.</div>'}</div></section>`;}
-
-  function calendarPage(){const view=calendarView();return `<section class="v78-page v82-calendar-page"><header class="v78-page-head"><div><span>Календарь событий</span><h1>Календарь</h1><p>День, неделя, месяц и архив задач. Любое событие можно отправить в Google Календарь.</p></div><button class="v78-primary" data-v82-action="quick-task-day" data-date="${calendarAnchor()}">＋ Добавить событие</button></header>${calendarNavigation()}${view==='day'?calendarDayView():view==='month'?calendarMonthView():view==='archive'?calendarArchiveView():calendarWeekView()}</section>`;}
-
-  function assistantSteps(){const steps=[];habitsActive().filter(h=>!completedHabit(h)).forEach((h,index)=>steps.push({icon:h.icon||'✓',title:index===0?'Главная привычка':'Следующая привычка',text:`Выполните «${h.name}» в минимальной версии.`,route:`habit-${encodeURIComponent(h.id)}`,action:'Открыть привычку'}));const todayTasks=array('tasks').filter(t=>String(t.date||'').slice(0,10)===todayKey()&&!taskStatusMeta(t.status).done);todayTasks.slice(0,3).forEach(t=>steps.push({icon:'▦',title:'Задача на сегодня',text:t.title||'Открыть календарь',route:'calendar',action:'Открыть календарь'}));if(!state.discipline.financeChecks?.[todayKey()])steps.push({icon:'₽',title:'Финансовая проверка',text:'Сверьте фактический баланс и ближайшие обязательства.',route:'finance',action:'Проверить финансы'});if(!todayInterview())steps.push({icon:'✦',title:'Интервью с подсознанием',text:'Ответьте на три новых вопроса дня.',route:'subconscious',action:'Начать интервью'});const birthday=upcomingBirthdays(14)[0];if(birthday)steps.push({icon:'🎂',title:`${birthday.person.name}: важная дата`,text:birthday.days===0?'День рождения сегодня':`День рождения через ${birthday.days} дн.`,route:'people',action:'Открыть анкету'});if(!steps.length)steps.push({icon:'✓',title:'День закрыт',text:'Главные действия выполнены. Зафиксируйте результат и спокойно завершайте день.',route:'today',action:'Вернуться на главную'});return steps;}
-  function currentAssistantStep(){const steps=assistantSteps();const index=Math.max(0,Math.min(number(state.settings.v82.coachStep)||0,steps.length-1));state.settings.v82.coachStep=index;return {steps,index,step:steps[index]};}
-  function coachPage(){const f=financeSnapshot(),data=currentAssistantStep(),step=data.step;return `<section class="v78-page v82-coach-page"><header class="v78-page-head"><div><span>Последовательный подсказчик</span><h1>Подсказчик AI</h1><p>Показывает не один совет, а понятную очередь следующих действий.</p></div><button class="v78-secondary" data-v82-action="coach-reset" type="button">Начать с первого шага</button></header><section class="v82-coach-hero"><div class="v82-coach-art"><span class="v78-brand-orb"></span><i>${safe(step.icon)}</i></div><div><span>ШАГ ${data.index+1} ИЗ ${data.steps.length}</span><h2>${safe(step.title)}</h2><p>${safe(step.text)}</p><div><button class="v78-primary" data-v82-action="coach-open-current" type="button">${safe(step.action)} →</button><button class="v78-secondary" data-v82-action="coach-next" type="button">Следующий шаг</button></div></div></section><section class="v82-coach-queue">${data.steps.map((item,index)=>`<button class="${index===data.index?'active':''} ${index<data.index?'passed':''}" data-v82-action="coach-select" data-index="${index}" type="button"><i>${safe(item.icon)}</i><span><small>Шаг ${index+1}</small><b>${safe(item.title)}</b><em>${safe(item.text)}</em></span><strong>${index<data.index?'✓':index===data.index?'Сейчас':'›'}</strong></button>`).join('')}</section><section class="v78-kpi-row"><article><small>Баланс</small><b>${safe(moneyText(f.balance))}</b><span>фактический остаток</span></article><article><small>Обязательства</small><b>${safe(moneyText(f.debtTotal))}</b><span>${f.debts.length} активных</span></article><article><small>Привычки</small><b>${habitsDone()}/${habitsActive().length}</b><span>выполнено сегодня</span></article><article><small>Шагов осталось</small><b>${Math.max(0,data.steps.length-data.index)}</b><span>по текущему плану</span></article></section></section>`;}
-  function subconsciousPage(){
-    const entries=array('subconsciousEntries').slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))),questions=interviewQuestions(),done=todayInterview();
-    const streak=(()=>{let n=0,d=todayKey();while(entries.some(e=>String(e.date||'').slice(0,10)===d)){n++;d=addDaysKey(d,-1);}return n;})();
-    return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="habits">← Привычки</button><span>Ежедневная осознанность</span><h1>Интервью с подсознанием</h1><p>Вопросы меняются каждый день и помогают заметить сопротивление без самокритики.</p></div><button class="v78-primary" data-v79-action="open-interview">${done?'Изменить ответы':'Начать интервью сегодня'}</button></header>
-      <section class="v80-interview-hero"><div class="v80-interview-orb"><i></i><b></b><em></em></div><div><span>${formatDate(todayKey())}</span><h2>${done?'Сегодня вы уже остановились и услышали себя':'Три вопроса на сегодня'}</h2><p>${safe(questions[0])}</p><div><strong>${streak}</strong><small>${plural(streak,'день','дня','дней')} подряд с интервью</small></div></div></section>
-      <section class="v80-question-grid">${questions.map((q,i)=>`<article><i>0${i+1}</i><span><small>${['Состояние','Сопротивление','Действие'][i]}</small><h2>${safe(q)}</h2></span></article>`).join('')}</section>
-      <section class="v80-interview-history"><header><div><h2>История интервью</h2><p>Ответы хранятся только здесь и больше не попадают в заметки или личную память.</p></div></header><div>${entries.map(e=>{const qs=Array.isArray(e.questions)&&e.questions.length?e.questions:[{question:e.question||'Вопрос',answer:e.answer||e.note||''}];return `<article><header><span>${safe(formatDate(e.date||todayKey()))}</span><b>${safe(e.theme||'Ежедневное интервью')}</b></header>${qs.map(x=>`<div><small>${safe(x.question||'Вопрос')}</small><p>${safe(x.answer||'Без ответа')}</p></div>`).join('')}</article>`}).join('')||'<div class="v78-empty-big">Первое интервью появится после сохранения ответов.</div>'}</div></section></section>`;
-  }
-  function openInterview(){const existing=todayInterview(),questions=interviewQuestions(),answers=Array.isArray(existing?.questions)?existing.questions.map(x=>x.answer||''):[existing?.answer||'',...(String(existing?.note||'').split('\n'))];openModal('Сегодняшнее интервью',`<div class="v80-interview-modal"><header><span>${formatDate(todayKey())}</span><h2>Ответьте честно, но без требования идеального ответа</h2><p>Ответы можно изменить в течение дня.</p></header>${questions.map((q,i)=>`<label class="v79-field"><span><i>0${i+1}</i>${safe(q)}</span><textarea id="v80_int_${i}" placeholder="Запишите первое, что приходит в голову…">${safe(answers[i]||'')}</textarea></label>`).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-interview">Сохранить интервью</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function saveInterview(){const questions=interviewQuestions(),answers=questions.map((q,i)=>clean(document.getElementById(`v80_int_${i}`)?.value));const old=todayInterview();const item={id:old?.id||makeId(),date:todayKey(),theme:'Ежедневное интервью',question:questions[0],answer:answers[0],note:answers.slice(1).join('\n'),questions:questions.map((question,i)=>({question,answer:answers[i]})),createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.subconsciousEntries=state.subconsciousEntries.filter(e=>e.id!==old?.id);state.subconsciousEntries.unshift(item);save();closeModal();renderPremium();toast('Интервью сохранено');celebrate(null,'✦');}
-
-  function systemPage(){const stats=[['Операции',array('operations').length],['Долги',array('debts').length],['Задачи',array('tasks').length],['Покупки',array('purchases').length],['Желания',array('wishes').length],['Заметки',array('notes').length],['Идеи',array('ideas').length],['Люди',array('people').length],['Привычки',array('habits').length],['Цели',array('goals').length],['Документы',array('documents').length],['Книги',array('books').length],['Фильмы',array('films').length],['Поездки',array('trips').length],['Личная память',array('personal').length]];return `<section class="v78-page"><header class="v78-page-head"><div><span>Защита данных и обслуживание</span><h1>Настройки</h1><p>Один чистый runtime. Старые версии больше не подключаются и не реагируют на клики.</p></div></header><section class="v79-system-actions"><article><i>⇩</i><div><h2>Резервная копия</h2><p>Скачайте JSON перед крупными изменениями.</p></div><button data-v79-action="export-data">Скачать</button></article><article><i>⇧</i><div><h2>Импорт данных</h2><p>Верните ранее сохранённую копию.</p></div><label><input id="v79_import_file" type="file" accept="application/json"><span>Выбрать</span></label></article><article><i>↻</i><div><h2>Обновить интерфейс</h2><p>Удаляет только кэш файлов, личные данные остаются.</p></div><button data-v79-action="clear-ui-cache">Очистить кэш</button></article></section><section class="v79-data-stats">${stats.map(([l,v])=>`<article><small>${l}</small><b>${v}</b></article>`).join('')}</section></section>`;}
-
-  function polinaPage(){const key=state.settings.polinaMonth||monthKey(todayKey());const [y,m]=key.split('-').map(Number);const first=new Date(y,m-1,1,12),days=new Date(y,m,0,12).getDate(),offset=(first.getDay()+6)%7;const cells=Array(offset).fill('').concat(Array.from({length:days},(_,i)=>`${key}-${String(i+1).padStart(2,'0')}`));const entries=new Map(array('polinaDays').map(e=>[String(e.date).slice(0,10),e]));return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Состояние и цикл</span><h1>Состояние Полины</h1><p>Хорошее — зелёным, нейтральное — жёлтым, плохое — красным. Заполняется вся ячейка.</p></div><div><button class="v78-secondary" data-v79-action="polina-month" data-delta="-1">←</button><button class="v78-primary" data-v79-action="polina-month" data-delta="1">→</button></div></header><section class="v79-polina-card"><header><h2>${new Date(`${key}-01T12:00:00`).toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</h2><div><span class="good">Хорошее</span><span class="neutral">Нейтральное</span><span class="bad">Плохое</span></div></header><div class="v79-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<span>${x}</span>`).join('')}</div><div class="v79-polina-grid">${cells.map(date=>{if(!date)return '<i></i>';const e=entries.get(date)||{};return `<button class="${safe(e.status||'')} ${e.periodMarker?'period':''}" data-v79-action="open-polina-day" data-date="${date}"><b>${Number(date.slice(8))}</b><span>${safe(e.status==='good'?'Хорошее':e.status==='neutral'?'Нейтральное':e.status==='bad'?'Плохое':'Без отметки')}</span><small>${safe(e.comment||'Добавить комментарий')}</small>${e.periodMarker?`<em>${e.periodMarker==='start'?'Начало':e.periodMarker==='end'?'Конец':'Месячные'}</em>`:''}</button>`}).join('')}</div></section></section>`;}
-  function openPolinaDay(date){const e=array('polinaDays').find(x=>x.date===date)||{};openModal(`Состояние Полины · ${formatDate(date)}`,`<div class="v79-form-grid"><label class="v79-field"><span>Состояние</span><select id="v79_p_status"><option value="">Без отметки</option><option value="good" ${e.status==='good'?'selected':''}>Хорошее</option><option value="neutral" ${e.status==='neutral'?'selected':''}>Нейтральное</option><option value="bad" ${e.status==='bad'?'selected':''}>Плохое</option></select></label><label class="v79-field"><span>Цикл</span><select id="v79_p_period"><option value="">Нет отметки</option><option value="start" ${e.periodMarker==='start'?'selected':''}>Начало месячных</option><option value="period" ${e.periodMarker==='period'?'selected':''}>Месячные</option><option value="end" ${e.periodMarker==='end'?'selected':''}>Конец месячных</option></select></label><label class="v79-field span-2"><span>Комментарий</span><textarea id="v79_p_comment">${safe(e.comment||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-polina-day" data-date="${date}">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  function savePolinaDay(date){const status=clean(document.getElementById('v79_p_status')?.value),periodMarker=clean(document.getElementById('v79_p_period')?.value),comment=clean(document.getElementById('v79_p_comment')?.value);const old=array('polinaDays').find(x=>x.date===date);state.polinaDays=array('polinaDays').filter(x=>x.date!==date);if(status||periodMarker||comment)state.polinaDays.push({id:old?.id||makeId(),date,status,periodMarker,comment,updatedAt:nowIso()});save();closeModal();renderPremium();toast('Состояние сохранено');}
-
-  const enc=new TextEncoder(),dec=new TextDecoder();
-  const bytesToB64=bytes=>{let s='';new Uint8Array(bytes).forEach(b=>s+=String.fromCharCode(b));return btoa(s)};const b64ToBytes=v=>{const s=atob(String(v||'')),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a};
-  async function vaultKey(password,salt,iterations=310000){const base=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
-  async function vaultEncrypt(entries,key,salt,iterations=310000){const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify({entries})));return {version:1,cipher:'AES-GCM-256',kdf:'PBKDF2-SHA256',iterations,salt:bytesToB64(salt),iv:bytesToB64(iv),ciphertext:bytesToB64(cipher),updatedAt:nowIso()};}
-  async function vaultDecrypt(vault,key){const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(vault.iv)},key,b64ToBytes(vault.ciphertext));return JSON.parse(dec.decode(plain)).entries||[];}
-  function passwordsPage(){const vault=state.passwordVault;if(!vault)return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>Мастер-пароль нигде не сохраняется.</p></div></header><section class="v79-vault-box"><i>🔐</i><h2>Создать защищённое хранилище</h2><input id="v79_vault_new" type="password" placeholder="Мастер-пароль, минимум 10 символов"><input id="v79_vault_repeat" type="password" placeholder="Повторите пароль"><button class="v78-primary" data-v79-action="create-vault">Создать</button></section></section>`;if(!vaultSession.unlocked)return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>Данные сохранены и заблокированы.</p></div></header><section class="v79-vault-box"><i>🔒</i><h2>Разблокировать</h2><input id="v79_vault_unlock" type="password" placeholder="Введите мастер-пароль"><button class="v78-primary" data-v79-action="unlock-vault">Открыть</button></section></section>`;return `<section class="v78-page"><header class="v78-page-head"><div><button class="v78-back" data-v78-route="information">← Информация</button><span>Зашифрованная папка</span><h1>Пароли и доступы</h1><p>${vaultSession.entries.length} записей. Автоблокировка через 15 минут.</p></div><div><button class="v78-secondary" data-v79-action="lock-vault">Заблокировать</button><button class="v78-primary" data-v79-action="open-vault-entry">＋ Запись</button></div></header><section class="v79-vault-grid">${vaultSession.entries.map(e=>`<article><header><i>🔑</i><div><small>${safe(e.category||'Другое')}</small><h2>${safe(e.title||'Без названия')}</h2></div></header><p><b>${safe(e.login||'—')}</b></p><p class="secret">${vaultSession.revealed.has(e.id)?safe(e.secret||'—'):'••••••••••••'}</p><footer><button data-v79-action="reveal-vault" data-id="${safe(e.id)}">${vaultSession.revealed.has(e.id)?'Скрыть':'Показать'}</button><button data-v79-action="copy-vault" data-id="${safe(e.id)}">Копировать</button><button data-v79-action="open-vault-entry" data-id="${safe(e.id)}">Изменить</button></footer></article>`).join('')||'<div class="v78-empty-big">Хранилище пустое.</div>'}</section></section>`;}
-  async function createVault(){const p=String(document.getElementById('v79_vault_new')?.value||''),r=String(document.getElementById('v79_vault_repeat')?.value||'');if(p.length<10)return toast('Минимум 10 символов');if(p!==r)return toast('Пароли не совпадают');const salt=crypto.getRandomValues(new Uint8Array(16)),key=await vaultKey(p,salt);state.passwordVault=await vaultEncrypt([],key,salt);vaultSession={key,entries:[],unlocked:true,revealed:new Set(),lastActivity:Date.now()};save();renderPremium();}
-  async function unlockVault(){try{const p=String(document.getElementById('v79_vault_unlock')?.value||''),v=state.passwordVault,key=await vaultKey(p,b64ToBytes(v.salt),Number(v.iterations)||310000),entries=await vaultDecrypt(v,key);vaultSession={key,entries,unlocked:true,revealed:new Set(),lastActivity:Date.now()};renderPremium();toast('Хранилище открыто');}catch(error){toast('Неверный мастер-пароль');}}
-  function openVaultEntry(id=''){const e=vaultSession.entries.find(x=>x.id===id)||{};openModal(id?'Изменить запись':'Новая запись',`<div class="v79-form-grid"><label class="v79-field"><span>Название</span><input id="v79_ve_title" value="${safe(e.title||'')}"></label><label class="v79-field"><span>Категория</span><input id="v79_ve_category" value="${safe(e.category||'')}"></label><label class="v79-field"><span>Логин</span><input id="v79_ve_login" value="${safe(e.login||'')}"></label><label class="v79-field"><span>Пароль / секрет</span><input id="v79_ve_secret" value="${safe(e.secret||'')}"></label><label class="v79-field span-2"><span>Ссылка</span><input id="v79_ve_url" value="${safe(e.url||'')}"></label><label class="v79-field span-2"><span>Комментарий</span><textarea id="v79_ve_note">${safe(e.note||'')}</textarea></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v79-action="save-vault-entry" data-id="${safe(id)}">Сохранить</button><button data-v78-action="close-modal">Отмена</button></div>`);}
-  async function saveVaultEntry(id){const e={id:id||makeId(),title:clean(document.getElementById('v79_ve_title')?.value)||'Без названия',category:clean(document.getElementById('v79_ve_category')?.value)||'Другое',login:clean(document.getElementById('v79_ve_login')?.value),secret:String(document.getElementById('v79_ve_secret')?.value||''),url:clean(document.getElementById('v79_ve_url')?.value),note:clean(document.getElementById('v79_ve_note')?.value),updatedAt:nowIso()};vaultSession.entries=vaultSession.entries.filter(x=>x.id!==id);vaultSession.entries.unshift(e);state.passwordVault=await vaultEncrypt(vaultSession.entries,vaultSession.key,b64ToBytes(state.passwordVault.salt),Number(state.passwordVault.iterations)||310000);save();closeModal();renderPremium();toast('Запись сохранена');}
-  function archivePage(){
-    const items=array('archive').slice().sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||'')));
-    return `<section class="v78-page v821-archive-page"><header class="v78-page-head"><div><span>Резервные копии и удалённые записи</span><h1>Архив</h1><p>Здесь хранятся удалённые привычки, анкеты, записи и автоматические копии перед миграциями.</p></div><div><button class="v78-secondary" data-v78-route="information" type="button">Открыть информацию</button><button class="v78-primary" data-v78-route="calendar" type="button">Архив задач</button></div></header><section class="v821-archive-summary"><article><small>Всего записей</small><b>${items.length}</b><span>ничего не удаляется автоматически</span></article><article><small>Последнее сохранение</small><b>${items[0]?safe(formatShort(items[0].createdAt||items[0].date)):'—'}</b><span>дата последней архивной копии</span></article></section><section class="v821-archive-grid">${items.map(item=>{const original=item.original&&typeof item.original==='object'?item.original:{};const originalTitle=original.title||original.name||original.person||original.category||'';return `<article class="v821-archive-card"><header><i>▣</i><div><small>${safe(item.type||'Архивная запись')}</small><h2>${safe(item.title||originalTitle||'Без названия')}</h2></div></header><p>${safe(item.note||'Резервная копия сохранена приложением.')}</p>${originalTitle&&originalTitle!==item.title?`<div class="v821-archive-original"><small>Исходная запись</small><b>${safe(originalTitle)}</b></div>`:''}<footer><span>${safe(formatDate(item.createdAt||item.date))}</span><button data-v82-action="archive-details" data-id="${safe(item.id)}" type="button">Подробнее</button></footer></article>`}).join('')||'<div class="v78-empty-big">Архив пока пуст. Он заполнится автоматически при удалении или миграции данных.</div>'}</section></section>`;
-  }
-  function openArchiveDetails(id){const item=array('archive').find(x=>x.id===id);if(!item)return toast('Архивная запись не найдена');const original=item.original&&typeof item.original==='object'?item.original:null;openModal(item.title||'Архивная запись',`<div class="v821-archive-modal"><div><small>Тип</small><b>${safe(item.type||'Архив')}</b></div><div><small>Дата</small><b>${safe(formatDate(item.createdAt||item.date))}</b></div><p>${safe(item.note||'Без комментария')}</p>${original?`<details open><summary>Сохранённые данные</summary><pre>${safe(JSON.stringify(original,null,2))}</pre></details>`:''}</div><div class="v79-modal-actions"><button data-v78-action="close-modal" type="button">Закрыть</button></div>`);}
-  function customPage(route) {
-    const normalized = LEGACY_ALIASES[route] || route;
-    if (normalized === 'today') return todayPage();
-    if (normalized === 'habits') return habitsPage();
-    if (normalized === 'information') return informationPage();
-    if (normalized === 'finance') return financePage();
-    if (normalized === 'finance-operations') return financeOperationsPage();
-    if (normalized === 'finance-analytics') return financeAnalyticsPage();
-    if (normalized === 'finance-export') return financeExportPage();
-    if (normalized === 'debts') return debtsPage();
-    if (normalized === 'profile') return profilePage();
-    if (normalized === 'habit-wishlist') return wishlistPage();
-    if (normalized === 'calendar') return calendarPage();
-    if (normalized === 'archive') return archivePage();
-    if (normalized === 'coach') return coachPage();
-    if (normalized === 'system') return systemPage();
-    if (normalized === 'subconscious') return subconsciousPage();
-    if (normalized === 'people') return peoplePage();
-    if (normalized === 'polina') return polinaPage();
-    if (normalized === 'passwords') return passwordsPage();
-    if (ROUTE_RECORD[normalized]) return genericRecordPage(normalized);
-    if (normalized.startsWith('habit-')) return habitPage(decodeURIComponent(normalized.slice(6)));
-    return todayPage();
-  }
-
-  function isCustom(route) { const normalized = LEGACY_ALIASES[route] || route; return CUSTOM_ROUTES.has(route) || CUSTOM_ROUTES.has(normalized) || normalized.startsWith('habit-'); }
-
-  function renderPremium() {
-    clearTimeout(renderTimer);
-    ensureData();
-    const route = routeNow();
-    premiumShell(customPage(route));
-    afterRender();
-  }
-
-  function afterRender() {
-    setBuild();
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting','v70-booting','v67-theme-dark');
-    document.documentElement.className='v79-light';
-    document.documentElement.style.colorScheme='light';
-    try { window.scrollTo(0,0); } catch(error){}
-  }
-
-  function navigate(route, options = {}) {
-    const target = LEGACY_ALIASES[route] || route || 'today';
-    if (options.filter) operationType = options.filter;
-    try { history.pushState(null,'',`#${encodeURIComponent(target)}`); } catch(error) { location.hash=target; }
-    renderPremium();
-  }
-
-  function toggleHabit(id, date = todayKey(), force, originEl=null) {
-    const habit = array('habits').find(item => item.id === id);
-    if (!habit) return;
-    habit.marks = habit.marks || {};
-    const next = force === undefined ? !habit.marks[date] : Boolean(force);
-    habit.marks[date] = next;
-    if (/чтен/i.test(habit.name)) syncReadingSession(habit, date, next);
-    const rect=originEl?.getBoundingClientRect?.();
-    persist(next ? 'Привычка отмечена' : 'Отметка снята');
-    renderPremium();
-    if(next) celebrate(rect,'✓');
-  }
-
-  function syncReadingSession(habit, date, completed) {
-    const sessions = state.discipline.sessions;
-    const sourceId = `habit-quick-${habit.id}-${date}`;
-    state.discipline.sessions = sessions.filter(item => item.sourceId !== sourceId);
-    if (completed) state.discipline.sessions.unshift({ id: makeId(), sourceId, date, mode: 'full', minutes: number(habit.target)||20, resistance: '', note: 'Отмечено на странице привычки', createdAt: nowIso() });
-  }
-
-  function markAllHabits(originEl=null) {
-    habitsActive().forEach(habit => { if (!completedHabit(habit)) { habit.marks[todayKey()] = true; if (/чтен/i.test(habit.name)) syncReadingSession(habit,todayKey(),true); } });
-    const rect=originEl?.getBoundingClientRect?.();
-    persist('Все активные привычки отмечены');
-    renderPremium();
-    celebrate(rect,'✦');
-  }
-
-  function openHabitForm(id = '') {
-    const existing = array('habits').find(item => item.id === id) || {};
-    const selectedIcon = clean(existing.icon) || '✨';
-    const iconButtons = HABIT_ICON_OPTIONS.map(([icon,label])=>`<button class="${selectedIcon===icon?'selected':''}" data-v82-action="select-habit-icon" data-icon="${safe(icon)}" type="button"><i>${safe(icon)}</i><span>${safe(label)}</span></button>`).join('');
-    const html = `<div class="v82-habit-editor"><label class="v79-field span-2"><span>Название привычки</span><input id="v78_habit_name" value="${safe(existing.name||'')}" placeholder="Например: Чтение 20 минут"></label><input id="v78_habit_icon" type="hidden" value="${safe(selectedIcon)}"><div class="v82-icon-picker span-2"><header><div><span>Иконка привычки</span><small>Выберите готовую иконку — карточки будут выглядеть единообразно.</small></div><strong id="v82_icon_preview">${safe(selectedIcon)}</strong></header><div>${iconButtons}</div></div><div class="v79-form-grid span-2"><label class="v79-field"><span>Акцентный цвет</span><input id="v78_habit_color" type="color" value="${safe(existing.color||'#8b5cf6')}"></label><label class="v79-field"><span>Цель</span><input id="v78_habit_target" type="number" min="1" value="${number(existing.target)||1}"></label><label class="v79-field"><span>Единица</span><input id="v78_habit_unit" value="${safe(existing.unit||'раз')}"></label><label class="v79-field"><span>График</span><input id="v78_habit_frequency" value="${safe(existing.frequency||'Ежедневно')}"></label></div><label class="v79-field span-2"><span>Описание / смысл привычки</span><textarea id="v78_habit_note" placeholder="Зачем эта привычка и какая минимальная версия считается выполнением?">${safe(existing.note||'')}</textarea></label><div class="v79-modal-actions span-2"><button class="v78-primary" data-v78-action="save-habit" data-id="${safe(existing.id||'')}" type="button">Сохранить привычку</button>${existing.id?`<button class="v79-danger" data-v80-action="delete-habit" data-id="${safe(existing.id)}" type="button">Удалить</button>`:''}<button data-v78-action="close-modal" type="button">Отмена</button></div></div>`;
-    if (typeof openModal === 'function') openModal(existing.id ? 'Настроить привычку' : 'Новая привычка', html);
-  }
-
-  function saveHabit(id) {
-    const existing = array('habits').find(item => item.id === id);
-    const item = existing || { id: makeId(), marks: {}, active: true, createdAt: nowIso() };
-    item.name = clean(document.getElementById('v78_habit_name')?.value) || 'Новая привычка';
-    item.icon = clean(document.getElementById('v78_habit_icon')?.value) || '✨';
-    item.color = clean(document.getElementById('v78_habit_color')?.value) || '#8b5cf6';
-    item.target = Math.max(1, number(document.getElementById('v78_habit_target')?.value) || 1);
-    item.unit = clean(document.getElementById('v78_habit_unit')?.value) || 'раз';
-    item.frequency = clean(document.getElementById('v78_habit_frequency')?.value) || 'Ежедневно';
-    item.note = clean(document.getElementById('v78_habit_note')?.value);
-    item.updatedAt = nowIso();
-    if (!existing) state.habits.unshift(item);
-    persist('Привычка сохранена');
-    if (typeof closeModal === 'function') closeModal();
-    navigate(`habit-${encodeURIComponent(item.id)}`);
-  }
-
-  function deleteHabit(id){const habit=array('habits').find(x=>x.id===id);if(!habit)return;if(!confirm(`Удалить привычку «${habit.name}»? Все отметки будут сохранены в архивной копии.`))return;archiveSnapshot(`Удалённая привычка: ${habit.name}`,'deleted-habit',habit);state.habits=array('habits').filter(x=>x.id!==id);if(state.discipline?.activeHabit?.id===id)state.discipline.activeHabit=null;save();closeModal();navigate('habits');toast('Привычка перенесена в архив');}
-
-  function openWishlistForm(id = '') {
-    const existing = state.habitWishlist.find(item => item.id === id) || {};
-    const html = `<div class="v78-modal-form"><div class="v78-form-grid"><label><span>Иконка</span><input id="v78_wish_icon" value="${safe(existing.icon||'✦')}" maxlength="4"></label><label><span>Название</span><input id="v78_wish_title" value="${safe(existing.title||'')}"></label></div><label><span>План / частота</span><input id="v78_wish_schedule" value="${safe(existing.schedule||'')}"></label><label><span>Заметка</span><textarea id="v78_wish_note">${safe(existing.note||'')}</textarea></label><div class="v78-modal-actions"><button class="v78-primary" data-v78-action="save-wishlist" data-id="${safe(existing.id||'')}" type="button">Сохранить</button><button data-v78-action="close-modal" type="button">Отмена</button></div></div>`;
-    if (typeof openModal === 'function') openModal(existing.id ? 'Изменить идею привычки' : 'Добавить в вишлист', html);
-  }
-
-  function saveWishlist(id) {
-    const existing = state.habitWishlist.find(item => item.id === id);
-    const item = existing || { id: makeId(), createdAt: nowIso() };
-    item.icon = clean(document.getElementById('v78_wish_icon')?.value) || '✦';
-    item.title = clean(document.getElementById('v78_wish_title')?.value) || 'Новая привычка';
-    item.schedule = clean(document.getElementById('v78_wish_schedule')?.value) || 'На следующую неделю';
-    item.note = clean(document.getElementById('v78_wish_note')?.value);
-    if (!existing) state.habitWishlist.unshift(item);
-    persist('Вишлист сохранён');
-    if (typeof closeModal === 'function') closeModal();
-    renderPremium();
-  }
-
-  function promoteWishlist(id) {
-    const item = state.habitWishlist.find(row => row.id === id);
-    if (!item) return;
-    const existing = array('habits').find(h => clean(h.name).toLowerCase() === clean(item.title).toLowerCase());
-    if (!existing) state.habits.unshift({ id: makeId(), name: item.title, icon: item.icon || '✦', color: '#8b5cf6', target: 1, unit: 'раз', frequency: item.schedule || 'Ежедневно', marks: {}, active: true, note: item.note || 'Добавлено из вишлиста', createdAt: nowIso() });
-    persist(existing ? 'Такая привычка уже есть' : 'Привычка добавлена из вишлиста');
-    renderPremium();
-  }
-
-  function openProfileForm() {
-    const p = profile(); pendingAvatar = p.avatar || '';
-    const preview = pendingAvatar ? `<img src="${safe(pendingAvatar)}">` : `<span>${safe(initial(p.name))}</span>`;
-    const html = `<div class="v78-modal-form"><div class="v78-avatar-editor"><div id="v78_avatar_preview">${preview}</div><label><input id="v78_avatar_file" type="file" accept="image/*"><span>Загрузить фотографию</span></label><small>Изображение автоматически уменьшается до 320 × 320.</small></div><div class="v78-form-grid"><label><span>Имя</span><input id="v78_profile_name" value="${safe(p.name||'')}"></label><label><span>Фамилия</span><input id="v78_profile_lastname" value="${safe(p.lastName||'')}"></label><label><span>Дата рождения</span><input id="v78_profile_birth" type="date" value="${safe(p.birthDate||'')}"></label><label><span>Город</span><input id="v78_profile_city" value="${safe(p.city||'')}"></label><label><span>Email</span><input id="v78_profile_email" type="email" value="${safe(p.email||'')}"></label><label><span>Телефон</span><input id="v78_profile_phone" value="${safe(p.phone||'')}"></label></div><label><span>Подпись / фокус</span><input id="v78_profile_subtitle" value="${safe(p.subtitle||'')}"></label><label><span>О себе</span><textarea id="v78_profile_bio">${safe(p.bio||'')}</textarea></label><div class="v78-modal-actions"><button class="v78-primary" data-v78-action="save-profile" type="button">Сохранить профиль</button><button data-v78-action="close-modal" type="button">Отмена</button></div></div>`;
-    if (typeof openModal === 'function') openModal('Персональный профиль', html);
-  }
-
-  function saveProfile() {
-    const p = profile();
-    p.name = clean(document.getElementById('v78_profile_name')?.value) || 'Алексей';
-    p.lastName = clean(document.getElementById('v78_profile_lastname')?.value);
-    p.birthDate = clean(document.getElementById('v78_profile_birth')?.value);
-    p.city = clean(document.getElementById('v78_profile_city')?.value);
-    p.email = clean(document.getElementById('v78_profile_email')?.value);
-    p.phone = clean(document.getElementById('v78_profile_phone')?.value);
-    p.subtitle = clean(document.getElementById('v78_profile_subtitle')?.value) || 'Фокус на рост';
-    p.bio = clean(document.getElementById('v78_profile_bio')?.value);
-    p.avatar = pendingAvatar || '';
-    state.settings.name = p.name;
-    state.settings.subtitle = p.subtitle;
-    persist('Профиль сохранён');
-    if (typeof closeModal === 'function') closeModal();
-    renderPremium();
-  }
-
-  async function compressAvatar(file) {
-    if (!file) return;
-    const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
-    const img = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = dataUrl; });
-    const size = 320; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d');
-    const scale = Math.max(size / img.width, size / img.height); const w = img.width * scale; const h = img.height * scale; ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
-    pendingAvatar = canvas.toDataURL('image/jpeg', 0.82);
-    const preview = document.getElementById('v78_avatar_preview'); if (preview) preview.innerHTML = `<img src="${safe(pendingAvatar)}">`;
-  }
-
-  async function compressPersonAvatar(file){if(!file)return;const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=dataUrl;});const size=420,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d'),scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);pendingPersonAvatar=canvas.toDataURL('image/jpeg',.82);const preview=document.getElementById('v80_person_avatar_preview');if(preview)preview.innerHTML=`<img src="${safe(pendingPersonAvatar)}">`;}
-
-  function exportCsv(scope = 'all') {
-    let rows = array('operations').slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-    if (scope === 'filtered') {
-      rows = rows.filter(item => operationType === 'all' || operationKind(item) === operationType);
-      if (operationQuery) { const q=operationQuery.toLowerCase(); rows=rows.filter(item=>JSON.stringify(item).toLowerCase().includes(q)); }
-    }
-    const columns = ['ID','Дата','Тип','Сумма','Категория','Счёт','Источник дохода','Комментарий','Создано'];
-    const quote = value => `"${String(value ?? '').replace(/"/g,'""')}"`;
-    const csv = '\uFEFF' + [columns.map(quote).join(';'), ...rows.map(item => [item.id,item.date,operationKind(item)==='income'?'Доход':'Расход',operationAmount(item),item.category||'',item.account||'',item.incomeSource||'',item.note||'',item.createdAt||''].map(quote).join(';'))].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `second-brain-operations-${todayKey()}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),1000);
-    if (typeof toast === 'function') toast(`Экспортировано операций: ${rows.length}`);
-  }
-
-  function showSuggestion() {
-    const data=currentAssistantStep();const step=data.step;
-    if (typeof openModal === 'function') openModal('Следующие шаги', `<div class="v82-suggestion-head"><span>${safe(step.icon)}</span><div><small>Шаг ${data.index+1} из ${data.steps.length}</small><h2>${safe(step.title)}</h2><p>${safe(step.text)}</p></div></div><div class="v82-suggestion-queue">${data.steps.map((item,index)=>`<button class="${index===data.index?'active':''}" data-v82-action="coach-select" data-index="${index}" type="button"><i>${safe(item.icon)}</i><span><b>${safe(item.title)}</b><small>${safe(item.text)}</small></span><em>${index===data.index?'Сейчас':'›'}</em></button>`).join('')}</div><div class="v79-modal-actions"><button class="v78-primary" data-v82-action="coach-open-current" type="button">${safe(step.action)}</button><button class="v78-secondary" data-v82-action="coach-next" type="button">Следующий шаг</button><button data-v78-route="coach" type="button">Открыть план полностью</button></div>`);
-  }
-
-  function openSearch() {
-    if (typeof openModal !== 'function') return;
-    openModal('Поиск по Second Brain OS', `<div class="v78-search-modal"><label>⌕<input data-v78-global-search autofocus placeholder="Начните вводить название, человека или текст..."></label><div data-v78-search-results><p class="v78-empty">Результаты появятся здесь.</p></div></div>`);
-    setTimeout(()=>document.querySelector('[data-v78-global-search]')?.focus(),50);
-  }
-
-  function searchResults(query) {
-    const q = clean(query).toLowerCase(); if (q.length < 2) return '<p class="v78-empty">Введите минимум 2 символа.</p>';
-    const sources = [
-      ['notes','Заметки','📝',array('notes')],['ideas','Идеи','💡',array('ideas')],['people','Люди','👥',array('people')],['wishes','Желания','💗',array('wishes')],['books','Книги','📚',array('books')],['documents','Документы','📄',array('documents')],['tasks','Задачи','✓',array('tasks')],['habits','Привычки','◉',array('habits')],['finance-operations','Операции','₽',array('operations')]
-    ];
-    const found=[]; sources.forEach(([route,label,icon,items])=>items.forEach(item=>{const text=[item.title,item.name,item.person,item.text,item.note,item.category,item.author,item.role,item.amount,item.date].join(' ').toLowerCase(); if(text.includes(q))found.push({route,label,icon,item});}));
-    return `<div class="v78-search-results">${found.slice(0,30).map(({route,label,icon,item})=>`<button data-v78-route="${route}" type="button"><i>${icon}</i><span><b>${safe(item.title||item.name||item.person||item.category||label)}</b><small>${safe(label)} · ${safe((item.text||item.note||item.author||item.date||'').slice(0,80))}</small></span><em>›</em></button>`).join('') || '<p class="v78-empty">Ничего не найдено.</p>'}</div>`;
-  }
-
-  window.addEventListener('click', event => {
-    const routeButton = event.target.closest?.('[data-v78-route]');
-    if (routeButton) {
-      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-      const filter = routeButton.dataset.v78Filter || '';
-      if (filter) { operationType = filter; operationPage = 1; }
-      return navigate(routeButton.dataset.v78Route, { filter });
-    }
-    const v80 = event.target.closest?.('[data-v80-action]');
-    if(v80){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v80.dataset.v80Action;
-      if(action==='delete-habit')return deleteHabit(v80.dataset.id||'');
-      if(action==='open-person-form')return openPersonForm(v80.dataset.id||'');
-      if(action==='save-person')return savePerson(v80.dataset.id||'');
-      if(action==='delete-person')return deletePerson(v80.dataset.id||'');
-    }
-    const v82 = event.target.closest?.('[data-v82-action]');
-    if(v82){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v82.dataset.v82Action;
-      if(action==='select-habit-icon'){const input=document.getElementById('v78_habit_icon');if(input)input.value=v82.dataset.icon||'✨';document.querySelectorAll('[data-v82-action="select-habit-icon"]').forEach(btn=>btn.classList.toggle('selected',btn===v82));const preview=document.getElementById('v82_icon_preview');if(preview)preview.textContent=v82.dataset.icon||'✨';return;}
-      if(action==='calendar-view'){state.settings.v82.calendarView=v82.dataset.view||'week';save();return renderPremium();}
-      if(action==='calendar-today'){state.settings.v82.calendarAnchor=todayKey();save();return renderPremium();}
-      if(action==='calendar-anchor'){state.settings.v82.calendarAnchor=v82.dataset.date||todayKey();state.settings.v82.calendarView='day';save();return renderPremium();}
-      if(action==='calendar-shift'){const view=calendarView(),amount=number(v82.dataset.delta)||0;const d=dateAtNoon(calendarAnchor());if(view==='month')d.setMonth(d.getMonth()+amount);else d.setDate(d.getDate()+amount*(view==='week'?7:1));state.settings.v82.calendarAnchor=d.toISOString().slice(0,10);save();return renderPremium();}
-      if(action==='quick-task-day')return openRecordForm('task','',{date:v82.dataset.date||calendarAnchor(),status:'planned',priority:'medium'});
-      if(action==='google-calendar'){const task=array('tasks').find(t=>t.id===v82.dataset.id);if(!task)return toast('Событие не найдено');window.open(googleCalendarUrl(task),'_blank','noopener');return toast('Открываю Google Календарь');}
-      if(action==='coach-next'){const data=currentAssistantStep();state.settings.v82.coachStep=(data.index+1)%data.steps.length;save();closeModal();return routeNow()==='coach'?renderPremium():showSuggestion();}
-      if(action==='coach-select'){state.settings.v82.coachStep=Math.max(0,number(v82.dataset.index));save();closeModal();return routeNow()==='coach'?renderPremium():showSuggestion();}
-      if(action==='coach-reset'){state.settings.v82.coachStep=0;save();return renderPremium();}
-      if(action==='coach-open-current'){const data=currentAssistantStep();closeModal();return navigate(data.step.route);}
-      if(action==='archive-details')return openArchiveDetails(v82.dataset.id||'');
-    }
-    const v81 = event.target.closest?.('[data-v81-action]');
-    if(v81){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const action=v81.dataset.v81Action;
-      if(action==='open-category-editor')return openCategoryEditor(v81.dataset.from||'');
-      if(action==='apply-category-bulk')return applyCategoryBulk(v81);
-      if(action==='quick-category')return openQuickCategory(v81.dataset.id||'');
-      if(action==='save-quick-category')return saveQuickCategory(v81.dataset.id||'',v81);
-      if(action==='prefill-category'){const input=document.getElementById('v81_cat_from'); if(input)input.value=v81.dataset.name||''; const next=document.getElementById('v81_cat_to'); if(next)next.focus(); return;}
-      if(action==='fill-quick-category'){const input=document.getElementById('v81_quick_category'); if(input){input.value=v81.dataset.name||''; input.focus();} return;}
-      if(action==='quick-task-day')return openRecordForm('task','',{date:v81.dataset.date||todayKey()});
-    }
-    const v79 = event.target.closest?.('[data-v79-action]');
-    if (v79) {
-      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-      const action=v79.dataset.v79Action;
-      if(action==='open-record-form')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
-      if(action==='edit-record')return openRecordForm(v79.dataset.type,v79.dataset.id||'');
-      if(action==='save-record')return saveRecord(v79.dataset.type,v79.dataset.id||'',v79);
-      if(action==='delete-record')return deleteRecord(v79.dataset.type,v79.dataset.id||'');
-      if(action==='open-quick')return openQuick();
-      if(action==='set-actual-balance')return openBalance();
-      if(action==='save-balance'){state.settings.currentBalance=number(document.getElementById('v79_balance')?.value);save();closeModal();renderPremium();return toast('Баланс сохранён');}
-      if(action==='open-debt-in')return openRecordForm('debt','',{direction:'in'});
-      if(action==='open-debt-out')return openRecordForm('debt','',{direction:'out'});
-      if(action==='close-debt'){const d=array('debts').find(x=>x.id===v79.dataset.id);if(d)d.status='Закрыт';save();renderPremium();return toast('Обязательство закрыто');}
-      if(action==='export-data')return downloadJson();
-      if(action==='open-interview')return openInterview();
-      if(action==='save-interview')return saveInterview();
-      if(action==='polina-month'){const cur=state.settings.polinaMonth||monthKey(todayKey()),d=new Date(`${cur}-01T12:00:00`);d.setMonth(d.getMonth()+number(v79.dataset.delta));state.settings.polinaMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;save();return renderPremium();}
-      if(action==='open-polina-day')return openPolinaDay(v79.dataset.date);
-      if(action==='save-polina-day')return savePolinaDay(v79.dataset.date);
-      if(action==='create-vault')return createVault();
-      if(action==='unlock-vault')return unlockVault();
-      if(action==='lock-vault'){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};return renderPremium();}
-      if(action==='open-vault-entry')return openVaultEntry(v79.dataset.id||'');
-      if(action==='save-vault-entry')return saveVaultEntry(v79.dataset.id||'');
-      if(action==='reveal-vault'){vaultSession.revealed.has(v79.dataset.id)?vaultSession.revealed.delete(v79.dataset.id):vaultSession.revealed.add(v79.dataset.id);return renderPremium();}
-      if(action==='copy-vault'){const e=vaultSession.entries.find(x=>x.id===v79.dataset.id);if(e?.secret)navigator.clipboard?.writeText(e.secret);return toast('Скопировано');}
-      if(action==='clear-ui-cache')return (async()=>{try{const regs=await navigator.serviceWorker?.getRegistrations?.()||[];await Promise.all(regs.map(r=>r.unregister()));const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)));toast('Кэш очищен. Перезагрузка…');setTimeout(()=>location.reload(),600);}catch(error){toast('Не удалось очистить кэш');}})();
-    }
-    const button = event.target.closest?.('[data-v78-action]');
-    if (!button) return;
-    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-    const action = button.dataset.v78Action;
-    if (action === 'toggle-habit') return toggleHabit(button.dataset.id, todayKey(), undefined, button);
-    if (action === 'toggle-habit-date') return toggleHabit(button.dataset.id, button.dataset.date, undefined, button);
-    if (action === 'mark-all-habits') return markAllHabits(button);
-    if (action === 'open-habit-form') return openHabitForm();
-    if (action === 'edit-habit') return openHabitForm(button.dataset.id);
-    if (action === 'save-habit') return saveHabit(button.dataset.id || '');
-    if (action === 'open-wishlist-form') return openWishlistForm();
-    if (action === 'edit-wishlist') return openWishlistForm(button.dataset.id);
-    if (action === 'save-wishlist') return saveWishlist(button.dataset.id || '');
-    if (action === 'delete-wishlist') { state.habitWishlist = state.habitWishlist.filter(item=>item.id!==button.dataset.id); persist('Идея удалена'); return renderPremium(); }
-    if (action === 'promote-wishlist') return promoteWishlist(button.dataset.id);
-    if (action === 'edit-profile') return openProfileForm();
-    if (action === 'save-profile') return saveProfile();
-    if (action === 'operation-type') { operationType = button.dataset.type; operationPage = 1; state.settings.v78.operationType=operationType; return renderPremium(); }
-    if (action === 'operation-page') { operationPage = Math.max(1,number(button.dataset.page)||1); state.settings.v78.operationPage=operationPage; return renderPremium(); }
-    if (action === 'export-csv') return exportCsv(button.dataset.scope || 'all');
-    if (action === 'open-search') return openSearch();
-    if (action === 'show-suggestion') return showSuggestion();
-    if (action === 'close-modal') return typeof closeModal === 'function' ? closeModal() : undefined;
-  }, true);
-
-  window.addEventListener('input', event => {
-    const operationSearch = event.target.closest?.('[data-v78-operation-search]');
-    if (operationSearch) { operationQuery = operationSearch.value; operationPage = 1; return; }
-    const globalSearch = event.target.closest?.('[data-v78-global-search]');
-    if (globalSearch) { const target=document.querySelector('[data-v78-search-results]'); if(target)target.innerHTML=searchResults(globalSearch.value); }
-  });
-
-  window.addEventListener('keydown', event => {
-    const operationSearch = event.target.closest?.('[data-v78-operation-search]');
-    if (operationSearch && event.key === 'Enter') { event.preventDefault(); renderPremium(); }
-  });
-
-  window.addEventListener('change', event => {
-    const operationSearch = event.target.closest?.('[data-v78-operation-search]');
-    if (operationSearch) { operationQuery = operationSearch.value; operationPage = 1; renderPremium(); return; }
-    const avatar = event.target.closest?.('#v78_avatar_file'); if (avatar?.files?.[0]) compressAvatar(avatar.files[0]).catch(error=>{console.error(error); if(typeof toast==='function')toast('Не удалось обработать изображение');});
-    const personAvatar=event.target.closest?.('#v80_person_avatar_file');if(personAvatar?.files?.[0])compressPersonAvatar(personAvatar.files[0]).catch(error=>{console.error(error);toast('Не удалось обработать фотографию');});
-    const period = event.target.closest?.('[data-v78-category-period]'); if(period){state.settings.v78.categoryPeriod=period.value;state.settings.v81.categoryPeriodAutoFixed=true;persist();renderPremium();}
-    const importFile=event.target.closest?.('#v79_import_file');if(importFile?.files?.[0])importJson(importFile.files[0]);
-  });
-
-  window.addEventListener('popstate', renderPremium);
-  window.addEventListener('hashchange', () => { clearTimeout(renderTimer); renderTimer = setTimeout(renderPremium, 10); });
-  window.addEventListener('storage', event => { if (event.key === 'secondBrainOS.v1') { clearTimeout(renderTimer); renderTimer=setTimeout(renderPremium,80); } });
-
-  window.V821Premium = { render: renderPremium, navigate, ensureData, exportCsv, profilePage, habitsPage, informationPage, calendarPage, archivePage, assistantSteps };
-
-  try {
-    state = await coreLoad();
-    window.state = state;
-    ensureData();
-    save();
-    const initialRoute = routeNow();
-    if (!location.hash || ['dashboard','focus-path'].includes(initialRoute)) history.replaceState(null,'','#today');
-    renderPremium();
-    setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
-  } catch (error) {
-    console.error('[V82.1 Font Archive Runtime]', error);
-    document.body.classList.remove('v80-booting','v79-booting','v78-booting');
-    document.getElementById('app').innerHTML='<main style="padding:40px;font-family:Onest,sans-serif"><h1>Не удалось запустить приложение</h1><p>Данные не удалены. Обновите страницу или восстановите предыдущую версию.</p></main>';
-  }
 })();

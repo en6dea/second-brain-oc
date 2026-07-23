@@ -1,6 +1,6 @@
 'use strict';
 const APP_NAME='Second Brain OS';
-const BUILD='second-brain-space-v32-buttons-root-cause-fix-20260701';
+const BUILD='second-brain-space-v31-buttons-only-hard-fix-20260701';
 const STORE_KEY='secondBrainOS.v1';
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
@@ -17,7 +17,7 @@ const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Number(v)||0));
 let page=location.hash?location.hash.slice(1):'dashboard';
 
 
-/* ===== V32 MASTER CLICK ROUTER: button-only hard fix =====
+/* ===== V31 MASTER CLICK ROUTER: button-only hard fix =====
    Registered before all older routers. It handles every known button action first,
    then stops older stacked listeners from swallowing clicks. No data/schema/design changes. */
 window.addEventListener('click',function(e){
@@ -27,7 +27,7 @@ window.addEventListener('click',function(e){
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    try{return fn()}catch(err){console.error('[V32 button router]',err);try{toast('Ошибка кнопки: '+(err.message||err))}catch(_){}}
+    try{return fn()}catch(err){console.error('[V31 button router]',err);try{toast('Ошибка кнопки: '+(err.message||err))}catch(_){}}
   }
   function googleEventV31(el){
     const id=el&&el.dataset?el.dataset.id:'';
@@ -555,7 +555,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     state=normalize(state);
     if(state.purchases?.length>1)state.purchases=dedupeBy(state.purchases,purchaseKey);
     save();
-    const map={dashboard,finance:financePage,debts:debtsPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:(typeof polinaPage==='function'?polinaPage:(window.polinaPage||personalPage)),archive:archivePage};
+    const map={dashboard,finance:financePage,debts:debtsPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
     renderShell((map[page]||dashboard)());
     const v=$('.version'); if(v) v.textContent=V26_LABEL;
   };
@@ -833,7 +833,7 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
 
 /* ===== V28 Space Calendar: events, reminders, load, Google Calendar ===== */
 (function(){
-  const V28_BUILD='second-brain-space-v32-buttons-root-cause-fix-20260701';
+  const V28_BUILD='second-brain-space-v31-buttons-only-hard-fix-20260701';
   try{ localStorage.setItem('secondBrainOS.currentBuild',V28_BUILD); }catch(e){}
 
   function ensureCalendarV28(){
@@ -1050,9 +1050,9 @@ try{state=normalize(state);delete state.plannedPurchases;delete state.wants;stat
     ensureCalendarV28();
     if(state.purchases&&state.purchases.length>1) state.purchases=dedupeBy(state.purchases,x=>`${String(x.title||'').toLowerCase()}|${num(x.amount)}|${x.date}|${String(x.note||'').toLowerCase()}`);
     save();
-    const map={dashboard,finance:financePage,debts:debtsPage,calendar:calendarPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:(typeof polinaPage==='function'?polinaPage:(window.polinaPage||personalPage)),archive:archivePage};
+    const map={dashboard,finance:financePage,debts:debtsPage,calendar:calendarPage,tasks:tasksPage,planning:planningPage,purchases:purchasesPage,wishes:wishesPage,notes:notesPage,ideas:ideasPage,people:peoplePage,habits:habitsPage,goals:goalsPage,documents:documentsPage,books:booksPage,films:filmsPage,trips:tripsPage,personal:personalPage,polina:polinaPage,archive:archivePage};
     renderShell((map[page]||dashboard)());
-    const v=document.querySelector('.version'); if(v) v.textContent='V32 · КНОПКИ · ROOT FIX';
+    const v=document.querySelector('.version'); if(v) v.textContent='V31 · КНОПКИ · HARD FIX';
   };
 
   window.addEventListener('click',e=>{

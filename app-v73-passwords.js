@@ -1,386 +1,519 @@
 'use strict';
 
-/* Second Brain OS V73 — encrypted password and access vault.
-   Secrets are encrypted in the browser before they are placed into app state. */
+/* Second Brain OS V72 — календарь состояния Полины и прогноз цикла.
+   Данные остаются в общем state и автоматически попадают в backup / облачную синхронизацию. */
 (() => {
-  const BUILD = 'second-brain-space-v73-password-vault-20260716-r1';
-  const LABEL = 'V73 · ПАРОЛИ И ДОСТУПЫ';
-  const ROUTE = 'passwords';
-  const AUTO_LOCK_MS = 15 * 60 * 1000;
-  const DEFAULT_ITERATIONS = 310000;
-
+  const BUILD = 'second-brain-space-v72-polina-state-20260716-r6';
+  const LABEL = 'V72.4 · СОСТОЯНИЕ ПОЛИНЫ';
+  const ROUTE = 'polina';
+  const STATUS = {
+    good: { label: 'Хорошее', short: 'Хорошее', icon: '✓' },
+    neutral: { label: 'Нейтральное', short: 'Нейтральное', icon: '•' },
+    bad: { label: 'Плохое', short: 'Плохое', icon: '!' }
+  };
   let postTimer = 0;
-  let vaultQuery = '';
-  let lastActivityAt = Date.now();
-  const revealedIds = new Set();
-  const session = { key: null, entries: [], unlocked: false };
 
   const clean = value => String(value ?? '').trim();
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
-  const makeId = () => typeof uid === 'function' ? uid() : `${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
-  const nowIso = () => new Date().toISOString();
-  const formatDate = value => value ? new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-  const bytesToB64 = bytes => {
-    let binary = '';
-    new Uint8Array(bytes).forEach(byte => { binary += String.fromCharCode(byte); });
-    return btoa(binary);
+  const todayStamp = () => typeof today === 'function' ? today() : new Date().toISOString().slice(0, 10);
+  const makeId = () => typeof uid === 'function' ? uid() : `${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36)}`;
+  const isoDate = value => {
+    if (!value) return '';
+    const raw = String(value).slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
   };
-  const b64ToBytes = value => {
-    const binary = atob(String(value || ''));
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    return bytes;
+  const dateAtNoon = value => new Date(`${isoDate(value)}T12:00:00`);
+  const addDateDays = (value, amount) => {
+    const date = dateAtNoon(value);
+    date.setDate(date.getDate() + Number(amount || 0));
+    return date.toISOString().slice(0, 10);
   };
-  const randomBytes = length => crypto.getRandomValues(new Uint8Array(length));
-  const encode = value => new TextEncoder().encode(String(value));
-  const decode = value => new TextDecoder().decode(value);
+  const diffDays = (from, to) => Math.round((dateAtNoon(to) - dateAtNoon(from)) / 86400000);
+  const monthKey = value => (isoDate(value) || todayStamp()).slice(0, 7);
+  const currentMonth = () => todayStamp().slice(0, 7);
+  const round = value => Math.round(Number(value || 0));
+  const average = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+  const formatDate = value => value ? dateAtNoon(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+  const formatShortDate = value => value ? dateAtNoon(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '—';
+  const formatMonth = key => {
+    const match = /^(\d{4})-(\d{2})$/.exec(String(key || ''));
+    if (!match) return '';
+    const label = new Date(Number(match[1]), Number(match[2]) - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+  const plural = (number, one, few, many) => {
+    const value = Math.abs(Number(number || 0)) % 100;
+    const last = value % 10;
+    if (value > 10 && value < 20) return many;
+    if (last === 1) return one;
+    if (last >= 2 && last <= 4) return few;
+    return many;
+  };
 
-  function ensureState() {
+  function normalizeStatus(entry) {
+    const explicit = clean(entry?.status).toLowerCase();
+    if (STATUS[explicit]) return explicit;
+    const legacy = clean(entry?.mood).toLowerCase();
+    if (legacy === 'good') return 'good';
+    if (legacy === 'neutral') return 'neutral';
+    if (legacy === 'excellent') return 'good';
+    if (legacy === 'bad') return 'bad';
+    return '';
+  }
+
+  function normalizePeriodMarker(entry) {
+    const explicit = clean(entry?.periodMarker || entry?.cycleMarker).toLowerCase();
+    if (explicit === 'start' || explicit === 'end') return explicit;
+    const legacy = clean(entry?.mood).toLowerCase();
+    if (legacy === 'period_start') return 'start';
+    if (legacy === 'period_end') return 'end';
+    return '';
+  }
+
+  function normalizedEntry(entry) {
+    return {
+      id: clean(entry?.id) || makeId(),
+      date: isoDate(entry?.date) || todayStamp(),
+      status: normalizeStatus(entry),
+      comment: clean(entry?.comment || entry?.note),
+      periodMarker: normalizePeriodMarker(entry),
+      updatedAt: clean(entry?.updatedAt) || ''
+    };
+  }
+
+  function ensureData() {
     if (typeof state !== 'object' || !state) return;
     state.settings = state.settings || {};
-    state.settings.passwordVault = Object.assign({ autoLockMinutes: 15 }, state.settings.passwordVault || {});
+    state.settings.polinaCycle = Object.assign({ lastStart: '', cycleLength: 28, duration: 5 }, state.settings.polinaCycle || {});
+    state.settings.polinaMonth = /^\d{4}-\d{2}$/.test(String(state.settings.polinaMonth || '')) ? state.settings.polinaMonth : currentMonth();
+    state.polinaCalendar = Object.assign({ version: 2 }, state.polinaCalendar || {});
+
+    const rows = Array.isArray(state.polinaDays) ? state.polinaDays : [];
+    const byDate = new Map();
+    rows.forEach(raw => {
+      const item = normalizedEntry(raw);
+      const previous = byDate.get(item.date);
+      if (!previous) {
+        byDate.set(item.date, item);
+        return;
+      }
+      byDate.set(item.date, {
+        id: previous.id || item.id,
+        date: item.date,
+        status: item.status || previous.status,
+        comment: item.comment || previous.comment,
+        periodMarker: item.periodMarker || previous.periodMarker,
+        updatedAt: item.updatedAt || previous.updatedAt
+      });
+    });
+    state.polinaDays = [...byDate.values()].sort((left, right) => right.date.localeCompare(left.date));
+
+    const starts = state.polinaDays.filter(item => item.periodMarker === 'start').map(item => item.date).sort();
+    if (!starts.length && isoDate(state.settings.polinaCycle.lastStart)) {
+      const date = isoDate(state.settings.polinaCycle.lastStart);
+      state.polinaDays.push({ id: makeId(), date, status: '', comment: '', periodMarker: 'start', updatedAt: '' });
+      state.polinaDays.sort((left, right) => right.date.localeCompare(left.date));
+    }
+
+    const section = typeof SECTIONS !== 'undefined' && Array.isArray(SECTIONS) ? SECTIONS.find(item => item.id === ROUTE) : null;
+    if (section) {
+      section.label = 'Состояние Полины';
+      section.icon = '🌸';
+      section.color = '#ec4899';
+    }
   }
 
-  function vaultData() {
-    ensureState();
-    return state.passwordVault && typeof state.passwordVault === 'object' ? state.passwordVault : null;
+  function entriesAscending() {
+    ensureData();
+    return (state.polinaDays || []).map(normalizedEntry).sort((left, right) => left.date.localeCompare(right.date));
   }
 
-  function supported() {
-    return Boolean(window.crypto?.subtle && window.TextEncoder && window.TextDecoder);
-  }
+  function cycleModel() {
+    const entries = entriesAscending();
+    const starts = [...new Set(entries.filter(item => item.periodMarker === 'start').map(item => item.date))].sort();
+    const ends = [...new Set(entries.filter(item => item.periodMarker === 'end').map(item => item.date))].sort();
+    const savedCycle = Math.max(20, Math.min(45, Number(state.settings?.polinaCycle?.cycleLength) || 28));
+    const savedDuration = Math.max(1, Math.min(10, Number(state.settings?.polinaCycle?.duration) || 5));
 
-  async function deriveKey(masterPassword, salt, iterations = DEFAULT_ITERATIONS) {
-    const source = await crypto.subtle.importKey('raw', encode(masterPassword), { name: 'PBKDF2' }, false, ['deriveKey']);
-    return crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-      source,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt']
-    );
-  }
+    const intervals = [];
+    for (let index = 1; index < starts.length; index += 1) {
+      const days = diffDays(starts[index - 1], starts[index]);
+      if (days >= 20 && days <= 45) intervals.push(days);
+    }
 
-  async function encryptEntries(entries, key, salt, iterations = DEFAULT_ITERATIONS) {
-    const iv = randomBytes(12);
-    const payload = encode(JSON.stringify({ version: 1, entries }));
-    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, payload);
+    const durations = [];
+    const ranges = [];
+    starts.forEach((start, index) => {
+      const nextStart = starts[index + 1] || '';
+      const end = ends.find(value => value >= start && (!nextStart || value < nextStart) && diffDays(start, value) <= 12) || '';
+      if (end) {
+        const days = diffDays(start, end) + 1;
+        if (days >= 1 && days <= 10) durations.push(days);
+        ranges.push({ start, end, open: false });
+      } else {
+        const maximum = addDateDays(start, 9);
+        const openEnd = todayStamp() >= start ? (todayStamp() < maximum ? todayStamp() : maximum) : start;
+        ranges.push({ start, end: openEnd, open: true });
+      }
+    });
+
+    const recentIntervals = intervals.slice(-6);
+    const recentDurations = durations.slice(-6);
+    const cycleLength = round(average(recentIntervals)) || savedCycle;
+    const duration = round(average(recentDurations)) || savedDuration;
+    const latestStart = starts.at(-1) || '';
+    const latestEnd = latestStart ? (ends.filter(value => value >= latestStart && diffDays(latestStart, value) <= 12).at(0) || '') : '';
+
+    let nextStart = latestStart ? addDateDays(latestStart, cycleLength) : '';
+    while (nextStart && nextStart < todayStamp()) nextStart = addDateDays(nextStart, cycleLength);
+    const forecasts = [];
+    if (nextStart) {
+      let cursor = nextStart;
+      for (let index = 0; index < 6; index += 1) {
+        forecasts.push({ start: cursor, end: addDateDays(cursor, duration - 1) });
+        cursor = addDateDays(cursor, cycleLength);
+      }
+    }
+
     return {
-      version: 1,
-      cipher: 'AES-GCM-256',
-      kdf: 'PBKDF2-SHA256',
-      iterations,
-      salt: bytesToB64(salt),
-      iv: bytesToB64(iv),
-      ciphertext: bytesToB64(ciphertext),
-      updatedAt: nowIso()
+      entries,
+      starts,
+      ends,
+      ranges,
+      intervals,
+      durations,
+      cycleLength,
+      duration,
+      latestStart,
+      latestEnd,
+      nextStart,
+      forecasts,
+      method: recentIntervals.length ? `среднее по ${recentIntervals.length} ${plural(recentIntervals.length, 'циклу', 'циклам', 'циклам')}` : `базовый ритм ${savedCycle} дней`
     };
   }
 
-  async function decryptEntries(vault, key) {
-    const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: b64ToBytes(vault.iv) },
-      key,
-      b64ToBytes(vault.ciphertext)
-    );
-    const parsed = JSON.parse(decode(plaintext));
-    return Array.isArray(parsed.entries) ? parsed.entries : [];
+  function selectedMonth() {
+    ensureData();
+    return state.settings.polinaMonth || currentMonth();
   }
 
-  function normalizeEntry(raw) {
-    return {
-      id: clean(raw?.id) || makeId(),
-      title: clean(raw?.title) || 'Без названия',
-      category: clean(raw?.category) || 'Другое',
-      login: clean(raw?.login),
-      secret: String(raw?.secret ?? ''),
-      url: clean(raw?.url),
-      note: clean(raw?.note),
-      createdAt: clean(raw?.createdAt) || nowIso(),
-      updatedAt: clean(raw?.updatedAt) || nowIso()
+  function shiftMonth(key, delta) {
+    const [year, month] = String(key || currentMonth()).split('-').map(Number);
+    const date = new Date(year, month - 1 + Number(delta || 0), 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function monthCells(key) {
+    const [year, month] = String(key).split('-').map(Number);
+    const first = new Date(year, month - 1, 1, 12);
+    const last = new Date(year, month, 0, 12);
+    const padding = (first.getDay() + 6) % 7;
+    const cells = Array.from({ length: padding }, () => '');
+    for (let day = 1; day <= last.getDate(); day += 1) cells.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+    while (cells.length % 7 !== 0) cells.push('');
+    return cells;
+  }
+
+  function entryByDate(date) {
+    return (state.polinaDays || []).map(normalizedEntry).find(item => item.date === date) || null;
+  }
+
+  function actualPeriodInfo(date, model) {
+    const range = model.ranges.find(item => date >= item.start && date <= item.end);
+    if (!range) return null;
+    if (date === range.start) return { label: 'Начало', kind: 'start', open: range.open };
+    const marker = entryByDate(date)?.periodMarker;
+    if (marker === 'end' || date === range.end && !range.open) return { label: 'Конец', kind: 'end', open: false };
+    return { label: 'Месячные', kind: 'period', open: range.open };
+  }
+
+  function predictedPeriodInfo(date, model) {
+    const forecast = model.forecasts.find(item => date >= item.start && date <= item.end);
+    if (!forecast) return null;
+    return { label: date === forecast.start ? 'Прогноз' : 'Прогноз', kind: 'forecast' };
+  }
+
+  function monthStats(key) {
+    const entries = entriesAscending().filter(item => monthKey(item.date) === key);
+    const result = { total: 0, good: 0, neutral: 0, bad: 0, comments: 0, starts: 0, ends: 0 };
+    entries.forEach(item => {
+      if (STATUS[item.status]) {
+        result.total += 1;
+        result[item.status] += 1;
+      }
+      if (item.comment) result.comments += 1;
+      if (item.periodMarker === 'start') result.starts += 1;
+      if (item.periodMarker === 'end') result.ends += 1;
+    });
+    return result;
+  }
+
+  function historyMonths() {
+    const keys = new Set(entriesAscending().map(item => monthKey(item.date)));
+    keys.add(selectedMonth());
+    return [...keys].sort((left, right) => right.localeCompare(left)).slice(0, 18);
+  }
+
+  function statusCellStyle(status) {
+    if (!status) return '';
+    const dark = document.documentElement.classList.contains('v70-theme-dark') || document.body.classList.contains('v67-theme-dark');
+    const palette = dark ? {
+      good: { background: '#174f2d', border: '#47c879', shadow: 'rgba(71,200,121,.24)' },
+      neutral: { background: '#5a4310', border: '#e2b83f', shadow: 'rgba(226,184,63,.25)' },
+      bad: { background: '#57212a', border: '#ef7180', shadow: 'rgba(239,113,128,.24)' }
+    } : {
+      good: { background: '#c9f1d5', border: '#42b96d', shadow: 'rgba(66,185,109,.20)' },
+      neutral: { background: '#ffe89a', border: '#ddb02f', shadow: 'rgba(221,176,47,.20)' },
+      bad: { background: '#ffc8d0', border: '#e76575', shadow: 'rgba(231,101,117,.20)' }
     };
+    const color = palette[status];
+    if (!color) return '';
+    return `background:${color.background}!important;border-color:${color.border}!important;box-shadow:inset 0 0 0 999px ${color.shadow},inset 0 0 0 1px ${color.border}!important;`;
   }
 
-  function safeUrl(value) {
-    const raw = clean(value);
-    if (!raw) return '';
-    try {
-      const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
-      return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-    } catch (error) { return ''; }
+  function dayCell(date, model) {
+    if (!date) return '<div class="v72-day is-empty" aria-hidden="true"></div>';
+    const entry = entryByDate(date);
+    const status = entry?.status || '';
+    const actual = actualPeriodInfo(date, model);
+    const predicted = actual ? null : predictedPeriodInfo(date, model);
+    const classes = [
+      'v72-day',
+      status ? `is-${status}` : '',
+      date === todayStamp() ? 'is-today' : '',
+      actual ? 'is-period' : '',
+      predicted ? 'is-predicted' : ''
+    ].filter(Boolean).join(' ');
+    const stateLabel = status ? STATUS[status].short : '';
+    const periodLabel = actual?.label || predicted?.label || '';
+    return `<button class="${classes}" style="${statusCellStyle(status)}" data-v72-action="open-day" data-date="${date}" type="button" aria-label="${escape(formatDate(date))}">
+      <span class="v72-day-top"><b>${Number(date.slice(8, 10))}</b>${date === todayStamp() ? '<em>сегодня</em>' : ''}</span>
+      <span class="v72-day-state">${status ? `<i>${STATUS[status].icon}</i>${escape(stateLabel)}` : '<span>Без отметки</span>'}</span>
+      ${entry?.comment ? `<span class="v72-day-comment">${escape(entry.comment)}</span>` : '<span class="v72-day-comment is-placeholder">Добавить комментарий</span>'}
+      <span class="v72-day-tags">${periodLabel ? `<small class="${actual ? 'is-actual' : 'is-forecast'}">${actual ? '●' : '○'} ${escape(periodLabel)}</small>` : ''}</span>
+    </button>`;
   }
 
-  function touch() {
-    lastActivityAt = Date.now();
-  }
-
-  function lockVault(showToast = true) {
-    session.key = null;
-    session.entries = [];
-    session.unlocked = false;
-    revealedIds.clear();
-    vaultQuery = '';
-    if (showToast && typeof toast === 'function') toast('Хранилище заблокировано');
-    renderRoute();
-  }
-
-  async function persistEntries() {
-    const current = vaultData();
-    if (!session.unlocked || !session.key || !current) throw new Error('Vault is locked');
-    const salt = b64ToBytes(current.salt);
-    const encrypted = await encryptEntries(session.entries.map(normalizeEntry), session.key, salt, Number(current.iterations) || DEFAULT_ITERATIONS);
-    state.passwordVault = encrypted;
-    state.settings.passwordVault = Object.assign({}, state.settings.passwordVault || {}, { lastUpdatedAt: encrypted.updatedAt });
-    if (typeof save === 'function') save();
-    touch();
-  }
-
-  function createVaultPage() {
-    return `<section class="v73-page">
-      <header class="v73-hero">
-        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Логины, пароли, PIN-коды, ссылки и личные данные в одном зашифрованном хранилище.</p></div>
-      </header>
-      <article class="v73-card v73-onboarding">
-        <div class="v73-lock-icon">🔐</div>
-        <div><span>Первичная настройка</span><h2>Создайте мастер-пароль</h2><p>Он будет использоваться только для расшифровки данных на вашем устройстве. Сам мастер-пароль нигде не сохраняется.</p></div>
-        <div class="v73-form-stack">
-          <label><span>Мастер-пароль</span><input id="v73_master_new" type="password" autocomplete="new-password" placeholder="Минимум 10 символов"></label>
-          <label><span>Повторите пароль</span><input id="v73_master_repeat" type="password" autocomplete="new-password" placeholder="Повторите мастер-пароль"></label>
-          <button class="is-primary" data-v73-action="create-vault" type="button">Создать защищённое хранилище</button>
-        </div>
-        <p class="v73-warning">Если мастер-пароль будет потерян, восстановить зашифрованные записи технически невозможно. Сохраните его в надёжном месте.</p>
-      </article>
-    </section>`;
-  }
-
-  function lockedPage() {
-    const vault = vaultData();
-    return `<section class="v73-page">
-      <header class="v73-hero">
-        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Хранилище заблокировано. Для просмотра записей нужен мастер-пароль.</p></div>
-      </header>
-      <article class="v73-card v73-unlock-card">
-        <div class="v73-lock-icon">🔒</div>
-        <div><span>Зашифровано</span><h2>Разблокировать хранилище</h2><p>Последнее обновление: ${escape(formatDate(vault?.updatedAt))}</p></div>
-        <div class="v73-unlock-row"><input id="v73_master_unlock" type="password" autocomplete="current-password" placeholder="Введите мастер-пароль"><button class="is-primary" data-v73-action="unlock-vault" type="button">Открыть</button></div>
-        <p class="v73-security-line">AES-GCM · ключ выводится из мастер-пароля · автоматическая блокировка через 15 минут</p>
-      </article>
-    </section>`;
-  }
-
-  function filteredEntries() {
-    const query = clean(vaultQuery).toLowerCase();
-    const rows = session.entries.map(normalizeEntry).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-    if (!query) return rows;
-    return rows.filter(item => [item.title, item.category, item.login, item.url, item.note].join(' ').toLowerCase().includes(query));
-  }
-
-  function entryCard(entry) {
-    const revealed = revealedIds.has(entry.id);
-    const url = safeUrl(entry.url);
-    return `<article class="v73-entry-card">
-      <header><div class="v73-entry-icon">🔑</div><div><span>${escape(entry.category)}</span><h3>${escape(entry.title)}</h3></div><button data-v73-action="edit-entry" data-id="${escape(entry.id)}" type="button">✎</button></header>
-      <div class="v73-entry-data">
-        <div><span>Логин</span><b>${escape(entry.login || '—')}</b>${entry.login ? `<button data-v73-action="copy-login" data-id="${escape(entry.id)}" type="button">Копировать</button>` : ''}</div>
-        <div><span>Пароль / секрет</span><b class="is-secret">${revealed ? escape(entry.secret || '—') : (entry.secret ? '••••••••••••' : '—')}</b>${entry.secret ? `<span class="v73-inline-actions"><button data-v73-action="toggle-secret" data-id="${escape(entry.id)}" type="button">${revealed ? 'Скрыть' : 'Показать'}</button><button data-v73-action="copy-secret" data-id="${escape(entry.id)}" type="button">Копировать</button></span>` : ''}</div>
-      </div>
-      ${entry.note ? `<p>${escape(entry.note)}</p>` : ''}
-      <footer>${url ? `<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">Открыть сайт ↗</a>` : '<span>Без ссылки</span>'}<small>Обновлено ${escape(formatDate(entry.updatedAt))}</small></footer>
-    </article>`;
-  }
-
-  function unlockedPage() {
-    const rows = filteredEntries();
-    const total = session.entries.length;
-    const categories = new Set(session.entries.map(item => clean(item.category)).filter(Boolean)).size;
-    return `<section class="v73-page">
-      <header class="v73-hero">
-        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Записывайте данные от сервисов, аккаунтов, карт, устройств и любых других доступов.</p></div>
-        <div class="v73-hero-actions"><button class="is-primary" data-v73-action="add-entry" type="button">＋ Добавить запись</button><button data-v73-action="lock-vault" type="button">🔒 Заблокировать</button></div>
-      </header>
-      <section class="v73-stats"><article><span>Записей</span><b>${total}</b><small>зашифровано</small></article><article><span>Категорий</span><b>${categories}</b><small>для быстрого поиска</small></article><article><span>Автоблокировка</span><b>15 мин.</b><small>после бездействия</small></article></section>
-      <article class="v73-card v73-toolbar"><div class="v73-search"><span>⌕</span><input id="v73_search" value="${escape(vaultQuery)}" placeholder="Поиск по сервису, логину или комментарию"></div><button data-v73-action="add-entry" type="button">＋ Новая запись</button></article>
-      <section class="v73-entry-grid">${rows.map(entryCard).join('') || `<article class="v73-card v73-empty"><div>🔑</div><h3>${vaultQuery ? 'Ничего не найдено' : 'Хранилище пока пустое'}</h3><p>${vaultQuery ? 'Попробуйте изменить поисковый запрос.' : 'Добавьте первый сервис, логин, пароль или любую другую личную информацию.'}</p>${vaultQuery ? '' : '<button class="is-primary" data-v73-action="add-entry" type="button">Добавить первую запись</button>'}</article>`}</section>
-      <article class="v73-security-note"><b>Важно:</b> записи шифруются перед сохранением и синхронизацией. Мастер-пароль не сохраняется, но для самых критичных аккаунтов отдельный специализированный менеджер паролей всё равно надёжнее.</article>
-    </section>`;
+  function monthHistoryRow(key) {
+    const stats = monthStats(key);
+    const dominant = ['good', 'neutral', 'bad'].sort((left, right) => stats[right] - stats[left])[0];
+    const dominantLabel = stats.total ? STATUS[dominant].label : 'Нет состояний';
+    return `<button class="v72-history-row ${key === selectedMonth() ? 'is-active' : ''}" data-v72-action="open-month" data-month="${key}" type="button">
+      <span><b>${escape(formatMonth(key))}</b><small>${stats.total} ${plural(stats.total, 'день', 'дня', 'дней')} с состоянием · ${stats.comments} ${plural(stats.comments, 'комментарий', 'комментария', 'комментариев')}</small></span>
+      <span class="v72-history-pills"><i class="is-good">${stats.good}</i><i class="is-neutral">${stats.neutral}</i><i class="is-bad">${stats.bad}</i>${stats.starts ? `<i class="is-cycle">● ${stats.starts}</i>` : ''}</span>
+      <em>${escape(dominantLabel)} ›</em>
+    </button>`;
   }
 
   function pageHtml() {
-    ensureState();
-    if (!supported()) return `<section class="v73-page"><article class="v73-card v73-empty"><div>⚠️</div><h3>Шифрование не поддерживается</h3><p>Откройте приложение в современном браузере через HTTPS.</p></article></section>`;
-    if (!vaultData()) return createVaultPage();
-    if (!session.unlocked) return lockedPage();
-    return unlockedPage();
+    ensureData();
+    const model = cycleModel();
+    const key = selectedMonth();
+    const stats = monthStats(key);
+    const cells = monthCells(key);
+    const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const latestEntry = entriesAscending().filter(item => item.status || item.comment).at(-1) || null;
+    const cycleDay = model.latestStart && todayStamp() >= model.latestStart ? diffDays(model.latestStart, todayStamp()) + 1 : 0;
+    const cycleCaption = !model.latestStart ? 'пока не отмечено' : cycleDay > 0 ? `${cycleDay}-й день цикла` : 'начало отмечено заранее';
+    const nextForecasts = model.forecasts.slice(0, 3);
+
+    return `<section class="v72-page">
+      <header class="v72-hero">
+        <div><span class="v72-eyebrow">Я и люди · личная память</span><h1>Состояние Полины</h1><p>Календарь состояния, комментариев и фактических дней цикла. Все записи сохраняются по месяцам.</p></div>
+        <div class="v72-hero-actions"><button data-v72-action="open-day" data-date="${todayStamp()}" type="button">＋ Отметить сегодня</button><button class="is-soft" data-v72-action="cycle-settings" type="button">Настройки цикла</button></div>
+      </header>
+
+      <section class="v72-kpis">
+        <article><span>Последнее начало</span><strong>${model.latestStart ? escape(formatShortDate(model.latestStart)) : '—'}</strong><small>${escape(cycleCaption)}</small></article>
+        <article><span>Последний конец</span><strong>${model.latestEnd ? escape(formatShortDate(model.latestEnd)) : '—'}</strong><small>${model.latestEnd && model.latestStart ? `${diffDays(model.latestStart, model.latestEnd) + 1} ${plural(diffDays(model.latestStart, model.latestEnd) + 1, 'день', 'дня', 'дней')}` : 'отметьте фактическую дату'}</small></article>
+        <article class="is-accent"><span>Следующий прогноз</span><strong>${model.nextStart ? escape(formatShortDate(model.nextStart)) : '—'}</strong><small>${model.nextStart ? `ориентир · ${model.method}` : 'нужно отметить начало'}</small></article>
+        <article><span>Средний цикл</span><strong>${model.cycleLength} дн.</strong><small>период около ${model.duration} ${plural(model.duration, 'дня', 'дней', 'дней')}</small></article>
+      </section>
+
+      <section class="v72-layout">
+        <article class="v72-card v72-calendar-card">
+          <header class="v72-card-head">
+            <div><span>Календарь</span><h2>${escape(formatMonth(key))}</h2><p>${stats.total ? `${stats.total} ${plural(stats.total, 'отмеченный день', 'отмеченных дня', 'отмеченных дней')} в этом месяце` : 'В этом месяце пока нет отметок'}</p></div>
+            <div class="v72-month-nav"><button data-v72-action="month" data-delta="-1" type="button" aria-label="Предыдущий месяц">←</button><button data-v72-action="today-month" type="button">Сегодня</button><button data-v72-action="month" data-delta="1" type="button" aria-label="Следующий месяц">→</button></div>
+          </header>
+          <div class="v72-month-summary"><span class="is-good">✓ Хорошее <b>${stats.good}</b></span><span class="is-neutral">• Нейтральное <b>${stats.neutral}</b></span><span class="is-bad">! Плохое <b>${stats.bad}</b></span><span class="is-cycle">● Цикл <b>${stats.starts + stats.ends}</b></span></div>
+          <div class="v72-weekdays">${weekdays.map(day => `<span>${day}</span>`).join('')}</div>
+          <div class="v72-calendar">${cells.map(date => dayCell(date, model)).join('')}</div>
+          <footer class="v72-legend"><span><i class="is-good"></i>Хорошее</span><span><i class="is-neutral"></i>Нейтральное</span><span><i class="is-bad"></i>Плохое</span><span><i class="is-period"></i>Фактические месячные</span><span><i class="is-forecast"></i>Прогноз</span></footer>
+        </article>
+
+        <aside class="v72-side-column">
+          <article class="v72-card v72-forecast-card">
+            <header><div><span>Прогноз цикла</span><h3>${model.nextStart ? 'Следующие даты' : 'Нужны исходные данные'}</h3></div><button data-v72-action="cycle-settings" type="button">⚙</button></header>
+            ${nextForecasts.length ? `<div class="v72-forecast-list">${nextForecasts.map((item, index) => `<div><i>${index + 1}</i><span><b>${escape(formatDate(item.start))}</b><small>ориентировочно до ${escape(formatShortDate(item.end))}</small></span></div>`).join('')}</div>` : '<p class="v72-empty-text">Отметьте начало месячных в любом дне календаря. После этого появится первый прогноз.</p>'}
+            <p class="v72-note">Прогноз ориентировочный и нужен только для личного планирования, а не для медицинских решений.</p>
+          </article>
+
+          <article class="v72-card v72-latest-card">
+            <header><div><span>Последняя запись</span><h3>${latestEntry ? escape(formatShortDate(latestEntry.date)) : 'Пока пусто'}</h3></div>${latestEntry ? `<button data-v72-action="open-day" data-date="${latestEntry.date}" type="button">Открыть</button>` : ''}</header>
+            ${latestEntry ? `<div class="v72-latest-state is-${latestEntry.status || 'none'}"><b>${latestEntry.status ? STATUS[latestEntry.status].label : 'Без состояния'}</b><p>${escape(latestEntry.comment || 'Комментарий не добавлен')}</p></div>` : '<p class="v72-empty-text">Первая отметка займёт меньше минуты.</p>'}
+          </article>
+        </aside>
+      </section>
+
+      <section class="v72-card v72-history-card">
+        <header class="v72-card-head"><div><span>История</span><h2>Состояния по месяцам</h2><p>Каждый месяц хранится отдельно и остаётся доступен в общей резервной копии.</p></div></header>
+        <div class="v72-history-list">${historyMonths().map(monthHistoryRow).join('')}</div>
+      </section>
+    </section>`;
   }
 
-  async function createVault() {
-    if (!supported()) return;
-    const password = String(document.getElementById('v73_master_new')?.value || '');
-    const repeat = String(document.getElementById('v73_master_repeat')?.value || '');
-    if (password.length < 10) return typeof toast === 'function' ? toast('Мастер-пароль должен содержать минимум 10 символов') : undefined;
-    if (password !== repeat) return typeof toast === 'function' ? toast('Пароли не совпадают') : undefined;
-    try {
-      const salt = randomBytes(16);
-      const key = await deriveKey(password, salt, DEFAULT_ITERATIONS);
-      state.passwordVault = await encryptEntries([], key, salt, DEFAULT_ITERATIONS);
-      session.key = key;
-      session.entries = [];
-      session.unlocked = true;
-      touch();
-      if (typeof save === 'function') save();
-      renderRoute();
-      if (typeof toast === 'function') toast('Защищённое хранилище создано');
-    } catch (error) {
-      console.error('[V73 vault create]', error);
-      if (typeof toast === 'function') toast('Не удалось создать хранилище');
-    }
-  }
-
-  async function unlockVault() {
-    const password = String(document.getElementById('v73_master_unlock')?.value || '');
-    const vault = vaultData();
-    if (!password || !vault) return typeof toast === 'function' ? toast('Введите мастер-пароль') : undefined;
-    try {
-      const key = await deriveKey(password, b64ToBytes(vault.salt), Number(vault.iterations) || DEFAULT_ITERATIONS);
-      const entries = await decryptEntries(vault, key);
-      session.key = key;
-      session.entries = entries.map(normalizeEntry);
-      session.unlocked = true;
-      touch();
-      renderRoute();
-      if (typeof toast === 'function') toast('Хранилище разблокировано');
-    } catch (error) {
-      session.key = null;
-      session.entries = [];
-      session.unlocked = false;
-      if (typeof toast === 'function') toast('Неверный мастер-пароль');
-    }
-  }
-
-  function openEntry(id = '') {
-    if (!session.unlocked) return;
-    const entry = session.entries.map(normalizeEntry).find(item => item.id === id) || null;
-    const html = `<div class="v73-modal-form">
-      <label><span>Что это</span><input id="v73_entry_title" value="${escape(entry?.title || '')}" placeholder="Например: Gmail, банк, Wi-Fi, телефон"></label>
-      <div class="v73-modal-grid"><label><span>Категория</span><input id="v73_entry_category" value="${escape(entry?.category || '')}" placeholder="Почта, банк, соцсети..."></label><label><span>Логин / email / телефон</span><input id="v73_entry_login" value="${escape(entry?.login || '')}" autocomplete="off" placeholder="Логин или номер"></label></div>
-      <label><span>Пароль / PIN / секрет</span><div class="v73-secret-input"><input id="v73_entry_secret" type="password" value="${escape(entry?.secret || '')}" autocomplete="new-password" placeholder="Введите секретные данные"><button data-v73-action="toggle-form-secret" type="button">Показать</button></div></label>
-      <label><span>Ссылка</span><input id="v73_entry_url" value="${escape(entry?.url || '')}" placeholder="example.com"></label>
-      <label><span>Комментарий и дополнительные данные</span><textarea id="v73_entry_note" placeholder="Куда приходит код, контрольные вопросы, номер договора и другие детали">${escape(entry?.note || '')}</textarea></label>
-      <div class="v73-modal-actions"><button class="is-primary" data-v73-action="save-entry" data-id="${escape(entry?.id || '')}" type="button">Сохранить</button>${entry ? `<button class="is-danger" data-v73-action="delete-entry" data-id="${escape(entry.id)}" type="button">Удалить</button>` : ''}<button data-v73-action="close-modal" type="button">Отмена</button></div>
+  function openDay(date) {
+    ensureData();
+    const chosen = isoDate(date) || todayStamp();
+    const entry = entryByDate(chosen);
+    const checked = value => entry?.status === value ? 'checked' : '';
+    const marker = entry?.periodMarker || '';
+    const html = `<div class="v72-modal-form">
+      <label class="v72-field"><span>Дата</span><input id="v72_day_date" type="date" value="${chosen}"></label>
+      <fieldset class="v72-state-field"><legend>Состояние</legend><div class="v72-state-options">
+        <label class="is-good"><input type="radio" name="v72_status" value="good" ${checked('good')}><span><i>✓</i><b>Хорошее</b><small>хорошее и спокойное состояние</small></span></label>
+        <label class="is-neutral"><input type="radio" name="v72_status" value="neutral" ${checked('neutral')}><span><i>•</i><b>Нейтральное</b><small>ровное состояние без явного перекоса</small></span></label>
+        <label class="is-bad"><input type="radio" name="v72_status" value="bad" ${checked('bad')}><span><i>!</i><b>Плохое</b><small>тяжёлый или раздражительный день</small></span></label>
+        <label class="is-none"><input type="radio" name="v72_status" value="" ${entry?.status ? '' : 'checked'}><span><i>×</i><b>Без отметки</b><small>оставить только комментарий или цикл</small></span></label>
+      </div></fieldset>
+      <label class="v72-field"><span>Отметка цикла</span><select id="v72_period_marker"><option value="" ${!marker ? 'selected' : ''}>Нет отметки</option><option value="start" ${marker === 'start' ? 'selected' : ''}>Начало месячных</option><option value="end" ${marker === 'end' ? 'selected' : ''}>Конец месячных</option></select></label>
+      <label class="v72-field"><span>Комментарий</span><textarea id="v72_day_comment" placeholder="Как Полина себя чувствовала, что было важно, какая поддержка помогла?">${escape(entry?.comment || '')}</textarea></label>
+      <div class="v72-modal-actions"><button class="is-primary" data-v72-action="save-day" data-id="${escape(entry?.id || '')}" type="button">Сохранить</button>${entry ? `<button class="is-danger" data-v72-action="delete-day" data-id="${escape(entry.id)}" type="button">Удалить запись</button>` : ''}<button data-v72-action="close-modal" type="button">Отмена</button></div>
     </div>`;
-    if (typeof openModal === 'function') openModal(entry ? 'Изменить доступ' : 'Новая запись', html);
+    if (typeof openModal === 'function') openModal(`Состояние Полины · ${formatDate(chosen)}`, html);
   }
 
-  async function saveEntry(id) {
-    if (!session.unlocked) return;
-    const title = clean(document.getElementById('v73_entry_title')?.value);
-    const category = clean(document.getElementById('v73_entry_category')?.value) || 'Другое';
-    const login = clean(document.getElementById('v73_entry_login')?.value);
-    const secret = String(document.getElementById('v73_entry_secret')?.value || '');
-    const url = clean(document.getElementById('v73_entry_url')?.value);
-    const note = clean(document.getElementById('v73_entry_note')?.value);
-    if (!title) return typeof toast === 'function' ? toast('Укажите, к чему относятся данные') : undefined;
-    const previous = session.entries.map(normalizeEntry).find(item => item.id === id) || null;
-    const next = normalizeEntry({ id: previous?.id || makeId(), title, category, login, secret, url, note, createdAt: previous?.createdAt || nowIso(), updatedAt: nowIso() });
-    session.entries = session.entries.filter(item => clean(item.id) !== next.id);
-    session.entries.unshift(next);
-    try {
-      await persistEntries();
-      if (typeof closeModal === 'function') closeModal();
-      renderRoute();
-      if (typeof toast === 'function') toast('Запись зашифрована и сохранена');
-    } catch (error) {
-      console.error('[V73 vault save]', error);
-      if (typeof toast === 'function') toast('Не удалось сохранить запись');
-    }
+  function saveDay(id) {
+    ensureData();
+    const date = isoDate(document.getElementById('v72_day_date')?.value) || todayStamp();
+    const status = document.querySelector('input[name="v72_status"]:checked')?.value || '';
+    const comment = clean(document.getElementById('v72_day_comment')?.value);
+    const periodMarker = clean(document.getElementById('v72_period_marker')?.value);
+    const existing = (state.polinaDays || []).map(normalizedEntry).find(item => item.id === id) || null;
+    const sameDate = entryByDate(date);
+    const next = {
+      id: existing?.id || sameDate?.id || makeId(),
+      date,
+      status: STATUS[status] ? status : '',
+      comment,
+      periodMarker: periodMarker === 'start' || periodMarker === 'end' ? periodMarker : '',
+      updatedAt: new Date().toISOString()
+    };
+
+    state.polinaDays = (state.polinaDays || []).map(normalizedEntry).filter(item => item.id !== existing?.id && item.date !== date);
+    if (next.status || next.comment || next.periodMarker) state.polinaDays.push(next);
+    state.polinaDays.sort((left, right) => right.date.localeCompare(left.date));
+
+    const model = cycleModel();
+    state.settings.polinaCycle = Object.assign({}, state.settings.polinaCycle || {}, {
+      lastStart: model.latestStart || '',
+      cycleLength: model.cycleLength,
+      duration: model.duration
+    });
+    state.polinaCalendar = Object.assign({}, state.polinaCalendar || {}, { version: 2, updatedAt: new Date().toISOString() });
+    if (typeof save === 'function') save();
+    if (typeof closeModal === 'function') closeModal();
+    renderRoute();
+    if (typeof toast === 'function') toast(next.periodMarker === 'start' ? 'Начало цикла отмечено, прогноз обновлён' : next.periodMarker === 'end' ? 'Конец цикла отмечен, прогноз уточнён' : 'Состояние Полины сохранено');
   }
 
-  async function deleteEntry(id) {
-    const entry = session.entries.map(normalizeEntry).find(item => item.id === id);
-    if (!entry) return;
-    if (!window.confirm(`Удалить запись «${entry.title}»?`)) return;
-    session.entries = session.entries.filter(item => clean(item.id) !== id);
-    revealedIds.delete(id);
-    try {
-      await persistEntries();
-      if (typeof closeModal === 'function') closeModal();
-      renderRoute();
-      if (typeof toast === 'function') toast('Запись удалена');
-    } catch (error) {
-      if (typeof toast === 'function') toast('Не удалось удалить запись');
-    }
+  function deleteDay(id) {
+    ensureData();
+    state.polinaDays = (state.polinaDays || []).map(normalizedEntry).filter(item => item.id !== id);
+    const model = cycleModel();
+    state.settings.polinaCycle = Object.assign({}, state.settings.polinaCycle || {}, {
+      lastStart: model.latestStart || '',
+      cycleLength: model.cycleLength,
+      duration: model.duration
+    });
+    if (typeof save === 'function') save();
+    if (typeof closeModal === 'function') closeModal();
+    renderRoute();
+    if (typeof toast === 'function') toast('Запись удалена');
   }
 
-  async function copyValue(value, label) {
-    try {
-      await navigator.clipboard.writeText(String(value || ''));
-      touch();
-      if (typeof toast === 'function') toast(`${label} скопирован`);
-    } catch (error) {
-      if (typeof toast === 'function') toast('Не удалось скопировать');
-    }
+  function openCycleSettings() {
+    const model = cycleModel();
+    const html = `<div class="v72-modal-form">
+      <div class="v72-settings-grid">
+        <label class="v72-field"><span>Базовая длина цикла</span><input id="v72_cycle_length" type="number" min="20" max="45" value="${model.cycleLength}"><small>Используется, пока недостаточно фактических циклов.</small></label>
+        <label class="v72-field"><span>Базовая длительность месячных</span><input id="v72_cycle_duration" type="number" min="1" max="10" value="${model.duration}"><small>Уточняется после отметок начала и конца.</small></label>
+      </div>
+      <div class="v72-cycle-facts"><div><span>Фактических начал</span><b>${model.starts.length}</b></div><div><span>Полных интервалов</span><b>${model.intervals.length}</b></div><div><span>Средняя длина</span><b>${model.cycleLength} дней</b></div></div>
+      <p class="v72-note">После двух и более отметок начала прогноз автоматически опирается на среднее фактических циклов. Отметка конца уточняет длительность месячных.</p>
+      <div class="v72-modal-actions"><button class="is-primary" data-v72-action="save-cycle-settings" type="button">Сохранить</button><button data-v72-action="close-modal" type="button">Отмена</button></div>
+    </div>`;
+    if (typeof openModal === 'function') openModal('Настройки цикла Полины', html);
   }
 
-  function entryById(id) {
-    return session.entries.map(normalizeEntry).find(item => item.id === id) || null;
+  function saveCycleSettings() {
+    ensureData();
+    const cycleLength = Math.max(20, Math.min(45, Number(document.getElementById('v72_cycle_length')?.value) || 28));
+    const duration = Math.max(1, Math.min(10, Number(document.getElementById('v72_cycle_duration')?.value) || 5));
+    state.settings.polinaCycle = Object.assign({}, state.settings.polinaCycle || {}, { cycleLength, duration });
+    if (typeof save === 'function') save();
+    if (typeof closeModal === 'function') closeModal();
+    renderRoute();
+    if (typeof toast === 'function') toast('Настройки цикла сохранены');
   }
 
   function updateNavigation() {
+    ensureData();
+    document.querySelectorAll('.v59-nav-item[data-go="polina"] .label,.v59-nav-item[data-v72-nav="polina"] .label').forEach(label => { label.textContent = 'Состояние Полины'; });
+    const button = document.querySelector('.v59-nav-item[data-go="polina"],.v59-nav-item[data-v72-nav="polina"]');
+    if (button) {
+      button.hidden = false;
+      button.dataset.v72Nav = ROUTE;
+      button.removeAttribute('data-go');
+      button.querySelector('.v59-nav-ico')?.setAttribute('style', 'background:#ec4899');
+    }
+
     const shell = document.querySelector('.v68-nav-shell');
-    if (!shell) return;
-    let button = shell.querySelector('[data-v73-nav="passwords"]');
-    if (!button) {
-      button = document.createElement('button');
-      button.className = 'v59-nav-item';
-      button.type = 'button';
-      button.dataset.v73Nav = ROUTE;
-      button.innerHTML = '<span class="v59-nav-ico" style="background:#8b5cf6">🔐</span><span class="label">Пароли и доступы</span><span class="v59-nav-tools"></span>';
-    }
-    const knowledgeFolder = [...shell.querySelectorAll('.v68-nav-subfolder')].find(folder => clean(folder.querySelector(':scope > summary span')?.textContent) === 'Мысли и знания');
-    if (knowledgeFolder) {
-      const list = knowledgeFolder.lastElementChild;
+    if (!shell || !button) return;
+    const peopleFolder = [...shell.querySelectorAll('.v68-nav-subfolder')].find(folder => clean(folder.querySelector(':scope > summary span')?.textContent) === 'Я и люди');
+    if (peopleFolder) {
+      const list = peopleFolder.lastElementChild;
       if (button.parentElement !== list) list.appendChild(button);
-      const count = knowledgeFolder.querySelector(':scope > summary em');
+      const count = peopleFolder.querySelector(':scope > summary em');
       if (count) count.textContent = String(list.querySelectorAll('.v59-nav-item').length);
-      if ((location.hash || '').replace('#', '') === ROUTE) knowledgeFolder.open = true;
-      const memoryFolder = knowledgeFolder.closest('.v68-nav-folder');
-      if (memoryFolder) {
-        const memoryCount = memoryFolder.querySelector(':scope > summary em');
-        if (memoryCount) memoryCount.textContent = String(memoryFolder.querySelectorAll('.v59-nav-item').length);
-        if ((location.hash || '').replace('#', '') === ROUTE) memoryFolder.open = true;
-      }
+      if ((location.hash || '').replace('#', '') === ROUTE) peopleFolder.open = true;
     }
-    const active = (location.hash || '').replace('#', '') === ROUTE;
-    button.classList.toggle('active', active);
+    const memoryFolder = peopleFolder?.closest('.v68-nav-folder');
+    if (memoryFolder) {
+      const count = memoryFolder.querySelector(':scope > summary em');
+      if (count) count.textContent = String(memoryFolder.querySelectorAll('.v59-nav-item').length);
+      if ((location.hash || '').replace('#', '') === ROUTE) memoryFolder.open = true;
+    }
   }
 
   function setBuild() {
     document.body.dataset.sbosBuild = BUILD;
-    document.body.dataset.v73PasswordVault = 'ready';
+    document.body.dataset.v72Polina = 'ready';
     document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', BUILD);
     try { localStorage.setItem('secondBrainOS.currentBuild', BUILD); } catch (error) {}
     const version = document.querySelector('.v59-version,.version');
     if (version) version.textContent = LABEL;
     const core = document.querySelector('.v59-core-pill');
-    if (core) core.textContent = 'V73';
+    if (core) core.textContent = 'V72.4';
   }
 
   function renderRoute() {
-    ensureState();
+    ensureData();
     const route = (location.hash || '').replace('#', '') || 'dashboard';
-    document.body.classList.toggle('v73-passwords-route', route === ROUTE);
+    document.body.classList.toggle('v72-polina-route', route === ROUTE);
     updateNavigation();
     setBuild();
     if (route !== ROUTE) return;
     const view = document.getElementById('view');
     if (!view) return;
     view.innerHTML = pageHtml();
-    document.querySelectorAll('.v59-nav-item').forEach(button => button.classList.toggle('active', button.dataset.v73Nav === ROUTE));
+    document.querySelectorAll('.v59-nav-item').forEach(button => button.classList.toggle('active', button.dataset.go === ROUTE || button.dataset.v72Nav === ROUTE));
     updateNavigation();
-    requestAnimationFrame(() => document.getElementById('v73_master_unlock')?.focus());
   }
 
   function navigate() {
+    ensureData();
     try { page = ROUTE; } catch (error) {}
     try { history.pushState(null, '', `#${ROUTE}`); }
     catch (error) { location.hash = ROUTE; }
@@ -392,90 +525,81 @@
     postTimer = setTimeout(renderRoute, delay);
   }
 
+  const previousGoV72 = typeof go === 'function' ? go : null;
+  if (previousGoV72) {
+    go = function (id) {
+      if (clean(id) === ROUTE) return navigate();
+      return previousGoV72.apply(this, arguments);
+    };
+  }
+
+  const previousV70Navigate = typeof window.v70Navigate === 'function' ? window.v70Navigate : null;
+  window.v70Navigate = function (route) {
+    if (clean(route) === ROUTE) return navigate();
+    return previousV70Navigate ? previousV70Navigate.apply(this, arguments) : (typeof go === 'function' ? go(route) : undefined);
+  };
+
   const previousRender = typeof render === 'function' ? render : null;
   if (previousRender) {
     render = function () {
+      ensureData();
       const result = previousRender.apply(this, arguments);
       requestAnimationFrame(renderRoute);
       return result;
     };
   }
 
-  window.PasswordVault = { navigate, render: renderRoute, lock: lockVault };
+  window.polinaPage = pageHtml;
+  window.PolinaState = { pageHtml, openDay, cycleModel, render: renderRoute, navigate };
 
   window.addEventListener('click', event => {
-    const navButton = event.target.closest?.('[data-v73-nav="passwords"]');
+    const navButton = event.target.closest?.('[data-v72-nav="polina"]');
     if (navButton) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      touch();
       return navigate();
     }
-    const button = event.target.closest?.('[data-v73-action]');
+    const button = event.target.closest?.('[data-v72-action]');
     if (!button) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    touch();
-    const action = button.dataset.v73Action;
-    if (action === 'create-vault') return createVault();
-    if (action === 'unlock-vault') return unlockVault();
-    if (action === 'lock-vault') return lockVault();
-    if (action === 'add-entry') return openEntry();
-    if (action === 'edit-entry') return openEntry(button.dataset.id || '');
-    if (action === 'save-entry') return saveEntry(button.dataset.id || '');
-    if (action === 'delete-entry') return deleteEntry(button.dataset.id || '');
+    const action = button.dataset.v72Action;
+    if (action === 'open-day') return openDay(button.dataset.date || todayStamp());
+    if (action === 'save-day') return saveDay(button.dataset.id || '');
+    if (action === 'delete-day') return deleteDay(button.dataset.id || '');
+    if (action === 'cycle-settings') return openCycleSettings();
+    if (action === 'save-cycle-settings') return saveCycleSettings();
     if (action === 'close-modal') return typeof closeModal === 'function' ? closeModal() : undefined;
-    if (action === 'toggle-form-secret') {
-      const input = document.getElementById('v73_entry_secret');
-      if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
-        button.textContent = input.type === 'password' ? 'Показать' : 'Скрыть';
-      }
-      return;
-    }
-    const entry = entryById(button.dataset.id || '');
-    if (action === 'copy-login' && entry) return copyValue(entry.login, 'Логин');
-    if (action === 'copy-secret' && entry) return copyValue(entry.secret, 'Пароль');
-    if (action === 'toggle-secret' && entry) {
-      revealedIds.has(entry.id) ? revealedIds.delete(entry.id) : revealedIds.add(entry.id);
+    if (action === 'month') {
+      state.settings.polinaMonth = shiftMonth(selectedMonth(), Number(button.dataset.delta || 0));
+      if (typeof save === 'function') save();
       return renderRoute();
+    }
+    if (action === 'today-month') {
+      state.settings.polinaMonth = currentMonth();
+      if (typeof save === 'function') save();
+      return renderRoute();
+    }
+    if (action === 'open-month') {
+      state.settings.polinaMonth = button.dataset.month || currentMonth();
+      if (typeof save === 'function') save();
+      renderRoute();
+      document.querySelector('.v72-calendar-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, true);
 
-  window.addEventListener('input', event => {
-    if (event.target?.id !== 'v73_search') return;
-    vaultQuery = event.target.value || '';
-    touch();
-    const grid = document.querySelector('.v73-entry-grid');
-    if (grid) grid.innerHTML = filteredEntries().map(entryCard).join('') || '<article class="v73-card v73-empty"><div>⌕</div><h3>Ничего не найдено</h3><p>Попробуйте изменить поисковый запрос.</p></article>';
-  });
-
-  window.addEventListener('keydown', event => {
-    if ((location.hash || '').replace('#', '') !== ROUTE) return;
-    touch();
-    if (event.key === 'Enter' && event.target?.id === 'v73_master_unlock') unlockVault();
-  });
-
   window.addEventListener('hashchange', () => [0, 80, 220].forEach(delay => setTimeout(renderRoute, delay)));
   window.addEventListener('storage', event => {
-    if (event.key === 'secondBrainOS.v1') {
-      if (session.unlocked) lockVault(false);
-      schedulePost(80);
-    }
+    if (event.key === 'secondBrainOS.v1') schedulePost(80);
   });
 
-  setInterval(() => {
-    if (!session.unlocked) return;
-    if (Date.now() - lastActivityAt >= AUTO_LOCK_MS) lockVault(true);
-  }, 30000);
-
   try {
-    ensureState();
+    ensureData();
     schedulePost(0);
-    schedulePost(200);
+    schedulePost(180);
   } catch (error) {
-    console.error('[V73 Password Vault]', error);
+    console.error('[V72 Polina]', error);
   }
 })();

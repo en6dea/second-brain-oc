@@ -1,1020 +1,619 @@
 'use strict';
 
-/* Second Brain OS V67 — opt-in account and record-level cloud sync.
-   Local data stays authoritative until the user explicitly enables sync. */
 (() => {
-  const BUILD = 'second-brain-space-v67-8-reminder-center-20260714';
-  const SDK_VERSION = '12.16.0';
-  const KEY = {
-    prefs: 'secondBrainOS.cloud.v67.prefs',
-    queue: 'secondBrainOS.cloud.v67.queue',
-    meta: 'secondBrainOS.cloud.v67.meta',
-    mirror: 'secondBrainOS.cloud.v67.mirror',
-    known: 'secondBrainOS.cloud.v67.known',
-    conflicts: 'secondBrainOS.cloud.v67.conflicts',
-    device: 'secondBrainOS.cloud.v67.device',
-    rollback: 'secondBrainOS.cloud.v67.rollback'
-  };
+  const V66_BUILD = 'second-brain-space-v66-trading-balance-20260716-r1';
+  const V66_LABEL = 'V66 · SAFE PERSONAL OS';
+  const CUSTOM_ROUTES = new Set(['trading', 'sleep']);
+  const arr = key => Array.isArray(state?.[key]) ? state[key] : [];
+  const cleanText = value => String(value ?? '').trim();
+  const done = item => ['готово', 'сделано', 'закрыто', 'done', 'closed', 'выполнено'].includes(cleanText(item?.status).toLocaleLowerCase('ru-RU'));
+  let pendingRestore = null;
+  let postQueued = false;
+
+  state.settings = state.settings || {};
+  state.settings.v66 = Object.assign({
+    sleepTarget: 6,
+    tradeView: 'demo',
+    tradingRisk: { accountBalance: 0, perTradePct: 0.5, dailyPct: 2, weeklyPct: 5 },
+    security: { pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 },
+    notifications: { morning: '09:00', evening: '20:00', channel: 'iphone', enabled: false }
+  }, state.settings.v66 || {});
+  state.settings.v66.tradingRisk = Object.assign({ accountBalance: 0, perTradePct: 0.5, dailyPct: 2, weeklyPct: 5 }, state.settings.v66.tradingRisk || {});
+  state.settings.v66.security = Object.assign({ pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 }, state.settings.v66.security || {});
+  state.settings.v66.notifications = Object.assign({ morning: '09:00', evening: '20:00', channel: 'iphone', enabled: false }, state.settings.v66.notifications || {});
+  state.sleepEntries = arr('sleepEntries');
+  state.trades = arr('trades');
+
   const COLLECTIONS = [
-    ['settings', 'Настройки и профиль', 'single', true],
-    ['tasks', 'Задачи', 'array', true],
-    ['habits', 'Привычки', 'array', true],
-    ['goals', 'Цели', 'array', true],
-    ['sleepEntries', 'Сон', 'array', true],
-    ['subconsciousEntries', 'Дневник подсознания', 'array', true],
-    ['dailyReviews', 'Утренние и вечерние разборы', 'array', true],
-    ['reviews', 'Рефлексия', 'array', true],
-    ['people', 'Люди', 'array', true],
-    ['personal', 'Личная память', 'array', true],
-    ['notes', 'Заметки', 'array', true],
-    ['ideas', 'Идеи', 'array', true],
-    ['inbox', 'Входящие', 'array', true],
-    ['events', 'Календарь', 'array', true],
-    ['purchases', 'Покупки', 'array', true],
-    ['wishes', 'Желания', 'array', true],
-    ['documents', 'Документы', 'array', true],
-    ['books', 'Книги', 'array', true],
-    ['films', 'Фильмы', 'array', true],
-    ['trips', 'Путешествия', 'array', true],
-    ['polina', 'Личное пространство Полины', 'single', true],
-    ['polinaDays', 'Календарь Полины', 'array', true],
-    ['polinaCalendar', 'Настройки календаря Полины', 'single', true],
-    ['archive', 'Архив', 'array', true],
-    ['folders', 'Папки', 'array', true],
-    ['operations', 'Финансовые операции', 'array', false],
-    ['debts', 'Долги', 'array', false],
-    ['trades', 'Forex-журнал', 'array', true]
+    ['people', 'Люди', true], ['goals', 'Цели', true], ['habits', 'Привычки', true], ['tasks', 'Задачи', true],
+    ['notes', 'Заметки', true], ['ideas', 'Идеи', true], ['personal', 'Личная память', true], ['subconsciousEntries', 'Дневник подсознания', true],
+    ['documents', 'Документы', true], ['books', 'Книги', true], ['films', 'Фильмы', true], ['trips', 'Путешествия', true],
+    ['wishes', 'Желания', true], ['purchases', 'Покупки', true], ['events', 'События', true], ['inbox', 'Входящие', true],
+    ['reviews', 'Обзоры', true], ['dailyReviews', 'Итоги дня', true], ['sleepEntries', 'Сон', true], ['trades', 'Торговый журнал', true],
+    ['folders', 'Папки', true], ['archive', 'Архив', true], ['operations', 'Финансовые операции', false], ['debts', 'Долги', false]
   ];
-  const COLLECTION_MAP = Object.fromEntries(COLLECTIONS.map(item => [item[0], { name: item[0], label: item[1], kind: item[2], defaultEnabled: item[3] }]));
 
-  const jsonRead = (key, fallback) => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch (error) { return fallback; }
-  };
-  const jsonWrite = (key, value) => {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-    catch (error) { console.warn('[V67 local store]', error); return false; }
-  };
-  const clone = value => JSON.parse(JSON.stringify(value ?? null));
-  const html = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
-  const nowIso = () => new Date().toISOString();
-  const dateStamp = () => new Date().toISOString().slice(0, 10);
-  const fastHash = text => {
-    let hash = 2166136261;
-    for (let index = 0; index < text.length; index += 1) {
-      hash ^= text.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-    return (hash >>> 0).toString(36);
-  };
-  const stableStringify = value => {
-    if (value === null || typeof value !== 'object') return JSON.stringify(value === undefined ? null : value);
-    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-    return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
-  };
-  async function digest(text) {
-    if (crypto?.subtle) {
-      const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-      return Array.from(new Uint8Array(bytes)).map(byte => byte.toString(16).padStart(2, '0')).join('');
-    }
-    return fastHash(text).padEnd(64, '0');
-  }
-  function base64Url(value) {
-    const bytes = new TextEncoder().encode(String(value));
-    let binary = '';
-    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '').slice(0, 900) || 'main';
-  }
-  const pairKey = (collectionName, recordId) => `${collectionName}::${recordId}`;
-  const getDescriptor = name => COLLECTION_MAP[name] || { name, label: name, kind: Array.isArray(state?.[name]) ? 'array' : 'single', defaultEnabled: true };
-
-  let prefs = Object.assign({ enabled: false, uid: '', collections: [], lastSync: '', lastError: '', phase: 'checking' }, jsonRead(KEY.prefs, {}));
-  let queue = jsonRead(KEY.queue, {});
-  let meta = jsonRead(KEY.meta, {});
-  let mirror = jsonRead(KEY.mirror, {});
-  let known = jsonRead(KEY.known, {});
-  let conflicts = jsonRead(KEY.conflicts, []);
-  let deviceId = localStorage.getItem(KEY.device);
-  if (!deviceId) {
-    deviceId = `device_${crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
-    localStorage.setItem(KEY.device, deviceId);
-  }
-
-  let modules = null;
-  let firebaseApp = null;
-  let auth = null;
-  let db = null;
-  let storage = null;
-  let currentUser = null;
-  let bootPromise = null;
-  let applyingRemote = false;
-  let syncing = false;
-  let diffTimer = 0;
-  let syncTimer = 0;
-  let cardTimer = 0;
-
-  function persistSyncState() {
-    jsonWrite(KEY.prefs, prefs);
-    jsonWrite(KEY.queue, queue);
-    jsonWrite(KEY.meta, meta);
-    jsonWrite(KEY.mirror, mirror);
-    jsonWrite(KEY.known, known);
-    jsonWrite(KEY.conflicts, conflicts.slice(0, 100));
-    updateAccountCardSoon();
-  }
-
-  function sanitizeSettings(source) {
-    const cloud = clone(source || {});
-    delete cloud.alfaWorkerKey;
-    if (cloud.sync) delete cloud.sync.token;
-    if (cloud.v66?.security) delete cloud.v66.security;
-    if (cloud.v66?.notifications) delete cloud.v66.notifications.enabled;
-    return cloud;
-  }
-
-  function mergeCloudSettings(remote) {
-    const local = clone(state.settings || {});
-    const merged = Object.assign({}, local, clone(remote || {}));
-    merged.v66 = Object.assign({}, local.v66 || {}, remote?.v66 || {});
-    if (local.v66?.security) merged.v66.security = local.v66.security;
-    if (merged.v66.notifications || local.v66?.notifications) {
-      merged.v66.notifications = Object.assign({}, remote?.v66?.notifications || {}, local.v66?.notifications || {});
-      if (local.v66?.notifications && Object.prototype.hasOwnProperty.call(local.v66.notifications, 'enabled')) merged.v66.notifications.enabled = local.v66.notifications.enabled;
-    }
-    if (Object.prototype.hasOwnProperty.call(local, 'alfaWorkerKey')) merged.alfaWorkerKey = local.alfaWorkerKey;
-    if (local.sync?.token) merged.sync = Object.assign({}, merged.sync || {}, { token: local.sync.token });
-    return merged;
-  }
-
-  function recordIdFor(record, index) {
-    const candidate = record?.id ?? record?.key ?? record?.date ?? record?.title ?? record?.name;
-    if (candidate !== undefined && candidate !== null && String(candidate).trim()) return String(candidate);
-    return `legacy_${index}_${fastHash(stableStringify(record))}`;
-  }
-
-  function entriesFor(collectionName, source = state) {
-    const descriptor = getDescriptor(collectionName);
-    if (descriptor.kind === 'single') {
-      const raw = collectionName === 'settings' ? sanitizeSettings(source?.settings) : clone(source?.[collectionName] || {});
-      if (collectionName !== 'settings' && (!raw || typeof raw !== 'object' || !Object.keys(raw).length)) return [];
-      return [{ id: 'main', data: raw }];
-    }
-    const records = Array.isArray(source?.[collectionName]) ? source[collectionName] : [];
-    return records.map((record, index) => ({ id: recordIdFor(record, index), data: clone(record) }));
-  }
-
-  async function canonicalRecord(collectionName, data) {
-    const clean = clone(data);
-    if (collectionName !== 'trades' || !clean) return clean;
-    for (const field of ['beforeImage', 'afterImage']) {
-      const digestField = field === 'beforeImage' ? 'beforeImageDigest' : 'afterImageDigest';
-      const value = clean[field] || '';
-      if (/^data:image\//i.test(value)) clean[field] = `image:${await digest(value)}`;
-      else if (value && clean[digestField]) clean[field] = `image:${clean[digestField]}`;
-      else clean[field] = value;
-      if (!value) delete clean[digestField];
-    }
-    return clean;
-  }
-
-  async function recordHash(collectionName, data) {
-    return digest(stableStringify(await canonicalRecord(collectionName, data)));
-  }
-
-  function findLocalRecord(collectionName, id) {
-    const descriptor = getDescriptor(collectionName);
-    if (descriptor.kind === 'single') return collectionName === 'settings' ? sanitizeSettings(state.settings) : clone(state[collectionName] || {});
-    return entriesFor(collectionName).find(entry => entry.id === String(id))?.data ?? null;
-  }
-
-  function replaceLocalRecord(collectionName, id, remoteData, deleted = false) {
-    const descriptor = getDescriptor(collectionName);
-    if (descriptor.kind === 'single') {
-      if (deleted) return;
-      if (collectionName === 'settings') state.settings = mergeCloudSettings(remoteData);
-      else state[collectionName] = clone(remoteData || {});
-      return;
-    }
-    const current = Array.isArray(state[collectionName]) ? state[collectionName] : [];
-    const next = current.filter((record, index) => recordIdFor(record, index) !== String(id));
-    if (!deleted && remoteData) next.unshift(clone(remoteData));
-    state[collectionName] = next;
-  }
-
-  function safeExportState() {
-    try { return typeof exportableState === 'function' ? exportableState() : clone(state); }
-    catch (error) { return clone(state); }
-  }
-
-  function downloadBackup(reason = 'cloud') {
-    const payload = { format: 'second-brain-os-backup', version: 67, createdAt: nowIso(), reason, state: safeExportState() };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  function v66DownloadSnapshot(suffix = 'backup') {
+    const copy = typeof exportableState === 'function' ? exportableState() : JSON.parse(JSON.stringify(state));
+    if (copy.settings?.sync) delete copy.settings.sync.token;
+    if (copy.settings) delete copy.settings.alfaWorkerKey;
+    if (copy.settings?.v66) delete copy.settings.v66.security;
+    const blob = new Blob([JSON.stringify({ version: V66_BUILD, createdAt: new Date().toISOString(), state: copy }, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `second-brain-before-${reason}-${dateStamp()}.json`;
+    link.download = `second-brain-${suffix}-${today()}.json`;
+    document.body.appendChild(link);
     link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1200);
   }
 
-  function saveRollback(reason) {
-    const payload = { createdAt: nowIso(), reason, state: safeExportState() };
-    if (!jsonWrite(KEY.rollback, payload)) console.warn('[V67 rollback] Local rollback snapshot did not fit in storage');
+  function v66OpenVault() {
+    pendingRestore = null;
+    openModal('Хранилище и безопасное восстановление', `<div class="v66-vault"><section class="v66-vault-intro"><span>⛨</span><div><h3>Личные данные не заменяются вслепую</h3><p>Сначала приложение покажет только количество записей. По умолчанию выбран режим объединения, а финансы и долги выключены.</p></div></section><div class="v66-vault-actions"><button data-v66-action="downloadBackup" type="button">Скачать текущую копию</button><label class="v66-file-picker"><span>Выбрать JSON-копию</span><input id="v66_restore_file" type="file" accept=".json,application/json"></label><button class="is-primary" data-v66-action="previewBackup" type="button">Показать состав</button></div><p class="v66-vault-note">Файл читается только в браузере и никуда не отправляется.</p></div>`);
   }
 
-  function applyStateAndRender(nextState, reason = 'cloud') {
-    applyingRemote = true;
+  function v66CollectionRows(incoming) {
+    return COLLECTIONS.map(([key, label, selected]) => {
+      const incomingCount = Array.isArray(incoming[key]) ? incoming[key].length : 0;
+      const currentCount = arr(key).length;
+      return `<label class="v66-restore-row ${incomingCount ? '' : 'is-empty'}"><input class="v66-restore-check" type="checkbox" value="${esc(key)}" ${selected && incomingCount ? 'checked' : ''} ${incomingCount ? '' : 'disabled'}><span><b>${esc(label)}</b><small>сейчас ${currentCount} · в копии ${incomingCount}</small></span><em>${selected ? 'личное' : 'вручную'}</em></label>`;
+    }).join('');
+  }
+
+  async function v66PreviewBackup() {
+    const file = document.getElementById('v66_restore_file')?.files?.[0];
+    if (!file) return toast('Выберите JSON-копию');
+    if (file.size > 25 * 1024 * 1024) return toast('Файл больше 25 МБ — проверьте, что это копия приложения');
     try {
-      state = typeof normalize === 'function' ? normalize(nextState) : nextState;
-      if (typeof save === 'function') save();
-      if (typeof render === 'function') render();
-      console.info(`[V67] Local state applied: ${reason}`);
-    } finally {
-      setTimeout(() => { applyingRemote = false; }, 0);
-    }
-  }
-
-  async function loadLocalFirebaseConfig() {
-    if (window.SECOND_BRAIN_FIREBASE_CONFIG?.projectId) return window.SECOND_BRAIN_FIREBASE_CONFIG;
-    try {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = `./firebase-config.js?v=${encodeURIComponent(BUILD)}-${Date.now()}`;
-        script.async = true;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-      return window.SECOND_BRAIN_FIREBASE_CONFIG?.projectId ? window.SECOND_BRAIN_FIREBASE_CONFIG : null;
-    } catch (error) { return null; }
-  }
-
-  async function ensureFirebase() {
-    if (bootPromise) return bootPromise;
-    bootPromise = (async () => {
-      const config = await loadLocalFirebaseConfig();
-      if (!config) {
-        prefs.phase = 'config-missing';
-        persistSyncState();
-        return false;
-      }
-      try {
-        const base = `https://www.gstatic.com/firebasejs/${SDK_VERSION}`;
-        const [appModule, authModule, firestoreModule, storageModule] = await Promise.all([
-          import(`${base}/firebase-app.js`),
-          import(`${base}/firebase-auth.js`),
-          import(`${base}/firebase-firestore.js`),
-          import(`${base}/firebase-storage.js`)
-        ]);
-        modules = { app: appModule, auth: authModule, firestore: firestoreModule, storage: storageModule };
-        firebaseApp = appModule.getApps().find(item => item.name === 'second-brain-v67') || appModule.initializeApp(config, 'second-brain-v67');
-        auth = authModule.getAuth(firebaseApp);
-        await authModule.setPersistence(auth, authModule.browserLocalPersistence);
-        db = firestoreModule.getFirestore(firebaseApp);
-        storage = storageModule.getStorage(firebaseApp);
-        authModule.onAuthStateChanged(auth, user => {
-          currentUser = user || null;
-          prefs.phase = currentUser ? (prefs.enabled && prefs.uid === currentUser.uid ? 'connected' : 'signed-in') : 'ready';
-          prefs.lastError = '';
-          persistSyncState();
-          if (currentUser && prefs.enabled && prefs.uid === currentUser.uid) scheduleSync(800);
-        });
-        try { await authModule.getRedirectResult(auth); } catch (error) { prefs.lastError = authErrorMessage(error); }
-        prefs.phase = auth.currentUser ? 'signed-in' : 'ready';
-        currentUser = auth.currentUser || null;
-        persistSyncState();
-        return true;
-      } catch (error) {
-        prefs.phase = 'error';
-        prefs.lastError = `Не удалось загрузить облачный модуль: ${error.message || error}`;
-        persistSyncState();
-        console.error('[V67 Firebase init]', error);
-        return false;
-      }
-    })();
-    return bootPromise;
-  }
-
-  function authErrorMessage(error) {
-    const code = error?.code || '';
-    const map = {
-      'auth/email-already-in-use': 'Этот email уже зарегистрирован — используйте «Войти».',
-      'auth/invalid-email': 'Проверьте адрес электронной почты.',
-      'auth/invalid-credential': 'Неверный email или пароль.',
-      'auth/user-not-found': 'Аккаунт не найден.',
-      'auth/wrong-password': 'Неверный пароль.',
-      'auth/weak-password': 'Используйте пароль не короче восьми символов.',
-      'auth/popup-closed-by-user': 'Окно входа было закрыто.',
-      'auth/popup-blocked': 'Браузер заблокировал окно входа. Разрешите всплывающие окна.',
-      'auth/operation-not-allowed': 'Этот способ входа ещё не включён в Firebase.',
-      'auth/unauthorized-domain': 'Этот домен ещё не добавлен в список разрешённых Firebase.',
-      'auth/account-exists-with-different-credential': 'Этот email уже связан с другим способом входа.'
-    };
-    return map[code] || error?.message || 'Не удалось выполнить вход.';
-  }
-
-  async function runAuthAction(action) {
-    if (!await ensureFirebase()) return openAccount();
-    prefs.lastError = '';
-    try {
-      if (action === 'email-signin' || action === 'email-signup') {
-        const email = document.getElementById('v67_email')?.value.trim() || '';
-        const password = document.getElementById('v67_password')?.value || '';
-        if (!email || !password) throw new Error('Укажите email и пароль.');
-        if (action === 'email-signup' && password.length < 8) throw new Error('Для нового аккаунта нужен пароль не короче восьми символов.');
-        const result = action === 'email-signup'
-          ? await modules.auth.createUserWithEmailAndPassword(auth, email, password)
-          : await modules.auth.signInWithEmailAndPassword(auth, email, password);
-        currentUser = result.user;
-        if (action === 'email-signup' && !result.user.emailVerified) await modules.auth.sendEmailVerification(result.user);
-      }
-      if (action === 'google' || action === 'apple') {
-        const provider = action === 'google' ? new modules.auth.GoogleAuthProvider() : new modules.auth.OAuthProvider('apple.com');
-        if (action === 'apple') { provider.addScope('email'); provider.addScope('name'); }
-        const useRedirect = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (useRedirect) return modules.auth.signInWithRedirect(auth, provider);
-        const result = await modules.auth.signInWithPopup(auth, provider);
-        currentUser = result.user;
-      }
-      prefs.phase = 'signed-in';
-      persistSyncState();
-      openAccount();
+      const parsed = JSON.parse(await file.text());
+      const incoming = parsed?.state || parsed;
+      if (!incoming || typeof incoming !== 'object') throw new Error('Некорректная структура');
+      const total = COLLECTIONS.reduce((sum, [key]) => sum + (Array.isArray(incoming[key]) ? incoming[key].length : 0), 0);
+      if (!total) throw new Error('В копии не найдены поддерживаемые разделы');
+      pendingRestore = { incoming, fileName: file.name, version: parsed?.version || 'без версии', createdAt: parsed?.createdAt || '' };
+      openModal('Предпросмотр резервной копии', `<div class="v66-vault"><section class="v66-vault-intro is-ready"><span>✓</span><div><h3>${esc(file.name)}</h3><p>${total} записей в поддерживаемых разделах · ${esc(pendingRestore.version)}</p></div></section><div class="v66-restore-mode"><label><input type="radio" name="v66_restore_mode" value="merge" checked><span><b>Объединить безопасно</b><small>Текущие записи сохраняются, недостающие добавляются</small></span></label><label><input type="radio" name="v66_restore_mode" value="replace"><span><b>Заменить выбранные разделы</b><small>Только отмеченные коллекции будут заменены</small></span></label></div><div class="v66-restore-list">${v66CollectionRows(incoming)}</div><div class="v66-vault-actions"><button data-v66-action="openVault" type="button">Выбрать другой файл</button><button class="is-primary" data-v66-action="applyRestore" type="button">Восстановить выбранное</button></div><p class="v66-vault-note">Перед применением приложение автоматически скачает копию текущего состояния.</p></div>`);
     } catch (error) {
-      prefs.lastError = authErrorMessage(error);
-      prefs.phase = currentUser ? 'signed-in' : 'ready';
-      persistSyncState();
-      openAccount();
+      pendingRestore = null;
+      toast(`Не удалось прочитать копию: ${error.message || error}`);
     }
   }
 
-  async function resetPassword() {
-    if (!await ensureFirebase()) return openAccount();
-    const email = document.getElementById('v67_email')?.value.trim() || '';
-    if (!email) { prefs.lastError = 'Сначала укажите email.'; return openAccount(); }
-    try {
-      await modules.auth.sendPasswordResetEmail(auth, email);
-      prefs.lastError = '';
-      toast('Письмо для восстановления отправлено');
-      openAccount();
-    } catch (error) { prefs.lastError = authErrorMessage(error); openAccount(); }
+  function v66RecordKey(collection, item) {
+    if (item?.id) return `id:${item.id}`;
+    const base = collection === 'people' ? [item?.name, item?.birthday, item?.phone]
+      : collection === 'goals' ? [item?.title, item?.deadline]
+        : collection === 'habits' ? [item?.name]
+          : collection === 'tasks' ? [item?.title, item?.date, item?.time]
+            : collection === 'sleepEntries' ? [item?.date]
+              : collection === 'subconsciousEntries' ? [item?.date]
+                : collection === 'trades' ? [item?.date, item?.pair, item?.entry, item?.direction]
+                  : [item?.title || item?.name || item?.person, item?.date || item?.due, item?.type || item?.area];
+    return `sig:${base.map(value => cleanText(value).toLocaleLowerCase('ru-RU')).join('|')}`;
   }
 
-  async function signOutAccount() {
-    if (auth) await modules.auth.signOut(auth);
-    currentUser = null;
-    prefs.phase = 'ready';
-    persistSyncState();
-    openAccount();
-  }
-
-  function enabledCollections() {
-    return (prefs.collections || []).filter(name => COLLECTION_MAP[name]);
-  }
-
-  async function queueDiff(options = {}) {
-    if (!prefs.enabled || !prefs.uid || applyingRemote) return 0;
-    let changed = 0;
-    for (const collectionName of enabledCollections()) {
-      const entries = entriesFor(collectionName);
-      const currentIds = new Set(entries.map(entry => entry.id));
-      const knownIds = new Set(Array.isArray(known[collectionName]) ? known[collectionName] : []);
-      for (const entry of entries) {
-        const key = pairKey(collectionName, entry.id);
-        const hash = await recordHash(collectionName, entry.data);
-        if (options.force || mirror[key] !== hash) {
-          const existing = queue[key];
-          queue[key] = { collection: collectionName, id: entry.id, op: 'upsert', hash, baseRevision: existing?.baseRevision ?? meta[key]?.revision ?? 0, queuedAt: nowIso() };
-          changed += 1;
-        }
-        knownIds.add(entry.id);
+  function v66MergeCollection(collection, current, incoming) {
+    const result = current.map(item => ({ ...item }));
+    const index = new Map(result.map((item, position) => [v66RecordKey(collection, item), position]));
+    incoming.forEach(item => {
+      if (!item || typeof item !== 'object') return;
+      const key = v66RecordKey(collection, item);
+      if (index.has(key)) {
+        const position = index.get(key);
+        result[position] = { ...item, ...result[position] };
+      } else {
+        index.set(key, result.length);
+        result.push({ ...item, id: item.id || uid() });
       }
-      for (const id of knownIds) {
-        if (currentIds.has(id)) continue;
-        const key = pairKey(collectionName, id);
-        if (meta[key] || mirror[key] || queue[key]) {
-          queue[key] = { collection: collectionName, id, op: 'delete', hash: '__deleted__', baseRevision: queue[key]?.baseRevision ?? meta[key]?.revision ?? 0, queuedAt: nowIso() };
-          changed += 1;
-        }
-      }
-      known[collectionName] = Array.from(currentIds);
-    }
-    persistSyncState();
-    return changed;
-  }
-
-  function scheduleDiff() {
-    if (!prefs.enabled || applyingRemote) return;
-    clearTimeout(diffTimer);
-    diffTimer = setTimeout(() => queueDiff().then(changed => { if (changed && navigator.onLine) scheduleSync(1800); }).catch(error => console.warn('[V67 diff]', error)), 260);
-  }
-
-  function scheduleSync(delay = 1500) {
-    if (!prefs.enabled || !currentUser || prefs.uid !== currentUser.uid || syncing) return;
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => syncNow({ quiet: true }).catch(error => console.warn('[V67 scheduled sync]', error)), delay);
-  }
-
-  async function uploadTradeImages(record, recordId) {
-    const prepared = clone(record);
-    if (!storage || !modules?.storage) return prepared;
-    for (const field of ['beforeImage', 'afterImage']) {
-      const value = prepared[field] || '';
-      const prefix = field === 'beforeImage' ? 'before' : 'after';
-      const digestField = field === 'beforeImage' ? 'beforeImageDigest' : 'afterImageDigest';
-      const pathField = field === 'beforeImage' ? 'beforeImagePath' : 'afterImagePath';
-      if (!value) { delete prepared[digestField]; delete prepared[pathField]; continue; }
-      if (!/^data:image\//i.test(value)) continue;
-      const imageDigest = await digest(value);
-      const path = `users/${currentUser.uid}/trades/${base64Url(recordId)}/${prefix}-${imageDigest.slice(0, 24)}.jpg`;
-      const reference = modules.storage.ref(storage, path);
-      await modules.storage.uploadString(reference, value, 'data_url', { contentType: 'image/jpeg', customMetadata: { recordId: String(recordId), deviceId } });
-      prepared[field] = await modules.storage.getDownloadURL(reference);
-      prepared[digestField] = imageDigest;
-      prepared[pathField] = path;
-    }
-    return prepared;
-  }
-
-  async function prepareCloudData(collectionName, id, record) {
-    const prepared = collectionName === 'settings' ? sanitizeSettings(record) : clone(record);
-    const result = collectionName === 'trades' ? await uploadTradeImages(prepared, id) : prepared;
-    const bytes = new TextEncoder().encode(JSON.stringify(result)).length;
-    if (bytes > 700 * 1024) throw new Error(`${getDescriptor(collectionName).label}: одна запись слишком большая для безопасной синхронизации`);
+    });
     return result;
   }
 
-  function addConflict(details) {
-    const key = pairKey(details.collection, details.id);
-    conflicts = conflicts.filter(item => pairKey(item.collection, item.id) !== key);
-    conflicts.unshift(Object.assign({ conflictId: `${Date.now()}_${Math.random().toString(36).slice(2)}`, detectedAt: nowIso() }, clone(details)));
-    persistSyncState();
-  }
-
-  async function flushQueue() {
-    if (!currentUser || !db || currentUser.uid !== prefs.uid) return { sent: 0, conflicts: 0 };
-    let sent = 0;
-    let conflictCount = 0;
-    const pending = Object.values(queue).sort((a, b) => String(a.queuedAt).localeCompare(String(b.queuedAt)));
-    for (const item of pending) {
-      const key = pairKey(item.collection, item.id);
-      if (!queue[key]) continue;
-      let localData = item.op === 'delete' ? null : findLocalRecord(item.collection, item.id);
-      if (item.op !== 'delete' && !localData) {
-        queue[key] = Object.assign({}, item, { op: 'delete', hash: '__deleted__' });
-        localData = null;
-      }
-      const localHash = item.op === 'delete' ? '__deleted__' : await recordHash(item.collection, localData);
-      const prepared = item.op === 'delete' ? null : await prepareCloudData(item.collection, item.id, localData);
-      const reference = modules.firestore.doc(db, 'users', currentUser.uid, 'collections', item.collection, 'items', base64Url(item.id));
-      const outcome = await modules.firestore.runTransaction(db, async transaction => {
-        const snapshot = await transaction.get(reference);
-        const remote = snapshot.exists() ? snapshot.data() : null;
-        const remoteRevision = Number(remote?.revision || 0);
-        const baseRevision = Number(item.baseRevision || 0);
-        const remoteHash = remote?.deletedAt ? '__deleted__' : (remote?.contentHash || '');
-        if (remote && remoteRevision > baseRevision && remoteHash === localHash) return { kind: 'same', remote };
-        if (remote && remoteRevision > baseRevision && remoteHash !== localHash) return { kind: 'conflict', remote };
-        const revision = remoteRevision + 1;
-        transaction.set(reference, {
-          schemaVersion: 1,
-          collection: item.collection,
-          recordId: String(item.id),
-          data: item.op === 'delete' ? null : prepared,
-          contentHash: localHash,
-          revision,
-          deviceId,
-          updatedAtClient: nowIso(),
-          updatedAt: modules.firestore.serverTimestamp(),
-          deletedAt: item.op === 'delete' ? modules.firestore.serverTimestamp() : null
-        });
-        return { kind: 'written', revision, contentHash: localHash, prepared };
-      });
-      if (outcome.kind === 'conflict') {
-        addConflict({ collection: item.collection, id: item.id, local: localData, localDeleted: item.op === 'delete', localHash, remote: outcome.remote.data, remoteDeleted: Boolean(outcome.remote.deletedAt), remoteHash: outcome.remote.deletedAt ? '__deleted__' : outcome.remote.contentHash, remoteRevision: Number(outcome.remote.revision || 0), remoteDeviceId: outcome.remote.deviceId || '' });
-        delete queue[key];
-        conflictCount += 1;
-        continue;
-      }
-      const remoteRevision = Number(outcome.remote?.revision || outcome.revision || item.baseRevision || 0);
-      const effectiveHash = outcome.remote?.deletedAt ? '__deleted__' : (outcome.remote?.contentHash || outcome.contentHash || localHash);
-      meta[key] = { revision: remoteRevision, contentHash: effectiveHash, deviceId: outcome.remote?.deviceId || deviceId, syncedAt: nowIso() };
-      mirror[key] = effectiveHash;
-      delete queue[key];
-      sent += 1;
-    }
-    persistSyncState();
-    return { sent, conflicts: conflictCount };
-  }
-
-  async function pullRemote() {
-    if (!currentUser || !db || currentUser.uid !== prefs.uid) return { received: 0, conflicts: 0 };
-    let received = 0;
-    let conflictCount = 0;
-    let changedState = false;
-    const nextState = clone(state);
-    for (const collectionName of enabledCollections()) {
-      const reference = modules.firestore.collection(db, 'users', currentUser.uid, 'collections', collectionName, 'items');
-      const snapshot = await modules.firestore.getDocs(reference);
-      for (const documentSnapshot of snapshot.docs) {
-        const remote = documentSnapshot.data();
-        const id = String(remote.recordId || documentSnapshot.id);
-        const key = pairKey(collectionName, id);
-        const remoteRevision = Number(remote.revision || 0);
-        const remoteHash = remote.deletedAt ? '__deleted__' : (remote.contentHash || '');
-        const pending = queue[key];
-        if (pending) {
-          if (pending.hash === remoteHash) {
-            meta[key] = { revision: remoteRevision, contentHash: remoteHash, deviceId: remote.deviceId || '', syncedAt: nowIso() };
-            mirror[key] = remoteHash;
-            delete queue[key];
-            continue;
-          }
-          addConflict({ collection: collectionName, id, local: pending.op === 'delete' ? null : findLocalRecord(collectionName, id), localDeleted: pending.op === 'delete', localHash: pending.hash, remote: remote.data, remoteDeleted: Boolean(remote.deletedAt), remoteHash, remoteRevision, remoteDeviceId: remote.deviceId || '' });
-          delete queue[key];
-          conflictCount += 1;
-          continue;
-        }
-        if (remoteRevision <= Number(meta[key]?.revision || 0) && mirror[key] === remoteHash) continue;
-        const previousState = state;
-        state = nextState;
-        replaceLocalRecord(collectionName, id, remote.data, Boolean(remote.deletedAt));
-        state = previousState;
-        meta[key] = { revision: remoteRevision, contentHash: remoteHash, deviceId: remote.deviceId || '', syncedAt: nowIso() };
-        mirror[key] = remoteHash;
-        const ids = new Set(Array.isArray(known[collectionName]) ? known[collectionName] : []);
-        if (remote.deletedAt) ids.delete(id); else ids.add(id);
-        known[collectionName] = Array.from(ids);
-        changedState = true;
-        received += 1;
-      }
-    }
-    if (changedState) {
-      saveRollback('before-cloud-pull');
-      applyStateAndRender(nextState, 'cloud-pull');
-    }
-    persistSyncState();
-    return { received, conflicts: conflictCount };
-  }
-
-  async function syncNow(options = {}) {
-    if (syncing) return;
-    if (!navigator.onLine) {
-      prefs.phase = 'offline';
-      prefs.lastError = 'Нет сети — изменения сохранены в локальной очереди.';
-      persistSyncState();
-      if (!options.quiet) openAccount();
-      return;
-    }
-    if (!await ensureFirebase() || !currentUser) {
-      prefs.lastError = 'Сначала войдите в аккаунт.';
-      persistSyncState();
-      if (!options.quiet) openAccount();
-      return;
-    }
-    if (!prefs.enabled || prefs.uid !== currentUser.uid) {
-      if (!options.quiet) openFirstSync();
-      return;
-    }
-    syncing = true;
-    prefs.phase = 'syncing';
-    prefs.lastError = '';
-    persistSyncState();
-    try {
-      await queueDiff();
-      const pulled = await pullRemote();
-      const pushed = await flushQueue();
-      const secondPull = await pullRemote();
-      prefs.lastSync = nowIso();
-      prefs.phase = 'connected';
-      prefs.lastError = '';
-      persistSyncState();
-      if (!options.quiet) toast(`Синхронизация: отправлено ${pushed.sent}, получено ${pulled.received + secondPull.received}`);
-    } catch (error) {
-      prefs.phase = navigator.onLine ? 'error' : 'offline';
-      prefs.lastError = navigator.onLine ? (error.message || 'Ошибка синхронизации.') : 'Нет сети — изменения остаются на устройстве.';
-      persistSyncState();
-      console.error('[V67 sync]', error);
-    } finally {
-      syncing = false;
-      if (!options.quiet) openAccount();
-    }
-  }
-
-  function countFor(name) {
-    return entriesFor(name).length;
-  }
-
-  function openFirstSync() {
-    if (!currentUser) return openAccount();
-    const choices = COLLECTIONS.map(([name, label, kind, enabled]) => {
-      const count = countFor(name);
-      return `<label class="v67-sync-choice ${enabled ? '' : 'is-sensitive'}"><input type="checkbox" data-v67-sync-collection="${html(name)}" ${enabled ? 'checked' : ''}><span><b>${html(label)}</b><small>${kind === 'single' ? 'настройка' : `${count} записей`}${enabled ? '' : ' · выключено по умолчанию'}</small></span></label>`;
-    }).join('');
-    openModal('Первая синхронизация', `<div class="v67-first-sync"><section class="v67-safety-banner"><span>⛨</span><div><h3>Сначала резервная копия</h3><p>После подтверждения приложение автоматически скачает текущие данные. Облако ничего не заменит молча: параллельные версии попадут в раздел конфликтов.</p></div></section><div class="v67-sensitive-note"><b>Финансы и долги выключены по умолчанию</b><span>Вы сможете включить их позже, когда заново загрузите банковские данные.</span></div><div class="v67-sync-choices">${choices}</div><label class="v67-consent"><input id="v67_sync_consent" type="checkbox"><span>Я понимаю, что выбранные разделы будут храниться в моём Firebase-аккаунте и синхронизироваться между устройствами.</span></label><div class="v67-modal-actions"><button data-v67-action="confirm-first-sync" class="is-primary" type="button">Скачать копию и включить</button><button data-v67-action="open-account" type="button">Отмена</button></div></div>`);
-  }
-
-  async function enableFirstSync() {
-    if (!currentUser) return openAccount();
-    if (!document.getElementById('v67_sync_consent')?.checked) return toast('Подтвердите хранение выбранных данных в облаке');
-    const selected = Array.from(document.querySelectorAll('[data-v67-sync-collection]:checked')).map(input => input.dataset.v67SyncCollection).filter(Boolean);
+  function v66ApplyRestore() {
+    if (!pendingRestore) return toast('Сначала выберите и проверьте копию');
+    const selected = [...document.querySelectorAll('.v66-restore-check:checked')].map(input => input.value);
     if (!selected.length) return toast('Выберите хотя бы один раздел');
-    downloadBackup('cloud-sync');
-    saveRollback('before-first-cloud-sync');
-    const switchingAccount = prefs.uid && prefs.uid !== currentUser.uid;
-    prefs = Object.assign({}, prefs, { enabled: true, uid: currentUser.uid, collections: selected, phase: 'syncing', lastError: '' });
-    if (switchingAccount) { queue = {}; meta = {}; mirror = {}; known = {}; conflicts = []; }
-    for (const collectionName of selected) known[collectionName] = entriesFor(collectionName).map(entry => entry.id);
-    persistSyncState();
-    await queueDiff({ force: true });
-    closeModal();
-    await syncNow();
-  }
-
-  function disableSyncOnDevice() {
-    prefs.enabled = false;
-    prefs.phase = currentUser ? 'signed-in' : 'ready';
-    prefs.lastError = '';
-    persistSyncState();
-    toast('Синхронизация на этом устройстве остановлена');
-    openAccount();
-  }
-
-  async function resumeSync() {
-    if (!currentUser || !prefs.uid || prefs.uid !== currentUser.uid || !prefs.collections?.length) return openFirstSync();
-    prefs.enabled = true;
-    prefs.phase = 'connected';
-    persistSyncState();
-    await syncNow();
-  }
-
-  function conflictSummary(item, side) {
-    const data = side === 'local' ? item.local : item.remote;
-    const deleted = side === 'local' ? item.localDeleted : item.remoteDeleted;
-    if (deleted) return 'Запись удалена';
-    if (!data) return 'Нет данных';
-    return String(data.title || data.name || data.person || data.pair || data.date || 'Изменённая запись').slice(0, 100);
-  }
-
-  function openConflicts() {
-    const body = conflicts.length ? conflicts.map(item => `<article class="v67-conflict"><header><div><span>${html(getDescriptor(item.collection).label)}</span><b>${html(conflictSummary(item, 'local'))}</b></div><time>${new Date(item.detectedAt).toLocaleString('ru-RU')}</time></header><div class="v67-conflict-versions"><section><small>Это устройство</small><p>${html(conflictSummary(item, 'local'))}</p></section><section><small>Облако</small><p>${html(conflictSummary(item, 'remote'))}</p></section></div><div class="v67-conflict-actions"><button data-v67-action="resolve-conflict" data-choice="local" data-conflict-id="${html(item.conflictId)}" type="button">Оставить мою</button><button data-v67-action="resolve-conflict" data-choice="remote" data-conflict-id="${html(item.conflictId)}" type="button">Взять облачную</button>${getDescriptor(item.collection).kind === 'array' && !item.localDeleted && !item.remoteDeleted ? `<button data-v67-action="resolve-conflict" data-choice="both" data-conflict-id="${html(item.conflictId)}" type="button">Сохранить обе</button>` : ''}</div></article>`).join('') : '<div class="v67-empty"><span>✓</span><h3>Конфликтов нет</h3><p>Изменения устройств объединяются безопасно.</p></div>';
-    openModal('Конфликты синхронизации', `<div class="v67-conflicts">${body}<div class="v67-modal-actions"><button data-v67-action="open-account" type="button">Назад к аккаунту</button></div></div>`);
-  }
-
-  async function resolveConflict(conflictId, choice) {
-    const item = conflicts.find(entry => entry.conflictId === conflictId);
-    if (!item) return openConflicts();
-    saveRollback('before-conflict-resolution');
-    const key = pairKey(item.collection, item.id);
-    applyingRemote = true;
-    try {
-      if (choice === 'remote') {
-        replaceLocalRecord(item.collection, item.id, item.remote, item.remoteDeleted);
-        meta[key] = { revision: item.remoteRevision, contentHash: item.remoteHash, deviceId: item.remoteDeviceId || '', syncedAt: nowIso() };
-        mirror[key] = item.remoteHash;
-        delete queue[key];
-      }
-      if (choice === 'local') {
-        queue[key] = { collection: item.collection, id: item.id, op: item.localDeleted ? 'delete' : 'upsert', hash: item.localHash, baseRevision: item.remoteRevision, queuedAt: nowIso() };
-        meta[key] = { revision: item.remoteRevision, contentHash: item.remoteHash, deviceId: item.remoteDeviceId || '', syncedAt: nowIso() };
-        mirror[key] = item.remoteHash;
-      }
-      if (choice === 'both') {
-        replaceLocalRecord(item.collection, item.id, item.remote, false);
-        const copy = clone(item.local);
-        copy.id = `${copy.id || item.id}-copy-${Date.now().toString(36)}`;
-        state[item.collection] = [copy, ...(Array.isArray(state[item.collection]) ? state[item.collection] : [])];
-        const copyId = String(copy.id);
-        const copyKey = pairKey(item.collection, copyId);
-        queue[copyKey] = { collection: item.collection, id: copyId, op: 'upsert', hash: await recordHash(item.collection, copy), baseRevision: 0, queuedAt: nowIso() };
-        meta[key] = { revision: item.remoteRevision, contentHash: item.remoteHash, deviceId: item.remoteDeviceId || '', syncedAt: nowIso() };
-        mirror[key] = item.remoteHash;
-      }
-      if (typeof save === 'function') save();
-      if (typeof render === 'function') render();
-    } finally { setTimeout(() => { applyingRemote = false; }, 0); }
-    conflicts = conflicts.filter(entry => entry.conflictId !== conflictId);
-    persistSyncState();
-    openConflicts();
-    scheduleSync(300);
-  }
-
-  function restoreRollback() {
-    const rollback = jsonRead(KEY.rollback, null);
-    if (!rollback?.state) return toast('Локальная точка восстановления не найдена');
-    if (!window.confirm(`Вернуть состояние до синхронизации от ${new Date(rollback.createdAt).toLocaleString('ru-RU')}? Синхронизация на этом устройстве будет остановлена.`)) return;
-    downloadBackup('before-rollback');
-    prefs.enabled = false;
-    prefs.phase = currentUser ? 'signed-in' : 'ready';
-    applyStateAndRender(rollback.state, 'rollback');
-    persistSyncState();
-    toast('Состояние восстановлено, синхронизация остановлена');
-    openAccount();
-  }
-
-  function accountStateText() {
-    if (prefs.phase === 'config-missing') return ['Нужна настройка Firebase', 'локальные данные в безопасности'];
-    if (prefs.phase === 'error') return ['Требуется внимание', prefs.lastError || 'ошибка подключения'];
-    if (prefs.phase === 'offline') return ['Офлайн-режим', `${Object.keys(queue).length} изменений ждут сеть`];
-    if (!currentUser) return ['Готов к входу', 'Email, Google или Apple'];
-    if (!prefs.enabled || prefs.uid !== currentUser.uid) return ['Аккаунт подключён', 'синхронизация ещё не включена'];
-    if (prefs.phase === 'syncing' || syncing) return ['Синхронизация…', `${Object.keys(queue).length} изменений в очереди`];
-    if (conflicts.length) return [`Нужно разобрать: ${conflicts.length}`, 'обе версии сохранены'];
-    return ['Синхронизация включена', prefs.lastSync ? `обновлено ${new Date(prefs.lastSync).toLocaleString('ru-RU')}` : 'готова к первой отправке'];
-  }
-
-  function updateAccountCard() {
-    const card = document.querySelector('[data-v66-account-card]');
-    if (!card) return;
-    const [title, detail] = accountStateText();
-    const bold = card.querySelector('b');
-    const small = card.querySelector('small');
-    const button = card.querySelector('button');
-    if (bold && bold.textContent !== title) bold.textContent = title;
-    if (small && small.textContent !== detail) small.textContent = detail;
-    if (button) button.textContent = conflicts.length ? 'Разобрать' : (currentUser ? 'Управление' : 'Войти');
-    card.classList.toggle('v67-needs-attention', Boolean(conflicts.length || prefs.lastError));
-  }
-
-  function updateAccountCardSoon() {
-    clearTimeout(cardTimer);
-    cardTimer = setTimeout(updateAccountCard, 80);
-  }
-
-  function ensureV67Settings() {
+    const mode = document.querySelector('input[name="v66_restore_mode"]:checked')?.value || 'merge';
+    const question = mode === 'replace'
+      ? `Заменить выбранные разделы (${selected.length}) данными из копии? Текущее состояние сначала будет скачано.`
+      : `Объединить выбранные разделы (${selected.length}) с текущими данными?`;
+    if (!window.confirm(question)) return;
+    v66DownloadSnapshot('before-restore');
+    selected.forEach(collection => {
+      const incoming = Array.isArray(pendingRestore.incoming[collection]) ? pendingRestore.incoming[collection] : [];
+      state[collection] = mode === 'replace' ? incoming.map(item => ({ ...item, id: item?.id || uid() })) : v66MergeCollection(collection, arr(collection), incoming);
+    });
+    state = typeof normalize === 'function' ? normalize(state) : state;
     state.settings = state.settings || {};
-    state.settings.v67 = Object.assign({ financeLimitMode: 'auto', manualDailyLimit: 0, livelyDesign: true }, state.settings.v67 || {});
-    return state.settings.v67;
+    state.settings.v66 = state.settings.v66 || {};
+    state.settings.v66.lastRestore = { at: new Date().toISOString(), fileName: pendingRestore.fileName, mode, collections: selected };
+    pendingRestore = null;
+    save(); closeModal(); render(); toast('Выбранные данные восстановлены');
   }
 
-  function financeLimitModel() {
-    const settings = ensureV67Settings();
-    const period = typeof periodInfo === 'function' ? periodInfo(state.settings.financePeriod || 'month') : { start: today(), end: today() };
-    const currentBalance = num(state.settings.currentBalance);
-    const outgoing = (Array.isArray(state.debts) ? state.debts : []).filter(item => item.direction === 'out' && item.status !== 'Закрыт');
-    const obligations = outgoing.filter(item => item.due && item.due <= period.end);
-    const obligationTotal = obligations.reduce((sum, item) => sum + (num(item.minPayment) || num(item.amount)), 0);
-    const planned = (Array.isArray(state.purchases) ? state.purchases : []).filter(item => item.includeInBudget !== false && (!item.date || (item.date >= period.start && item.date <= period.end)));
-    const plannedTotal = planned.reduce((sum, item) => sum + num(item.amount), 0);
-    const start = period.start > today() ? period.start : today();
-    const daysLeft = period.end >= today() ? Math.max(1, Math.round((new Date(`${period.end}T12:00:00`) - new Date(`${start}T12:00:00`)) / 86400000) + 1) : 0;
-    const autoDaily = daysLeft ? Math.max(0, (currentBalance - obligationTotal - plannedTotal) / daysLeft) : 0;
-    const manualDaily = Math.max(0, num(settings.manualDailyLimit));
-    const mode = settings.financeLimitMode === 'manual' ? 'manual' : 'auto';
-    return { mode, autoDaily, manualDaily, selectedDaily: mode === 'manual' ? manualDaily : autoDaily, daysLeft, obligationTotal, plannedTotal };
+  const bytesToBase64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+  const base64ToBytes = value => Uint8Array.from(atob(value), character => character.charCodeAt(0));
+
+  async function v66PinHash(pin, salt) {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 120000, hash: 'SHA-256' }, key, 256);
+    return bytesToBase64(bits);
   }
 
-  function injectFinanceLimitControl(view) {
-    const hero = view.querySelector('.v65-finance-hero') || view.querySelector('.hero,.v59-hero');
-    const kpis = view.querySelector('.v65-money-kpis');
-    if (!hero || !kpis) return;
-    const heroActions = hero.querySelector('.v65-finance-actions');
-    if (heroActions && !heroActions.querySelector('[data-v67-action="open-bank-import"]')) {
-      heroActions.insertAdjacentHTML('beforeend', '<button data-v67-action="open-bank-import" type="button">Импорт выписки</button>');
+  function v66OpenSecurity() {
+    const security = state.settings.v66.security;
+    const pinLength = num(security.pinLength) || 4;
+    if (!security.pinEnabled) {
+      openModal('PIN-защита устройства', `<div class="v66-security"><section><span>●</span><div><h3>Четырёхзначный PIN</h3><p>PIN блокирует интерфейс на этом устройстве. Это дополнительная защита, но не замена серверному шифрованию.</p></div></section><label><span>Новый PIN</span><input id="v66_pin_first" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><label><span>Повторите PIN</span><input id="v66_pin_second" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><label><span>Автоблокировка</span><select id="v66_pin_timeout"><option value="5">через 5 минут</option><option value="15" selected>через 15 минут</option><option value="30">через 30 минут</option><option value="60">через 1 час</option></select></label><div class="v66-vault-actions"><button class="is-primary" data-v66-action="setupPin" type="button">Включить PIN</button><button data-v66-action="closeModal" type="button">Отмена</button></div></div>`);
+      return;
     }
-    const model = financeLimitModel();
-    if (!view.querySelector('.v67-limit-control')) {
-      kpis.insertAdjacentHTML('beforebegin', `<section class="v67-limit-control"><div><span class="v65-overline">Лимит расходов</span><h3>Автоматический и ручной режим</h3><p>Авто сначала резервирует обязательные платежи и покупки, затем делит свободный остаток по дням. Ручной режим использует заданную вами сумму.</p></div><div class="v67-limit-modes"><button class="${model.mode === 'auto' ? 'active' : ''}" data-v67-action="finance-limit-mode" data-mode="auto" type="button">Авто · ${money(model.autoDaily)}</button><button class="${model.mode === 'manual' ? 'active' : ''}" data-v67-action="finance-limit-mode" data-mode="manual" type="button">Вручную</button></div><label><span>Ручной лимит на день</span><input id="v67_manual_daily_limit" type="number" min="0" step="100" value="${model.manualDaily || ''}" placeholder="Например, 3 000"><button data-v67-action="save-manual-limit" type="button">Сохранить</button></label></section>`);
+    openModal('PIN-защита устройства', `<div class="v66-security"><section class="is-enabled"><span>✓</span><div><h3>PIN включён</h3><p>${pinLength} цифры · автоблокировка через ${num(security.autoLockMinutes) || 15} минут бездействия.</p></div></section><label><span>Текущий PIN для отключения</span><input id="v66_pin_current" type="password" inputmode="numeric" maxlength="${pinLength}" autocomplete="current-password"></label><label><span>Автоблокировка</span><select id="v66_pin_timeout">${[5, 15, 30, 60].map(minutes => `<option value="${minutes}" ${num(security.autoLockMinutes) === minutes ? 'selected' : ''}>${minutes === 60 ? 'через 1 час' : `через ${minutes} минут`}</option>`).join('')}</select></label><div class="v66-vault-actions"><button data-v66-action="savePinTimeout" type="button">Сохранить интервал</button><button class="is-primary" data-v66-action="lockNow" type="button">Заблокировать сейчас</button><button class="is-danger" data-v66-action="disablePin" type="button">Отключить PIN</button></div></div>`);
+  }
+
+  async function v66SetupPin() {
+    const first = document.getElementById('v66_pin_first')?.value || '';
+    const second = document.getElementById('v66_pin_second')?.value || '';
+    if (!/^\d{4}$/.test(first)) return toast('PIN должен состоять из 4 цифр');
+    if (first !== second) return toast('PIN-коды не совпадают');
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await v66PinHash(first, salt);
+    state.settings.v66.security = { pinEnabled: true, pinSalt: bytesToBase64(salt), pinHash: hash, pinLength: 4, autoLockMinutes: num(document.getElementById('v66_pin_timeout')?.value) || 15, failedAttempts: 0, lockedUntil: 0 };
+    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
+    save(); closeModal(); render(); toast('PIN-защита включена');
+  }
+
+  async function v66CheckPin(pin) {
+    const security = state.settings.v66.security;
+    if (!security.pinEnabled || !security.pinSalt || !security.pinHash) return false;
+    const actual = await v66PinHash(pin, base64ToBytes(security.pinSalt));
+    return actual === security.pinHash;
+  }
+
+  function v66ShowLock() {
+    if (document.querySelector('.v66-lock')) return;
+    const pinLength = num(state.settings?.v66?.security?.pinLength) || 4;
+    const overlay = document.createElement('section');
+    overlay.className = 'v66-lock';
+    overlay.innerHTML = `<div><span class="v66-lock-mark">◆</span><small>Second Brain OS</small><h1>Личные данные защищены</h1><p>Введите ${pinLength === 4 ? 'четырёхзначный' : `${pinLength}-значный`} PIN этого устройства.</p><input id="v66_unlock_pin" type="password" inputmode="numeric" maxlength="${pinLength}" autocomplete="current-password" aria-label="PIN устройства"><button data-v66-action="unlockPin" type="button">Открыть приложение</button><em id="v66_unlock_error"></em></div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('v66_unlock_pin')?.focus(), 0);
+  }
+
+  function v66EnsureLock(force = false) {
+    const security = state.settings?.v66?.security || {};
+    if (!security.pinEnabled) return document.querySelector('.v66-lock')?.remove();
+    const unlockedAt = num(sessionStorage.getItem('secondBrainOS.v66.pinUnlockedAt'));
+    const expired = !unlockedAt || Date.now() - unlockedAt > (num(security.autoLockMinutes) || 15) * 60000;
+    if (force || expired) v66ShowLock();
+  }
+
+  async function v66UnlockPin() {
+    const input = document.getElementById('v66_unlock_pin');
+    const error = document.getElementById('v66_unlock_error');
+    const security = state.settings.v66.security;
+    if (num(security.lockedUntil) > Date.now()) {
+      const seconds = Math.ceil((num(security.lockedUntil) - Date.now()) / 1000);
+      if (error) error.textContent = `Слишком много попыток · подождите ${seconds} сек.`;
+      return;
     }
-    const cards = kpis.querySelectorAll(':scope > article');
-    if (cards[1]) {
-      const strong = cards[1].querySelector('strong');
-      const small = cards[1].querySelector('small');
-      if (strong) strong.textContent = model.selectedDaily ? money(model.selectedDaily) : '—';
-      if (small) small.textContent = model.mode === 'manual' ? 'задан вручную' : (model.daysLeft ? `${model.daysLeft} дней · рассчитан автоматически` : 'автоматический расчёт недоступен');
+    const pinLength = num(state.settings?.v66?.security?.pinLength) || 4;
+    if (!(new RegExp(`^\\d{${pinLength}}$`)).test(input?.value || '')) { if (error) error.textContent = `Введите ${pinLength} цифры`; return; }
+    if (await v66CheckPin(input.value)) {
+      state.settings.v66.security.failedAttempts = 0;
+      state.settings.v66.security.lockedUntil = 0;
+      sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
+      save(); document.querySelector('.v66-lock')?.remove(); toast('Приложение разблокировано');
+    } else {
+      const failedAttempts = num(state.settings.v66.security.failedAttempts) + 1;
+      state.settings.v66.security.failedAttempts = failedAttempts;
+      if (failedAttempts >= 5) state.settings.v66.security.lockedUntil = Date.now() + Math.min(300000, 30000 * Math.pow(2, Math.floor((failedAttempts - 5) / 5)));
+      save(); input.value = '';
+      if (error) error.textContent = failedAttempts >= 5 ? 'Слишком много попыток · пауза 30 секунд' : 'Неверный PIN';
     }
-    if (cards[2]) {
-      const strong = cards[2].querySelector('strong');
-      const small = cards[2].querySelector('small');
-      if (strong) strong.textContent = model.selectedDaily ? money(model.selectedDaily * 7) : '—';
-      if (small) small.textContent = model.mode === 'manual' ? '7 × ручной дневной лимит' : '7 × автоматический дневной лимит';
+  }
+
+  async function v66DisablePin() {
+    const pin = document.getElementById('v66_pin_current')?.value || '';
+    if (!(await v66CheckPin(pin))) return toast('Текущий PIN не подходит');
+    if (!window.confirm('Отключить PIN-защиту на этом устройстве?')) return;
+    state.settings.v66.security = { pinEnabled: false, pinSalt: '', pinHash: '', pinLength: 4, autoLockMinutes: 15, failedAttempts: 0, lockedUntil: 0 };
+    sessionStorage.removeItem('secondBrainOS.v66.pinUnlockedAt');
+    save(); closeModal(); render(); toast('PIN-защита отключена');
+  }
+
+  function v66SavePinTimeout() {
+    state.settings.v66.security.autoLockMinutes = num(document.getElementById('v66_pin_timeout')?.value) || 15;
+    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(Date.now()));
+    save(); closeModal(); render(); toast('Интервал сохранён');
+  }
+
+  function v66SleepPage() {
+    state.sleepEntries = arr('sleepEntries');
+    const target = num(state.settings.v66.sleepTarget) || 6;
+    const days = Array.from({ length: 14 }, (_, index) => iso(addDays(new Date(), index - 13)));
+    const map = new Map(state.sleepEntries.map(entry => [entry.date, entry]));
+    const last7 = days.slice(-7).map(date => map.get(date)).filter(entry => num(entry?.hours) > 0);
+    const average = last7.length ? last7.reduce((sum, entry) => sum + num(entry.hours), 0) / last7.length : 0;
+    const stable = last7.filter(entry => Math.abs(num(entry.hours) - target) <= 1).length;
+    const todayEntry = map.get(today()) || {};
+    const debt = last7.reduce((sum, entry) => sum + Math.max(0, target - num(entry.hours)), 0);
+    return layout('Сон', 'Количество часов, недельная динамика и спокойная рекомендация без выдуманных показателей.', `<section class="v66-sleep-page"><div class="v66-sleep-kpis"><article><span>Среднее · 7 дней</span><b>${average ? `${average.toFixed(1)} ч` : '—'}</b><small>${last7.length} ночей с данными</small></article><article><span>Минимальная цель</span><b>от ${target} ч</b><small>можно изменить ниже</small></article><article><span>Не ниже минимума</span><b>${last7.length ? `${last7.filter(entry => num(entry.hours) >= target).length}/${last7.length}` : '—'}</b><small>ритм важнее идеальности</small></article><article><span>Недобор · 7 дней</span><b>${last7.length ? `${debt.toFixed(1)} ч` : '—'}</b><small>сумма относительно минимума</small></article></div><div class="v66-sleep-layout"><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">Сегодня</span><h3>Зафиксировать сон</h3><p>Достаточно количества часов. Комментарий необязателен.</p></div></div><div class="v66-sleep-form"><label><span>Дата</span><input id="v66_sleep_date" type="date" value="${today()}"></label><label><span>Часов сна</span><input id="v66_sleep_hours" type="number" min="0.25" max="24" step="0.25" value="${esc(todayEntry.hours || '')}" placeholder="Например, 7.5"></label><label><span>Минимум, часов</span><input id="v66_sleep_target" type="number" min="4" max="12" step="0.25" value="${target}"></label><label class="is-wide"><span>Короткая заметка</span><input id="v66_sleep_note" value="${esc(todayEntry.note || '')}" placeholder="Например: поздно лёг, проснулся спокойно"></label></div><button class="v66-primary" data-v66-action="saveSleep" type="button">Сохранить сон</button><p class="v66-fineprint">Оценки самочувствия и медицинские выводы приложение не придумывает.</p></article><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">14 дней</span><h3>Динамика часов</h3><p>Пунктирный минимум — ${target} часов.</p></div></div><div class="v66-sleep-chart" style="--sleep-target:${Math.min(100, target / 12 * 100)}%">${days.map(date => { const hours = num(map.get(date)?.hours); return `<div title="${fmt(date)} · ${hours || 'нет данных'}"><span><i style="height:${hours ? Math.min(100, hours / 12 * 100) : 3}%"></i></span><small>${new Date(`${date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2)}</small></div>`; }).join('')}</div><div class="v66-sleep-history">${state.sleepEntries.slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 7).map(entry => `<article><span>${fmt(entry.date)}</span><b>${num(entry.hours).toFixed(1)} ч</b><small>${esc(entry.note || 'без заметки')}</small></article>`).join('') || '<p>Пока нет записей сна.</p>'}</div></article></div></section>`);
+  }
+
+  function v66SaveSleep() {
+    const date = document.getElementById('v66_sleep_date')?.value || today();
+    const hours = num(document.getElementById('v66_sleep_hours')?.value);
+    const target = num(document.getElementById('v66_sleep_target')?.value);
+    if (hours <= 0 || hours > 24) return toast('Укажите сон от 0,25 до 24 часов');
+    if (target < 4 || target > 12) return toast('Цель сна должна быть от 4 до 12 часов');
+    const existing = arr('sleepEntries').find(entry => entry.date === date) || {};
+    const record = { ...existing, id: existing.id || uid(), date, hours, note: cleanText(document.getElementById('v66_sleep_note')?.value), updatedAt: new Date().toISOString() };
+    state.sleepEntries = [record, ...arr('sleepEntries').filter(entry => entry.date !== date)];
+    state.settings.v66.sleepTarget = target;
+    save(); render(); toast('Сон сохранён');
+  }
+
+  const tradeRisk = () => state.settings.v66.tradingRisk;
+  const monday = date => { const value = new Date(`${date}T12:00:00`); return iso(addDays(value, -((value.getDay() + 6) % 7))); };
+
+  function v66TradeStats(mode) {
+    const trades = arr('trades').filter(trade => trade.mode === mode);
+    const closed = trades.filter(trade => num(trade.resultAmount) !== 0);
+    const wins = closed.filter(trade => num(trade.resultAmount) > 0);
+    const net = closed.reduce((sum, trade) => sum + num(trade.resultAmount), 0);
+    const followed = trades.filter(trade => trade.followedPlan === true || trade.followedPlan === 'true').length;
+    const violations = trades.filter(trade => trade.riskViolation).length;
+    return { trades, closed, wins, net, followed, violations, winRate: closed.length ? Math.round(wins.length / closed.length * 100) : 0 };
+  }
+
+  function v66TradingPage() {
+    state.trades = arr('trades');
+    const mode = state.settings.v66.tradeView === 'real' ? 'real' : 'demo';
+    const stats = v66TradeStats(mode);
+    const risk = tradeRisk();
+    const balance = num(risk.accountBalance);
+    const maxTrade = balance * num(risk.perTradePct) / 100;
+    const realTrades = arr('trades').filter(trade => trade.mode === 'real');
+    const dayLoss = realTrades.filter(trade => trade.date === today() && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
+    const weekStart = monday(today());
+    const weekLoss = realTrades.filter(trade => trade.date >= weekStart && trade.date <= today() && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
+    const dayLimit = balance * num(risk.dailyPct) / 100;
+    const weekLimit = balance * num(risk.weeklyPct) / 100;
+    return layout('Forex-журнал', 'Демо и реальные сделки разделены. Журнал оценивает соблюдение ваших правил, но не выдаёт торговых сигналов.', `<section class="v66-trading-page"><div class="v66-trade-hero"><div><span class="v65-overline">Контроль процесса</span><h2>${mode === 'demo' ? 'Демо-счёт' : 'Реальный счёт'}</h2><p>${mode === 'demo' ? 'Учитесь исполнять план без смешивания с реальными результатами.' : 'Перед каждой сделкой сверяйте риск и дневной лимит.'}</p><div class="v66-trade-tabs"><button class="${mode === 'demo' ? 'active' : ''}" data-v66-action="tradeMode" data-mode="demo" type="button">Демо</button><button class="${mode === 'real' ? 'active' : ''}" data-v66-action="tradeMode" data-mode="real" type="button">Реальный</button></div></div><div class="v66-trade-hero-actions"><button data-v66-action="openRisk" type="button">Лимиты риска</button><button class="v66-primary" data-v66-action="openTrade" type="button">＋ Записать сделку</button></div></div>${mode === 'real' ? `<div class="v66-risk-strip ${balance && dayLoss <= dayLimit && weekLoss <= weekLimit ? 'is-ok' : 'is-warn'}"><article class="v66-balance-cell"><span>Фактический баланс до сделок</span><div class="v66-inline-balance"><input id="v66_inline_balance" type="number" min="0.01" step="0.01" inputmode="decimal" value="${balance || ''}" placeholder="Введите баланс"><button data-v66-action="saveBalance" type="button">Сохранить</button></div><small>${balance ? `Сейчас: ${money(balance)}` : 'Нужен для расчёта лимитов риска'}</small></article><article><span>Макс. риск / сделка</span><b>${balance ? money(maxTrade) : '—'}</b></article><article><span>Убыток сегодня</span><b>${money(dayLoss)} / ${balance ? money(dayLimit) : '—'}</b></article><article><span>Убыток недели</span><b>${money(weekLoss)} / ${balance ? money(weekLimit) : '—'}</b></article></div>` : ''}<div class="v66-trade-kpis"><article><span>Сделок</span><b>${stats.trades.length}</b><small>${mode === 'demo' ? 'демо' : 'реальных'}</small></article><article><span>Результат</span><b class="${stats.net > 0 ? 'is-positive' : stats.net < 0 ? 'is-negative' : ''}">${stats.closed.length ? money(stats.net) : '—'}</b><small>по закрытым записям</small></article><article><span>Win rate</span><b>${stats.closed.length ? `${stats.winRate}%` : '—'}</b><small>${stats.closed.length} закрытых</small></article><article><span>Следование плану</span><b>${stats.trades.length ? `${stats.followed}/${stats.trades.length}` : '—'}</b><small>${stats.violations ? `${stats.violations} нарушений риска` : 'нарушений риска нет'}</small></article></div><div class="v66-trade-layout"><article class="v66-panel"><div class="v66-panel-head"><div><span class="v65-overline">История</span><h3>${mode === 'demo' ? 'Демо-сделки' : 'Реальные сделки'}</h3></div><button data-v66-action="openTrade" type="button">＋ Добавить</button></div><div class="v66-trade-list">${stats.trades.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).map(trade => `<article class="${trade.riskViolation ? 'is-violation' : ''}"><div><span>${trade.direction === 'sell' ? '↓' : '↑'}</span><div><b>${esc(trade.pair || 'FOREX')}</b><small>${fmt(trade.date)} · ${trade.direction === 'sell' ? 'Sell' : 'Buy'} · риск ${money(trade.riskAmount)}</small></div></div><strong class="${num(trade.resultAmount) > 0 ? 'is-positive' : num(trade.resultAmount) < 0 ? 'is-negative' : ''}">${num(trade.resultAmount) ? money(trade.resultAmount) : 'без результата'}</strong><em>${trade.followedPlan === true || trade.followedPlan === 'true' ? 'план соблюдён' : 'план нарушен'}${trade.riskViolation ? ' · риск превышен' : ''}${trade.screenshotsComplete ? ' · фото до/после' : (num(trade.resultAmount) ? ' · нужны фото' : '')}</em><div><button data-v66-action="openTrade" data-id="${esc(trade.id)}" type="button">Открыть</button><button data-v66-action="deleteTrade" data-id="${esc(trade.id)}" type="button">Удалить</button></div></article>`).join('') || '<p class="v66-empty">Сделок в этом режиме пока нет.</p>'}</div></article><aside class="v66-panel v66-trade-rules"><div class="v66-panel-head"><div><span class="v65-overline">Правила</span><h3>Перед реальной сделкой</h3></div></div><ol><li><b>План</b><span>Пара, направление, вход, Stop Loss и Take Profit записаны заранее.</span></li><li><b>Скриншоты</b><span>Сохраняйте график до входа и после выхода для честного разбора.</span></li><li><b>Риск</b><span>Не выше ${num(risk.perTradePct)}% баланса на одну сделку.</span></li><li><b>Стоп дня</b><span>После убытка ${num(risk.dailyPct)}% новые реальные сделки не открываются.</span></li><li><b>Стоп недели</b><span>После убытка ${num(risk.weeklyPct)}% — разбор, а не попытка отыграться.</span></li></ol><p class="v66-fineprint">Это журнал дисциплины и финансовой грамотности, а не инвестиционная рекомендация.</p></aside></div></section>`);
+  }
+
+  function v66SaveInlineBalance() {
+    const input = document.getElementById('v66_inline_balance');
+    const accountBalance = num(input?.value);
+    if (accountBalance <= 0) {
+      input?.focus();
+      return toast('Введите фактический баланс больше нуля');
     }
+    state.settings.v66.tradingRisk = Object.assign({}, tradeRisk(), { accountBalance });
+    save();
+    render();
+    toast('Фактический баланс сохранён');
   }
 
-  function openBankImport() {
-    openModal('Импорт банковской выписки', `<div class="v39-csv-import v67-bank-import"><section class="v67-safety-banner"><span>₽</span><div><h3>Сначала предпросмотр</h3><p>Выберите CSV или TXT из банка. Приложение покажет операции, суммы и найденные дубли, но ничего не добавит без вашего подтверждения.</p></div></section><input id="v67_bank_csv" type="file" data-v39-csv-input accept=".csv,text/csv,text/plain,.txt"><div class="v39-csv-pick-row"><button class="ghost-btn" data-v39-action="pickCsvFile" type="button">Выбрать CSV / TXT</button><button class="btn" data-action="importBankCsv" type="button">Показать операции</button><button class="ghost-btn" data-v39-action="openCsvPaste" type="button">Вставить CSV текстом</button></div><div class="v39-csv-drop">Можно перетащить выписку сюда</div><div class="v39-csv-status">Файл пока не выбран</div><div class="v39-csv-hint"><b>Поддержка:</b> Альфа-Банк и другие CSV с разделителями ; , TAB, датами ДД.ММ.ГГГГ и кодировкой UTF-8/Windows-1251.</div></div>`);
+  function v66OpenRisk() {
+    const risk = tradeRisk();
+    openModal('Лимиты риска Forex', `<div class="v66-risk-form"><p>Значения используются только для предупреждений и статистики. По умолчанию установлены осторожные лимиты, их нужно подтвердить под вашу стратегию.</p><label><span>Баланс реального счёта, ₽</span><input id="v66_risk_balance" type="number" min="0" value="${num(risk.accountBalance) || ''}"></label><label><span>Максимум на сделку, %</span><input id="v66_risk_trade" type="number" min="0.1" max="10" step="0.1" value="${num(risk.perTradePct)}"></label><label><span>Стоп на день, %</span><input id="v66_risk_day" type="number" min="0.1" max="20" step="0.1" value="${num(risk.dailyPct)}"></label><label><span>Стоп на неделю, %</span><input id="v66_risk_week" type="number" min="0.1" max="30" step="0.1" value="${num(risk.weeklyPct)}"></label><div class="v66-vault-actions"><button class="is-primary" data-v66-action="saveRisk" type="button">Сохранить лимиты</button><button data-v66-action="closeModal" type="button">Отмена</button></div></div>`);
   }
 
-  function saveManualLimit() {
-    const value = num(document.getElementById('v67_manual_daily_limit')?.value);
-    if (value <= 0) return toast('Укажите ручной дневной лимит больше нуля');
-    const settings = ensureV67Settings();
-    settings.manualDailyLimit = value;
-    settings.financeLimitMode = 'manual';
-    save(); render(); toast('Ручной лимит сохранён');
+  function v66SaveRisk() {
+    const values = { accountBalance: num(document.getElementById('v66_risk_balance')?.value), perTradePct: num(document.getElementById('v66_risk_trade')?.value), dailyPct: num(document.getElementById('v66_risk_day')?.value), weeklyPct: num(document.getElementById('v66_risk_week')?.value) };
+    if (values.accountBalance < 0 || values.perTradePct <= 0 || values.dailyPct <= 0 || values.weeklyPct <= 0) return toast('Проверьте баланс и проценты');
+    if (values.perTradePct > values.dailyPct || values.dailyPct > values.weeklyPct) return toast('Лимиты должны расти: сделка ≤ день ≤ неделя');
+    state.settings.v66.tradingRisk = values;
+    save(); closeModal(); render(); toast('Лимиты риска сохранены');
   }
 
-  function setFinanceLimitMode(mode) {
-    const settings = ensureV67Settings();
-    if (mode === 'manual' && num(settings.manualDailyLimit) <= 0) {
-      settings.financeLimitMode = 'manual';
-      save(); render();
-      setTimeout(() => document.getElementById('v67_manual_daily_limit')?.focus(), 100);
-      return toast('Введите ручной дневной лимит');
+  const v66ReadAsDataUrl = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Не удалось прочитать изображение'));
+    reader.readAsDataURL(file);
+  });
+
+  async function v66CompressTradeImage(inputId) {
+    const file = document.getElementById(inputId)?.files?.[0];
+    if (!file) return '';
+    if (!/^image\//i.test(file.type)) throw new Error('Выберите изображение');
+    if (file.size > 12 * 1024 * 1024) throw new Error('Скриншот больше 12 МБ');
+    if (typeof createImageBitmap !== 'function') {
+      if (file.size > 450 * 1024) throw new Error('На этом устройстве выберите скриншот меньше 450 КБ');
+      return v66ReadAsDataUrl(file);
     }
-    settings.financeLimitMode = mode === 'manual' ? 'manual' : 'auto';
-    save(); render(); toast(settings.financeLimitMode === 'auto' ? 'Включён автоматический лимит' : 'Включён ручной лимит');
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 900 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .68));
+    if (!blob) throw new Error('Не удалось сжать скриншот');
+    if (blob.size > 500 * 1024) throw new Error('После сжатия скриншот всё ещё слишком большой');
+    return v66ReadAsDataUrl(blob);
   }
 
-  function dayAtmosphere() {
-    const hour = new Date().getHours();
-    if (hour < 11) return { key: 'morning', label: 'Спокойное утро', next: hour < 9 ? 'План дня в 09:00' : 'Один главный шаг уже можно выбрать' };
-    if (hour < 18) return { key: 'day', label: 'Дневной фокус', next: 'Сохраняйте только важное' };
-    return { key: 'evening', label: 'Мягкое завершение', next: hour < 20 ? 'Короткий итог в 20:00' : 'Подведите итог и отпустите день' };
+  function v66OpenTrade(id = '') {
+    if (!id && window.SecondBrainLife?.beforeOpenTrade && window.SecondBrainLife.beforeOpenTrade(state.settings.v66.tradeView || 'demo') === false) return;
+    const trade = id ? arr('trades').find(item => String(item.id) === String(id)) || {} : { date: today(), mode: state.settings.v66.tradeView || 'demo', direction: 'buy', followedPlan: 'true' };
+    openModal(id ? 'Редактировать сделку' : 'Записать сделку', `<div class="v66-trade-form"><label><span>Режим</span><select id="v66_trade_mode"><option value="demo" ${trade.mode !== 'real' ? 'selected' : ''}>Демо</option><option value="real" ${trade.mode === 'real' ? 'selected' : ''}>Реальный</option></select></label><label><span>Дата</span><input id="v66_trade_date" type="date" value="${esc(trade.date || today())}"></label><label><span>Валютная пара</span><input id="v66_trade_pair" value="${esc(trade.pair || '')}" placeholder="EUR/USD"></label><label><span>Направление</span><select id="v66_trade_direction"><option value="buy" ${trade.direction !== 'sell' ? 'selected' : ''}>Buy</option><option value="sell" ${trade.direction === 'sell' ? 'selected' : ''}>Sell</option></select></label><label><span>Вход</span><input id="v66_trade_entry" type="number" step="any" value="${esc(trade.entry || '')}"></label><label><span>Stop Loss</span><input id="v66_trade_stop" type="number" step="any" value="${esc(trade.stopLoss || '')}"></label><label><span>Take Profit</span><input id="v66_trade_take" type="number" step="any" value="${esc(trade.takeProfit || '')}"></label><label><span>Риск, ₽</span><input id="v66_trade_risk" type="number" min="0" step="any" value="${esc(trade.riskAmount || '')}"></label><label><span>Результат, ₽</span><input id="v66_trade_result" type="number" step="any" value="${esc(trade.resultAmount ?? '')}" placeholder="Можно заполнить после закрытия"></label><label><span>План соблюдён?</span><select id="v66_trade_plan"><option value="true" ${trade.followedPlan !== false && trade.followedPlan !== 'false' ? 'selected' : ''}>Да</option><option value="false" ${trade.followedPlan === false || trade.followedPlan === 'false' ? 'selected' : ''}>Нет</option></select></label><label class="is-wide"><span>Сетап / причина входа</span><textarea id="v66_trade_setup" placeholder="Что должно было произойти по плану?">${esc(trade.setup || '')}</textarea></label><label><span>Эмоция</span><input id="v66_trade_emotion" value="${esc(trade.emotion || '')}" placeholder="Спокойствие, страх, FOMO…"></label><label><span>Короткий разбор</span><textarea id="v66_trade_note" placeholder="Что повторить или изменить?">${esc(trade.note || '')}</textarea></label><section class="v66-trade-images is-wide"><article><span>Скриншот до сделки</span>${trade.beforeImage ? `<img src="${esc(trade.beforeImage)}" alt="Скриншот до сделки"><label><input id="v66_trade_remove_before" type="checkbox"> удалить текущий</label>` : '<small>План и контекст графика</small>'}<input id="v66_trade_before" type="file" accept="image/*"></article><article><span>Скриншот после сделки</span>${trade.afterImage ? `<img src="${esc(trade.afterImage)}" alt="Скриншот после сделки"><label><input id="v66_trade_remove_after" type="checkbox"> удалить текущий</label>` : '<small>Результат и точка выхода</small>'}<input id="v66_trade_after" type="file" accept="image/*"></article></section></div><div class="v66-vault-actions"><button class="is-primary" data-v66-action="saveTrade" data-id="${esc(id)}" type="button">Сохранить сделку</button><button data-v66-action="closeModal" type="button">Отмена</button></div>`);
   }
 
-  function isEmploymentItem(item) {
-    const area = String(item?.area || '').trim().toLocaleLowerCase('ru-RU');
-    const text = `${item?.title || ''} ${item?.name || ''} ${item?.note || ''}`;
-    return area === 'работа' || /работа по найму|по найму|зарплат|оклад|работодател|офисн(?:ая|ые|ый) работ|рабоч(?:ая|ие|ий|ую) задач/i.test(text);
+  async function v66SaveTrade(id = '') {
+    const value = field => document.getElementById(field)?.value || '';
+    const existing = id ? arr('trades').find(item => String(item.id) === String(id)) || {} : {};
+    const mode = value('v66_trade_mode') === 'real' ? 'real' : 'demo';
+    if (!id && mode === 'real' && window.SecondBrainLife?.canSaveRealTrade && window.SecondBrainLife.canSaveRealTrade(mode) === false) return;
+    const pair = cleanText(value('v66_trade_pair')).toUpperCase();
+    const riskAmount = num(value('v66_trade_risk'));
+    if (!pair || !value('v66_trade_date')) return toast('Укажите валютную пару и дату');
+    const risk = tradeRisk();
+    if (mode === 'real' && num(risk.accountBalance) <= 0) return toast('Сначала укажите баланс реального счёта в лимитах риска');
+    if (mode === 'real' && riskAmount <= 0) return toast('Для реальной сделки укажите риск');
+    const maxRisk = num(risk.accountBalance) * num(risk.perTradePct) / 100;
+    if (mode === 'real') {
+      const realTrades = arr('trades').filter(trade => trade.mode === 'real' && String(trade.id) !== String(existing.id || ''));
+      const dayLoss = realTrades.filter(trade => trade.date === value('v66_trade_date') && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
+      const weekStart = monday(value('v66_trade_date'));
+      const weekLoss = realTrades.filter(trade => trade.date >= weekStart && trade.date <= value('v66_trade_date') && num(trade.resultAmount) < 0).reduce((sum, trade) => sum + Math.abs(num(trade.resultAmount)), 0);
+      const warnings = [];
+      if (riskAmount > maxRisk) warnings.push(`риск сделки ${money(riskAmount)} выше лимита ${money(maxRisk)}`);
+      if (dayLoss >= num(risk.accountBalance) * num(risk.dailyPct) / 100) warnings.push('дневной стоп уже достигнут');
+      if (weekLoss >= num(risk.accountBalance) * num(risk.weeklyPct) / 100) warnings.push('недельный стоп уже достигнут');
+      if (warnings.length && !window.confirm(`Нарушение правил риска:\n\n• ${warnings.join('\n• ')}\n\nСохранить запись реальной сделки после дополнительного подтверждения?`)) return;
+    }
+    let beforeImage = document.getElementById('v66_trade_remove_before')?.checked ? '' : (existing.beforeImage || '');
+    let afterImage = document.getElementById('v66_trade_remove_after')?.checked ? '' : (existing.afterImage || '');
+    try {
+      beforeImage = await v66CompressTradeImage('v66_trade_before') || beforeImage;
+      afterImage = await v66CompressTradeImage('v66_trade_after') || afterImage;
+    } catch (error) { return toast(error.message || 'Не удалось обработать скриншот'); }
+    const resultAmount = num(value('v66_trade_result'));
+    const record = { ...existing, id: existing.id || uid(), mode, date: value('v66_trade_date'), pair, direction: value('v66_trade_direction') === 'sell' ? 'sell' : 'buy', entry: num(value('v66_trade_entry')), stopLoss: num(value('v66_trade_stop')), takeProfit: num(value('v66_trade_take')), riskAmount, resultAmount, followedPlan: value('v66_trade_plan') === 'true', setup: cleanText(value('v66_trade_setup')), emotion: cleanText(value('v66_trade_emotion')), note: cleanText(value('v66_trade_note')), beforeImage, afterImage, screenshotsComplete: Boolean(beforeImage && afterImage), riskLimitAtEntry: maxRisk, riskViolation: mode === 'real' && riskAmount > maxRisk, lossReviewRequired: mode === 'real' && resultAmount < 0 && !existing.lossReview?.completedAt, updatedAt: new Date().toISOString(), createdAt: existing.createdAt || new Date().toISOString() };
+    state.trades = [record, ...arr('trades').filter(item => String(item.id) !== String(record.id))];
+    state.settings.v66.tradeView = mode;
+    save(); closeModal(); render();
+    toast(record.riskViolation ? 'Сделка сохранена с предупреждением о риске' : (resultAmount && !record.screenshotsComplete ? 'Сделка сохранена · добавьте скриншоты до и после' : 'Сделка сохранена'));
   }
 
-  function injectLivingDashboard(view) {
-    const hero = view.querySelector('.v65-prime,.v59-hero,.hero');
-    if (!hero || view.querySelector('.v67-living-strip')) return;
-    const atmosphere = dayAtmosphere();
-    const habits = (Array.isArray(state.habits) ? state.habits : []).filter(item => !isEmploymentItem(item));
-    const habitsDone = habits.filter(item => item.marks?.[today()]).length;
-    const tasks = (Array.isArray(state.tasks) ? state.tasks : []).filter(item => !isEmploymentItem(item) && !['Готово', 'Выполнено', 'Закрыто'].includes(item.status));
-    const urgent = tasks.filter(item => item.date && item.date <= today()).length;
-    const [cloudTitle] = accountStateText();
-    const habitProgress = habits.length ? Math.round(habitsDone / habits.length * 100) : 0;
-    hero.insertAdjacentHTML('afterend', `<section class="v67-living-strip"><div class="v67-live-now"><span class="v67-live-orbit"></span><div><small>${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} · ${atmosphere.label}</small><b>${atmosphere.next}</b></div></div><button data-go="habits" type="button"><span class="v67-mini-ring" style="--v67-progress:${habitProgress}%">${habitProgress}%</span><div><small>Привычки</small><b>${habitsDone}/${habits.length || 0} сегодня</b></div></button><button data-go="tasks" type="button"><span>✓</span><div><small>Личный план</small><b>${urgent ? `${urgent} требуют внимания` : 'срочных пунктов нет'}</b></div></button><button data-v66-action="openAccountInfo" type="button"><span>◎</span><div><small>Данные</small><b>${html(cloudTitle)}</b></div></button></section>`);
+  function v66DeleteTrade(id) {
+    const trade = arr('trades').find(item => String(item.id) === String(id));
+    if (!trade || !window.confirm(`Удалить запись ${trade.pair || 'FOREX'} за ${fmt(trade.date)}?`)) return;
+    state.trades = arr('trades').filter(item => String(item.id) !== String(id));
+    save(); render(); toast('Запись сделки удалена');
   }
 
-  function injectHabitRule(view) {
-    const hero = view.querySelector('.hero,.v59-hero');
-    if (!hero || view.querySelector('.v67-habit-rule')) return;
-    hero.insertAdjacentHTML('afterend', '<section class="v67-habit-rule"><span>↻</span><div><b>Честная серия</b><small>Пропущенный день обнуляет текущую серию, но вся история отметок сохраняется.</small></div></section>');
+  function v66OpenAccountInfo() {
+    if (window.SecondBrainCloud?.openAccount) return window.SecondBrainCloud.openAccount();
+    openModal('Аккаунт и синхронизация', `<div class="v66-account-info"><section><span>◎</span><div><h3>Windows + iPhone</h3><p>Для настоящего входа и синхронизации нужен серверный проект, HTTPS-домен и настройки OAuth. Интерфейс не будет имитировать подключение, которого нет.</p></div></section><div><article><b>Email</b><small>требует почтового подтверждения и восстановления доступа</small><em>готовится</em></article><article><b>Google</b><small>требует OAuth Client ID и разрешённых доменов</small><em>готовится</em></article><article><b>Apple</b><small>требует Apple Developer Service ID и private key на сервере</small><em>готовится</em></article></div><p>До подключения сервера используйте локальный PIN и резервные копии. Токены нельзя хранить в ZIP или клиентском JavaScript.</p></div>`);
   }
 
-  function injectDiaryMap(view) {
-    const hero = view.querySelector('.hero,.v59-hero');
-    if (!hero || view.querySelector('.v67-diary-map')) return;
-    hero.insertAdjacentHTML('afterend', '<section class="v67-diary-map"><span>Ситуация</span><i>→</i><span>Мысль</span><i>→</i><span>Эмоция</span><i>→</i><span>Страх</span><i>→</i><span>Причина</span><i>→</i><span>Сценарий</span><i>→</i><strong>Вывод + действие</strong></section>');
+  function v66OpenNotifications() {
+    const settings = state.settings.v66.notifications;
+    const permission = typeof Notification === 'undefined' ? 'не поддерживается' : ({ granted: 'разрешены', denied: 'запрещены', default: 'не запрошены' }[Notification.permission] || Notification.permission);
+    openModal('Ритм уведомлений', `<div class="v66-notifications"><section><span>◷</span><div><h3>iPhone — основной канал</h3><p>Утренний план в ${esc(settings.morning)} и короткий итог в ${esc(settings.evening)}. Пока сервер не подключён, уведомления сработают только когда PWA или вкладка активны.</p></div></section><label><span>Утренний план</span><input id="v66_notify_morning" type="time" value="${esc(settings.morning || '09:00')}"></label><label><span>Вечерний итог</span><input id="v66_notify_evening" type="time" value="${esc(settings.evening || '20:00')}"></label><div class="v66-notification-status"><span>Разрешение браузера</span><b>${esc(permission)}</b></div><div class="v66-vault-actions"><button data-v66-action="requestNotifications" type="button">Разрешить уведомления</button><button class="is-primary" data-v66-action="saveNotifications" type="button">Сохранить время</button></div><p class="v66-vault-note">Для фоновых push-уведомлений на закрытом iPhone потребуется серверная подписка Web Push и установленное PWA.</p></div>`);
   }
 
-  function injectStuckTasks(view) {
-    const hero = view.querySelector('.hero,.v59-hero');
-    if (!hero || view.querySelector('.v67-stuck-overview')) return;
-    const stuck = (Array.isArray(state.tasks) ? state.tasks : []).filter(item => num(item.postponeCount) >= 3 && !['Готово', 'Выполнено', 'Закрыто'].includes(item.status));
-    if (!stuck.length) return;
-    hero.insertAdjacentHTML('afterend', `<section class="v67-stuck-overview"><div><span>↻</span><div><b>${stuck.length} ${stuck.length === 1 ? 'задача переносится' : 'задачи переносятся'} снова</b><small>Помощник предложит упростить, разбить, назначить дату или убрать в архив.</small></div></div><button data-v65-action="openDayPlan" type="button">Разобрать</button></section>`);
+  async function v66RequestNotifications() {
+    if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) return toast('Уведомления не поддерживаются в этом браузере');
+    const permission = await Notification.requestPermission();
+    state.settings.v66.notifications.enabled = permission === 'granted';
+    save();
+    if (permission !== 'granted') return toast('Разрешение не выдано');
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification('Second Brain OS', { body: 'Уведомления включены. План — 09:00, итог — 20:00.', tag: 'sbos-notification-test', icon: './icon-192-v71.png' });
+    } catch (error) {}
+    v66OpenNotifications();
   }
 
-  function stageLiveCards(view) {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    view.querySelectorAll('.v65-card,.v66-panel,.v67-limit-control,.v67-living-strip,.v65-money-kpis>article,.v66-trade-kpis>article').forEach((element, index) => {
-      if (element.dataset.v67Staged) return;
-      element.dataset.v67Staged = '1';
-      element.style.setProperty('--v67-delay', `${Math.min(index, 12) * 34}ms`);
-      element.classList.add('v67-live-in');
+  function v66SaveNotifications() {
+    const morning = document.getElementById('v66_notify_morning')?.value || '09:00';
+    const evening = document.getElementById('v66_notify_evening')?.value || '20:00';
+    state.settings.v66.notifications = { ...state.settings.v66.notifications, morning, evening, channel: 'iphone' };
+    save(); closeModal(); render(); toast('Время уведомлений сохранено');
+  }
+
+  async function v66NotificationTick() {
+    if (window.SecondBrainLife?.notificationTick) return window.SecondBrainLife.notificationTick();
+    const settings = state.settings?.v66?.notifications || {};
+    if (!settings.enabled || typeof Notification === 'undefined' || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const kind = time === settings.morning ? 'morning' : time === settings.evening ? 'evening' : '';
+    if (!kind) return;
+    const key = `secondBrainOS.v66.notification.${today()}.${kind}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, new Date().toISOString());
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification(kind === 'morning' ? 'План утра' : 'Итог вечера', {
+      body: kind === 'morning' ? 'Откройте короткий порядок дня и выберите главный шаг.' : 'Зафиксируйте результат дня и первый шаг на завтра.',
+      tag: `sbos-${kind}-${today()}`, icon: './icon-192-v71.png', data: { url: kind === 'morning' ? './#dashboard' : './#dashboard' }
     });
   }
 
-  function livePostRender() {
-    const atmosphere = dayAtmosphere();
+  function v66DebtAdviceHtml() {
+    const outgoing = (typeof activeDebts === 'function' ? activeDebts() : arr('debts')).filter(item => item.direction === 'out');
+    const budget = num(state.settings?.v65?.debtMonthlyBudget);
+    const minimumTotal = outgoing.reduce((sum, item) => sum + num(item.minPayment), 0);
+    const overdue = outgoing.filter(item => item.due && item.due < today());
+    const highRate = outgoing.slice().sort((a, b) => num(b.rate) - num(a.rate))[0];
+    const soon = outgoing.filter(item => item.due && item.due >= today() && item.due <= iso(addDays(new Date(), 14))).sort((a, b) => String(a.due).localeCompare(String(b.due)))[0];
+    const smallest = outgoing.slice().sort((a, b) => num(a.amount) - num(b.amount))[0];
+    let title = 'Добавьте долги для рекомендации';
+    let detail = 'Помощник сравнит просрочку, обязательные платежи, ставку, срок и психологическую нагрузку.';
+    let method = 'ожидаю данные';
+    if (overdue.length) {
+      title = `Сначала остановить просрочку: ${overdue[0].person || 'долг'}`;
+      detail = 'Просрочка важнее экономии по ставке: уточните сумму, штрафы и минимальный платёж, затем пересчитайте план.';
+      method = 'защита от штрафов';
+    } else if (budget && minimumTotal > budget) {
+      title = 'Бюджета не хватает на минимальные платежи';
+      detail = `Не хватает ${money(minimumTotal - budget)}. Приоритет — обязательные минимумы и ранний контакт с кредиторами, а не досрочное погашение.`;
+      method = 'стабилизация';
+    } else if (highRate && num(highRate.rate) > 0) {
+      title = `Основной удар по ставке: ${highRate.person || 'долг'}`;
+      detail = `${num(highRate.rate)}% годовых — после всех минимумов направляйте свободный бюджет сюда, если рядом нет критичного срока.`;
+      method = 'лавина';
+    } else if (soon) {
+      title = `Ближайший срок: ${soon.person || 'долг'}`;
+      detail = `Срок ${fmt(soon.due)}. Сначала обеспечьте этот платёж, затем распределяйте остаток.`;
+      method = 'по сроку';
+    } else if (smallest) {
+      title = `Можно быстро закрыть: ${smallest.person || 'долг'}`;
+      detail = 'При одинаковых рисках небольшой долг можно закрыть первым, чтобы освободить внимание и один обязательный платёж.';
+      method = 'маленькая победа';
+    }
+    return `<section class="v66-debt-advice"><span>✦</span><div><small>Динамическая рекомендация · ${esc(method)}</small><h3>${esc(title)}</h3><p>${esc(detail)}</p></div><button data-v66-action="openDebtMethod" type="button">Как выбрано</button></section>`;
+  }
+
+  function v66OpenDebtMethod() {
+    openModal('Как помощник выбирает приоритет долга', '<div class="v66-debt-method"><p>Рекомендация пересчитывается при изменении данных и не использует один метод всегда.</p><ol><li><b>1. Просрочка и штрафы</b><span>Сначала убирается риск ухудшения ситуации.</span></li><li><b>2. Минимальные платежи</b><span>План должен покрывать обязательный минимум.</span></li><li><b>3. Высокая ставка</b><span>Экономия процентов методом лавины.</span></li><li><b>4. Близкий срок</b><span>Платёж, который нельзя отложить.</span></li><li><b>5. Небольшой долг</b><span>Быстрое закрытие, если финансовые риски сопоставимы.</span></li></ol><p>Перед фактическим платежом сверяйте сумму и условия с банком или кредитором.</p></div>');
+  }
+
+  function v66SystemCards() {
+    const security = state.settings.v66.security;
+    const lastRestore = state.settings.v66.lastRestore;
+    const notifications = state.settings.v66.notifications;
+    return `<section class="v66-system-grid"><article><span>⛨</span><div><b>Хранилище данных</b><small>${lastRestore ? `последнее восстановление ${new Date(lastRestore.at).toLocaleString('ru-RU')}` : 'предпросмотр, выбор разделов и безопасное объединение'}</small></div><button data-v66-action="openVault" type="button">Открыть</button></article><article><span>●</span><div><b>PIN устройства</b><small>${security.pinEnabled ? `включён · блокировка через ${num(security.autoLockMinutes)} минут` : 'пока выключен · PIN хранится только в виде хеша'}</small></div><button data-v66-action="openSecurity" type="button">${security.pinEnabled ? 'Настроить' : 'Включить'}</button></article><article><span>◷</span><div><b>Ритм уведомлений</b><small>${notifications.morning} план · ${notifications.evening} итог · iPhone</small></div><button data-v66-action="openNotifications" type="button">Настроить</button></article><article data-v66-account-card><span>◎</span><div><b>Вход по аккаунту</b><small>Email, Google и Apple · проверяем подключение</small></div><button data-v66-action="openAccountInfo" type="button">Статус</button></article></section>`;
+  }
+
+  function v66NavButton(route, icon, label, color) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `v59-nav-item v66-nav-item ${(location.hash || '').replace('#', '') === route ? 'active' : ''}`;
+    button.dataset.go = route;
+    button.innerHTML = `<span class="v59-nav-ico" style="background:${color}">${icon}</span><span class="label">${label}</span><span></span>`;
+    return button;
+  }
+
+  function v66InjectNavigation() {
+    const nav = document.querySelector('.v59-nav-scroll');
+    if (!nav) return;
+    if (!nav.querySelector('[data-go="trading"]')) {
+      const finance = nav.querySelector('.v59-nav-item[data-go="finance"]');
+      finance?.insertAdjacentElement('afterend', v66NavButton('trading', '↗', 'Трейдинг', 'linear-gradient(135deg,#5b49d8,#8b5cf6)'));
+    }
+    if (!nav.querySelector('[data-go="sleep"]')) {
+      const habits = nav.querySelector('.v59-nav-item[data-go="habits"]');
+      habits?.insertAdjacentElement('afterend', v66NavButton('sleep', '☾', 'Сон', 'linear-gradient(135deg,#2864a8,#38bdf8)'));
+    }
+    const route = (location.hash || '').replace('#', '') || page || 'dashboard';
+    nav.querySelectorAll('.v59-nav-item').forEach(button => button.classList.toggle('active', button.dataset.go === route));
+  }
+
+  function v66PostRender() {
+    document.body.classList.add('v66-safe-core');
     const v70Active = Boolean(document.querySelector('script[src*="app-v70-living.js"]'));
     const v69Active = Boolean(document.querySelector('script[src*="app-v69-calm.js"]'));
     const v68Active = Boolean(document.querySelector('script[src*="app-v68-assistant.js"]'));
-    const activeBuild = v70Active ? 'second-brain-space-v71-personal-data-restore-20260716-r26' : (v69Active ? 'second-brain-space-v69-calm-intelligence-20260715' : (v68Active ? 'second-brain-space-v68-unified-assistant-20260715' : BUILD));
-    document.body.classList.remove('v67-time-morning', 'v67-time-day', 'v67-time-evening');
-    document.body.classList.add(`v67-time-${atmosphere.key}`);
-    document.body.dataset.sbosBuild = activeBuild;
+    const v67Active = document.body.classList.contains('v67-cloud-safe');
+    if (!v67Active) {
+      document.body.dataset.sbosBuild = V66_BUILD;
+      document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', V66_BUILD);
+    }
     const version = document.querySelector('.v59-version,.version');
-    if (version && version.textContent !== (v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67 · LIVING PERSONAL OS')))) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : 'V67 · LIVING PERSONAL OS'));
+    if (version) version.textContent = v70Active ? 'V70 · LIVING PERSONAL OS' : (v69Active ? 'V69 · CALM INTELLIGENCE' : (v68Active ? 'V68 · UNIFIED PERSONAL OS' : (v67Active ? 'V67.8 · LIVING PERSONAL OS' : V66_LABEL)));
     const core = document.querySelector('.v59-core-pill');
-    if (core && core.textContent !== (v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67')))) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : 'V67'));
+    if (core) core.textContent = v70Active ? 'V70' : (v69Active ? 'V69' : (v68Active ? 'V68' : (v67Active ? 'V67.8' : 'V66')));
+    v66InjectNavigation();
+    const route = (location.hash || '').replace('#', '') || page || 'dashboard';
     const view = document.getElementById('view');
     if (!view) return;
-    const route = (location.hash || '').replace('#', '') || 'dashboard';
-    if (route === 'dashboard') injectLivingDashboard(view);
-    if (route === 'finance') injectFinanceLimitControl(view);
-    if (route === 'habits') injectHabitRule(view);
-    if (route === 'subconscious') injectDiaryMap(view);
-    if (route === 'tasks') injectStuckTasks(view);
-    stageLiveCards(view);
-    updateAccountCardSoon();
+    if (route === 'trading' && !view.querySelector('.v66-trading-page')) view.innerHTML = v66TradingPage();
+    if (route === 'sleep' && !view.querySelector('.v66-sleep-page')) view.innerHTML = v66SleepPage();
+    const hero = view.querySelector('.hero,.v59-hero,.v60-hero');
+    if (route === 'system' && hero && !view.querySelector('.v66-system-grid')) {
+      const anchor = view.querySelector('.v65-sync-card') || hero;
+      anchor.insertAdjacentHTML('afterend', v66SystemCards());
+    }
+    if (route === 'debts' && hero && !view.querySelector('.v66-debt-advice')) hero.insertAdjacentHTML('afterend', v66DebtAdviceHtml());
+    if (route === 'finance' && hero && !view.querySelector('.v66-route-card')) hero.insertAdjacentHTML('afterend', '<section class="v66-route-card"><span>↗</span><div><b>Forex-журнал</b><small>Демо и реальные сделки, дисциплина и лимиты риска</small></div><button data-go="trading" type="button">Открыть</button></section>');
+    if (route === 'habits' && hero && !view.querySelector('.v66-route-card')) hero.insertAdjacentHTML('afterend', '<section class="v66-route-card"><span>☾</span><div><b>Сон в часах</b><small>Короткая фиксация и динамика за 14 дней</small></div><button data-go="sleep" type="button">Открыть</button></section>');
+    v66EnsureLock();
   }
 
-  function providerLabel(user) {
-    const ids = (user?.providerData || []).map(item => item.providerId);
-    if (ids.includes('apple.com')) return 'Apple';
-    if (ids.includes('google.com')) return 'Google';
-    return 'Email';
-  }
-
-  function openAccount() {
-    ensureFirebase().then(() => {
-      const rollback = jsonRead(KEY.rollback, null);
-      if (!currentUser) {
-        const unavailable = prefs.phase === 'config-missing';
-        openModal('Аккаунт и синхронизация', `<div class="v67-account"><section class="v67-account-hero"><span>◎</span><div><small>Windows + iPhone</small><h3>${unavailable ? 'Облачный проект ещё не настроен' : 'Один личный аккаунт'}</h3><p>${unavailable ? 'Приложение продолжает полностью работать локально. Добавьте firebase-config.js только на защищённом домене.' : 'Вход не загружает данные автоматически. Синхронизация включается отдельным подтверждением после резервной копии.'}</p></div></section>${prefs.lastError ? `<div class="v67-error">${html(prefs.lastError)}</div>` : ''}${unavailable ? '<div class="v67-setup-list"><b>Для запуска облака</b><ol><li>Развернуть приложение на HTTPS-домене.</li><li>Добавить домен в Firebase Authentication.</li><li>Развернуть Firestore и Storage rules.</li><li>Положить firebase-config.js только в окружение развертывания.</li></ol></div>' : `<div class="v67-email-form"><label><span>Email</span><input id="v67_email" type="email" autocomplete="email" placeholder="name@example.com"></label><label><span>Пароль</span><input id="v67_password" type="password" autocomplete="current-password" placeholder="Минимум 8 символов"></label><div class="v67-email-actions"><button data-v67-action="email-signin" class="is-primary" type="button">Войти</button><button data-v67-action="email-signup" type="button">Создать аккаунт</button><button data-v67-action="reset-password" class="is-link" type="button">Забыли пароль?</button></div></div><div class="v67-divider"><span>или</span></div><div class="v67-provider-actions"><button data-v67-action="google" type="button"><b>G</b> Продолжить с Google</button><button data-v67-action="apple" type="button"><b>●</b> Продолжить с Apple</button></div>`}<p class="v67-privacy">PIN остаётся только на устройстве. Пароли и OAuth-токены приложение не сохраняет в резервные копии.</p></div>`);
-        return;
-      }
-      const [statusTitle, statusDetail] = accountStateText();
-      const queueCount = Object.keys(queue).length;
-      const syncReadyForUser = prefs.uid === currentUser.uid && prefs.collections?.length;
-      openModal('Аккаунт и синхронизация', `<div class="v67-account"><section class="v67-user-card"><div class="v67-user-avatar">${html((currentUser.displayName || currentUser.email || 'A').slice(0, 1).toUpperCase())}</div><div><small>${html(providerLabel(currentUser))}</small><h3>${html(currentUser.displayName || currentUser.email || 'Личный аккаунт')}</h3><p>${currentUser.email ? html(currentUser.email) : 'Приватный адрес Apple'}${currentUser.emailVerified ? ' · email подтверждён' : ''}</p></div><span class="v67-user-status">${html(statusTitle)}</span></section>${prefs.lastError ? `<div class="v67-error">${html(prefs.lastError)}</div>` : ''}<section class="v67-sync-status"><article><span>Состояние</span><b>${html(statusTitle)}</b><small>${html(statusDetail)}</small></article><article><span>Очередь</span><b>${queueCount}</b><small>изменений на отправку</small></article><article><span>Конфликты</span><b>${conflicts.length}</b><small>ничего не перезаписывается молча</small></article><article><span>Разделы</span><b>${prefs.enabled && prefs.uid === currentUser.uid ? enabledCollections().length : '—'}</b><small>выбрано для синхронизации</small></article></section><div class="v67-account-actions">${prefs.enabled && prefs.uid === currentUser.uid ? `<button data-v67-action="sync-now" class="is-primary" type="button" ${syncing ? 'disabled' : ''}>${syncing ? 'Синхронизация…' : 'Синхронизировать сейчас'}</button><button data-v67-action="open-conflicts" type="button">Конфликты${conflicts.length ? ` · ${conflicts.length}` : ''}</button><button data-v67-action="open-first-sync" type="button">Изменить разделы</button><button data-v67-action="disable-sync" type="button">Остановить на устройстве</button>` : `<button data-v67-action="${syncReadyForUser ? 'resume-sync' : 'open-first-sync'}" class="is-primary" type="button">${syncReadyForUser ? 'Возобновить синхронизацию' : 'Включить синхронизацию'}</button>`}${rollback ? '<button data-v67-action="restore-rollback" type="button">Вернуться к состоянию до синхронизации</button>' : ''}<button data-v67-action="download-cloud-backup" type="button">Скачать резервную копию</button><button data-v67-action="signout" class="is-danger" type="button">Выйти из аккаунта</button></div><p class="v67-privacy">PIN и банковские ключи не отправляются в облако. Скриншоты Forex хранятся отдельно от записей сделок.</p></div>`);
-    });
-  }
-
-  function diagnostics() {
-    return {
-      build: BUILD,
-      sdk: SDK_VERSION,
-      phase: prefs.phase,
-      configured: Boolean(window.SECOND_BRAIN_FIREBASE_CONFIG?.projectId),
-      signedIn: Boolean(currentUser),
-      syncEnabled: Boolean(prefs.enabled),
-      queue: Object.keys(queue).length,
-      conflicts: conflicts.length,
-      collections: enabledCollections(),
-      deviceId: `${deviceId.slice(0, 12)}…`,
-      applyingRemote,
-      syncing
-    };
-  }
-
-  function conflictDecision(baseRevision, localHash, remote) {
-    const remoteRevision = Number(remote?.revision || 0);
-    const remoteHash = remote?.deletedAt ? '__deleted__' : (remote?.contentHash || '');
-    if (!remote) return 'write';
-    if (remoteRevision <= Number(baseRevision || 0)) return 'write';
-    if (remoteHash === localHash) return 'same';
-    return 'conflict';
-  }
-
-  function selfTest() {
-    const cases = [
-      conflictDecision(0, 'A', null) === 'write',
-      conflictDecision(2, 'A', { revision: 2, contentHash: 'B' }) === 'write',
-      conflictDecision(1, 'A', { revision: 2, contentHash: 'A' }) === 'same',
-      conflictDecision(1, 'A', { revision: 2, contentHash: 'B' }) === 'conflict',
-      conflictDecision(1, '__deleted__', { revision: 2, deletedAt: true }) === 'same'
-    ];
-    return { ok: cases.every(Boolean), cases, invariant: 'a concurrent different revision is never overwritten' };
-  }
-
-  const previousSave = typeof save === 'function' ? save : null;
-  if (previousSave) {
-    save = function () {
-      const result = previousSave.apply(this, arguments);
-      scheduleDiff();
-      return result;
-    };
+  function v66SchedulePost() {
+    if (postQueued) return;
+    postQueued = true;
+    requestAnimationFrame(() => { postQueued = false; v66PostRender(); });
   }
 
   const previousRender = typeof render === 'function' ? render : null;
   if (previousRender) {
     render = function () {
       const result = previousRender.apply(this, arguments);
-      updateAccountCardSoon();
-      requestAnimationFrame(livePostRender);
+      v66SchedulePost();
       return result;
     };
   }
 
-  window.SecondBrainCloud = { openAccount, syncNow, diagnostics, selfTest, conflictDecision };
-  document.body.dataset.v67CloudSelftest = selfTest().ok ? 'pass' : 'fail';
+  const previousSave = typeof save === 'function' ? save : null;
+  if (previousSave) {
+    save = function () {
+      const result = previousSave.apply(this, arguments);
+      if (!document.body.classList.contains('v67-cloud-safe')) {
+        try { localStorage.setItem('secondBrainOS.currentBuild', V66_BUILD); } catch (error) {}
+      }
+      return result;
+    };
+  }
 
   window.addEventListener('click', event => {
-    const button = event.target.closest?.('[data-v67-action]');
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    const action = button.dataset.v67Action;
-    if (action === 'open-account') return openAccount();
-    if (action === 'email-signin' || action === 'email-signup' || action === 'google' || action === 'apple') return runAuthAction(action);
-    if (action === 'reset-password') return resetPassword();
-    if (action === 'signout') return signOutAccount();
-    if (action === 'open-first-sync') return openFirstSync();
-    if (action === 'confirm-first-sync') return enableFirstSync();
-    if (action === 'sync-now') return syncNow();
-    if (action === 'resume-sync') return resumeSync();
-    if (action === 'disable-sync') return disableSyncOnDevice();
-    if (action === 'open-conflicts') return openConflicts();
-    if (action === 'resolve-conflict') return resolveConflict(button.dataset.conflictId || '', button.dataset.choice || 'remote');
-    if (action === 'restore-rollback') return restoreRollback();
-    if (action === 'download-cloud-backup') { downloadBackup('manual'); return toast('Резервная копия подготовлена'); }
-    if (action === 'open-bank-import') return openBankImport();
-    if (action === 'finance-limit-mode') return setFinanceLimitMode(button.dataset.mode || 'auto');
-    if (action === 'save-manual-limit') return saveManualLimit();
+    const action = event.target.closest?.('[data-v66-action]');
+    if (!action) return;
+    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+    const name = action.dataset.v66Action;
+    if (name === 'openVault') return v66OpenVault();
+    if (name === 'downloadBackup') { v66DownloadSnapshot('backup'); return toast('Резервная копия подготовлена'); }
+    if (name === 'previewBackup') return v66PreviewBackup();
+    if (name === 'applyRestore') return v66ApplyRestore();
+    if (name === 'openSecurity') return v66OpenSecurity();
+    if (name === 'setupPin') return v66SetupPin();
+    if (name === 'unlockPin') return v66UnlockPin();
+    if (name === 'lockNow') { closeModal(); sessionStorage.removeItem('secondBrainOS.v66.pinUnlockedAt'); return v66EnsureLock(true); }
+    if (name === 'disablePin') return v66DisablePin();
+    if (name === 'savePinTimeout') return v66SavePinTimeout();
+    if (name === 'saveSleep') return v66SaveSleep();
+    if (name === 'tradeMode') { state.settings.v66.tradeView = action.dataset.mode === 'real' ? 'real' : 'demo'; save(); return render(); }
+    if (name === 'saveBalance') return v66SaveInlineBalance();
+    if (name === 'openRisk') return v66OpenRisk();
+    if (name === 'saveRisk') return v66SaveRisk();
+    if (name === 'openTrade') return v66OpenTrade(action.dataset.id || '');
+    if (name === 'saveTrade') return v66SaveTrade(action.dataset.id || '');
+    if (name === 'deleteTrade') return v66DeleteTrade(action.dataset.id || '');
+    if (name === 'openAccountInfo') return v66OpenAccountInfo();
+    if (name === 'openNotifications') return v66OpenNotifications();
+    if (name === 'requestNotifications') return v66RequestNotifications();
+    if (name === 'saveNotifications') return v66SaveNotifications();
+    if (name === 'openDebtMethod') return v66OpenDebtMethod();
+    if (name === 'closeModal') return closeModal();
   }, true);
 
-  window.addEventListener('online', () => { prefs.phase = currentUser && prefs.enabled ? 'connected' : prefs.phase; persistSyncState(); scheduleSync(500); });
-  window.addEventListener('offline', () => { prefs.phase = 'offline'; persistSyncState(); });
-  window.addEventListener('hashchange', () => [0, 100, 260].forEach(delay => setTimeout(livePostRender, delay)));
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(700); });
-  setInterval(() => { if (document.visibilityState === 'visible') { scheduleSync(0); livePostRender(); } }, 5 * 60 * 1000);
+  window.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && event.target?.id === 'v66_unlock_pin') { event.preventDefault(); v66UnlockPin(); }
+    if (event.key === 'Enter' && event.target?.id === 'v66_inline_balance') { event.preventDefault(); v66SaveInlineBalance(); }
+  }, true);
+  let lastPinTouch = 0;
+  const v66TouchPinSession = () => {
+    if (!state.settings?.v66?.security?.pinEnabled || document.querySelector('.v66-lock')) return;
+    if (Date.now() - lastPinTouch < 10000) return;
+    lastPinTouch = Date.now();
+    sessionStorage.setItem('secondBrainOS.v66.pinUnlockedAt', String(lastPinTouch));
+  };
+  window.addEventListener('pointerdown', v66TouchPinSession, { capture: true, passive: true });
+  window.addEventListener('keydown', v66TouchPinSession, true);
+  window.addEventListener('hashchange', () => [0, 80, 240].forEach(delay => setTimeout(v66PostRender, delay)));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v66EnsureLock(); });
+  const app = document.getElementById('app');
+  if (app) new MutationObserver(v66SchedulePost).observe(app, { childList: true, subtree: true });
+  setInterval(() => { v66EnsureLock(); v66NotificationTick().catch(() => {}); }, 30000);
 
-  document.body.classList.add('v67-cloud-safe');
-  document.body.dataset.sbosBuild = BUILD;
-  document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', BUILD);
-  try { localStorage.setItem('secondBrainOS.currentBuild', BUILD); } catch (error) {}
-  updateAccountCardSoon();
-  livePostRender();
-  [120, 500, 1400, 2300, 4200, 6200].forEach(delay => setTimeout(livePostRender, delay));
-  ensureFirebase().catch(error => console.warn('[V67 bootstrap]', error));
+  try { render(); } catch (error) { console.error('[V66 render]', error); }
+  v66PostRender();
+  [150, 600, 1800].forEach(delay => setTimeout(v66PostRender, delay));
 })();

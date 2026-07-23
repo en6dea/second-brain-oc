@@ -1,316 +1,481 @@
 'use strict';
 
-/* Second Brain OS V75 — кликабельные финансовые карточки.
-   Модуль ничего не очищает и не пересоздаёт при загрузке.
-   Запись выполняется только после явного действия пользователя, с резервным снимком state. */
+/* Second Brain OS V73 — encrypted password and access vault.
+   Secrets are encrypted in the browser before they are placed into app state. */
 (() => {
-  const BUILD = 'second-brain-space-v75-finance-details-20260716-r2';
-  const BACKUP_KEY = 'secondBrainOS.v75.lastSafeBackup';
-  let timer = 0;
+  const BUILD = 'second-brain-space-v73-password-vault-20260716-r1';
+  const LABEL = 'V73 · ПАРОЛИ И ДОСТУПЫ';
+  const ROUTE = 'passwords';
+  const AUTO_LOCK_MS = 15 * 60 * 1000;
+  const DEFAULT_ITERATIONS = 310000;
+
+  let postTimer = 0;
+  let vaultQuery = '';
+  let lastActivityAt = Date.now();
+  const revealedIds = new Set();
+  const session = { key: null, entries: [], unlocked: false };
 
   const clean = value => String(value ?? '').trim();
-  const html = value => String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-  }[char]));
-  const amount = value => {
-    if (typeof num === 'function') return num(value);
-    return Number(String(value ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+  const makeId = () => typeof uid === 'function' ? uid() : `${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+  const nowIso = () => new Date().toISOString();
+  const formatDate = value => value ? new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  const bytesToB64 = bytes => {
+    let binary = '';
+    new Uint8Array(bytes).forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
   };
-  const cash = value => typeof money === 'function'
-    ? money(value)
-    : `${amount(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ₽`;
-  const dateText = value => typeof fmt === 'function' ? fmt(value) : (value || '—');
-  const todayValue = () => typeof today === 'function' ? today() : new Date().toISOString().slice(0, 10);
-  const makeId = () => typeof uid === 'function' ? uid() : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const b64ToBytes = value => {
+    const binary = atob(String(value || ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+  };
+  const randomBytes = length => crypto.getRandomValues(new Uint8Array(length));
+  const encode = value => new TextEncoder().encode(String(value));
+  const decode = value => new TextDecoder().decode(value);
 
-  function selectedPeriod() {
+  function ensureState() {
+    if (typeof state !== 'object' || !state) return;
+    state.settings = state.settings || {};
+    state.settings.passwordVault = Object.assign({ autoLockMinutes: 15 }, state.settings.passwordVault || {});
+  }
+
+  function vaultData() {
+    ensureState();
+    return state.passwordVault && typeof state.passwordVault === 'object' ? state.passwordVault : null;
+  }
+
+  function supported() {
+    return Boolean(window.crypto?.subtle && window.TextEncoder && window.TextDecoder);
+  }
+
+  async function deriveKey(masterPassword, salt, iterations = DEFAULT_ITERATIONS) {
+    const source = await crypto.subtle.importKey('raw', encode(masterPassword), { name: 'PBKDF2' }, false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+      source,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptEntries(entries, key, salt, iterations = DEFAULT_ITERATIONS) {
+    const iv = randomBytes(12);
+    const payload = encode(JSON.stringify({ version: 1, entries }));
+    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, payload);
+    return {
+      version: 1,
+      cipher: 'AES-GCM-256',
+      kdf: 'PBKDF2-SHA256',
+      iterations,
+      salt: bytesToB64(salt),
+      iv: bytesToB64(iv),
+      ciphertext: bytesToB64(ciphertext),
+      updatedAt: nowIso()
+    };
+  }
+
+  async function decryptEntries(vault, key) {
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64ToBytes(vault.iv) },
+      key,
+      b64ToBytes(vault.ciphertext)
+    );
+    const parsed = JSON.parse(decode(plaintext));
+    return Array.isArray(parsed.entries) ? parsed.entries : [];
+  }
+
+  function normalizeEntry(raw) {
+    return {
+      id: clean(raw?.id) || makeId(),
+      title: clean(raw?.title) || 'Без названия',
+      category: clean(raw?.category) || 'Другое',
+      login: clean(raw?.login),
+      secret: String(raw?.secret ?? ''),
+      url: clean(raw?.url),
+      note: clean(raw?.note),
+      createdAt: clean(raw?.createdAt) || nowIso(),
+      updatedAt: clean(raw?.updatedAt) || nowIso()
+    };
+  }
+
+  function safeUrl(value) {
+    const raw = clean(value);
+    if (!raw) return '';
     try {
-      if (typeof periodInfo === 'function') return periodInfo(state?.settings?.financePeriod || 'month');
-    } catch (error) {}
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const last = String(new Date(year, now.getMonth() + 1, 0).getDate()).padStart(2, '0');
-    return { key: 'month', title: 'текущий месяц', start: `${year}-${month}-01`, end: `${year}-${month}-${last}` };
+      const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch (error) { return ''; }
   }
 
-  function periodContains(date, period) {
-    const value = clean(date).slice(0, 10);
-    return Boolean(value && value >= period.start && value <= period.end);
+  function touch() {
+    lastActivityAt = Date.now();
   }
 
-  function financeData() {
-    const period = selectedPeriod();
-    const debts = Array.isArray(state?.debts) ? state.debts : [];
-    const purchases = Array.isArray(state?.purchases) ? state.purchases : [];
-    const payments = debts
-      .filter(item => item?.direction === 'out' && item?.status !== 'Закрыт')
-      .filter(item => item?.due && String(item.due).slice(0, 10) <= period.end)
-      .sort((left, right) => String(left.due || '').localeCompare(String(right.due || '')));
-    const planned = purchases
-      .filter(item => item?.includeInBudget !== false && periodContains(item?.date, period))
-      .sort((left, right) => String(left.date || '').localeCompare(String(right.date || '')));
-    const paymentTotal = payments.reduce((sum, item) => sum + (amount(item.minPayment) || amount(item.amount)), 0);
-    const purchaseTotal = planned.reduce((sum, item) => sum + amount(item.amount), 0);
-    return { period, payments, planned, paymentTotal, purchaseTotal, reserveTotal: paymentTotal + purchaseTotal };
+  function lockVault(showToast = true) {
+    session.key = null;
+    session.entries = [];
+    session.unlocked = false;
+    revealedIds.clear();
+    vaultQuery = '';
+    if (showToast && typeof toast === 'function') toast('Хранилище заблокировано');
+    renderRoute();
   }
 
-  function snapshotBeforeWrite(reason) {
-    /* Полную копию больше не кладём рядом с основной базой в localStorage:
-       это удваивало объём данных и могло блокировать дальнейшие сохранения.
-       V76 хранит защитные снимки в IndexedDB с существенно большим лимитом. */
-    if (window.SecondBrainStorageGuard?.backup) {
-      window.SecondBrainStorageGuard.backup(reason).catch(error => console.warn('[V75 backup via V76]', error));
-      return;
-    }
-    try {
-      localStorage.setItem(BACKUP_KEY, JSON.stringify({
-        createdAt: new Date().toISOString(),
-        reason,
-        lightweight: true
-      }));
-    } catch (error) {
-      console.warn('[V75] Не удалось записать метаданные защитного снимка', error);
-    }
-  }
-
-  function persist(reason) {
-    snapshotBeforeWrite(reason);
+  async function persistEntries() {
+    const current = vaultData();
+    if (!session.unlocked || !session.key || !current) throw new Error('Vault is locked');
+    const salt = b64ToBytes(current.salt);
+    const encrypted = await encryptEntries(session.entries.map(normalizeEntry), session.key, salt, Number(current.iterations) || DEFAULT_ITERATIONS);
+    state.passwordVault = encrypted;
+    state.settings.passwordVault = Object.assign({}, state.settings.passwordVault || {}, { lastUpdatedAt: encrypted.updatedAt });
     if (typeof save === 'function') save();
+    touch();
+  }
+
+  function createVaultPage() {
+    return `<section class="v73-page">
+      <header class="v73-hero">
+        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Логины, пароли, PIN-коды, ссылки и личные данные в одном зашифрованном хранилище.</p></div>
+      </header>
+      <article class="v73-card v73-onboarding">
+        <div class="v73-lock-icon">🔐</div>
+        <div><span>Первичная настройка</span><h2>Создайте мастер-пароль</h2><p>Он будет использоваться только для расшифровки данных на вашем устройстве. Сам мастер-пароль нигде не сохраняется.</p></div>
+        <div class="v73-form-stack">
+          <label><span>Мастер-пароль</span><input id="v73_master_new" type="password" autocomplete="new-password" placeholder="Минимум 10 символов"></label>
+          <label><span>Повторите пароль</span><input id="v73_master_repeat" type="password" autocomplete="new-password" placeholder="Повторите мастер-пароль"></label>
+          <button class="is-primary" data-v73-action="create-vault" type="button">Создать защищённое хранилище</button>
+        </div>
+        <p class="v73-warning">Если мастер-пароль будет потерян, восстановить зашифрованные записи технически невозможно. Сохраните его в надёжном месте.</p>
+      </article>
+    </section>`;
+  }
+
+  function lockedPage() {
+    const vault = vaultData();
+    return `<section class="v73-page">
+      <header class="v73-hero">
+        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Хранилище заблокировано. Для просмотра записей нужен мастер-пароль.</p></div>
+      </header>
+      <article class="v73-card v73-unlock-card">
+        <div class="v73-lock-icon">🔒</div>
+        <div><span>Зашифровано</span><h2>Разблокировать хранилище</h2><p>Последнее обновление: ${escape(formatDate(vault?.updatedAt))}</p></div>
+        <div class="v73-unlock-row"><input id="v73_master_unlock" type="password" autocomplete="current-password" placeholder="Введите мастер-пароль"><button class="is-primary" data-v73-action="unlock-vault" type="button">Открыть</button></div>
+        <p class="v73-security-line">AES-GCM · ключ выводится из мастер-пароля · автоматическая блокировка через 15 минут</p>
+      </article>
+    </section>`;
+  }
+
+  function filteredEntries() {
+    const query = clean(vaultQuery).toLowerCase();
+    const rows = session.entries.map(normalizeEntry).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    if (!query) return rows;
+    return rows.filter(item => [item.title, item.category, item.login, item.url, item.note].join(' ').toLowerCase().includes(query));
+  }
+
+  function entryCard(entry) {
+    const revealed = revealedIds.has(entry.id);
+    const url = safeUrl(entry.url);
+    return `<article class="v73-entry-card">
+      <header><div class="v73-entry-icon">🔑</div><div><span>${escape(entry.category)}</span><h3>${escape(entry.title)}</h3></div><button data-v73-action="edit-entry" data-id="${escape(entry.id)}" type="button">✎</button></header>
+      <div class="v73-entry-data">
+        <div><span>Логин</span><b>${escape(entry.login || '—')}</b>${entry.login ? `<button data-v73-action="copy-login" data-id="${escape(entry.id)}" type="button">Копировать</button>` : ''}</div>
+        <div><span>Пароль / секрет</span><b class="is-secret">${revealed ? escape(entry.secret || '—') : (entry.secret ? '••••••••••••' : '—')}</b>${entry.secret ? `<span class="v73-inline-actions"><button data-v73-action="toggle-secret" data-id="${escape(entry.id)}" type="button">${revealed ? 'Скрыть' : 'Показать'}</button><button data-v73-action="copy-secret" data-id="${escape(entry.id)}" type="button">Копировать</button></span>` : ''}</div>
+      </div>
+      ${entry.note ? `<p>${escape(entry.note)}</p>` : ''}
+      <footer>${url ? `<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">Открыть сайт ↗</a>` : '<span>Без ссылки</span>'}<small>Обновлено ${escape(formatDate(entry.updatedAt))}</small></footer>
+    </article>`;
+  }
+
+  function unlockedPage() {
+    const rows = filteredEntries();
+    const total = session.entries.length;
+    const categories = new Set(session.entries.map(item => clean(item.category)).filter(Boolean)).size;
+    return `<section class="v73-page">
+      <header class="v73-hero">
+        <div><span class="v73-eyebrow">Мысли и знания · защищённая папка</span><h1>Пароли и доступы</h1><p>Записывайте данные от сервисов, аккаунтов, карт, устройств и любых других доступов.</p></div>
+        <div class="v73-hero-actions"><button class="is-primary" data-v73-action="add-entry" type="button">＋ Добавить запись</button><button data-v73-action="lock-vault" type="button">🔒 Заблокировать</button></div>
+      </header>
+      <section class="v73-stats"><article><span>Записей</span><b>${total}</b><small>зашифровано</small></article><article><span>Категорий</span><b>${categories}</b><small>для быстрого поиска</small></article><article><span>Автоблокировка</span><b>15 мин.</b><small>после бездействия</small></article></section>
+      <article class="v73-card v73-toolbar"><div class="v73-search"><span>⌕</span><input id="v73_search" value="${escape(vaultQuery)}" placeholder="Поиск по сервису, логину или комментарию"></div><button data-v73-action="add-entry" type="button">＋ Новая запись</button></article>
+      <section class="v73-entry-grid">${rows.map(entryCard).join('') || `<article class="v73-card v73-empty"><div>🔑</div><h3>${vaultQuery ? 'Ничего не найдено' : 'Хранилище пока пустое'}</h3><p>${vaultQuery ? 'Попробуйте изменить поисковый запрос.' : 'Добавьте первый сервис, логин, пароль или любую другую личную информацию.'}</p>${vaultQuery ? '' : '<button class="is-primary" data-v73-action="add-entry" type="button">Добавить первую запись</button>'}</article>`}</section>
+      <article class="v73-security-note"><b>Важно:</b> записи шифруются перед сохранением и синхронизацией. Мастер-пароль не сохраняется, но для самых критичных аккаунтов отдельный специализированный менеджер паролей всё равно надёжнее.</article>
+    </section>`;
+  }
+
+  function pageHtml() {
+    ensureState();
+    if (!supported()) return `<section class="v73-page"><article class="v73-card v73-empty"><div>⚠️</div><h3>Шифрование не поддерживается</h3><p>Откройте приложение в современном браузере через HTTPS.</p></article></section>`;
+    if (!vaultData()) return createVaultPage();
+    if (!session.unlocked) return lockedPage();
+    return unlockedPage();
+  }
+
+  async function createVault() {
+    if (!supported()) return;
+    const password = String(document.getElementById('v73_master_new')?.value || '');
+    const repeat = String(document.getElementById('v73_master_repeat')?.value || '');
+    if (password.length < 10) return typeof toast === 'function' ? toast('Мастер-пароль должен содержать минимум 10 символов') : undefined;
+    if (password !== repeat) return typeof toast === 'function' ? toast('Пароли не совпадают') : undefined;
+    try {
+      const salt = randomBytes(16);
+      const key = await deriveKey(password, salt, DEFAULT_ITERATIONS);
+      state.passwordVault = await encryptEntries([], key, salt, DEFAULT_ITERATIONS);
+      session.key = key;
+      session.entries = [];
+      session.unlocked = true;
+      touch();
+      if (typeof save === 'function') save();
+      renderRoute();
+      if (typeof toast === 'function') toast('Защищённое хранилище создано');
+    } catch (error) {
+      console.error('[V73 vault create]', error);
+      if (typeof toast === 'function') toast('Не удалось создать хранилище');
+    }
+  }
+
+  async function unlockVault() {
+    const password = String(document.getElementById('v73_master_unlock')?.value || '');
+    const vault = vaultData();
+    if (!password || !vault) return typeof toast === 'function' ? toast('Введите мастер-пароль') : undefined;
+    try {
+      const key = await deriveKey(password, b64ToBytes(vault.salt), Number(vault.iterations) || DEFAULT_ITERATIONS);
+      const entries = await decryptEntries(vault, key);
+      session.key = key;
+      session.entries = entries.map(normalizeEntry);
+      session.unlocked = true;
+      touch();
+      renderRoute();
+      if (typeof toast === 'function') toast('Хранилище разблокировано');
+    } catch (error) {
+      session.key = null;
+      session.entries = [];
+      session.unlocked = false;
+      if (typeof toast === 'function') toast('Неверный мастер-пароль');
+    }
+  }
+
+  function openEntry(id = '') {
+    if (!session.unlocked) return;
+    const entry = session.entries.map(normalizeEntry).find(item => item.id === id) || null;
+    const html = `<div class="v73-modal-form">
+      <label><span>Что это</span><input id="v73_entry_title" value="${escape(entry?.title || '')}" placeholder="Например: Gmail, банк, Wi-Fi, телефон"></label>
+      <div class="v73-modal-grid"><label><span>Категория</span><input id="v73_entry_category" value="${escape(entry?.category || '')}" placeholder="Почта, банк, соцсети..."></label><label><span>Логин / email / телефон</span><input id="v73_entry_login" value="${escape(entry?.login || '')}" autocomplete="off" placeholder="Логин или номер"></label></div>
+      <label><span>Пароль / PIN / секрет</span><div class="v73-secret-input"><input id="v73_entry_secret" type="password" value="${escape(entry?.secret || '')}" autocomplete="new-password" placeholder="Введите секретные данные"><button data-v73-action="toggle-form-secret" type="button">Показать</button></div></label>
+      <label><span>Ссылка</span><input id="v73_entry_url" value="${escape(entry?.url || '')}" placeholder="example.com"></label>
+      <label><span>Комментарий и дополнительные данные</span><textarea id="v73_entry_note" placeholder="Куда приходит код, контрольные вопросы, номер договора и другие детали">${escape(entry?.note || '')}</textarea></label>
+      <div class="v73-modal-actions"><button class="is-primary" data-v73-action="save-entry" data-id="${escape(entry?.id || '')}" type="button">Сохранить</button>${entry ? `<button class="is-danger" data-v73-action="delete-entry" data-id="${escape(entry.id)}" type="button">Удалить</button>` : ''}<button data-v73-action="close-modal" type="button">Отмена</button></div>
+    </div>`;
+    if (typeof openModal === 'function') openModal(entry ? 'Изменить доступ' : 'Новая запись', html);
+  }
+
+  async function saveEntry(id) {
+    if (!session.unlocked) return;
+    const title = clean(document.getElementById('v73_entry_title')?.value);
+    const category = clean(document.getElementById('v73_entry_category')?.value) || 'Другое';
+    const login = clean(document.getElementById('v73_entry_login')?.value);
+    const secret = String(document.getElementById('v73_entry_secret')?.value || '');
+    const url = clean(document.getElementById('v73_entry_url')?.value);
+    const note = clean(document.getElementById('v73_entry_note')?.value);
+    if (!title) return typeof toast === 'function' ? toast('Укажите, к чему относятся данные') : undefined;
+    const previous = session.entries.map(normalizeEntry).find(item => item.id === id) || null;
+    const next = normalizeEntry({ id: previous?.id || makeId(), title, category, login, secret, url, note, createdAt: previous?.createdAt || nowIso(), updatedAt: nowIso() });
+    session.entries = session.entries.filter(item => clean(item.id) !== next.id);
+    session.entries.unshift(next);
+    try {
+      await persistEntries();
+      if (typeof closeModal === 'function') closeModal();
+      renderRoute();
+      if (typeof toast === 'function') toast('Запись зашифрована и сохранена');
+    } catch (error) {
+      console.error('[V73 vault save]', error);
+      if (typeof toast === 'function') toast('Не удалось сохранить запись');
+    }
+  }
+
+  async function deleteEntry(id) {
+    const entry = session.entries.map(normalizeEntry).find(item => item.id === id);
+    if (!entry) return;
+    if (!window.confirm(`Удалить запись «${entry.title}»?`)) return;
+    session.entries = session.entries.filter(item => clean(item.id) !== id);
+    revealedIds.delete(id);
+    try {
+      await persistEntries();
+      if (typeof closeModal === 'function') closeModal();
+      renderRoute();
+      if (typeof toast === 'function') toast('Запись удалена');
+    } catch (error) {
+      if (typeof toast === 'function') toast('Не удалось удалить запись');
+    }
+  }
+
+  async function copyValue(value, label) {
+    try {
+      await navigator.clipboard.writeText(String(value || ''));
+      touch();
+      if (typeof toast === 'function') toast(`${label} скопирован`);
+    } catch (error) {
+      if (typeof toast === 'function') toast('Не удалось скопировать');
+    }
+  }
+
+  function entryById(id) {
+    return session.entries.map(normalizeEntry).find(item => item.id === id) || null;
+  }
+
+  function updateNavigation() {
+    const shell = document.querySelector('.v68-nav-shell');
+    if (!shell) return;
+    let button = shell.querySelector('[data-v73-nav="passwords"]');
+    if (!button) {
+      button = document.createElement('button');
+      button.className = 'v59-nav-item';
+      button.type = 'button';
+      button.dataset.v73Nav = ROUTE;
+      button.innerHTML = '<span class="v59-nav-ico" style="background:#8b5cf6">🔐</span><span class="label">Пароли и доступы</span><span class="v59-nav-tools"></span>';
+    }
+    const knowledgeFolder = [...shell.querySelectorAll('.v68-nav-subfolder')].find(folder => clean(folder.querySelector(':scope > summary span')?.textContent) === 'Мысли и знания');
+    if (knowledgeFolder) {
+      const list = knowledgeFolder.lastElementChild;
+      if (button.parentElement !== list) list.appendChild(button);
+      const count = knowledgeFolder.querySelector(':scope > summary em');
+      if (count) count.textContent = String(list.querySelectorAll('.v59-nav-item').length);
+      if ((location.hash || '').replace('#', '') === ROUTE) knowledgeFolder.open = true;
+      const memoryFolder = knowledgeFolder.closest('.v68-nav-folder');
+      if (memoryFolder) {
+        const memoryCount = memoryFolder.querySelector(':scope > summary em');
+        if (memoryCount) memoryCount.textContent = String(memoryFolder.querySelectorAll('.v59-nav-item').length);
+        if ((location.hash || '').replace('#', '') === ROUTE) memoryFolder.open = true;
+      }
+    }
+    const active = (location.hash || '').replace('#', '') === ROUTE;
+    button.classList.toggle('active', active);
   }
 
   function setBuild() {
     document.body.dataset.sbosBuild = BUILD;
-    document.body.dataset.v75FinanceDetails = 'ready';
+    document.body.dataset.v73PasswordVault = 'ready';
     document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', BUILD);
     try { localStorage.setItem('secondBrainOS.currentBuild', BUILD); } catch (error) {}
     const version = document.querySelector('.v59-version,.version');
-    if (version) version.textContent = 'V75 · ФИНАНСЫ БЕЗ ПОТЕРИ ДАННЫХ';
+    if (version) version.textContent = LABEL;
+    const core = document.querySelector('.v59-core-pill');
+    if (core) core.textContent = 'V73';
   }
 
-  function markCard(card, action, hint) {
-    if (!card) return;
-    card.classList.add('v75-clickable-finance-card');
-    card.dataset.v75Action = action;
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', hint);
-    if (!card.querySelector('.v75-card-open-hint')) {
-      card.insertAdjacentHTML('beforeend', '<span class="v75-card-open-hint">Открыть →</span>');
-    }
-  }
-
-  function enhanceFinancePage() {
+  function renderRoute() {
+    ensureState();
+    const route = (location.hash || '').replace('#', '') || 'dashboard';
+    document.body.classList.toggle('v73-passwords-route', route === ROUTE);
+    updateNavigation();
     setBuild();
-    const route = (location.hash || '').replace('#', '') || (typeof page === 'string' ? page : 'dashboard');
-    if (route !== 'finance') return;
+    if (route !== ROUTE) return;
     const view = document.getElementById('view');
     if (!view) return;
-
-    const cards = view.querySelectorAll('.v65-money-kpis > article');
-    markCard(cards[0], 'actual-balance', 'Изменить фактический остаток');
-    markCard(cards[1], 'limit-details', 'Открыть расчёт дневного лимита');
-    markCard(cards[2], 'limit-details', 'Открыть расчёт недельного лимита');
-    markCard(cards[3], 'mandatory-details', 'Открыть обязательные платежи и покупки');
-
-    const data = financeData();
-    if (cards[3]) {
-      const title = cards[3].querySelector('span');
-      const strong = cards[3].querySelector('strong');
-      const small = cards[3].querySelector('small');
-      if (title) title.textContent = 'Обязательные платежи и покупки';
-      if (strong) strong.textContent = data.reserveTotal ? cash(data.reserveTotal) : '—';
-      if (small) small.textContent = `${data.payments.length} платежей · ${data.planned.length} покупок`;
-      cards[3].classList.add('v75-mandatory-card');
-    }
-
-    const flowItems = view.querySelectorAll('.v65-flow-grid > div');
-    flowItems.forEach(item => {
-      const label = clean(item.querySelector('span')?.textContent).toLowerCase();
-      if (label === 'планы') {
-        item.classList.add('v75-clickable-flow-tile');
-        item.dataset.v75Action = 'mandatory-details';
-        item.setAttribute('role', 'button');
-        item.setAttribute('tabindex', '0');
-        item.setAttribute('aria-label', 'Открыть обязательные покупки');
-        const strong = item.querySelector('strong');
-        if (strong) strong.textContent = cash(data.purchaseTotal);
-      }
-    });
+    view.innerHTML = pageHtml();
+    document.querySelectorAll('.v59-nav-item').forEach(button => button.classList.toggle('active', button.dataset.v73Nav === ROUTE));
+    updateNavigation();
+    requestAnimationFrame(() => document.getElementById('v73_master_unlock')?.focus());
   }
 
-  function openLimitDetails() {
-    const data = financeData();
-    const balance = amount(state?.settings?.currentBalance);
-    const free = balance - data.paymentTotal - data.purchaseTotal;
-    const settings = state?.settings?.v67 || {};
-    const mode = settings.financeLimitMode === 'manual' ? 'manual' : 'auto';
-    const manual = amount(settings.manualDailyLimit);
-    const start = data.period.start > todayValue() ? data.period.start : todayValue();
-    const days = data.period.end >= todayValue()
-      ? Math.max(1, Math.round((new Date(`${data.period.end}T12:00:00`) - new Date(`${start}T12:00:00`)) / 86400000) + 1)
-      : 0;
-    const auto = days ? Math.max(0, free / days) : 0;
-    const daily = mode === 'manual' ? manual : auto;
-    const body = `<section class="v75-modal-stack">
-      <div class="v75-breakdown-grid">
-        <article><span>Остаток</span><b>${cash(balance)}</b></article>
-        <article><span>Платежи</span><b>− ${cash(data.paymentTotal)}</b></article>
-        <article><span>Покупки</span><b>− ${cash(data.purchaseTotal)}</b></article>
-        <article class="is-result"><span>Свободно</span><b>${cash(Math.max(0, free))}</b></article>
-      </div>
-      <div class="v75-formula-card"><b>${mode === 'manual' ? 'Ручной режим' : 'Автоматический режим'}</b><p>${mode === 'manual' ? `Используется сохранённый лимит ${cash(manual)} в день.` : `${cash(Math.max(0, free))} ÷ ${days || 0} дней = ${cash(auto)} в день.`}</p><strong>Текущий дневной лимит: ${daily ? cash(daily) : '—'}</strong></div>
-      <div class="v75-modal-actions"><button class="v75-primary" data-v75-action="mandatory-details" type="button">Открыть обязательства</button><button data-v75-action="close-modal" type="button">Закрыть</button></div>
-    </section>`;
-    if (typeof openModal === 'function') openModal('Как рассчитан лимит', body);
+  function navigate() {
+    try { page = ROUTE; } catch (error) {}
+    try { history.pushState(null, '', `#${ROUTE}`); }
+    catch (error) { location.hash = ROUTE; }
+    renderRoute();
   }
 
-  function paymentRow(item) {
-    const payment = amount(item.minPayment) || amount(item.amount);
-    return `<article class="v75-obligation-row">
-      <span class="v75-obligation-icon">₽</span>
-      <div><b>${html(item.person || 'Обязательный платёж')}</b><small>${item.due ? `до ${html(dateText(item.due))}` : 'дата не указана'} · ${html(item.note || 'без комментария')}</small></div>
-      <strong>${cash(payment)}</strong>
-      <button data-action="editRecord" data-type="debt" data-id="${html(item.id)}" type="button">Изменить</button>
-    </article>`;
+  function schedulePost(delay = 30) {
+    clearTimeout(postTimer);
+    postTimer = setTimeout(renderRoute, delay);
   }
-
-  function purchaseRow(item) {
-    const mandatory = item.mandatory !== false;
-    return `<article class="v75-obligation-row is-purchase">
-      <span class="v75-obligation-icon">🛒</span>
-      <div><b>${html(item.title || 'Покупка')}</b><small>${item.date ? html(dateText(item.date)) : 'дата не указана'} · ${html(item.area || 'Личное')}${item.note ? ` · ${html(item.note)}` : ''}</small></div>
-      <strong>${cash(item.amount)}</strong>
-      <div class="v75-row-actions"><button data-action="editRecord" data-type="purchase" data-id="${html(item.id)}" type="button">Изменить</button><button data-v75-action="exclude-purchase" data-id="${html(item.id)}" type="button">${mandatory ? 'Убрать из обязательных' : 'Не учитывать'}</button></div>
-    </article>`;
-  }
-
-  function openMandatoryDetails() {
-    const data = financeData();
-    const body = `<section class="v75-modal-stack">
-      <div class="v75-obligation-summary">
-        <article><span>Платежи</span><b>${cash(data.paymentTotal)}</b><small>${data.payments.length} записей</small></article>
-        <article><span>Обязательные покупки</span><b>${cash(data.purchaseTotal)}</b><small>${data.planned.length} записей</small></article>
-        <article class="is-total"><span>Всего зарезервировано</span><b>${cash(data.reserveTotal)}</b><small>${html(data.period.title || '')}</small></article>
-      </div>
-      <section class="v75-obligation-section">
-        <header><div><span>Покупки</span><h3>Обязательные покупки</h3><p>Эти суммы вычитаются до расчёта свободного дневного лимита.</p></div><button class="v75-primary" data-v75-action="add-mandatory-purchase" type="button">＋ Добавить</button></header>
-        <div class="v75-obligation-list">${data.planned.map(purchaseRow).join('') || '<div class="v75-empty">Обязательных покупок в выбранном периоде пока нет.</div>'}</div>
-      </section>
-      <section class="v75-obligation-section">
-        <header><div><span>Платежи</span><h3>Обязательные платежи</h3><p>Активные долги и платежи со сроком до конца выбранного периода.</p></div><button data-action="openDebtOut" type="button">＋ Добавить платёж</button></header>
-        <div class="v75-obligation-list">${data.payments.map(paymentRow).join('') || '<div class="v75-empty">Обязательных платежей пока нет.</div>'}</div>
-      </section>
-      <p class="v75-data-safety-note"><b>Данные защищены от сброса:</b> этот модуль не очищает существующие записи. Перед изменением создаётся локальный защитный снимок.</p>
-      <div class="v75-modal-actions"><button data-v75-action="close-modal" type="button">Закрыть</button></div>
-    </section>`;
-    if (typeof openModal === 'function') openModal('Обязательные платежи и покупки', body);
-  }
-
-  function openMandatoryPurchaseForm() {
-    const date = todayValue();
-    const body = `<section class="v75-modal-stack">
-      <div class="v75-form-grid">
-        <label><span>Название покупки</span><input id="v75_purchase_title" placeholder="Например, лекарства или продукты"></label>
-        <label><span>Сумма</span><input id="v75_purchase_amount" type="number" min="0" step="1" placeholder="0"></label>
-        <label><span>Дата покупки</span><input id="v75_purchase_date" type="date" value="${html(date)}"></label>
-        <label><span>Сфера</span><input id="v75_purchase_area" value="Обязательные покупки"></label>
-        <label class="is-wide"><span>Комментарий</span><textarea id="v75_purchase_note" placeholder="Почему покупка обязательна, что именно нужно купить"></textarea></label>
-      </div>
-      <p class="v75-data-safety-note">Новая запись добавится к существующим данным. Старые покупки, операции и настройки останутся без изменений.</p>
-      <div class="v75-modal-actions"><button class="v75-primary" data-v75-action="save-mandatory-purchase" type="button">Сохранить покупку</button><button data-v75-action="mandatory-details" type="button">Назад</button></div>
-    </section>`;
-    if (typeof openModal === 'function') openModal('Новая обязательная покупка', body);
-    setTimeout(() => document.getElementById('v75_purchase_title')?.focus(), 30);
-  }
-
-  function saveMandatoryPurchase() {
-    const title = clean(document.getElementById('v75_purchase_title')?.value);
-    const value = amount(document.getElementById('v75_purchase_amount')?.value);
-    const date = clean(document.getElementById('v75_purchase_date')?.value) || todayValue();
-    const area = clean(document.getElementById('v75_purchase_area')?.value) || 'Обязательные покупки';
-    const note = clean(document.getElementById('v75_purchase_note')?.value);
-    if (!title) return typeof toast === 'function' ? toast('Укажите название покупки') : undefined;
-    if (value <= 0) return typeof toast === 'function' ? toast('Укажите сумму больше нуля') : undefined;
-
-    if (!Array.isArray(state.purchases)) state.purchases = [];
-    const record = {
-      id: makeId(), title, amount: value, date, area,
-      includeInBudget: true, mandatory: true, url: '', image: '', note,
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-    };
-    state.purchases.unshift(record);
-    persist('Добавление обязательной покупки');
-    if (typeof render === 'function') render();
-    setTimeout(openMandatoryDetails, 40);
-    if (typeof toast === 'function') toast('Обязательная покупка сохранена');
-  }
-
-  function excludePurchase(id) {
-    const rows = Array.isArray(state?.purchases) ? state.purchases : [];
-    const target = rows.find(item => String(item.id) === String(id));
-    if (!target) return;
-    snapshotBeforeWrite('Исключение покупки из обязательных');
-    state.purchases = rows.map(item => String(item.id) === String(id)
-      ? { ...item, includeInBudget: false, mandatory: false, updatedAt: new Date().toISOString() }
-      : item);
-    if (typeof save === 'function') save();
-    if (typeof render === 'function') render();
-    setTimeout(openMandatoryDetails, 40);
-    if (typeof toast === 'function') toast('Покупка сохранена, но больше не уменьшает лимит');
-  }
-
-  function closeCurrentModal() {
-    if (typeof closeModal === 'function') closeModal();
-  }
-
-  function runAction(target) {
-    const action = target?.dataset?.v75Action;
-    if (!action) return false;
-    if (action === 'actual-balance') {
-      if (typeof setActualBalance === 'function') setActualBalance();
-      return true;
-    }
-    if (action === 'limit-details') { openLimitDetails(); return true; }
-    if (action === 'mandatory-details') { openMandatoryDetails(); return true; }
-    if (action === 'add-mandatory-purchase') { openMandatoryPurchaseForm(); return true; }
-    if (action === 'save-mandatory-purchase') { saveMandatoryPurchase(); return true; }
-    if (action === 'exclude-purchase') { excludePurchase(target.dataset.id || ''); return true; }
-    if (action === 'close-modal') { closeCurrentModal(); return true; }
-    return false;
-  }
-
-  window.addEventListener('click', event => {
-    const target = event.target.closest?.('[data-v75-action]');
-    if (!target || !runAction(target)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-  }, true);
-
-  window.addEventListener('keydown', event => {
-    if (!['Enter', ' '].includes(event.key)) return;
-    const target = event.target.closest?.('[data-v75-action][role="button"]');
-    if (!target || !runAction(target)) return;
-    event.preventDefault();
-  }, true);
 
   const previousRender = typeof render === 'function' ? render : null;
   if (previousRender) {
     render = function () {
       const result = previousRender.apply(this, arguments);
-      clearTimeout(timer);
-      timer = setTimeout(enhanceFinancePage, 0);
+      requestAnimationFrame(renderRoute);
       return result;
     };
   }
 
-  window.addEventListener('hashchange', () => setTimeout(enhanceFinancePage, 50));
-  window.addEventListener('storage', event => {
-    if (event.key === 'secondBrainOS.v1') setTimeout(enhanceFinancePage, 80);
+  window.PasswordVault = { navigate, render: renderRoute, lock: lockVault };
+
+  window.addEventListener('click', event => {
+    const navButton = event.target.closest?.('[data-v73-nav="passwords"]');
+    if (navButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      touch();
+      return navigate();
+    }
+    const button = event.target.closest?.('[data-v73-action]');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    touch();
+    const action = button.dataset.v73Action;
+    if (action === 'create-vault') return createVault();
+    if (action === 'unlock-vault') return unlockVault();
+    if (action === 'lock-vault') return lockVault();
+    if (action === 'add-entry') return openEntry();
+    if (action === 'edit-entry') return openEntry(button.dataset.id || '');
+    if (action === 'save-entry') return saveEntry(button.dataset.id || '');
+    if (action === 'delete-entry') return deleteEntry(button.dataset.id || '');
+    if (action === 'close-modal') return typeof closeModal === 'function' ? closeModal() : undefined;
+    if (action === 'toggle-form-secret') {
+      const input = document.getElementById('v73_entry_secret');
+      if (input) {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        button.textContent = input.type === 'password' ? 'Показать' : 'Скрыть';
+      }
+      return;
+    }
+    const entry = entryById(button.dataset.id || '');
+    if (action === 'copy-login' && entry) return copyValue(entry.login, 'Логин');
+    if (action === 'copy-secret' && entry) return copyValue(entry.secret, 'Пароль');
+    if (action === 'toggle-secret' && entry) {
+      revealedIds.has(entry.id) ? revealedIds.delete(entry.id) : revealedIds.add(entry.id);
+      return renderRoute();
+    }
+  }, true);
+
+  window.addEventListener('input', event => {
+    if (event.target?.id !== 'v73_search') return;
+    vaultQuery = event.target.value || '';
+    touch();
+    const grid = document.querySelector('.v73-entry-grid');
+    if (grid) grid.innerHTML = filteredEntries().map(entryCard).join('') || '<article class="v73-card v73-empty"><div>⌕</div><h3>Ничего не найдено</h3><p>Попробуйте изменить поисковый запрос.</p></article>';
   });
 
-  window.V75FinanceDetails = { enhance: enhanceFinancePage, openMandatoryDetails, openLimitDetails };
-  setTimeout(enhanceFinancePage, 0);
-  setTimeout(enhanceFinancePage, 250);
+  window.addEventListener('keydown', event => {
+    if ((location.hash || '').replace('#', '') !== ROUTE) return;
+    touch();
+    if (event.key === 'Enter' && event.target?.id === 'v73_master_unlock') unlockVault();
+  });
+
+  window.addEventListener('hashchange', () => [0, 80, 220].forEach(delay => setTimeout(renderRoute, delay)));
+  window.addEventListener('storage', event => {
+    if (event.key === 'secondBrainOS.v1') {
+      if (session.unlocked) lockVault(false);
+      schedulePost(80);
+    }
+  });
+
+  setInterval(() => {
+    if (!session.unlocked) return;
+    if (Date.now() - lastActivityAt >= AUTO_LOCK_MS) lockVault(true);
+  }, 30000);
+
+  try {
+    ensureState();
+    schedulePost(0);
+    schedulePost(200);
+  } catch (error) {
+    console.error('[V73 Password Vault]', error);
+  }
 })();
