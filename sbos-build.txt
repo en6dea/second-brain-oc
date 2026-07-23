@@ -1,2 +1,3 @@
-second-brain-space-v8843-recursion-fix-20260723-r1
-V88.4.3 · STABLE CORE
+Second Brain OS V88.5 · STABLE FINANCE
+Build: second-brain-space-v885-stable-finance-20260723-r1
+Data policy: additive migration; localStorage and IndexedDB are never cleared.

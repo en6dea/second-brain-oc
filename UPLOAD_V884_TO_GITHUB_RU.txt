@@ -1,6 +1,20 @@
-const CACHE_NAME='second-brain-os-v884-safe-finance-r1';
-const CORE=['./','./index.html','./manifest.webmanifest','./offline.html','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js','./styles-v884-finance.css'];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{for(const url of CORE){try{const response=await fetch(url,{cache:'reload'});if(response.ok)await cache.put(url,response.clone());}catch(_){}}}));});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
-self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request,{cache:'no-store'}).then(async response=>{if(response.ok){const cache=await caches.open(CACHE_NAME);await cache.put('./index.html',response.clone());}return response;}).catch(async()=>await caches.match('./index.html')||await caches.match('./offline.html')));return;}event.respondWith(fetch(event.request,{cache:'no-store'}).then(async response=>{if(response.ok){const cache=await caches.open(CACHE_NAME);await cache.put(event.request,response.clone());}return response;}).catch(()=>caches.match(event.request,{ignoreSearch:true})));});
+КАК ЗАГРУЗИТЬ V88.4 В GITHUB
+
+1. Перед загрузкой откройте текущую версию приложения.
+2. Настройки → Резервная копия JSON → Скачать.
+3. Распакуйте SECOND_BRAIN_OS_V88.4_SAFE_FINANCE_FULL.zip.
+4. Откройте внутри папку second-brain-oc-v884.
+5. Загрузите СОДЕРЖИМОЕ этой папки в корень репозитория en6dea/second-brain-oc.
+6. Подтвердите замену index.html, sw.js, pwa-v88.js и sbos-build.txt.
+7. Не запускайте reset-*.html.
+8. Дождитесь GitHub Pages.
+9. Откройте приложение с параметром ?v=884 либо нажмите Ctrl + Shift + R.
+10. Проверьте надпись внизу: V88.4 · SAFE FINANCE.
+11. Финансы → Счета и резервы → Сверить остатки.
+
+Если старая версия осталась в PWA:
+- откройте приложение в обычной вкладке браузера;
+- выполните Ctrl + Shift + R;
+- затем снова запустите установленное приложение.
+
+Личные данные при обновлении не должны очищаться. При первом запуске V88.4 создаёт автоматическую копию состояния до миграции.
