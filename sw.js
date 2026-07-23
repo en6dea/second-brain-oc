@@ -1,5 +1,5 @@
-const CACHE_NAME='second-brain-os-v885-stable-finance-r1';
-const CORE=['./offline.html','./manifest.webmanifest','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v885-r1','./styles-v884-finance.css?v=v885-r1'];
+const CACHE_NAME='second-brain-os-v89-critical-stability-r1';
+const CORE=['./offline.html','./manifest.webmanifest','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v89-r1','./styles-v884-finance.css?v=v885-r1','./styles-v89-critical.css?v=v89-r1','./app-v89-critical.js?v=v89-r1'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{for(const url of CORE){try{const response=await fetch(url,{cache:'reload'});if(response.ok)await cache.put(url,response.clone());}catch(_){}}}));});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)));await self.clients.claim();})());});
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});

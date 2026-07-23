@@ -1,3 +1,4 @@
-Second Brain OS V88.5 · STABLE FINANCE
-Build: second-brain-space-v885-stable-finance-20260723-r1
-Data policy: additive migration; localStorage and IndexedDB are never cleared.
+Second Brain OS V89 · CRITICAL STABILITY
+Build: second-brain-os-v89-critical-stability-20260723-r1
+Data policy: additive runtime; localStorage and IndexedDB are never cleared.
+Primary fixes: stable colored icons, true modal overlay, calendar edit/move/delete, clickability and responsive layout.
