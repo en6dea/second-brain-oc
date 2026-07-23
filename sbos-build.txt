@@ -1,2 +1,2 @@
-V88.4.1 · RECOVERY
-second-brain-space-v8841-recovery-20260723-r2
+V88.4.2 · STABLE RECOVERY
+second-brain-space-v8842-stable-recovery-20260723-r1
