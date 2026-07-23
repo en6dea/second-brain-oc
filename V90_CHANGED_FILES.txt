@@ -1,0 +1,50 @@
+SECOND BRAIN OS V90 — CHANGED FILES
+===================================
+
+Core application files
+----------------------
+MODIFIED  index.html
+MODIFIED  manifest.webmanifest
+MODIFIED  pwa-v88.js
+MODIFIED  sw.js
+NEW       app-v90-stability.js
+NEW       styles-v90-stability.css
+
+Release documentation
+---------------------
+NEW       README_V90_VERIFIED_STABILITY_RU.md
+NEW       QA_V90_RESULTS.txt
+NEW       DEPLOY_V90_GITHUB_RU.md
+NEW       V90_CHANGED_FILES.txt
+NEW       V90_CORE_SHA256.txt
+
+Core change summary
+-------------------
+index.html
+- V90 build/version references.
+- V90 CSS and runtime connection.
+- Backward-compatible calendar duration field.
+- Task deletion delegation to safe V90 delete/Undo flow.
+- Review queue filtering respects dismissed/snoozed items.
+- Legacy calendar action cluster disabled.
+
+app-v90-stability.js
+- Stable local SVG icon system.
+- Navigation, information, queue and habits decoration.
+- Modal focus and pointer-event hardening.
+- Calendar drag/drop, duration, delete archive and Undo.
+- Queue hide/reset handling.
+- Automatic non-destructive V90 backup attempt.
+
+styles-v90-stability.css
+- Fixed sidebar and icon dimensions.
+- Queue anti-overlap grid.
+- Readable calendar columns and title wrapping.
+- Fixed modal overlay and form interaction.
+- Responsive rules.
+
+manifest.webmanifest / pwa-v88.js / sw.js
+- V90.0.2 identifiers.
+- New cache generation.
+- Old cache removal.
+- updateViaCache: none.

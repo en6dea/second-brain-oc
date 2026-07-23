@@ -1,0 +1,100 @@
+SECOND BRAIN OS V90 — QA RESULTS
+================================
+
+Build: second-brain-space-v90-verified-stability-20260723-r2
+App version: 90.0.2
+Date: 23.07.2026
+Result: 52 / 52 checks passed
+
+AUTOMATED UI CHECKS — CHROMIUM
+------------------------------
+
+Navigation
+[PASS] V90 build metadata is present.
+[PASS] Visible badge is V90 · VERIFIED STABILITY.
+[PASS] 30 consecutive route transitions keep sidebar width fixed at 224 px.
+[PASS] 30 transitions keep sidebar X position fixed.
+[PASS] Navigation icon containers remain 30 × 30 px.
+[PASS] Active icon changes to a contrasting white state.
+[PASS] No unhandled UI JavaScript errors.
+
+Review queue
+[PASS] Seeded review cards render.
+[PASS] Internal word "transfer" is not visible.
+[PASS] Queue icons use the branded SVG system.
+[PASS] Text and action buttons do not overlap.
+[PASS] "Скрыть" reduces the queue without page reload.
+[PASS] No unhandled UI JavaScript errors.
+
+Calendar
+[PASS] Seeded events render.
+[PASS] Long titles use normal word wrapping, not break-all.
+[PASS] Long titles are limited to 3 visible lines.
+[PASS] Event actions are limited to 2 compact buttons.
+[PASS] Duration badge is displayed.
+[PASS] Drag-and-drop updates the task date in state.
+[PASS] Edit modal opens above the page.
+[PASS] Event title field is editable.
+[PASS] Duration field is editable.
+[PASS] Edited title and duration are saved.
+[PASS] Delete removes the event.
+[PASS] Delete creates a deleted-task archive snapshot.
+[PASS] Delete closes the modal.
+[PASS] Undo control appears.
+[PASS] Undo restores the task.
+[PASS] No unhandled UI JavaScript errors.
+
+Finance and modal forms
+[PASS] Guaranteed income input is editable.
+[PASS] Real keyboard input "150000" is accepted.
+[PASS] Income settings are written to application state.
+[PASS] Saved value remains after reopening the form.
+[PASS] Escape closes the modal.
+[PASS] No unhandled UI JavaScript errors.
+
+Habits
+[PASS] Icon picker option is available.
+[PASS] Selected icon updates the stored form value.
+[PASS] SVG preview updates after selection.
+[PASS] Selected icon is saved in the habit model.
+[PASS] Habit card re-renders with the SVG icon.
+[PASS] No unhandled UI JavaScript errors.
+
+Information, archive and responsive layout
+[PASS] 12 / 12 information cards use SVG icons.
+[PASS] Archive does not display the technical finance-category label.
+[PASS] 1366 × 768: no page-level horizontal overflow.
+[PASS] 1024 × 768: no page-level horizontal overflow.
+[PASS] 768 × 1024: no page-level horizontal overflow.
+[PASS] 390 × 844: no page-level horizontal overflow.
+[PASS] No unhandled UI JavaScript errors.
+
+PWA static checks
+[PASS] Service Worker contains V90 R2 cache name.
+[PASS] Activation removes obsolete UI caches.
+[PASS] Registration uses updateViaCache: 'none' and sw.js?v=v90-r2.
+
+SYNTAX AND FORMAT CHECKS
+------------------------
+
+[PASS] node --check app-v90-stability.js
+[PASS] node --check sw.js
+[PASS] node --check pwa-v88.js
+[PASS] manifest.webmanifest parses as valid JSON
+[PASS] index.html contains one V90 runtime script and final V90 style override
+
+DATA-SAFETY REVIEW
+------------------
+
+[PASS] Existing primary storage key secondBrainOS.v1 is unchanged.
+[PASS] No automatic localStorage.clear() was introduced.
+[PASS] No automatic indexedDB.deleteDatabase() was introduced.
+[PASS] V90 creates a non-destructive pre-stability backup attempt.
+[PASS] Calendar schema extension is optional and backward-compatible.
+
+TEST ENVIRONMENT LIMITATIONS
+----------------------------
+
+1. Direct browser navigation to a local HTTP server was blocked by the execution environment. UI scenarios were therefore run in headless Chromium with local project CSS and V90 JavaScript inlined into the current document.
+2. The live GitHub Pages deployment and the real Service Worker lifecycle were not executed here. They must be checked after upload.
+3. Tests used controlled seeded records, not the user's actual browser database. The code does not change the current storage key and adds backup logic, but restoration against the user's real IndexedDB must be verified on the deployed origin.

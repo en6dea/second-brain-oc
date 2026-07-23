@@ -4,7 +4,7 @@
   "description": "Личная система финансов, привычек, целей и знаний.",
   "lang": "ru-RU",
   "id": "./?source=pwa",
-  "start_url": "./?source=pwa#today",
+  "start_url": "./?v=90#today",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -13,8 +13,8 @@
     "minimal-ui"
   ],
   "orientation": "any",
-  "background_color": "#07111d",
-  "theme_color": "#07111d",
+  "background_color": "#f5f7fb",
+  "theme_color": "#f5f7fb",
   "categories": [
     "productivity",
     "finance",
@@ -86,5 +86,5 @@
       ]
     }
   ],
-  "version": "89.0"
+  "version": "90.0.2"
 }
