@@ -1,2 +1,2 @@
-V88.4.2 · STABLE RECOVERY
-second-brain-space-v8842-stable-recovery-20260723-r1
+second-brain-space-v8843-recursion-fix-20260723-r1
+V88.4.3 · STABLE CORE

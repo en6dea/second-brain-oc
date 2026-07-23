@@ -1,5 +1,5 @@
-const CACHE_NAME='second-brain-os-v8842-stable-recovery-r1';
-const CORE=['./manifest.webmanifest','./offline.html','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v8842-r1'];
+const CACHE_NAME='second-brain-os-v8843-recursion-fix-r1';
+const CORE=['./manifest.webmanifest','./offline.html','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v8843-r1'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{for(const url of CORE){try{const response=await fetch(url,{cache:'reload'});if(response.ok)await cache.put(url,response.clone());}catch(_){}}}));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});

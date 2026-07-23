@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Second Brain OS">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-space-v8842-stable-recovery-20260723-r1">
+  <meta name="second-brain-build" content="second-brain-space-v8843-recursion-fix-20260723-r1">
   <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
   <link rel="manifest" href="manifest.webmanifest?v=v881-r1">
@@ -1424,7 +1424,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 .v8842-recovery{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 12% 12%,rgba(122,92,255,.13),transparent 28%),linear-gradient(145deg,#f8f7ff,#eef4ff);font-family:Onest,Inter,system-ui,sans-serif;color:#111827}.v8842-recovery-card{width:min(720px,100%);padding:34px;border:1px solid rgba(110,91,185,.18);border-radius:28px;background:rgba(255,255,255,.86);box-shadow:0 24px 70px rgba(29,35,68,.12);backdrop-filter:blur(18px)}.v8842-recovery-mark{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:#171a2d;color:white;font-weight:800;letter-spacing:.08em;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.v8842-recovery-kicker{margin:22px 0 8px;color:#7357d8;font-size:12px;font-weight:800;letter-spacing:.12em}.v8842-recovery h1{margin:0 0 14px;font-size:clamp(28px,5vw,44px);line-height:1.08}.v8842-recovery p{font-size:16px;line-height:1.6;color:#536077}.v8842-recovery code{padding:3px 7px;border-radius:8px;background:#f0ecff;color:#5f44c6}.v8842-recovery-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.v8842-recovery button{min-height:48px;padding:0 18px;border:0;border-radius:15px;background:#6f54d9;color:white;font:inherit;font-weight:750;cursor:pointer}.v8842-recovery button.secondary{background:#fff;color:#5f44c6;border:1px solid #dcd3f4}@media(max-width:560px){.v8842-recovery{padding:16px}.v8842-recovery-card{padding:24px;border-radius:22px}.v8842-recovery-actions button{width:100%}}
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-space-v8842-stable-recovery-20260723-r1">
+<body class="v80-booting" data-sbos-build="second-brain-space-v8843-recursion-fix-20260723-r1">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -1447,7 +1447,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   const today = () => new Date().toISOString().slice(0,10);
   const money = value => `${Number(value||0).toLocaleString('ru-RU',{maximumFractionDigits:2})} ₽`;
 
-  /* V88.4.2 — non-destructive state sanitizer.
+  /* V88.4.3 — non-destructive state sanitizer.
      IndexedDB can preserve cyclic or abnormally deep objects; JSON/localStorage cannot.
      This creates a serializable copy without touching the live user state. */
   function coreSanitize(value,maxDepth=80){
@@ -1517,6 +1517,14 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     const localCompact=Boolean(local?.settings?.storageGuard?.fullStateInIndexedDB||local?.settings?.storageGuard?.compactMirror);
     const chooseDurable=durableState&&(localCompact||!local||String(durable?.updatedAt||coreUpdatedAt(durableState))>coreUpdatedAt(local));
     const loaded=coreNormalize(coreSanitize(chooseDurable?durableState:local));
+    try{
+      const fixMarker='secondBrainOS.v8843.recursionFixBackup';
+      if(!localStorage.getItem(fixMarker)){
+        const createdAt=new Date().toISOString();
+        await coreDbPut(`backup:v8843-before-recursion-fix:${createdAt}`,{version:8843,createdAt,reason:'automatic-before-v8843-finance-category-recursion-fix',state:coreClone(loaded)});
+        localStorage.setItem(fixMarker,createdAt);
+      }
+    }catch(error){}
     try{
       const marker='secondBrainOS.v86.backupCreated';
       if(!localStorage.getItem(marker)){
@@ -1924,10 +1932,23 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   }
 
   function expenseClass(valueOrItem){
-    const raw=typeof valueOrItem==='object'&&valueOrItem?clean(valueOrItem.expenseClass||valueOrItem.necessity||valueOrItem.requiredType):clean(valueOrItem);
+    const isObject=typeof valueOrItem==='object'&&valueOrItem;
+    const raw=isObject?clean(valueOrItem.expenseClass||valueOrItem.necessity||valueOrItem.requiredType):clean(valueOrItem);
     if(raw==='mandatory'||/обяз|must|required|fixed/.test(raw.toLowerCase()))return 'mandatory';
     if(raw==='optional'||/необяз|optional|wants|discretion/.test(raw.toLowerCase()))return 'optional';
-    if(typeof valueOrItem==='object'&&valueOrItem){const row=getFinanceCategory(valueOrItem.category,operationKind(valueOrItem));if(row?.defaultExpenseClass)return row.defaultExpenseClass;}
+    /* V88.4.3: direct lookup only. Calling getFinanceCategory() here caused
+       ensureFinanceCategories -> expenseClass -> getFinanceCategory recursion
+       for user-created categories without an explicit expenseClass. */
+    if(isObject){
+      const wanted=clean(valueOrItem.category||valueOrItem.group||valueOrItem.area).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ');
+      if(wanted){
+        const rows=Array.isArray(state?.financeCategories)?state.financeCategories:[];
+        const row=rows.find(item=>clean(item?.name||item?.title).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ')===wanted);
+        const configured=clean(row?.defaultExpenseClass||row?.expenseClass||row?.necessity);
+        if(configured==='mandatory'||/обяз|must|required|fixed/.test(configured.toLowerCase()))return 'mandatory';
+        if(configured==='optional'||/необяз|optional|wants|discretion/.test(configured.toLowerCase()))return 'optional';
+      }
+    }
     return 'optional';
   }
   function expenseClassLabel(value){return expenseClass(value)==='mandatory'?'Обязательный':'Необязательный';}
@@ -3291,7 +3312,11 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   financeCategoryKind=function(value){const raw=clean(value).toLowerCase();return raw==='income'?'income':raw==='transfer'||raw==='movement'||raw==='neutral'?'transfer':'expense';};
   financeCategoryKey=function(name,kind){return `${financeCategoryKind(kind)}|${v8611NameKey(name)}`;};
 
+  let v8843FinanceCategoryBuildInProgress=false;
   ensureFinanceCategories=function(){
+    if(v8843FinanceCategoryBuildInProgress)return Array.isArray(state.financeCategories)?state.financeCategories:[];
+    v8843FinanceCategoryBuildInProgress=true;
+    try{
     const raw=Array.isArray(state.financeCategories)?state.financeCategories:[],map=new Map();
     raw.forEach((item,index)=>{
       const source=typeof item==='string'?{name:item,type:'expense'}:(item||{});let name=clean(source.name||source.title);if(!name)return;
@@ -3308,8 +3333,9 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
       map.set(key,{id:makeId(),name,type,icon,color,active:true,archived:false,monthlyLimit:type==='expense'?0:0,defaultExpenseClass:type==='expense'?defaultExpenseClass:'',createdAt:nowIso(),updatedAt:nowIso(),order:index});
     }));
     V8611_TRANSFER_DEFAULTS.forEach(([name,icon,color],index)=>{const key=financeCategoryKey(name,'transfer');if(!map.has(key))map.set(key,{id:makeId(),name,type:'transfer',icon,color,active:true,archived:false,monthlyLimit:0,defaultExpenseClass:'',createdAt:nowIso(),updatedAt:nowIso(),order:index});});
-    array('operations').forEach(item=>{const name=clean(item.category);if(!name)return;const type=operationKind(item),key=financeCategoryKey(name,type);if(!map.has(key))map.set(key,{id:makeId(),name,type,icon:type==='income'?'₽':type==='transfer'?'⇄':'•',color:type==='income'?'#48b987':type==='transfer'?'#7185c6':'#8b5cf6',active:true,archived:false,monthlyLimit:0,defaultExpenseClass:type==='expense'?expenseClass(item):'',createdAt:nowIso(),updatedAt:nowIso(),order:999});});
+    array('operations').forEach(item=>{const name=clean(item.category);if(!name)return;const type=operationKind(item),key=financeCategoryKey(name,type);if(!map.has(key))map.set(key,{id:makeId(),name,type,icon:type==='income'?'₽':type==='transfer'?'⇄':'•',color:type==='income'?'#48b987':type==='transfer'?'#7185c6':'#8b5cf6',active:true,archived:false,monthlyLimit:0,defaultExpenseClass:type==='expense'?expenseClass(item?.expenseClass||item?.necessity||item?.requiredType||'optional'):'',createdAt:nowIso(),updatedAt:nowIso(),order:999});});
     const order={expense:0,income:1,transfer:2};state.financeCategories=[...map.values()].sort((a,b)=>(order[a.type]??9)-(order[b.type]??9)||number(a.order)-number(b.order)||a.name.localeCompare(b.name,'ru'));return state.financeCategories;
+    }finally{v8843FinanceCategoryBuildInProgress=false;}
   };
   financeCategories=function(kind='expense',includeInactive=false){ensureFinanceCategories();const type=financeCategoryKind(kind);return state.financeCategories.filter(row=>row.type===type&&!row.archived&&(includeInactive||row.active!==false)).sort((a,b)=>number(a.order)-number(b.order)||a.name.localeCompare(b.name,'ru'));};
   financeCategoryNames=function(kind='expense',includeInactive=false){return financeCategories(kind,includeInactive).map(row=>row.name);};
@@ -3727,10 +3753,10 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   const v883BaseSetBuild=setBuild;
   setBuild=function(){v883BaseSetBuild();document.body.dataset.sbosBuild=V883_BUILD;document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V883_BUILD);const badge=document.querySelector('.v78-build');if(badge)badge.textContent=V883_LABEL;};
 
-  const V8842_BUILD='second-brain-space-v8842-stable-recovery-20260723-r1';
-  const V8842_LABEL='V88.4.2 · STABLE RECOVERY';
-  const v8842BaseSetBuild=setBuild;
-  setBuild=function(){v8842BaseSetBuild();document.body.dataset.sbosBuild=V8842_BUILD;document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V8842_BUILD);const badge=document.querySelector('.v78-build');if(badge)badge.textContent=V8842_LABEL;try{localStorage.setItem('secondBrainOS.currentBuild',V8842_BUILD);}catch(_){}};
+  const V8843_BUILD='second-brain-space-v8843-recursion-fix-20260723-r1';
+  const V8843_LABEL='V88.4.3 · STABLE CORE';
+  const v8843BaseSetBuild=setBuild;
+  setBuild=function(){v8843BaseSetBuild();document.body.dataset.sbosBuild=V8843_BUILD;document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V8843_BUILD);const badge=document.querySelector('.v78-build');if(badge)badge.textContent=V8843_LABEL;try{localStorage.setItem('secondBrainOS.currentBuild',V8843_BUILD);}catch(_){}};
   window.V883QA={classify:item=>operationKind(item),queue:()=>reviewQueueItems(),parseCsv:text=>parseBankCsvText(text),counts:()=>({notes:v883MergedCollection(['notes','knowledgeNotes','memos']).length,personal:v883MergedCollection(['personal','personalMemory','journal','diaryEntries']).length})};
 
 
@@ -3751,7 +3777,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   } catch (error) {
     console.error('[V86 Autopilot Runtime]', error);
     document.body.classList.remove('v80-booting','v79-booting','v78-booting');
-    try{localStorage.setItem('secondBrainOS.lastBootError',coreJsonText({at:new Date().toISOString(),build:'V88.4.2',message:String(error?.message||error),stack:String(error?.stack||'')}));}catch(_){}
+    try{localStorage.setItem('secondBrainOS.lastBootError',coreJsonText({at:new Date().toISOString(),build:'V88.4.3',message:String(error?.message||error),stack:String(error?.stack||'')}));}catch(_){}
     document.getElementById('app').innerHTML=`<main class="v8842-recovery"><section class="v8842-recovery-card"><div class="v8842-recovery-mark">SB</div><p class="v8842-recovery-kicker">SECOND BRAIN OS · ЗАЩИТНЫЙ РЕЖИМ</p><h1>Приложение остановило запуск, чтобы сохранить данные</h1><p>Ничего не удалено. Ошибка: <code>${safe(error?.message||String(error))}</code></p><div class="v8842-recovery-actions"><button type="button" onclick="location.hash='today';location.reload()">Повторить безопасный запуск</button><button type="button" class="secondary" onclick="try{const raw=localStorage.getItem('secondBrainOS.v1')||'{}';const blob=new Blob([raw],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='second-brain-emergency-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){}">Скачать аварийную копию</button></div></section></main>`;
   }
 })();
@@ -4278,6 +4304,6 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script defer src="firebase-config.js?v=v8612-r1"></script>
   <script defer src="cloud-sync.js?v=v8612-r1"></script>
-  <script defer src="pwa-v88.js?v=v8842-r1"></script>
+  <script defer src="pwa-v88.js?v=v8843-r1"></script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+SECOND BRAIN OS V88.4.3 — QA RESULTS
+Date: 2026-07-23
+Build: second-brain-space-v8843-recursion-fix-20260723-r1
+
+ROOT CAUSE REPRODUCED
+- Reproduced Maximum call stack size exceeded on V88.4.2.
+- Trigger: an expense operation used a user-created category and did not contain expenseClass / necessity.
+- Recursive chain:
+  ensureFinanceCategories -> expenseClass -> getFinanceCategory -> ensureFinanceCategories.
+- Browser stack confirmed the loop in ensureFinanceCategories/getFinanceCategory.
+
+FIX
+- expenseClass no longer calls getFinanceCategory while categories are being built.
+- Direct non-recursive lookup is used for an existing category setting.
+- Category construction uses only explicit operation fields or the safe default "optional".
+- Added a re-entry guard to ensureFinanceCategories.
+- Added an automatic IndexedDB snapshot before the V88.4.3 fix is applied.
+- No localStorage or IndexedDB clearing is performed.
+
+TESTS PASSED
+- All 9 inline JavaScript blocks: syntax OK (node --check).
+- Boot with a custom expense category missing expenseClass: OK.
+- Custom operation remains in saved state: OK.
+- Custom category is created and preserved: OK.
+- Finance page opens: OK.
+- Finance operations page opens and displays the custom category: OK.
+- Category manager opens: OK.
+- 10 consecutive full renders: OK, no stack overflow.
+- Mobile viewport 390x844: horizontal overflow 0 px.
+- Page errors during the functional run: none.
+
+IMPORTANT
+- External Firebase/cloud scripts were excluded from the isolated browser QA because the test environment has no external network access.
+- The fix is additive and does not delete existing user data.
