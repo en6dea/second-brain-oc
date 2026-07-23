@@ -1,4 +1,5 @@
-Second Brain OS V89 · CRITICAL STABILITY
-Build: second-brain-os-v89-critical-stability-20260723-r1
-Data policy: additive runtime; localStorage and IndexedDB are never cleared.
-Primary fixes: stable colored icons, true modal overlay, calendar edit/move/delete, clickability and responsive layout.
+Second Brain OS V91
+Build: second-brain-space-v91-focused-hotfix-20260723-r1
+Release: 2026-07-23
+Scope: goal contrast, queue classification lifecycle, income settings save
+Data key: secondBrainOS.v1 (unchanged)

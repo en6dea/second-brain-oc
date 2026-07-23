@@ -4,7 +4,7 @@
   "description": "Личная система финансов, привычек, целей и знаний.",
   "lang": "ru-RU",
   "id": "./?source=pwa",
-  "start_url": "./?v=90#today",
+  "start_url": "./?v=91#today",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -86,5 +86,5 @@
       ]
     }
   ],
-  "version": "90.0.2"
+  "version": "91.0.1"
 }

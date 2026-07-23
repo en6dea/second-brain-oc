@@ -1,5 +1,5 @@
-const CACHE_NAME='second-brain-os-v90-verified-stability-r2';
-const CORE=['./offline.html','./manifest.webmanifest?v=v90-r2','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v90-r2','./styles-v884-finance.css?v=v885-r1','./styles-v90-stability.css?v=v90-r2','./app-v90-stability.js?v=v90-r2'];
+const CACHE_NAME='second-brain-os-v91-focused-hotfix-r1';
+const CORE=['./offline.html','./manifest.webmanifest?v=v91-r1','./icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png','./pwa-v88.js?v=v91-r1','./styles-v884-finance.css?v=v885-r1','./styles-v91-stability.css?v=v91-r1','./app-v91-stability.js?v=v91-r1'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{for(const url of CORE){try{const response=await fetch(url,{cache:'reload'});if(response.ok)await cache.put(url,response.clone())}catch(_){}}}))});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)));await self.clients.claim()})())});
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting()});

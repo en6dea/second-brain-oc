@@ -1,0 +1,15 @@
+Second Brain OS V91 — changed/new files
+
+index.html
+app-v91-stability.js                 (new; replaces loaded V90 runtime)
+styles-v91-stability.css             (new; replaces loaded V90 stability CSS)
+app-v884-finance-source.js           (source parity for finance/queue logic)
+sw.js
+pwa-v88.js
+manifest.webmanifest
+sbos-build.txt
+README_V91_FOCUSED_HOTFIX_RU.md
+DEPLOY_V91_GITHUB_RU.md
+QA_V91_RESULTS.txt
+
+The primary data key secondBrainOS.v1 is unchanged.
