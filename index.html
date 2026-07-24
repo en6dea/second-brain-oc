@@ -8,17 +8,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Second Brain OS">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-space-v91-focused-hotfix-20260723-r1">
+  <meta name="second-brain-build" content="second-brain-space-v93-personal-assistant-20260724-r1">
   <meta http-equiv="Cache-Control" content="no-store,no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v91-r1">
-  <link rel="icon" href="icon-192-v84.png?v=v91-r1">
-  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v91-r1">
+  <link rel="manifest" href="manifest.webmanifest?v=v93-r1">
+  <link rel="icon" href="icon-192-v84.png?v=v93-r1">
+  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v93-r1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-v884-finance.css?v=v885-r1">
-  <link rel="stylesheet" href="styles-v91-stability.css?v=v91-r1">
+  <link rel="stylesheet" href="styles-v91-stability.css?v=v93-r1">
   <style>/* Second Brain OS V80 — readable premium design */
 :root{
   --v78-bg:#fbf9ff;
@@ -1427,7 +1427,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 .v885-recovery{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 10% 10%,rgba(124,86,232,.15),transparent 30%),radial-gradient(circle at 90% 18%,rgba(99,203,230,.12),transparent 28%),linear-gradient(145deg,#fbf9ff,#eef4ff);font-family:Onest,Inter,system-ui,sans-serif;color:#14162b}.v885-recovery-card{width:min(720px,100%);padding:36px;border:1px solid rgba(111,92,172,.16);border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 26px 80px rgba(33,38,78,.14);backdrop-filter:blur(18px)}.v885-recovery-mark{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:#171a2d;color:#fff;font-weight:800;letter-spacing:.08em}.v885-recovery-kicker{margin:22px 0 8px;color:#7357d8;font-size:12px;font-weight:800;letter-spacing:.12em}.v885-recovery h1{margin:0 0 14px;font-size:clamp(30px,5vw,46px);line-height:1.06}.v885-recovery p{font-size:16px;line-height:1.6;color:#59647c}.v885-recovery code{padding:3px 7px;border-radius:8px;background:#f0ecff;color:#5f44c6}.v885-recovery-note{padding:14px 16px;border-radius:16px;background:#f8f7ff;border:1px solid rgba(124,86,232,.12)}.v885-recovery-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.v885-recovery :is(a,button){min-height:50px;padding:0 18px;border-radius:16px;font:inherit;font-weight:750;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.v885-recovery .primary{border:0;background:linear-gradient(135deg,#7c56e8,#6848d7);color:#fff;box-shadow:0 12px 26px rgba(104,72,215,.24)}.v885-recovery button{background:#fff;color:#5f44c6;border:1px solid #dcd3f4}@media(max-width:560px){.v885-recovery{padding:14px}.v885-recovery-card{padding:24px;border-radius:24px}.v885-recovery-actions>*{width:100%}}
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-space-v91-focused-hotfix-20260723-r1">
+<body class="v80-booting" data-sbos-build="second-brain-space-v93-personal-assistant-20260724-r1">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -3791,7 +3791,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   /* Second Brain OS V88.5 — stable finance core.
      Only additive migrations. Existing collections are never cleared or replaced. */
   {
-    const V884_BUILD='second-brain-space-v91-focused-hotfix-20260723-r1';
+    const V884_BUILD='second-brain-space-v93-personal-assistant-20260724-r1';
     const V884_LABEL='V91 · FOCUSED HOTFIX';
     const V884_DAY=86400000;
     let v884ScrollY=null;
@@ -4045,7 +4045,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 (()=>{let started=false;const start=()=>{if(started)return;started=true;
 /* Second Brain OS V88 — visual runtime only. Reads state, never migrates or deletes data. */
 (() => {
-  const VISUAL_BUILD = 'second-brain-space-v91-focused-hotfix-20260723-r1';
+  const VISUAL_BUILD = 'second-brain-space-v93-personal-assistant-20260724-r1';
   const BUILD_LABEL = 'V91 · FOCUSED HOTFIX';
   const THEME_KEY = 'secondBrainOS.visualThemeMode';
   const LEGACY_THEME_KEY = 'secondBrainOS.visualTheme';
@@ -4773,8 +4773,11 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   })();
   </script>
 
-  <link rel="stylesheet" href="styles-v91-stability.css?v=v91-r1" data-sbos-v91-final>
-  <script src="app-v91-stability.js?v=v91-r1"></script>
+  <link rel="stylesheet" href="styles-v91-stability.css?v=v93-r1" data-sbos-v91-final>
+  <script src="app-v91-stability.js?v=v93-r1"></script>
+
+  <link rel="stylesheet" href="styles-v93-assistant.css?v=v93-r1" data-sbos-v93>
+  <script src="app-v93-assistant.js?v=v93-r1" data-sbos-v93></script>
 
 </body>
 </html>

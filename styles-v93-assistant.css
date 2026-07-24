@@ -1,0 +1,209 @@
+/* Second Brain OS V93 — personal assistant, compact GameLife and visual consistency. */
+:root{
+  --v93-ink:#18223b;
+  --v93-muted:#66708a;
+  --v93-line:rgba(82,101,151,.14);
+  --v93-blue:#3977f6;
+  --v93-violet:#7b58e8;
+  --v93-green:#24a879;
+  --v93-coral:#e85c77;
+  --v93-radius:24px;
+}
+body.sbos-v93-ready{--sbos-build:"V93"}
+html.sbos-v93-modal-open,body.sbos-v93-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
+
+/* AI badge stays inside the control. */
+.v78-top-actions>button{overflow:visible!important;isolation:isolate!important}
+.v78-top-actions button em.sbos-v93-notification-badge{
+  top:3px!important;right:3px!important;transform:none!important;
+  min-width:16px!important;width:auto!important;height:16px!important;padding:0 4px!important;
+  border:2px solid #fff!important;border-radius:999px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  line-height:1!important;font-size:8px!important;font-weight:800!important;letter-spacing:-.02em!important;
+  box-shadow:0 5px 12px rgba(219,53,86,.28)!important;z-index:4!important;
+}
+
+/* Every plus is optically and mathematically centred. */
+.sbos-v93-plus-button,
+.v78-folder-panel>header>button,
+.v78-wish-row>button,
+.v82-calendar-nav button,
+.v78-page-head button:is(.v78-primary,.v78-secondary){
+  align-items:center!important;justify-content:center!important;line-height:1!important;
+}
+.sbos-v93-plus-button{display:inline-flex!important;padding:0!important;text-indent:0!important}
+
+/* Folder typography: readable, stable and never overlapping. */
+.v78-folder-stack{gap:10px!important}
+.v78-folder-card.sbos-v93-folder-card{
+  min-height:112px!important;height:auto!important;
+  grid-template-columns:52px minmax(0,1fr) 18px!important;
+  gap:13px!important;align-items:center!important;padding:14px!important;overflow:hidden!important;
+}
+.sbos-v93-folder-card>.v78-folder-icon{width:50px!important;height:50px!important;min-width:50px!important;border-radius:17px!important}
+.sbos-v93-folder-card>.v78-folder-copy{min-width:0!important;display:grid!important;gap:5px!important;align-content:center!important}
+.sbos-v93-folder-card>.v78-folder-copy>b{font-size:15px!important;line-height:1.25!important;letter-spacing:-.025em!important}
+.sbos-v93-folder-card>.v78-folder-copy>small{
+  font-size:11px!important;line-height:1.42!important;color:var(--v93-muted)!important;
+  white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important;
+}
+.sbos-v93-folder-card .v78-folder-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin-top:4px!important;min-width:0!important}
+.sbos-v93-folder-card .v78-folder-stats>span{min-width:0!important;padding:6px 8px!important;border-radius:11px!important;background:rgba(255,255,255,.72)!important}
+.sbos-v93-folder-card .v78-folder-stats small{font-size:9px!important;line-height:1.25!important}
+.sbos-v93-folder-card .v78-folder-stats b{font-size:11px!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:anywhere!important}
+
+/* Operation tiles: icon, label and number own separate columns. */
+.v78-operation-folder{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+.v78-operation-folder button.sbos-v93-operation-tile{
+  min-height:54px!important;width:100%!important;display:grid!important;
+  grid-template-columns:32px minmax(0,1fr) auto!important;gap:9px!important;align-items:center!important;
+  padding:9px 11px!important;text-align:left!important;overflow:hidden!important;
+}
+.sbos-v93-operation-tile>i{position:static!important;width:32px!important;height:32px!important;min-width:32px!important;margin:0!important;display:grid!important;place-items:center!important}
+.sbos-v93-operation-tile>span{min-width:0!important;font-size:12px!important;line-height:1.3!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important}
+.sbos-v93-operation-tile>b{position:static!important;min-width:24px!important;text-align:right!important;margin:0!important}
+
+/* Operations page filters share one baseline and readable spacing. */
+.sbos-v93-operations-page .v78-operation-toolbar{align-items:center!important;gap:12px!important}
+.sbos-v93-operations-page .v78-segment{display:flex!important;align-items:stretch!important;gap:5px!important;padding:4px!important;min-height:46px!important}
+.sbos-v93-operations-page .v78-segment button{min-height:38px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0 15px!important;line-height:1.2!important;white-space:nowrap!important}
+.sbos-v93-operations-page .v8611-filter-row{display:grid!important;grid-template-columns:minmax(135px,auto) minmax(0,1fr)!important;gap:14px!important;align-items:center!important;padding:14px 16px!important}
+.sbos-v93-operations-page .v8611-filter-row>span{font-size:12px!important;font-weight:700!important;line-height:1.3!important;margin:0!important}
+.sbos-v93-operations-page .v8611-filter-row .v78-segment{justify-self:start!important}
+
+/* Unified next-week habit block. */
+.sbos-v93-next-week-card{background:linear-gradient(145deg,#fff,#f7fbff 45%,#faf6ff)!important}
+.sbos-v93-next-week-card .v78-wish-row{min-height:58px!important}
+
+/* Rounded surfaces never reveal square white corners. */
+.sbos-v93-surface{
+  border-radius:var(--v93-radius)!important;background-clip:padding-box!important;isolation:isolate!important;
+}
+.sbos-v93-surface::before,.sbos-v93-surface::after{border-radius:inherit!important}
+.v78-card,.v78-folder-panel,.v83-player-hero,.v884-panel,.v884-safe-card,.v82-coach-hero,
+.v78-operation-table,.v78-info-folder,.v78-finance-folder,.v78-category-card,.v78-operations-folder{
+  background-clip:padding-box!important;border-radius:var(--v93-radius)!important;
+}
+.v78-card>header:first-child,.v884-panel>header:first-child{border-radius:calc(var(--v93-radius) - 1px) calc(var(--v93-radius) - 1px) 0 0!important}
+
+/* Compact, collapsible GameLife details. */
+.v83-game-page .v83-game-grid{align-items:start!important}
+.v83-game-page [data-v93-collapse-key]{transition:max-height .24s ease,opacity .2s ease!important}
+.v83-game-page [data-v93-collapse-key]>header{align-items:center!important}
+.sbos-v93-collapse-button{
+  min-height:36px!important;padding:0 12px!important;border:1px solid rgba(93,78,165,.16)!important;
+  border-radius:12px!important;background:#fff!important;color:#6548c5!important;font-size:10px!important;font-weight:700!important;white-space:nowrap!important;
+}
+.v83-game-page [data-v93-collapse-key].sbos-v93-collapsed>:not(header){display:none!important}
+.v83-game-page [data-v93-collapse-key].sbos-v93-collapsed{min-height:0!important;padding-bottom:13px!important}
+.v83-game-page .v83-game-log{max-height:340px!important;overflow:auto!important;padding-right:4px!important}
+.v83-game-page .v85-achievements{max-height:360px!important;overflow:auto!important}
+.v83-game-page .v83-skills{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+
+/* Clickable coach metrics. */
+.v82-coach-page .v78-kpi-row article.sbos-v93-clickable-kpi{
+  position:relative!important;cursor:pointer!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;
+  padding-bottom:34px!important;
+}
+.v82-coach-page .v78-kpi-row article.sbos-v93-clickable-kpi:hover,
+.v82-coach-page .v78-kpi-row article.sbos-v93-clickable-kpi:focus-visible{
+  transform:translateY(-2px)!important;border-color:rgba(57,119,246,.28)!important;box-shadow:0 18px 38px rgba(52,86,161,.12)!important;outline:none!important;
+}
+.sbos-v93-more{position:absolute!important;left:14px!important;bottom:10px!important;color:#506ed0!important;font-size:9px!important;font-weight:700!important}
+
+/* Context assistant — one clear action, not a wall of advice. */
+.sbos-v93-context-assistant{
+  display:grid!important;grid-template-columns:52px minmax(0,1fr) auto!important;gap:14px!important;align-items:center!important;
+  margin:0 0 16px!important;padding:15px 16px!important;border:1px solid rgba(75,105,181,.14)!important;
+  border-radius:22px!important;background:linear-gradient(135deg,rgba(238,246,255,.96),rgba(250,247,255,.96) 55%,rgba(239,253,248,.96))!important;
+  box-shadow:0 15px 38px rgba(74,90,145,.09)!important;overflow:hidden!important;
+}
+.sbos-v93-context-assistant>i{width:50px!important;height:50px!important;border-radius:17px!important;display:grid!important;place-items:center!important;font-style:normal!important;font-size:20px!important;color:#fff!important;background:linear-gradient(145deg,#6b91f7,#7b58e8)!important;box-shadow:0 12px 25px rgba(90,93,194,.24)!important}
+.sbos-v93-context-assistant>div{min-width:0!important}
+.sbos-v93-context-assistant small{font-size:9px!important;font-weight:800!important;letter-spacing:.08em!important;color:#5870b5!important}
+.sbos-v93-context-assistant h2{margin:3px 0 4px!important;font-size:15px!important;line-height:1.3!important;color:var(--v93-ink)!important}
+.sbos-v93-context-assistant p{margin:0!important;font-size:11px!important;line-height:1.48!important;color:var(--v93-muted)!important}
+.sbos-v93-context-assistant>button{min-height:42px!important;padding:0 15px!important;border:0!important;border-radius:13px!important;background:linear-gradient(135deg,#477df2,#7558dc)!important;color:#fff!important;font-size:10px!important;font-weight:750!important;white-space:nowrap!important;box-shadow:0 10px 24px rgba(69,90,191,.2)!important}
+
+/* Finance missing-data explanation and action. */
+.sbos-v93-missing-explain{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px 12px!important;margin-top:10px!important;padding:11px 12px!important;border-radius:14px!important;background:rgba(255,255,255,.76)!important;border:1px solid rgba(58,104,190,.12)!important}
+.sbos-v93-missing-explain>b{font-size:11px!important}.sbos-v93-missing-explain>span{grid-column:1/-1!important;font-size:10px!important;line-height:1.45!important;color:var(--v93-muted)!important}.sbos-v93-missing-explain>em{grid-column:2!important;grid-row:1!important;font-style:normal!important;font-size:9px!important;color:#5774c4!important}
+.v884-action-now button[data-v93-action="finance-wizard"],.v884-safe-card button[data-v93-action="finance-wizard"]{pointer-events:auto!important;cursor:pointer!important}
+
+/* V93 modal and wizard. */
+#modal.modal.show{display:flex!important;position:fixed!important;inset:0!important;z-index:2147483600!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(12,22,44,.5)!important;backdrop-filter:blur(12px)!important}
+#modal .sbos-v93-modal-card{width:min(920px,calc(100vw - 28px))!important;max-width:920px!important;max-height:92dvh!important;overflow:auto!important;border-radius:28px!important;background:#fff!important;padding:0!important;box-shadow:0 36px 120px rgba(8,20,50,.38)!important}
+.sbos-v93-modal-head{position:sticky!important;top:0!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:16px 18px!important;border-bottom:1px solid var(--v93-line)!important;background:rgba(255,255,255,.94)!important;backdrop-filter:blur(14px)!important;border-radius:28px 28px 0 0!important}
+.sbos-v93-modal-head small{display:block!important;font-size:8px!important;font-weight:800!important;letter-spacing:.1em!important;color:#697cc1!important}
+.sbos-v93-modal-head h2{margin:3px 0 0!important;font-size:19px!important;line-height:1.2!important}
+.sbos-v93-modal-head>button{width:40px!important;height:40px!important;min-height:40px!important;border:1px solid var(--v93-line)!important;border-radius:13px!important;background:#f7f8fc!important;color:#576078!important;font-size:20px!important;display:grid!important;place-items:center!important}
+.sbos-v93-wizard-progress{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;padding:16px 18px 0!important}
+.sbos-v93-wizard-progress>span{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;gap:8px!important;align-items:center!important;padding:8px!important;border-radius:14px!important;background:#f3f5f9!important;color:#7c8499!important}
+.sbos-v93-wizard-progress i{width:30px!important;height:30px!important;border-radius:10px!important;display:grid!important;place-items:center!important;font-style:normal!important;background:#fff!important}
+.sbos-v93-wizard-progress b{font-size:10px!important;line-height:1.25!important}.sbos-v93-wizard-progress .active{background:#eee9ff!important;color:#6047c5!important}.sbos-v93-wizard-progress .active i{background:#7357dd!important;color:#fff!important}.sbos-v93-wizard-progress .done{background:#eaf9f2!important;color:#21805d!important}.sbos-v93-wizard-progress .done i{background:#2caf7e!important;color:#fff!important}
+.sbos-v93-wizard-intro,.sbos-v93-wizard-section,.sbos-v93-wizard-result,.sbos-v93-detail-modal{padding:20px 22px!important}
+.sbos-v93-time{display:inline-flex!important;padding:6px 10px!important;border-radius:999px!important;background:#edf4ff!important;color:#4a6abc!important;font-size:10px!important;font-weight:700!important}
+.sbos-v93-wizard-intro h3,.sbos-v93-wizard-section h3,.sbos-v93-wizard-result h3{margin:10px 0 6px!important;font-size:21px!important;line-height:1.25!important;color:var(--v93-ink)!important}
+.sbos-v93-wizard-intro>p,.sbos-v93-wizard-section header p,.sbos-v93-wizard-result>p{margin:0!important;color:var(--v93-muted)!important;font-size:12px!important;line-height:1.55!important}
+.sbos-v93-gap-list{display:grid!important;gap:8px!important;margin:16px 0!important}.sbos-v93-gap-list>div{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;padding:10px 12px!important;border-radius:14px!important;background:#fff6f7!important;border:1px solid #ffe0e6!important}.sbos-v93-gap-list i{width:30px!important;height:30px!important;border-radius:10px!important;display:grid!important;place-items:center!important;font-style:normal!important;background:#ffe5ea!important;color:#c74762!important}.sbos-v93-gap-list span{font-size:11px!important;line-height:1.4!important}.sbos-v93-gap-list .ok{background:#eefaf4!important;border-color:#d6f1e4!important}.sbos-v93-gap-list .ok i{background:#d9f4e7!important;color:#248160!important}
+.sbos-v93-wizard-intro>aside{display:grid!important;gap:5px!important;padding:14px!important;border-radius:16px!important;background:linear-gradient(135deg,#f5f8ff,#faf7ff)!important}.sbos-v93-wizard-intro>aside b{font-size:12px!important}.sbos-v93-wizard-intro>aside span{font-size:10px!important;color:var(--v93-muted)!important}
+.sbos-v93-wizard-section>header{margin-bottom:16px!important}.sbos-v93-wizard-section>header>span{font-size:9px!important;color:#697cc1!important;font-weight:800!important;letter-spacing:.08em!important}.sbos-v93-wizard-section h4{margin:18px 0 9px!important;font-size:13px!important}
+.sbos-v93-new-account,.sbos-v93-account-list,.sbos-v93-income-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.sbos-v93-new-account label,.sbos-v93-account-list label,.sbos-v93-income-grid label,.sbos-v93-debt-wizard-list label{display:grid!important;gap:6px!important;font-size:10px!important;font-weight:700!important;color:#505b74!important}
+.sbos-v93-new-account input,.sbos-v93-account-list input,.sbos-v93-income-grid input,.sbos-v93-debt-wizard-list input{width:100%!important;min-height:44px!important;border:1px solid rgba(70,93,145,.18)!important;border-radius:13px!important;background:#fff!important;padding:0 12px!important;color:var(--v93-ink)!important;pointer-events:auto!important}
+.sbos-v93-new-account input:focus,.sbos-v93-account-list input:focus,.sbos-v93-income-grid input:focus,.sbos-v93-debt-wizard-list input:focus{outline:3px solid rgba(57,119,246,.14)!important;border-color:rgba(57,119,246,.42)!important}
+.sbos-v93-debt-wizard-list{display:grid!important;gap:10px!important}.sbos-v93-debt-wizard-list article{padding:13px!important;border:1px solid var(--v93-line)!important;border-radius:17px!important;background:#fbfcff!important}.sbos-v93-debt-wizard-list article>header{display:flex!important;justify-content:space-between!important;gap:12px!important;align-items:flex-start!important;margin-bottom:10px!important}.sbos-v93-debt-wizard-list header b,.sbos-v93-debt-wizard-list header small{display:block!important}.sbos-v93-debt-wizard-list header b{font-size:12px!important}.sbos-v93-debt-wizard-list header small{margin-top:3px!important;font-size:9px!important;color:var(--v93-muted)!important}.sbos-v93-debt-wizard-list header>span{padding:5px 8px!important;border-radius:999px!important;background:#edf8f3!important;color:#28795b!important;font-size:8px!important}.sbos-v93-debt-wizard-list header>span.danger{background:#fff0f2!important;color:#bf3e59!important}.sbos-v93-debt-wizard-list article>div{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.sbos-v93-debt-wizard-list label em,.sbos-v93-income-grid label em{display:inline-grid!important;place-items:center!important;width:17px!important;height:17px!important;border-radius:50%!important;background:#edf2ff!important;color:#5773c3!important;font-style:normal!important;font-size:9px!important;cursor:help!important}
+.sbos-v93-empty-good{display:grid!important;gap:6px!important;padding:14px!important;border-radius:16px!important;background:#eefaf4!important;border:1px solid #d5efe2!important}.sbos-v93-empty-good b{font-size:12px!important}.sbos-v93-empty-good span{font-size:10px!important;line-height:1.45!important;color:var(--v93-muted)!important}.sbos-v93-empty-good button{justify-self:start!important;min-height:36px!important;padding:0 11px!important;border:1px solid rgba(36,128,96,.18)!important;border-radius:11px!important;background:#fff!important;color:#23795a!important}
+.sbos-v93-help{display:grid!important;gap:4px!important;margin-top:12px!important;padding:12px!important;border-radius:14px!important;background:#f6f8fc!important}.sbos-v93-help b{font-size:11px!important}.sbos-v93-help span{font-size:10px!important;line-height:1.45!important;color:var(--v93-muted)!important}.sbos-v93-inline-error{margin-top:12px!important;padding:10px 12px!important;border-radius:13px!important;background:#fff0f2!important;color:#b83c55!important;font-size:10px!important;line-height:1.4!important}
+.sbos-v93-wizard-result{text-align:center!important}.sbos-v93-result-icon{width:58px!important;height:58px!important;border-radius:20px!important;display:grid!important;place-items:center!important;margin:0 auto!important;background:linear-gradient(145deg,#ddf8eb,#edfaff)!important;color:#23966c!important;font-size:24px!important;font-weight:800!important}.sbos-v93-result-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:18px 0!important;text-align:left!important}.sbos-v93-result-grid article{display:grid!important;gap:4px!important;padding:13px!important;border:1px solid var(--v93-line)!important;border-radius:16px!important;background:#fbfcff!important}.sbos-v93-result-grid article.primary{background:linear-gradient(135deg,#ecf4ff,#f3efff)!important;border-color:rgba(80,104,190,.2)!important}.sbos-v93-result-grid small{font-size:9px!important;color:var(--v93-muted)!important}.sbos-v93-result-grid b{font-size:18px!important}.sbos-v93-result-grid span{font-size:9px!important;color:var(--v93-muted)!important}.sbos-v93-next-action{display:grid!important;gap:5px!important;text-align:left!important;padding:14px!important;border-radius:16px!important;background:#f6f2ff!important}.sbos-v93-next-action b{font-size:12px!important}.sbos-v93-next-action span{font-size:10px!important;line-height:1.5!important;color:var(--v93-muted)!important}
+.sbos-v93-wizard-actions{position:sticky!important;bottom:0!important;z-index:9!important;display:flex!important;justify-content:flex-end!important;gap:8px!important;padding:13px 18px!important;border-top:1px solid var(--v93-line)!important;background:rgba(255,255,255,.96)!important;backdrop-filter:blur(12px)!important}.sbos-v93-wizard-actions button{min-height:42px!important;padding:0 15px!important;border:1px solid var(--v93-line)!important;border-radius:13px!important;background:#fff!important;color:#526079!important;font-size:10px!important;font-weight:700!important}.sbos-v93-wizard-actions button.primary{border:0!important;background:linear-gradient(135deg,#477df2,#7558dc)!important;color:#fff!important}.sbos-v93-wizard-actions button.secondary{margin-right:auto!important}
+
+/* Metric detail modal. */
+.sbos-v93-detail-modal>p{margin:0 0 14px!important;color:var(--v93-muted)!important;font-size:11px!important;line-height:1.5!important}.sbos-v93-detail-modal>div{display:grid!important;gap:8px!important}.sbos-v93-detail-modal article{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;align-items:center!important;padding:12px!important;border:1px solid var(--v93-line)!important;border-radius:15px!important;background:#fbfcff!important;text-align:left!important}.sbos-v93-detail-modal article b,.sbos-v93-detail-modal article small{display:block!important}.sbos-v93-detail-modal article b{font-size:11px!important}.sbos-v93-detail-modal article small{margin-top:3px!important;font-size:9px!important;line-height:1.4!important;color:var(--v93-muted)!important}.sbos-v93-detail-modal article strong{font-size:12px!important;color:#465b9e!important;white-space:nowrap!important}.sbos-v93-detail-modal footer{display:flex!important;justify-content:flex-end!important;margin-top:14px!important}.sbos-v93-detail-modal footer button{min-height:42px!important;padding:0 14px!important;border:0!important;border-radius:13px!important;background:#6650cd!important;color:#fff!important;font-weight:700!important}
+
+/* System data-quality overview. */
+.sbos-v93-quality-card{margin-top:16px!important;padding:18px!important;border:1px solid var(--v93-line)!important;border-radius:24px!important;background:linear-gradient(135deg,#f8fbff,#faf7ff)!important;box-shadow:0 15px 36px rgba(72,88,142,.08)!important}.sbos-v93-quality-card header small{font-size:9px!important;letter-spacing:.08em!important;color:#6578ba!important}.sbos-v93-quality-card header h2{margin:4px 0!important;font-size:18px!important}.sbos-v93-quality-card header p{margin:0!important;color:var(--v93-muted)!important}.sbos-v93-quality-card>div{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important;margin-top:14px!important}.sbos-v93-quality-card article{display:grid!important;gap:4px!important;padding:12px!important;border-radius:15px!important;background:#fff!important;border:1px solid rgba(81,99,144,.1)!important}.sbos-v93-quality-card article b{font-size:17px!important}.sbos-v93-quality-card article span{font-size:9px!important;line-height:1.35!important;color:var(--v93-muted)!important}
+
+/* Global typography safety. */
+.v78-content :is(p,small,span,b,h1,h2,h3,em){word-break:normal!important;overflow-wrap:break-word!important}
+.v78-content small{line-height:1.42!important}
+.v78-content button{font-weight:650}
+
+@media(max-width:1000px){
+  .sbos-v93-context-assistant{grid-template-columns:48px minmax(0,1fr)!important}.sbos-v93-context-assistant>button{grid-column:2!important;justify-self:start!important}
+  .v83-game-page .v83-skills{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+  .v78-folder-card.sbos-v93-folder-card{grid-template-columns:46px minmax(0,1fr) 16px!important;min-height:106px!important;padding:12px!important}
+  .sbos-v93-folder-card>.v78-folder-icon{width:44px!important;height:44px!important;min-width:44px!important}
+  .v78-operation-folder{grid-template-columns:1fr!important}
+  .sbos-v93-operations-page .v8611-filter-row{grid-template-columns:1fr!important}.sbos-v93-operations-page .v8611-filter-row .v78-segment{width:100%!important;overflow-x:auto!important}.sbos-v93-operations-page .v78-segment button{flex:1!important}
+  .sbos-v93-context-assistant{grid-template-columns:44px minmax(0,1fr)!important;padding:13px!important}.sbos-v93-context-assistant>i{width:44px!important;height:44px!important}.sbos-v93-context-assistant h2{font-size:14px!important}.sbos-v93-context-assistant>button{grid-column:1/-1!important;width:100%!important}
+  #modal.modal.show{padding:0!important;align-items:flex-end!important}.sbos-v93-modal-head{border-radius:24px 24px 0 0!important}#modal .sbos-v93-modal-card{width:100%!important;max-width:none!important;max-height:95dvh!important;border-radius:24px 24px 0 0!important}
+  .sbos-v93-wizard-progress{grid-template-columns:repeat(4,70px)!important;overflow-x:auto!important}.sbos-v93-wizard-progress>span{grid-template-columns:30px!important;text-align:center!important}.sbos-v93-wizard-progress b{font-size:8px!important}
+  .sbos-v93-new-account,.sbos-v93-account-list,.sbos-v93-income-grid,.sbos-v93-debt-wizard-list article>div,.sbos-v93-result-grid{grid-template-columns:1fr!important}
+  .sbos-v93-wizard-actions{display:grid!important;grid-template-columns:1fr 1fr!important}.sbos-v93-wizard-actions button{width:100%!important}.sbos-v93-wizard-actions button.secondary{margin:0!important}.sbos-v93-wizard-actions button.primary{grid-column:1/-1!important;grid-row:1!important}
+  .sbos-v93-quality-card>div{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v83-game-page .v83-skills{grid-template-columns:1fr!important}
+}
+@media(max-width:420px){
+  .sbos-v93-folder-card .v78-folder-stats{grid-template-columns:1fr 1fr!important}
+  .sbos-v93-quality-card>div{grid-template-columns:1fr!important}
+  .sbos-v93-detail-modal article{grid-template-columns:1fr!important}.sbos-v93-detail-modal article strong{white-space:normal!important}
+}
+
+/* The legacy V91 runtime still rewrites the text node after route renders.
+   Keep the visible build marker truthful without mutating or disabling legacy code. */
+html body.sbos-v93-ready.v88-constellation .v78-build{font-size:0!important;line-height:1!important;color:transparent!important}
+html body.sbos-v93-ready.v88-constellation .v78-build::after{content:"V93 · PERSONAL ASSISTANT";font-size:8px!important;line-height:1.2!important;letter-spacing:.04em!important;color:#fff!important}
+
+/* Compact capture control: remains universally available without covering cards. */
+body.sbos-v93-ready .v86-capture-fab.sbos-v93-capture-fab{
+  width:58px!important;min-width:58px!important;height:58px!important;padding:0!important;
+  display:grid!important;grid-template-columns:1fr!important;place-items:center!important;
+  overflow:hidden!important;border-radius:20px!important;right:18px!important;bottom:18px!important;
+  box-shadow:0 16px 38px rgba(71,82,185,.28)!important;
+}
+body.sbos-v93-ready .v86-capture-fab.sbos-v93-capture-fab>i{width:34px!important;height:34px!important;margin:0!important;display:grid!important;place-items:center!important;font-size:22px!important}
+body.sbos-v93-ready .v86-capture-fab.sbos-v93-capture-fab>span{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+@media(max-width:760px){body.sbos-v93-ready .v86-capture-fab.sbos-v93-capture-fab{width:52px!important;min-width:52px!important;height:52px!important;border-radius:18px!important;right:12px!important;bottom:82px!important}}
