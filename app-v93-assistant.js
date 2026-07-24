@@ -1,11 +1,11 @@
 'use strict';
-/* Second Brain OS V93 — assistant UX, finance wizard and visual consistency layer. */
+/* Second Brain OS V94 — CSV bank import restored in Operations. */
 (() => {
-  const BUILD = 'V93 · PERSONAL ASSISTANT';
-  const VERSION = 'second-brain-space-v93-personal-assistant-20260724-r1';
+  const BUILD = 'V94 · CSV IMPORT RESTORED';
+  const VERSION = 'second-brain-space-v94-csv-import-restored-20260724-r1';
   const STORE_KEY = 'secondBrainOS.v1';
-  const BACKUP_MARK = 'secondBrainOS.v93.backupCreated';
-  const RAW_BACKUP = 'secondBrainOS.v93.rawLocalBackup';
+  const BACKUP_MARK = 'secondBrainOS.v94.backupCreated';
+  const RAW_BACKUP = 'secondBrainOS.v94.rawLocalBackup';
   const DB_NAME = 'SecondBrainOSDurableStorage';
   const DB_STORE = 'records';
   const DAY = 86400000;
@@ -98,10 +98,10 @@
       if (raw && !localStorage.getItem(RAW_BACKUP)) localStorage.setItem(RAW_BACKUP, raw);
       const snapshot = clone(state());
       if (snapshot) {
-        await dbPut(`backup:v93-before-personal-assistant:${at}`, {
+        await dbPut(`backup:v94-before-csv-import-restored:${at}`, {
           version: 93,
           createdAt: at,
-          reason: 'automatic-before-v93-personal-assistant',
+          reason: 'automatic-before-v94-csv-import-restored',
           state: snapshot
         });
       }
@@ -692,7 +692,7 @@
       overdue: (s.tasks || []).filter(item => item && !isDone(item) && item.date && item.date < today()).length
     };
     const backupAt = (() => { try { return localStorage.getItem(BACKUP_MARK); } catch (_) { return ''; } })();
-    page.insertAdjacentHTML('beforeend', `<section class="sbos-v93-quality-card"><header><div><small>КАЧЕСТВО СИСТЕМЫ</small><h2>Где базе не хватает ясности</h2><p>Показатели помогают контролировать не только задачи, но и качество самого Second Brain.</p></div></header><div><article><b>${counts.operations}</b><span>операций без категории</span></article><article><b>${counts.goals}</b><span>целей без следующего шага</span></article><article><b>${counts.debts}</b><span>долгов без даты или платежа</span></article><article><b>${counts.habits}</b><span>привычек без связи с целью</span></article><article><b>${counts.overdue}</b><span>просроченных задач</span></article><article><b>${backupAt ? new Date(backupAt).toLocaleDateString('ru-RU') : '—'}</b><span>последний backup V93</span></article></div></section>`);
+    page.insertAdjacentHTML('beforeend', `<section class="sbos-v93-quality-card"><header><div><small>КАЧЕСТВО СИСТЕМЫ</small><h2>Где базе не хватает ясности</h2><p>Показатели помогают контролировать не только задачи, но и качество самого Second Brain.</p></div></header><div><article><b>${counts.operations}</b><span>операций без категории</span></article><article><b>${counts.goals}</b><span>целей без следующего шага</span></article><article><b>${counts.debts}</b><span>долгов без даты или платежа</span></article><article><b>${counts.habits}</b><span>привычек без связи с целью</span></article><article><b>${counts.overdue}</b><span>просроченных задач</span></article><article><b>${backupAt ? new Date(backupAt).toLocaleDateString('ru-RU') : '—'}</b><span>последний backup V94</span></article></div></section>`);
   }
 
   function decorateRoundedSurfaces() {

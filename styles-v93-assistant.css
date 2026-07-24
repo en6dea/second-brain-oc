@@ -1,4 +1,4 @@
-/* Second Brain OS V93 — personal assistant, compact GameLife and visual consistency. */
+/* Second Brain OS V94 — CSV import restored in Operations; V93 assistant styling retained. */
 :root{
   --v93-ink:#18223b;
   --v93-muted:#66708a;
@@ -195,7 +195,7 @@ html.sbos-v93-modal-open,body.sbos-v93-modal-open{overflow:hidden!important;over
 /* The legacy V91 runtime still rewrites the text node after route renders.
    Keep the visible build marker truthful without mutating or disabling legacy code. */
 html body.sbos-v93-ready.v88-constellation .v78-build{font-size:0!important;line-height:1!important;color:transparent!important}
-html body.sbos-v93-ready.v88-constellation .v78-build::after{content:"V93 · PERSONAL ASSISTANT";font-size:8px!important;line-height:1.2!important;letter-spacing:.04em!important;color:#fff!important}
+html body.sbos-v93-ready.v88-constellation .v78-build::after{content:"V94 · CSV IMPORT RESTORED";font-size:8px!important;line-height:1.2!important;letter-spacing:.04em!important;color:#fff!important}
 
 /* Compact capture control: remains universally available without covering cards. */
 body.sbos-v93-ready .v86-capture-fab.sbos-v93-capture-fab{

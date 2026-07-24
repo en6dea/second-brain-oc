@@ -1,0 +1,12 @@
+index.html
+app-v93-assistant.js
+styles-v93-assistant.css
+pwa-v88.js
+sw.js
+manifest.webmanifest
+README_V94_CSV_IMPORT_RESTORE_RU.md
+DEPLOY_V94_GITHUB_RU.md
+QA_V94_RESULTS.txt
+V94_CHANGED_FILES.txt
+V94_changes.patch
+SHA256_V94.txt
