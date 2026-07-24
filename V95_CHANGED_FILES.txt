@@ -1,0 +1,15 @@
+Second Brain OS V95 — изменённые рабочие файлы
+
+index.html
+app-v93-assistant.js
+manifest.webmanifest
+pwa-v88.js
+sw.js
+
+Документация и проверка:
+README_V95_FINANCE_ACTIVE_RU.md
+DEPLOY_V95_GITHUB_RU.md
+QA_V95_RESULTS.txt
+V95_CHANGED_FILES.txt
+V95_changes.patch
+SHA256_V95.txt
