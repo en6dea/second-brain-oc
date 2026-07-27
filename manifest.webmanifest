@@ -1,10 +1,10 @@
 {
   "name": "Second Brain OS",
   "short_name": "Second Brain",
-  "description": "Персональная операционная система для финансов, целей, привычек, календаря и знаний.",
+  "description": "Персональная операционная система для финансов, целей, привычек, календаря, знаний и действий.",
   "lang": "ru-RU",
   "id": "./?source=pwa",
-  "start_url": "./?v=96#today",
+  "start_url": "./?v=97#today",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -86,5 +86,5 @@
       ]
     }
   ],
-  "version": "96.0.0"
+  "version": "97.0.0"
 }

@@ -1,8 +1,8 @@
 'use strict';
 /* Second Brain OS V95 — Finance page runtime restored; CSV import preserved. */
 (() => {
-  const BUILD = window.SecondBrainBuild?.label || 'V96 · STABLE CORE';
-  const VERSION = window.SecondBrainBuild?.id || 'second-brain-os-v96-stable-core-20260727-r1';
+  const BUILD = window.SecondBrainBuild?.label || 'V97 · PUBLISH & VISUAL';
+  const VERSION = window.SecondBrainBuild?.id || 'second-brain-os-v97-publish-visual-20260727-r1';
   const STORE_KEY = 'secondBrainOS.v1';
   const BACKUP_MARK = 'secondBrainOS.v95.backupCreated';
   const RAW_BACKUP = 'secondBrainOS.v95.rawLocalBackup';

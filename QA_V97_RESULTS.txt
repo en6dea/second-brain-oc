@@ -1,0 +1,32 @@
+SECOND BRAIN OS V97 — QA RESULTS
+
+Passed: 26 / 26
+
+PASS — Index references root version
+PASS — Index references root bootstrap
+PASS — Index references root backup
+PASS — Index references root styles
+PASS — No active src references
+PASS — Visible V97 fallback
+PASS — No V94 label in index
+PASS — Strict SW critical list
+PASS — SW uses single version source
+PASS — Manifest V97
+PASS — Data key unchanged
+PASS — No localStorage clear in V97 modules
+PASS — version-v97.js exists
+PASS — bootstrap-v97.js exists
+PASS — backup-v97.js exists
+PASS — styles-v97-core.css exists
+PASS — sw.js exists
+PASS — pwa-v88.js exists
+PASS — manifest.webmanifest exists
+PASS — Syntax version-v97.js
+PASS — Syntax bootstrap-v97.js
+PASS — Syntax backup-v97.js
+PASS — Syntax sw.js
+PASS — Syntax pwa-v88.js
+PASS — Syntax qa-v97-predeploy.js
+PASS — Predeploy checker
+
+Ограничение: браузерная навигация к localhost/GitHub Pages в среде заблокирована политикой Chromium. Выполнены синтаксические, ресурсные и контрактные проверки. Реальный Service Worker проверяется после GitHub Pages через встроенную диагностику V97.

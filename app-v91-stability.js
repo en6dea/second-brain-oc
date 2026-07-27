@@ -1,8 +1,8 @@
 'use strict';
 /* Second Brain OS V91 — focused goal, queue and finance hotfix runtime. */
 (() => {
-  const BUILD=window.SecondBrainBuild?.label||'V96 · STABLE CORE';
-  const VERSION=window.SecondBrainBuild?.id||'second-brain-os-v96-stable-core-20260727-r1';
+  const BUILD=window.SecondBrainBuild?.label||'V97 · PUBLISH & VISUAL';
+  const VERSION=window.SecondBrainBuild?.id||'second-brain-os-v97-publish-visual-20260727-r1';
   const STORE_KEY='secondBrainOS.v1';
   const BACKUP_KEY='secondBrainOS.v91.backupCreated';
   const DB_NAME='SecondBrainOSDurableStorage', DB_STORE='records';

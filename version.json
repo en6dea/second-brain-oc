@@ -1,8 +1,8 @@
 {
-  "name": "Second Brain OS",
-  "version": "96.0.0",
-  "label": "V96 · STABLE CORE",
-  "buildId": "second-brain-os-v96-stable-core-20260727-r1",
+  "version": "97.0.0",
+  "label": "V97 · PUBLISH & VISUAL",
+  "buildId": "second-brain-os-v97-publish-visual-20260727-r1",
+  "cacheVersion": "v97-r1",
   "dataSchemaVersion": 1,
-  "cacheVersion": "v96-r1"
+  "builtAt": "2026-07-27T09:30:00+03:00"
 }

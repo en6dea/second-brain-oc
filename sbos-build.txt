@@ -1,5 +1,3 @@
-Second Brain OS V96
-Build: second-brain-os-v96-stable-core-20260727-r1
-Data key: secondBrainOS.v1 (unchanged)
-Data schema: 1
-Cache: second-brain-os-v96-stable-core-r1
+V97 · PUBLISH & VISUAL
+second-brain-os-v97-publish-visual-20260727-r1
+?v=97#today
