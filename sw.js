@@ -1,6 +1,6 @@
-/* Second Brain OS V98 — load recovery service worker. */
+/* Second Brain OS V100 — load recovery service worker. */
 'use strict';
-importScripts('./version-v98.js');
+importScripts('./version-v100.js');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,7 +9,7 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v98.js',
+  './version-v100.js',
   './bootstrap-v98.js',
   './backup-v98.js',
   './styles-v98-core.css'

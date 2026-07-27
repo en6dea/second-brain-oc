@@ -1,0 +1,62 @@
+SECOND BRAIN OS V100 — QA RESULTS
+
+Результат контролируемого этапа: PASS с ограничением среды браузерного запуска.
+
+1. JavaScript syntax: PASS
+   - version-v100.js
+   - sw.js
+   - 4 встроенных JavaScript-блока index.html
+
+2. Build consistency: PASS
+   - HTML: V100
+   - Runtime source: version-v100.js
+   - Manifest: 100.0.0 / ?v=100
+   - Service Worker imports version-v100.js
+   - Cache: second-brain-os-v100-visual-data-core-r1
+
+3. Critical files present: PASS
+   - index.html
+   - offline.html
+   - manifest.webmanifest
+   - version-v100.js
+   - bootstrap-v98.js
+   - backup-v98.js
+   - styles-v98-core.css
+
+4. Main folders visual fixture, desktop 1440 px: PASS
+   - 4/4 cards: icon does not overlap text
+   - 4/4 cards: no internal horizontal overflow
+   - Long amounts remain inside stat cells
+
+5. Main folders visual fixture, mobile 390 px: PASS
+   - 4/4 cards: icon does not overlap text
+   - 4/4 cards: no internal horizontal overflow
+
+6. Finance categories visual fixture, desktop: PASS
+   - Minimum user-facing font in category cards: 12 px
+   - Category manager horizontal overflow: false
+   - Actions appear below the category text
+
+7. Finance categories visual fixture, mobile: PASS
+   - Minimum user-facing font in category cards: 12 px
+   - Category manager horizontal overflow: false
+   - Buttons wrap without letter-by-letter text
+
+8. Debt outstanding unit tests: 4/4 PASS
+   - currentBalance has priority
+   - principal + interest + penalties are summed
+   - legacy amount is reduced by payment history
+   - result cannot become negative
+
+9. Data safety contract: PASS
+   - secondBrainOS.v1 unchanged
+   - no localStorage clearing added
+   - no IndexedDB deletion added
+   - recover-v100.html clears UI caches only
+
+10. Icon stability: PASS
+   - folder icons removed from both automatic SVG decorator selectors
+   - explicit static icons are skipped by the active decorator
+
+LIMITATION
+The environment blocks navigation to localhost and file URLs with ERR_BLOCKED_BY_ADMINISTRATOR. Therefore a full runtime E2E pass of the real application routes and Service Worker was not possible here. Targeted components were rendered in Chromium through page.set_content, measured programmatically, and captured in desktop/mobile screenshots. Final route-level verification must be completed after GitHub Pages publication.
