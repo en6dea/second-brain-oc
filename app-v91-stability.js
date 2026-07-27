@@ -1,8 +1,8 @@
 'use strict';
 /* Second Brain OS V91 — focused goal, queue and finance hotfix runtime. */
 (() => {
-  const BUILD='V91 · FOCUSED HOTFIX';
-  const VERSION='second-brain-space-v91-focused-hotfix-20260723-r1';
+  const BUILD=window.SecondBrainBuild?.label||'V96 · STABLE CORE';
+  const VERSION=window.SecondBrainBuild?.id||'second-brain-os-v96-stable-core-20260727-r1';
   const STORE_KEY='secondBrainOS.v1';
   const BACKUP_KEY='secondBrainOS.v91.backupCreated';
   const DB_NAME='SecondBrainOSDurableStorage', DB_STORE='records';
@@ -21,7 +21,7 @@
   const infoMap={люди:['people','pink'],заметки:['note','blue'],желания:['heart','pink'],идеи:['bulb','amber'],'личная память':['memory','violet'],'состояние полины':['flower','pink'],документы:['document','blue'],книги:['book','amber'],фильмы:['film','pink'],путешествия:['plane','cyan'],'пароли и доступы':['lock','violet'],входящие:['inbox','blue']};
   const habitMap={'📖':['book','violet'],'🧠':['spark','violet'],'💧':['water','cyan'],'🏃':['movement','green'],'🏋️':['training','coral'],'🧘':['meditation','violet'],'🌙':['spark','violet'],'☀️':['spark','amber'],'🥗':['food','green'],'💰':['wallet','green'],'📝':['note','blue'],'🎯':['focus','blue'],'🚶':['walk','green'],'🧹':['clean','cyan'],'📵':['detox','coral'],'❤️':['heart','pink'],'💊':['health','coral'],'🎓':['learning','violet'],'🎨':['art','pink'],'🌿':['memory','green'],'⏱️':['timer','amber'],'✅':['habit','green'],'🛡️':['shield','blue'],'✨':['spark','violet']};
   let scheduled=false, modalOpener=null, dragId='', undoTimer=0;
-  const safe=(fn,...args)=>{try{return typeof fn==='function'?fn(...args):undefined}catch(error){console.error('[V91]',error)}};
+  const safe=(fn,...args)=>{try{return typeof fn==='function'?fn(...args):undefined}catch(error){console.error('[V96 core]',error)}};
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const clone=value=>{try{return structuredClone(value)}catch(_){try{return JSON.parse(JSON.stringify(value))}catch(_){return null}}};
   const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.spark}"></path></svg>`;

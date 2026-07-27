@@ -1,0 +1,10 @@
+В V96 обезврежены legacy-файлы, в которых находилась старая Firebase-конфигурация:
+
+.firebaserc.example
+firebaserc.example
+firebaserc (1).example
+firebaserc (1) (2) (3).example
+app.goal.nuclear.js
+sb-firebase-config.nuclear.js
+
+Файлы оставлены с безопасным содержимым, чтобы загрузка update ZIP заменила старые версии в GitHub. Активный runtime их не подключает.

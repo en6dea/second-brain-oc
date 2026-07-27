@@ -1,0 +1,37 @@
+Second Brain OS V96 — рабочие изменения
+
+Изменены:
+index.html
+app-v91-stability.js
+app-v93-assistant.js
+cloud-sync.js
+pwa-v88.js
+sw.js
+manifest.webmanifest
+sbos-build.txt
+firebase.json
+firestore.rules
+.firebaserc.example
+firebaserc.example
+firebaserc (1).example
+firebaserc (1) (2) (3).example
+app.goal.nuclear.js
+sb-firebase-config.nuclear.js
+
+Добавлены:
+version.json
+src/app/version.js
+src/app/bootstrap.js
+src/storage/backup.js
+src/styles/core.css
+qa-v96-static.mjs
+
+Документация:
+README_V96_STABLE_CORE_RU.md
+DATA_SAFETY_V96_RU.md
+FIREBASE_SETUP_V96_RU.md
+DEPLOY_V96_GITHUB_RU.md
+QA_V96_RESULTS.txt
+V96_CHANGED_FILES.txt
+V96_changes.patch
+SHA256_V96.txt

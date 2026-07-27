@@ -1,5 +1,5 @@
-Second Brain OS V91
-Build: second-brain-space-v91-focused-hotfix-20260723-r1
-Release: 2026-07-23
-Scope: goal contrast, queue classification lifecycle, income settings save
+Second Brain OS V96
+Build: second-brain-os-v96-stable-core-20260727-r1
 Data key: secondBrainOS.v1 (unchanged)
+Data schema: 1
+Cache: second-brain-os-v96-stable-core-r1
