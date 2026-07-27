@@ -1,0 +1,12 @@
+Second Brain OS V98 · LOAD RECOVERY
+
+PASS: все активные локальные JS/CSS/manifest-файлы существуют
+PASS: синтаксис внешних активных JavaScript-файлов
+PASS: синтаксис всех inline JavaScript-блоков index.html
+PASS: recursive MutationObserver из V97 устранён
+PASS: версия и cache-busting переведены на V98
+PASS: Service Worker использует только V98 critical assets
+PASS: recover-v98.html не очищает localStorage или IndexedDB
+PASS: основной ключ secondBrainOS.v1 не изменён
+
+Ограничение: реальный GitHub Pages origin и установленная PWA требуют проверки после публикации.
