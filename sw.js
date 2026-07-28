@@ -1,6 +1,6 @@
-/* Second Brain OS V102 — visual guidance service worker. */
+/* Second Brain OS V103 — perfect alignment service worker. */
 'use strict';
-importScripts('./version-v102.js');
+importScripts('./version-v103.js');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,15 +9,15 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v102.js',
+  './version-v103.js',
   './bootstrap-v98.js',
   './backup-v98.js',
   './styles-v98-core.css'
 ];
 const OPTIONAL = [
   './firebase-config.js', './cloud-sync.js', './pwa-v98.js',
-  './styles-v884-finance.css', './styles-v91-stability.css', './styles-v93-assistant.css', './styles-v102-product.css',
-  './app-v91-stability.js', './app-v93-assistant.js', './app-v102-product.js',
+  './styles-v884-finance.css', './styles-v91-stability.css', './styles-v93-assistant.css', './styles-v103-product.css',
+  './app-v91-stability.js', './app-v93-assistant.js', './app-v103-product.js',
   './icon-192-v84.png', './icon-512-v84.png', './maskable-512-v84.png'
 ];
 async function fetchRequired(url) {

@@ -1,0 +1,66 @@
+SECOND BRAIN OS V103 · PERFECT ALIGNMENT — QA REPORT
+
+Результат: 60 из 60 проверок пройдено.
+
+[PASS] Синтаксис version-v103.js
+[PASS] Синтаксис app-v103-product.js
+[PASS] Синтаксис sw.js
+[PASS] Синтаксис bootstrap-v98.js
+[PASS] Синтаксис backup-v98.js
+[PASS] Синтаксис pwa-v98.js
+[PASS] Синтаксис app-v91-stability.js
+[PASS] Синтаксис app-v93-assistant.js
+[PASS] Синтаксис inline JS #1
+[PASS] Синтаксис inline JS #2
+[PASS] Синтаксис inline JS #3
+[PASS] Синтаксис inline JS #4
+[PASS] Ресурс version-v103.js — version-v103.js?v=v103-r1
+[PASS] Ресурс firebase-config.js — firebase-config.js?v=v103-r1
+[PASS] Ресурс cloud-sync.js — cloud-sync.js?v=v103-r1
+[PASS] Ресурс backup-v98.js — backup-v98.js?v=v103-r1
+[PASS] Ресурс bootstrap-v98.js — bootstrap-v98.js?v=v103-r1
+[PASS] Ресурс pwa-v98.js — pwa-v98.js?v=v103-r1
+[PASS] Ресурс app-v91-stability.js — app-v91-stability.js?v=v103-r1
+[PASS] Ресурс app-v93-assistant.js — app-v93-assistant.js?v=v103-r1
+[PASS] Ресурс app-v103-product.js — app-v103-product.js?v=v103-r1
+[PASS] Ресурс manifest.webmanifest — manifest.webmanifest?v=v103-r1
+[PASS] Ресурс icon-192-v84.png — icon-192-v84.png?v=v103-r1
+[PASS] Ресурс icon-192-v84.png — icon-192-v84.png?v=v103-r1
+[PASS] Ресурс styles-v884-finance.css — styles-v884-finance.css?v=v885-r1
+[PASS] Ресурс styles-v91-stability.css — styles-v91-stability.css?v=v103-r1
+[PASS] Ресурс styles-v93-assistant.css — styles-v93-assistant.css?v=v103-r1
+[PASS] Ресурс styles-v98-core.css — styles-v98-core.css?v=v103-r1
+[PASS] Ресурс styles-v103-product.css — styles-v103-product.css?v=v103-r1
+[PASS] Единая версия в index
+[PASS] Единая версия в manifest
+[PASS] Service Worker импортирует V103
+[PASS] Service Worker использует build cache
+[PASS] Recovery ведёт на V103
+[PASS] Старые V102 ассеты не активны
+[PASS] Версия скрыта с главной
+[PASS] Версия остаётся в настройках
+[PASS] Главная использует единую 12-колоночную сетку
+[PASS] Верхние блоки главной выровнены
+[PASS] Нижние блоки главной выровнены
+[PASS] Папки выровнены по двум рядам
+[PASS] Информационная папка компактна
+[PASS] GameLife на главной показывает аватар
+[PASS] Фирменная сфера синхронизирует фазу
+[PASS] Финансовый фон непрерывный
+[PASS] Подсказки KPI центрированы
+[PASS] Расходы по категориям — график
+[PASS] AI-подсказка для категорий
+[PASS] Клик категории открывает разбор
+[PASS] Нет очистки localStorage в изменённых runtime-файлах
+[PASS] Нет удаления IndexedDB в изменённых runtime-файлах
+[PASS] Основной ключ данных не переименован
+[PASS] Главная без пересечений карточек — []
+[PASS] Главная без горизонтального overflow — 1585 / 1585
+[PASS] Верхние карточки одинаковой высоты — {'v103-home-habits': 260, 'v103-home-finance': 260, 'v103-home-folders': 663.34, 'v103-home-interview': 323.67, 'v103-home-ai': 323.67, 'v103-home-operations': 323.67, 'v103-home-obligations': 323.67, 'v103-home-analysis': 323.67, 'v103-home-next-week': 323.67}
+[PASS] Карточки нижних рядов одинаковой высоты — [323.67, 323.67, 323.67, 323.67, 323.67, 323.67]
+[PASS] Папки равны высоте двух рядов — {'v103-home-habits': 260, 'v103-home-finance': 260, 'v103-home-folders': 663.34, 'v103-home-interview': 323.67, 'v103-home-ai': 323.67, 'v103-home-operations': 323.67, 'v103-home-obligations': 323.67, 'v103-home-analysis': 323.67, 'v103-home-next-week': 323.67}
+[PASS] Финансовая аналитика без горизонтального overflow — 1585 / 1600
+[PASS] Пять KPI имеют центрированные подсказки — [{'card': 195.6953125, 'help': 195.6875}, {'card': 494.09375, 'help': 494.09375}, {'card': 792.4921875, 'help': 792.484375}, {'card': 1090.890625, 'help': 1090.890625}, {'card': 1389.2890625, 'help': 1389.28125}]
+[PASS] График и категории отрисованы — {'chart': True, 'bars': 6}
+
+Ограничение среды: полный E2E-прогон реального приложения на localhost/file:// был заблокирован управляемой политикой Chromium. Вместо неподтверждённых заявлений выполнены синтаксические, ресурсные, контрактные и статические визуальные проверки проблемных компонентов через Chrome DevTools Protocol. Финальная проверка Service Worker и пользовательских данных выполняется после публикации на GitHub Pages.
