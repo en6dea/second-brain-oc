@@ -1,0 +1,44 @@
+SECOND BRAIN OS V101 · UI TRUTH FIX
+QA REPORT
+Date: 2026-07-28
+
+RESULT: 24 / 24 STATIC AND CONTRACT CHECKS PASSED
+
+BUILD AND RESOURCES
+[PASS] index.html points to version-v101.js?v=v101-r1.
+[PASS] Visible label is V101 · UI TRUTH FIX.
+[PASS] Service Worker imports version-v101.js.
+[PASS] Manifest version is 101.0.0.
+[PASS] Manifest start_url is ./?v=101#today.
+[PASS] All 7 critical build resources exist.
+[PASS] Four active inline JavaScript blocks pass node --check.
+[PASS] app-v93-assistant.js passes node --check.
+[PASS] version-v101.js passes node --check.
+[PASS] sw.js, bootstrap-v98.js, backup-v98.js and pwa-v98.js pass node --check.
+
+QUEUE AND CATEGORY TRUTH
+[PASS] Explicit category overrides a stale needsCategoryReview flag.
+[PASS] “Прочее” is treated as an explicit category, not an unresolved placeholder.
+[PASS] Empty expense category remains in review queue.
+[PASS] Placeholder “Без категории” remains in review queue.
+[PASS] Income does not enter expense category review.
+[PASS] Empty review queue renders a positive completed state without misleading counters.
+[PASS] Context assistant is suppressed on an empty review queue.
+[PASS] Operations assistant uses the same canonical category truth rule.
+
+INTERACTIONS
+[PASS] “Посмотреть день” stores calendarView=day and today's anchor before navigation.
+[PASS] Finance weekly checklist row is clickable across the full surface.
+[PASS] Checklist rows have keyboard Enter/Space support.
+[PASS] Each checklist row uses a unique interaction lock id.
+
+VISUALS AND ICON CHOICE
+[PASS] Category picker includes 34 unique expense icons, 12 income icons and 6 transfer icons.
+[PASS] Common card icon containers, text wrapping and assistant hit areas use unified core styling.
+
+DATA SAFETY
+No localStorage.clear(), indexedDB.deleteDatabase(), or removal of secondBrainOS.v1 was added to changed files.
+The data key and schema version remain unchanged.
+
+LIMITATION
+A full click-through run on the published GitHub Pages origin was not performed in this environment. The final Service Worker activation and real-device rendering must be confirmed after publication.

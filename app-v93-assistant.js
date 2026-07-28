@@ -573,12 +573,20 @@
     });
   }
 
+  function needsOperationCategory(item) {
+    if (!item) return false;
+    if (typeof window.SecondBrainOperationNeedsCategory === 'function') return window.SecondBrainOperationNeedsCategory(item);
+    if (String(item.type || '').toLowerCase() !== 'expense') return false;
+    const value = String(item.category || '').trim().toLocaleLowerCase('ru-RU');
+    return !value || ['без категории', 'быстрая запись', 'не назначена', 'не определена'].includes(value);
+  }
+
   function insightForRoute(route) {
     const s = state();
     const gaps = financeGaps();
     const incompleteHabit = (s.habits || []).find(item => item && item.archived !== true && !item.marks?.[today()]);
     const overdue = (s.tasks || []).filter(item => item && !isDone(item) && item.date && item.date < today());
-    const uncategorized = (s.operations || []).filter(item => item && item.type === 'expense' && (!item.category || item.needsCategoryReview));
+    const uncategorized = (s.operations || []).filter(needsOperationCategory);
     const staleGoal = (s.goals || []).find(item => item && item.status === 'active' && (!item.nextAction || (item.lastActivityAt && Date.now() - new Date(item.lastActivityAt).getTime() > 3 * DAY)));
     const routeData = (icon, title, text, target, label) => ({ icon, title, text, route: target, label });
 
@@ -591,8 +599,9 @@
       return routeData('✓', 'Финансовые данные готовы к сверке', 'Проверьте ближайший платёж и зарезервируйте сумму под обязательства.', 'finance-calendar', 'Открыть календарь платежей');
     }
     if (route === 'review-queue') {
-      const count = uncategorized.length || Number(document.querySelector('.v78-side-nav [data-v78-route="review-queue"]')?.textContent.match(/\d+/)?.[0] || 0);
-      return routeData('◇', count ? `Сегодня достаточно разобрать один элемент из ${count}` : 'Очередь разбора под контролем', count ? 'Не пытайтесь закрыть всё сразу: назначьте категорию одной записи и вернитесь к основному дню.' : 'Новых спорных записей нет. Следующая проверка появится автоматически.', count ? 'review-queue' : 'today', count ? 'Разобрать одну' : 'Вернуться к дню');
+      const count = Number(document.querySelector('.v78-side-nav [data-v78-route="review-queue"]')?.textContent.match(/\d+/)?.[0] || uncategorized.length || 0);
+      if (!count) return null;
+      return routeData('◇', `Сегодня достаточно разобрать один элемент из ${count}`, 'Откройте один элемент, примите недостающее решение и вернитесь к основному дню.', 'review-queue', 'Разобрать одну');
     }
     if (route === 'gamelife') {
       if (gaps.missing.length) return { icon: '₽', title: 'Сейчас важнее всего финансовая сверка', text: 'Она разблокирует честную безопасную сумму и завершит квест GameLife.', action: 'finance-wizard', label: 'Выполнить за несколько минут' };
@@ -685,7 +694,7 @@
     if (!page || page.querySelector('.sbos-v93-quality-card')) return;
     const s = state();
     const counts = {
-      operations: (s.operations || []).filter(item => item && item.type === 'expense' && (!item.category || item.needsCategoryReview)).length,
+      operations: (s.operations || []).filter(needsOperationCategory).length,
       goals: (s.goals || []).filter(item => item && item.status === 'active' && !item.nextAction).length,
       debts: activeDebts().filter(item => !item.minimumPayment || !(item.nextPaymentDate || item.due)).length,
       habits: (s.habits || []).filter(item => item && item.archived !== true && !(s.goals || []).some(goal => (goal.habitIds || []).includes(item.id))).length,
@@ -748,7 +757,17 @@
     event.stopImmediatePropagation();
 
     if (action === 'close-modal') return closeModal();
-    if (action === 'route') { closeModal(); return navigate(control.dataset.route || 'today'); }
+    if (action === 'route') {
+      const target = control.dataset.route || 'today';
+      if (target === 'calendar') {
+        const s = state();
+        s.settings = s.settings || {};
+        s.settings.v82 = Object.assign({}, s.settings.v82 || {}, { calendarView: 'day', calendarAnchor: today() });
+        saveOnly();
+      }
+      closeModal();
+      return navigate(target);
+    }
     if (action === 'finance-wizard') return openFinanceWizard(currentRoute());
     if (action === 'finance-check') return financeQuestAction();
     if (action === 'metric-detail') return openMetricDetail(control.dataset.metric || 'steps');
