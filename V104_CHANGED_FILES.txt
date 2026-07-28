@@ -1,0 +1,8 @@
+index.html
+version-v104.js
+sw.js
+manifest.webmanifest
+recover-v104.html
+README_V104_GAMELIFE_RECOVERY_RU.md
+QA_V104_RESULTS.txt
+DEPLOY_V104_GITHUB_RU.md

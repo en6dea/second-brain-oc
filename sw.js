@@ -1,15 +1,15 @@
-/* Second Brain OS V103 — perfect alignment service worker. */
+/* Second Brain OS V104 — GameLife recovery service worker. */
 'use strict';
-importScripts('./version-v103.js');
+importScripts('./version-v104.js');
 const BUILD = self.SecondBrainBuild;
-const CACHE_PREFIX = 'second-brain-os-';
+const CACHE_PREFIXES = ['second-brain-os-','second-brain-space-'];
 const CACHE_NAME = BUILD.cacheName;
 const INDEX_KEY = `./index.html?build=${BUILD.cacheVersion}`;
 const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v103.js',
+  './version-v104.js',
   './bootstrap-v98.js',
   './backup-v98.js',
   './styles-v98-core.css'
@@ -40,7 +40,7 @@ async function precache() {
 self.addEventListener('install', (event) => event.waitUntil(precache()));
 self.addEventListener('activate', (event) => event.waitUntil((async () => {
   const keys = await caches.keys();
-  await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+  await Promise.all(keys.filter((key) => CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME).map((key) => caches.delete(key)));
   await self.clients.claim();
 })()));
 self.addEventListener('message', (event) => {
