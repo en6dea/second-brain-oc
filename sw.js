@@ -1,6 +1,6 @@
-/* Second Brain OS V104 — GameLife recovery service worker. */
+/* Second Brain OS V105 — HP journal fix service worker. */
 'use strict';
-importScripts('./version-v104.js');
+importScripts('./version-v105.js');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIXES = ['second-brain-os-','second-brain-space-'];
 const CACHE_NAME = BUILD.cacheName;
@@ -9,7 +9,7 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v104.js',
+  './version-v105.js',
   './bootstrap-v98.js',
   './backup-v98.js',
   './styles-v98-core.css'

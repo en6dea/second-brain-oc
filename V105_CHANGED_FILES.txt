@@ -1,0 +1,8 @@
+index.html
+version-v105.js
+sw.js
+manifest.webmanifest
+recover-v105.html
+README_V105_HP_JOURNAL_FIX_RU.md
+DEPLOY_V105_GITHUB_RU.md
+QA_V105_RESULTS.txt
