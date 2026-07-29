@@ -5,10 +5,10 @@
     version: '104.0.0',
     major: 104,
     label: 'V104 · UNIFIED LIFE OS',
-    id: 'second-brain-os-v104-unified-life-os-20260729-r13',
+    id: 'second-brain-os-v104-unified-life-os-20260729-r15',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r13',
-    cacheName: 'second-brain-os-v104-unified-life-os-r8',
+    cacheVersion: 'v104-r15',
+    cacheName: 'second-brain-os-v104-unified-life-os-r15',
     builtAt: '2026-07-29T12:00:00+03:00',
     criticalFiles: [
       './index.html',
@@ -25,6 +25,22 @@
 
   root.SecondBrainBuild = build;
   root.SECOND_BRAIN_BUILD = build;
+  root.__secondBrainRuntimeErrors = [];
+  root.addEventListener?.('error', (event) => {
+    root.__secondBrainRuntimeErrors.push({
+      type: 'error',
+      message: String(event?.message || event?.error?.message || 'Unknown runtime error'),
+      source: String(event?.filename || ''),
+      line: Number(event?.lineno || 0),
+      column: Number(event?.colno || 0)
+    });
+  });
+  root.addEventListener?.('unhandledrejection', (event) => {
+    root.__secondBrainRuntimeErrors.push({
+      type: 'unhandledrejection',
+      message: String(event?.reason?.message || event?.reason || 'Unhandled promise rejection')
+    });
+  });
 
   if (typeof document === 'undefined') return;
   document.documentElement.dataset.sbosVersion = build.version;

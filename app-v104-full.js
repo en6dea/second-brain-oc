@@ -185,6 +185,24 @@
     }
   }
 
+  function polishCsvPreview(root = document) {
+    const table = root.querySelector?.('.v85-preview-table.v867-import-table');
+    if (!table) return;
+    const card = table.closest('.modal-card');
+    card?.classList.add('v106-csv-preview-modal');
+    table.querySelectorAll('[data-v85-field="note"]').forEach((input) => {
+      if (!input.title) input.title = cleanText(input.value);
+      input.setAttribute('aria-label', 'Комментарий банковской операции');
+    });
+  }
+
+  function polishReviewModals(root = document) {
+    const weekly = root.querySelector?.('.v85-weekly-review');
+    weekly?.closest('.modal-card')?.classList.add('v106-weekly-review-modal');
+    const inboxDecision = root.querySelector?.('[data-v106-inbox-decision]');
+    inboxDecision?.closest('.modal-card')?.classList.add('v106-inbox-review-modal');
+  }
+
   function validatePlanForm() {
     const title = document.getElementById('v869_plan_title');
     if (!title) return null;
@@ -495,6 +513,8 @@
       polishLinkedGoals(root);
       polishDebtScenarios(root);
       polishPlanForm(root);
+      polishCsvPreview(root);
+      polishReviewModals(root);
       suppressRedundantGuidance(root);
       makeCardsAccessible(root);
       normalizePolina(root);

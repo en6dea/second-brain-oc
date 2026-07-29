@@ -296,6 +296,16 @@ body textarea {
   align-items: stretch !important;
 }
 
+.v82-habit-grid:has(> .v82-habit-card:first-child:last-child) {
+  max-width: 620px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.v82-habit-grid:has(> .v82-habit-card:nth-child(2):last-child),
+.v82-habit-grid:has(> .v82-habit-card:nth-child(4):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
 .v82-habit-card,
 .v78-habit-chip {
   min-width: 0 !important;
@@ -1162,6 +1172,298 @@ html[data-v104-theme="dark"] .modal-card {
 #modal .v106-plan-modal [aria-invalid="true"] {
   border-color: #e45f72 !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, #e45f72 16%, transparent) !important;
+}
+
+/* V104 R14: layout containers must reveal the application background, not
+   paint a second white panel behind their own cards. */
+.v78-page > section:is(
+  [class*="-grid"],
+  [class*="-list"],
+  [class*="-columns"],
+  [class*="-folders"],
+  [class*="-layout"],
+  [class*="-summary"],
+  [class*="-principles"],
+  .v78-kpi-row,
+  .v884-kpis,
+  .v867-finance-overview
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Calendar: fixed-width dates and a narrow vertical action rail keep titles
+   readable without forcing digits onto separate lines. */
+.v82-month-calendar article > header {
+  min-width: 0 !important;
+}
+
+.v82-month-calendar article > header button {
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  hyphens: none !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.v82-calendar-event:not(.compact) {
+  grid-template-columns: minmax(0, 1fr) 32px !important;
+  align-items: start !important;
+}
+
+.v82-event-open {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.v82-event-open b {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.v82-event-open :is(.v82-event-time,small) {
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.v82-calendar-event:not(.compact) .v82-event-actions {
+  width: 32px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+}
+
+.v82-calendar-event:not(.compact) .v82-event-actions button {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+}
+
+.v82-calendar-event.compact {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.v82-calendar-event.compact .v82-event-actions {
+  display: none !important;
+}
+
+.v82-calendar-event.compact .v82-event-open b {
+  width: 100% !important;
+  max-height: 3.9em !important;
+  line-height: 1.3 !important;
+}
+
+/* All application modals stay inside the viewport. Individual responsive
+   layouts may scroll vertically, but never hide controls to the right. */
+#modal .modal-card {
+  max-width: calc(100vw - 24px) !important;
+  overflow-x: hidden !important;
+}
+
+#modal #modalBody {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+#modal :is(.v79-form-grid,.v79-modal-actions,.v85-weekly-review,.v85-preview-table),
+#modal :is(.v79-form-grid,.v79-modal-actions,.v85-weekly-review,.v85-preview-table) > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* CSV preview: two-row 12-column layout, no hidden category/comment/action. */
+#modal .v106-csv-preview-modal {
+  width: min(940px, calc(100vw - 24px)) !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-meta {
+  align-items: stretch !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-meta article {
+  min-height: 106px !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-table {
+  width: 100% !important;
+  max-height: clamp(220px, calc(100dvh - 470px), 520px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: 0 7px 82px 0 !important;
+  scroll-padding-bottom: 82px !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  align-items: end !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(1),
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(2),
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(3) {
+  grid-column: span 2 !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(4),
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(5) {
+  grid-column: span 3 !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(6) {
+  grid-column: span 10 !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(7) {
+  grid-column: span 2 !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > div,
+#modal .v106-csv-preview-modal .v85-preview-row :is(input,select,label) {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(7) label {
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 12px !important;
+  background: var(--sb-panel-solid) !important;
+}
+
+#modal .v106-csv-preview-modal .v85-preview-row > :nth-child(7) input {
+  width: 18px !important;
+  min-width: 18px !important;
+}
+
+#modal .v106-csv-preview-modal .v79-modal-actions {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+}
+
+#modal .v106-csv-preview-modal .v79-modal-actions button {
+  width: 100% !important;
+}
+
+/* Weekly review and deliberate inbox processing. */
+#modal .v106-weekly-review-modal {
+  width: min(820px, calc(100vw - 24px)) !important;
+}
+
+#modal .v106-weekly-review-modal .v85-weekly-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.v106-google-calendar {
+  min-height: 70px !important;
+  display: grid !important;
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 13px 15px !important;
+  border: 1px solid color-mix(in srgb, var(--sb-blue) 28%, var(--sb-line)) !important;
+  border-radius: 15px !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--sb-blue) 8%, var(--sb-panel-solid)), var(--sb-panel-solid)) !important;
+  cursor: pointer;
+}
+
+.v106-google-calendar input {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.v106-google-calendar span,
+.v106-google-calendar :is(b,small) {
+  min-width: 0 !important;
+  display: block !important;
+}
+
+.v106-google-calendar small {
+  margin-top: 4px !important;
+  line-height: 1.4 !important;
+}
+
+.v106-inbox-decision {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 12px !important;
+  margin-top: 16px !important;
+  padding: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--sb-violet) 24%, var(--sb-line)) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--sb-violet) 7%, var(--sb-panel-solid)), var(--sb-panel-solid)) !important;
+}
+
+.v106-inbox-decision-copy :is(b,small) {
+  display: block !important;
+}
+
+.v106-inbox-decision-copy small {
+  margin-top: 5px !important;
+  line-height: 1.45 !important;
+}
+
+.v106-inbox-destination {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.v106-inbox-destination span {
+  padding: 8px !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 10px !important;
+  background: var(--sb-panel-solid) !important;
+  text-align: center !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 760px) {
+  #modal .v106-csv-preview-modal .v85-preview-meta,
+  #modal .v106-weekly-review-modal .v85-weekly-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #modal .v106-csv-preview-modal .v85-preview-row > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  #modal .v106-csv-preview-modal .v79-modal-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .v106-inbox-destination {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

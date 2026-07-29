@@ -8,14 +8,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Second Brain OS">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-os-v104-unified-life-os-20260729-r13">
+  <meta name="second-brain-build" content="second-brain-os-v104-unified-life-os-20260729-r15">
   <meta http-equiv="Cache-Control" content="no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
-  <script src="version-v104.js?v=v104-r13"></script>
-  <script src="compat-v104.js?v=v104-r13"></script>
-  <link rel="manifest" href="manifest.webmanifest?v=v104-r13">
-  <link rel="icon" href="icon-192-v84.png?v=v104-r13">
-  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v104-r13">
+  <script src="version-v104.js?v=v104-r15"></script>
+  <script src="compat-v104.js?v=v104-r15"></script>
+  <link rel="manifest" href="manifest.webmanifest?v=v104-r15">
+  <link rel="icon" href="icon-192-v84.png?v=v104-r15">
+  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v104-r15">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="styles-v93-assistant.css?v=v103-r1">
   <link rel="stylesheet" href="styles-v98-core.css?v=v103-r1">
   <link rel="stylesheet" href="styles-v103-product.css?v=v103-r1">
-  <link rel="stylesheet" href="styles-v104-full.css?v=v104-r13">
+  <link rel="stylesheet" href="styles-v104-full.css?v=v104-r15">
   <style>/* Second Brain OS V80 — readable premium design */
 :root{
   --v78-bg:#fbf9ff;
@@ -1411,7 +1411,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 .v885-recovery{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 10% 10%,rgba(124,86,232,.15),transparent 30%),radial-gradient(circle at 90% 18%,rgba(99,203,230,.12),transparent 28%),linear-gradient(145deg,#fbf9ff,#eef4ff);font-family:Onest,Inter,system-ui,sans-serif;color:#14162b}.v885-recovery-card{width:min(720px,100%);padding:36px;border:1px solid rgba(111,92,172,.16);border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 26px 80px rgba(33,38,78,.14);backdrop-filter:blur(18px)}.v885-recovery-mark{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:#171a2d;color:#fff;font-weight:800;letter-spacing:.08em}.v885-recovery-kicker{margin:22px 0 8px;color:#7357d8;font-size:12px;font-weight:800;letter-spacing:.12em}.v885-recovery h1{margin:0 0 14px;font-size:clamp(30px,5vw,46px);line-height:1.06}.v885-recovery p{font-size:16px;line-height:1.6;color:#59647c}.v885-recovery code{padding:3px 7px;border-radius:8px;background:#f0ecff;color:#5f44c6}.v885-recovery-note{padding:14px 16px;border-radius:16px;background:#f8f7ff;border:1px solid rgba(124,86,232,.12)}.v885-recovery-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.v885-recovery :is(a,button){min-height:50px;padding:0 18px;border-radius:16px;font:inherit;font-weight:750;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.v885-recovery .primary{border:0;background:linear-gradient(135deg,#7c56e8,#6848d7);color:#fff;box-shadow:0 12px 26px rgba(104,72,215,.24)}.v885-recovery button{background:#fff;color:#5f44c6;border:1px solid #dcd3f4}@media(max-width:560px){.v885-recovery{padding:14px}.v885-recovery-card{padding:24px;border-radius:24px}.v885-recovery-actions>*{width:100%}}
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-os-v104-unified-life-os-20260729-r13">
+<body class="v80-booting" data-sbos-build="second-brain-os-v104-unified-life-os-20260729-r15">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -4028,6 +4028,99 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     window.V884Finance={calculate:v884SafeSpend,cashflow:v884CashflowEvents,scenario:v884Scenario,build:V884_BUILD};
   }
 
+  /* V106: weekly review task, deliberate inbox processing and Google Calendar handoff. */
+  function v106EnsureWeeklyReviewTask(){
+    state.settings=state.settings||{};
+    state.settings.v106=state.settings.v106||{};
+    state.settings.v106.weeklyReviewTasks=state.settings.v106.weeklyReviewTasks||{};
+    const week=weekStartKey(),marker=state.settings.v106.weeklyReviewTasks[week];
+    if(marker)return false;
+    const weekDates=new Set(Array.from({length:7},(_,index)=>addDaysKey(week,index)));
+    const existing=array('tasks').find(task=>task?.automationKey===`weekly-review:${week}`||(clean(task?.title).toLowerCase()==='недельный разбор'&&weekDates.has(String(task?.date||'').slice(0,10))));
+    if(existing){
+      state.settings.v106.weeklyReviewTasks[week]=existing.id;
+      return true;
+    }
+    const id=`weekly-review-${week}`;
+    state.tasks.unshift({
+      id,
+      title:'Недельный разбор',
+      date:addDaysKey(week,6),
+      time:'20:00',
+      durationMinutes:20,
+      area:'Личное планирование',
+      status:'planned',
+      priority:'medium',
+      note:'Подвести итоги недели: главная победа, препятствие, фокус и следующая привычка.',
+      automationKey:`weekly-review:${week}`,
+      createdAt:nowIso(),
+      updatedAt:nowIso()
+    });
+    state.settings.v106.weeklyReviewTasks[week]=id;
+    return true;
+  }
+
+  function v106InboxDecisionField(item){
+    return `<section class="v106-inbox-decision" data-v106-inbox-decision><div class="v106-inbox-decision-copy"><b>Какое решение принять?</b><small>После применения запись исчезнет из очереди «Разобрать» и окажется в выбранном разделе.</small></div><label class="v79-field span-2"><span>Переместить запись</span><select id="v106_inbox_decision"><option value="">Выберите решение</option><option value="note">В заметки</option><option value="task">В задачи</option><option value="idea">В идеи</option><option value="archive">В архив</option></select></label><div class="v106-inbox-destination"><span>Заметка</span><span>Задача</span><span>Идея</span><span>Архив</span></div></section>`;
+  }
+
+  function v106ResolveInbox(id,originEl=null){
+    const source=array('inbox').find(item=>item.id===id);
+    if(!source)return toast('Входящая запись не найдена');
+    const decision=clean(document.getElementById('v106_inbox_decision')?.value);
+    if(!decision){
+      document.getElementById('v106_inbox_decision')?.focus();
+      return toast('Выберите, чем должна стать эта запись');
+    }
+    const title=clean(document.getElementById('v79_f_title')?.value)||source.title||'Без названия';
+    const date=clean(document.getElementById('v79_f_date')?.value)||todayKey();
+    const text=clean(document.getElementById('v79_f_text')?.value);
+    const base={id:makeId(),title,date,sourceInboxId:id,createdAt:source.createdAt||nowIso(),updatedAt:nowIso()};
+    if(decision==='note')state.notes.unshift({...base,folder:'Разобранное',text});
+    if(decision==='task')state.tasks.unshift({...base,status:'planned',priority:'medium',note:text});
+    if(decision==='idea')state.ideas.unshift({...base,text});
+    if(decision==='archive')state.archive.unshift({...base,type:'Разобранная входящая запись',note:text});
+    state.inbox=state.inbox.filter(item=>item.id!==id);
+    state.settings.v85.reviewQueueDismissed=(state.settings.v85.reviewQueueDismissed||[]).filter(key=>key!==`inbox:${id}`);
+    save();
+    closeModal();
+    renderPremium();
+    toast(({note:'Запись перемещена в заметки',task:'Запись превращена в задачу',idea:'Запись перемещена в идеи',archive:'Запись отправлена в архив'})[decision]);
+    celebrate(originEl,'✓');
+  }
+
+  const v106BaseOpenRecordForm=openRecordForm;
+  openRecordForm=function(type,id='',preset={}){
+    v106BaseOpenRecordForm(type,id,preset);
+    const grid=document.querySelector('#modal .v79-form-grid');
+    if(type==='task'&&grid&&!grid.querySelector('[data-v106-google-calendar]')){
+      const checked=id?'': 'checked';
+      grid.insertAdjacentHTML('beforeend',`<label class="v106-google-calendar span-2" data-v106-google-calendar><input id="v106_task_google_calendar" type="checkbox" ${checked}><span><b>Добавить в Google Календарь</b><small>После сохранения откроется уже заполненное событие. Останется подтвердить его в Google.</small></span></label>`);
+    }
+    if(type==='inbox'&&id&&grid&&!grid.querySelector('[data-v106-inbox-decision]')){
+      const source=array('inbox').find(item=>item.id===id)||{};
+      grid.insertAdjacentHTML('afterend',v106InboxDecisionField(source));
+      const saveButton=document.querySelector('#modal [data-v79-action="save-record"].v78-primary');
+      if(saveButton)saveButton.textContent='Применить решение';
+    }
+  };
+
+  const v106BaseSaveRecord=saveRecord;
+  saveRecord=function(type,id,originEl=null){
+    if(type==='inbox'&&id&&document.querySelector('[data-v106-inbox-decision]'))return v106ResolveInbox(id,originEl);
+    const openGoogle=type==='task'&&Boolean(document.getElementById('v106_task_google_calendar')?.checked);
+    const knownIds=openGoogle?new Set(array('tasks').map(task=>task.id)):null;
+    const result=v106BaseSaveRecord(type,id,originEl);
+    if(openGoogle){
+      const task=id?array('tasks').find(item=>item.id===id):array('tasks').find(item=>!knownIds.has(item.id));
+      if(task){
+        window.open(googleCalendarUrl(task),'_blank','noopener');
+        toast('Задача сохранена — откройте вкладку Google Календаря и подтвердите событие');
+      }
+    }
+    return result;
+  };
+
 
   /* V88.5 final runtime guards: prevent accidental wrapper re-entry. */
   const v885RawEnsureData=ensureData;let v885Ensuring=false;
@@ -4047,6 +4140,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     window.state = state;
     v885BootPhase='migration';
     ensureData();
+    v106EnsureWeeklyReviewTask();
     v885BootPhase='save';
     save();
     const initialRoute = routeNow();
@@ -4058,7 +4152,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     document.body.dataset.sbosBooted='1';
     window.dispatchEvent(new CustomEvent('second-brain-booted',{detail:{build:'V88.5',phase:'ready'}}));
     autoDailySnapshot();
-    setInterval(()=>{if(activateScheduledHabitIfDue())renderPremium();autoDailySnapshot();},5*60*1000);
+    setInterval(()=>{if(v106EnsureWeeklyReviewTask()){save();renderPremium();}if(activateScheduledHabitIfDue())renderPremium();autoDailySnapshot();},5*60*1000);
     setInterval(()=>{if(vaultSession.unlocked&&Date.now()-vaultSession.lastActivity>15*60*1000){vaultSession={key:null,entries:[],unlocked:false,revealed:new Set(),lastActivity:0};if(routeNow()==='passwords')renderPremium();}},60000);
   } catch (error) {
     console.error('[V88.5 Stable Runtime]',v885BootPhase,error);
@@ -4602,9 +4696,9 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 </script>
   <script defer src="firebase-config.js?v=v103-r1"></script>
   <script defer src="cloud-sync.js?v=v103-r1"></script>
-  <script defer src="backup-v104.js?v=v104-r13"></script>
-  <script defer src="bootstrap-v104.js?v=v104-r13"></script>
-  <script defer src="pwa-v98.js?v=v104-r13"></script>
+  <script defer src="backup-v104.js?v=v104-r15"></script>
+  <script defer src="bootstrap-v104.js?v=v104-r15"></script>
+  <script defer src="pwa-v98.js?v=v104-r15"></script>
 
   <style id="sbos-v8851-hotfix-style">
     html.sbos-modal-open, body.sbos-modal-open { overflow:hidden!important; }
@@ -4813,7 +4907,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 
   <script src="app-v93-assistant.js?v=v103-r1" data-sbos-v93></script>
   <script src="app-v103-product.js?v=v103-r1" data-sbos-v103></script>
-  <script src="app-v104-full.js?v=v104-r13" data-sbos-v104></script>
+  <script src="app-v104-full.js?v=v104-r15" data-sbos-v104></script>
 
 </body>
 </html>
