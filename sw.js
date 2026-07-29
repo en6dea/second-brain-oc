@@ -1,22 +1,24 @@
-/* Second Brain OS V105 — HP journal fix service worker. */
+/* Second Brain OS V104 — unified life OS service worker. */
 'use strict';
-importScripts('./version-v105.js');
+importScripts('./version-v104.js');
 const BUILD = self.SecondBrainBuild;
-const CACHE_PREFIXES = ['second-brain-os-','second-brain-space-'];
+const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
 const INDEX_KEY = `./index.html?build=${BUILD.cacheVersion}`;
 const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v105.js',
-  './bootstrap-v98.js',
-  './backup-v98.js',
-  './styles-v98-core.css'
+  './version-v104.js',
+  './compat-v104.js',
+  './bootstrap-v104.js',
+  './backup-v104.js',
+  './styles-v104-full.css',
+  './app-v104-full.js'
 ];
 const OPTIONAL = [
   './firebase-config.js', './cloud-sync.js', './pwa-v98.js',
-  './styles-v884-finance.css', './styles-v91-stability.css', './styles-v93-assistant.css', './styles-v103-product.css',
+  './styles-v884-finance.css', './styles-v91-stability.css', './styles-v93-assistant.css', './styles-v98-core.css', './styles-v103-product.css',
   './app-v91-stability.js', './app-v93-assistant.js', './app-v103-product.js',
   './icon-192-v84.png', './icon-512-v84.png', './maskable-512-v84.png'
 ];
@@ -40,7 +42,7 @@ async function precache() {
 self.addEventListener('install', (event) => event.waitUntil(precache()));
 self.addEventListener('activate', (event) => event.waitUntil((async () => {
   const keys = await caches.keys();
-  await Promise.all(keys.filter((key) => CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+  await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
   await self.clients.claim();
 })()));
 self.addEventListener('message', (event) => {
