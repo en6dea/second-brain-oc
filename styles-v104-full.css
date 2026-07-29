@@ -2428,3 +2428,25 @@ html:is(.v87-dark,.v88-dark) .v72-day {
     min-height: 82px;
   }
 }
+
+/* V104.1.2: one opaque application canvas prevents the browser's default
+   white page from showing through transparent layout gaps in either theme. */
+html,
+body {
+  min-height: 100%;
+  background-color: var(--sb-bg) !important;
+}
+
+body,
+body.v88-constellation {
+  background-color: var(--sb-bg) !important;
+}
+
+/* V104.1.2: every real button keeps a minimum 44×44 px hit target.
+   Content links stay inline and are not inflated. */
+body button,
+body [role="button"],
+.v78-side-nav [data-v78-route] {
+  min-width: 44px;
+  min-height: 44px !important;
+}

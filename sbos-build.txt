@@ -1,3 +1,3 @@
-V98 · LOAD RECOVERY
-second-brain-os-v98-load-recovery-20260727-r1
-?v=98#today
+V104.1.2 · QUIET LUXURY OS
+second-brain-os-v104-quiet-luxury-20260729-r18
+?v=104#today
