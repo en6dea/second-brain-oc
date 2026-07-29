@@ -1,7 +1,7 @@
-/* Second Brain OS V104.1 — Quiet Luxury visual system, unified guidance and responsive behavior. */
+/* Second Brain OS V104.1.1 — Quiet Luxury visual system, consistent debt totals and responsive behavior. */
 'use strict';
 (() => {
-  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104-quiet-luxury-20260729-r16', label: 'V104.1 · QUIET LUXURY OS'};
+  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104-quiet-luxury-20260729-r17', label: 'V104.1.1 · QUIET LUXURY OS'};
   const DB_NAME = 'SecondBrainOSDurableStorage';
   const DB_STORE = 'records';
   const DB_MAIN = 'main-state';

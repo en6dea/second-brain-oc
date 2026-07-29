@@ -1,15 +1,15 @@
-/* Second Brain OS V104.1 — Quiet Luxury visual system, durable storage and responsive UX. */
+/* Second Brain OS V104.1.1 — consistent active-debt totals, durable storage and responsive UX. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '104.1.0',
+    version: '104.1.1',
     major: 104,
-    label: 'V104.1 · QUIET LUXURY OS',
-    id: 'second-brain-os-v104-quiet-luxury-20260729-r16',
+    label: 'V104.1.1 · QUIET LUXURY OS',
+    id: 'second-brain-os-v104-quiet-luxury-20260729-r17',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r16',
-    cacheName: 'second-brain-os-v104-quiet-luxury-r16',
-    builtAt: '2026-07-29T19:15:00+03:00',
+    cacheVersion: 'v104-r17',
+    cacheName: 'second-brain-os-v104-quiet-luxury-r17',
+    builtAt: '2026-07-29T11:28:38+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',
