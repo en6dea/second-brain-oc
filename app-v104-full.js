@@ -68,7 +68,8 @@
     moodSoft: '<path d="M6 17a5 5 0 0 1 1-9.9A7 7 0 0 1 20 10a4 4 0 0 1-4 7H6Z"/><path d="M9 13h.01M15 13h.01"/>',
     moodCalm: '<circle cx="12" cy="12" r="9"/><path d="M8 11h.01M16 11h.01M9 16h6"/>',
     moodGood: '<circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8.5 14a4.5 4.5 0 0 0 7 0"/>',
-    energy: '<path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/>'
+    energy: '<path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/>',
+    close: '<path d="m6 6 12 12M18 6 6 18"/>'
   };
 
   const svg = (name) => `<svg class="v104-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">${ICONS[name] || ICONS.coach}</svg>`;
@@ -168,6 +169,29 @@
       const key = semanticIcon(card?.textContent);
       setIcon(host, key);
       card?.setAttribute('data-v104-tone', toneForIcon(key));
+    });
+    queryIncludingSelf(root, '.v82-coach-art>i,.v82-coach-queue>button>i').forEach((host) => {
+      const card = host.closest('.v82-coach-queue>button,.v82-coach-hero') || host.parentElement;
+      const key = semanticIcon(card?.textContent);
+      setIcon(host, key);
+      card?.setAttribute('data-v104-tone', toneForIcon(key));
+    });
+    queryIncludingSelf(root, '.v78-motivation>div:first-child>span,.v78-greeting em').forEach((host) => {
+      const key = host.closest('.v78-motivation') ? 'heart' : 'spark';
+      setIcon(host, key);
+      host.dataset.v104Tone = toneForIcon(key);
+    });
+    queryIncludingSelf(root, 'button i,button em,button strong,button span').forEach((host) => {
+      if (host.children.length) return;
+      const glyph = cleanText(host.textContent);
+      const key = ({'›':'chevron','→':'chevron','←':'chevron','✎':'edit','×':'close','✓':'check'})[glyph];
+      if (!key) return;
+      if (glyph === '←') host.dataset.v107Direction = 'back';
+      setIcon(host, key);
+    });
+    queryIncludingSelf(root, '.v86-capture-fab>i').forEach((host) => {
+      if (host.parentElement?.querySelector(':scope > .v88-button-icon')) host.hidden = true;
+      else setIcon(host, 'plus');
     });
   }
 
