@@ -1,10 +1,15 @@
-# Публикация V104
+# Как добавить V104 в GitHub — пошагово
 
-1. Распакуйте `second-brain-oc-v104-upload-files.zip`.
-2. Загрузите все файлы в корень ветки GitHub Pages с заменой.
-3. Особо проверьте замену `sw.js`, `index.html`, `version-v104.js` и `manifest.webmanifest`.
-4. Откройте `/recover-v104.html` и нажмите кнопку восстановления.
-5. Затем откройте `/?v=104#gamelife`.
-6. В настройках должна отображаться `V104 · GAMELIFE RECOVERY`.
+1. Откройте https://github.com/en6dea/second-brain-oc и войдите в GitHub.
+2. Нажмите **Code → Download ZIP** и сохраните текущую версию репозитория как резервную копию.
+3. Распакуйте архив `Second-Brain-OS-V104-FULL-PACKAGE-20260729.zip` на компьютере.
+4. В репозитории откройте вкладку **Code** и нажмите **Add file → Upload files**.
+5. Перетащите в окно **всё содержимое** папки `second-brain-oc-v104-full-package`, а не саму внешнюю папку.
+6. Дождитесь окончания загрузки. GitHub должен показать `index.html`, `sw.js`, `version-v104.js`, `app-v104-full.js`, `styles-v104-full.css` и остальные файлы.
+7. В поле commit message напишите: `Release V104 full package`.
+8. Выберите **Commit directly to the main branch** и нажмите **Commit changes**.
+9. Подождите 2–5 минут, затем откройте https://en6dea.github.io/second-brain-oc/?v=104#today.
+10. Один раз нажмите `Ctrl+F5`. Если приложение было установлено как PWA, откройте **Настройки → Очистить кэш**, затем перезапустите его.
 
-Recovery удаляет только кэши Second Brain OS и регистрацию Service Worker. Пользовательские записи не удаляются.
+Важно: перед обновлением приложения скачайте JSON-резервную копию из настроек. Загрузка исходников не должна удалять данные браузера, но резервная копия обязательна перед любым релизом.
+
