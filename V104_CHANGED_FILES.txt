@@ -1,8 +1,20 @@
+Active V104 release layer:
 index.html
 version-v104.js
-sw.js
+compat-v104.js
+version.json
 manifest.webmanifest
-recover-v104.html
-README_V104_GAMELIFE_RECOVERY_RU.md
-QA_V104_RESULTS.txt
+sw.js
+backup-v104.js
+bootstrap-v104.js
+app-v104-full.js
+styles-v104-full.css
+
+Release documentation and QA evidence:
+README_V104_FULL_PACKAGE_RU.md
 DEPLOY_V104_GITHUB_RU.md
+QA_V104_RESULTS.txt
+QA_V104_01_TODAY.png
+QA_V104_02_FINANCE.png
+QA_V104_03_HABITS_MOBILE.png
+QA_V104_04_TODAY_DARK.png
