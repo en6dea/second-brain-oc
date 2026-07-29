@@ -5,10 +5,10 @@
     version: '104.0.0',
     major: 104,
     label: 'V104 · UNIFIED LIFE OS',
-    id: 'second-brain-os-v104-unified-life-os-20260729-r5',
+    id: 'second-brain-os-v104-unified-life-os-20260729-r13',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r5',
-    cacheName: 'second-brain-os-v104-unified-life-os-r5',
+    cacheVersion: 'v104-r13',
+    cacheName: 'second-brain-os-v104-unified-life-os-r8',
     builtAt: '2026-07-29T12:00:00+03:00',
     criticalFiles: [
       './index.html',

@@ -111,9 +111,112 @@
     root.querySelectorAll?.('.v78-info-folder>i,.v78-finance-folder>i,.v78-operation-folder button>i,.v78-folder-icon,.v78-folder-row>i,.v78-library-card>i').forEach((host) => {
       setIcon(host, semanticIcon(host.parentElement?.textContent));
     });
-    root.querySelectorAll?.('.v78-habit-chip>i,.v82-habit-icon,.v866-category-row>i,.v8612-live-icon,.v8612-category-row>i').forEach((host) => {
+    /* Habit icons are controlled by the saved user choice in app-v91-stability.js.
+       Do not infer them from the habit name here: that used to overwrite edits. */
+    root.querySelectorAll?.('.v866-category-row>i,.v8612-live-icon,.v8612-category-row>i').forEach((host) => {
       setIcon(host, semanticIcon(host.parentElement?.textContent));
     });
+  }
+
+  function polishLinkedGoals(root = document) {
+    root.querySelectorAll?.('.v82-icon-picker > .v865-habit-select-list').forEach((list) => {
+      const section = list.closest('.v82-icon-picker');
+      const title = cleanText(section?.querySelector('header span')?.textContent);
+      if (!/связанные цели/i.test(title)) return;
+      section.classList.add('v106-linked-goals-picker');
+      list.setAttribute('role', 'group');
+      list.setAttribute('aria-label', 'Связанные цели');
+      const mark = section.querySelector(':scope > header > strong');
+      if (mark && !mark.classList.contains('v106-linked-goals-mark')) {
+        mark.className = 'v106-linked-goals-mark';
+        mark.innerHTML = svg('target');
+      }
+    });
+  }
+
+  function polishDebtScenarios(root = document) {
+    const section = root.querySelector?.('.v884-scenarios');
+    if (!section || section.dataset.v106Ready === 'true') return;
+    const cards = [...section.querySelectorAll(':scope > article')];
+    if (!cards.length) return;
+    section.dataset.v106Ready = 'true';
+    section.classList.add('v106-debt-scenarios');
+    section.setAttribute('aria-labelledby', 'v106_debt_scenarios_title');
+
+    const results = cards.map((card) => ({
+      label: cleanText(card.querySelector('small')?.textContent),
+      date: cleanText(card.querySelector('b')?.textContent),
+      term: cleanText(card.querySelector('span')?.textContent)
+    }));
+    const hasCalculation = results.some((item) => item.date && !/не удалось|нет данных/i.test(item.date));
+    const sameResult = hasCalculation && new Set(results.map((item) => `${item.date}|${item.term}`)).size === 1;
+    const calculationHint = hasCalculation
+      ? (sameResult ? ' При текущем остатке все три варианта дают одинаковый срок.' : '')
+      : ' Добавьте остаток долга, ставку и минимальный платёж — после этого появятся даты.';
+    const header = document.createElement('header');
+    header.className = 'v106-debt-scenarios-head';
+    header.innerHTML = `<span>${svg('finance')}</span><div><small>СЦЕНАРИИ ДОСРОЧНОГО ПОГАШЕНИЯ</small><h2 id="v106_debt_scenarios_title">Как доплата изменит срок долга</h2><p>Расчёт использует текущий остаток, процентные ставки и минимальные платежи.${calculationHint}</p></div>`;
+    section.prepend(header);
+
+    cards.forEach((card, index) => {
+      const item = results[index];
+      const amount = item.label.replace(/^Дополнительно\s*/i, '').replace(/\s*\/\s*мес\.?$/i, '').trim() || '—';
+      card.classList.add('v106-debt-scenario');
+      card.innerHTML = `<span class="v106-debt-scenario-icon">${svg('finance')}</span><div class="v106-debt-scenario-copy"><small>ДОПЛАТА СВЕРХ МИНИМУМА</small><b>+${escapeHtml(amount)} в месяц</b></div><dl><div><dt>Расчётное закрытие</dt><dd>${escapeHtml(item.date || 'Нет данных')}</dd></div><div><dt>Срок погашения</dt><dd>${escapeHtml(item.term || 'Не рассчитан')}</dd></div></dl>`;
+    });
+  }
+
+  function polishPlanForm(root = document) {
+    const title = root.querySelector?.('#v869_plan_title');
+    if (!title) return;
+    const card = title.closest('.modal-card') || title.closest('[role="dialog"]') || document.querySelector('#modal');
+    if (!card) return;
+    card.classList.add('v106-plan-modal');
+    ['v869_plan_title', 'v869_plan_month', 'v869_plan_amount', 'v869_plan_category'].forEach((id) => {
+      document.getElementById(id)?.setAttribute('aria-required', 'true');
+    });
+    if (!card.querySelector('.v106-plan-form-error')) {
+      const error = document.createElement('p');
+      error.className = 'v106-plan-form-error';
+      error.setAttribute('role', 'alert');
+      error.hidden = true;
+      const form = card.querySelector('.v79-form-grid');
+      form?.before(error);
+    }
+  }
+
+  function validatePlanForm() {
+    const title = document.getElementById('v869_plan_title');
+    if (!title) return null;
+    const month = document.getElementById('v869_plan_month');
+    const amount = document.getElementById('v869_plan_amount');
+    const category = document.getElementById('v869_plan_category');
+    const checks = [
+      [title, cleanText(title.value) ? '' : 'Введите название расхода'],
+      [month, /^\d{4}-\d{2}$/.test(month?.value || '') ? '' : 'Выберите месяц'],
+      [amount, Number(amount?.value || 0) > 0 ? '' : 'Укажите сумму больше нуля'],
+      [category, category?.value && category.value !== '__new__' ? '' : 'Выберите категорию']
+    ];
+    checks.forEach(([field]) => field?.removeAttribute('aria-invalid'));
+    const failed = checks.find(([, message]) => message);
+    const card = title.closest('.v106-plan-modal') || title.closest('.modal-card') || document.querySelector('#modal');
+    const error = card?.querySelector('.v106-plan-form-error');
+    if (!failed) {
+      if (error) {
+        error.textContent = '';
+        error.hidden = true;
+      }
+      return null;
+    }
+    const [field, message] = failed;
+    field?.setAttribute('aria-invalid', 'true');
+    if (error) {
+      error.textContent = message;
+      error.hidden = false;
+    }
+    field?.focus({preventScroll: true});
+    field?.scrollIntoView({block: 'center', behavior: 'smooth'});
+    return message;
   }
 
   function decorateFinancePicker(root = document) {
@@ -389,6 +492,9 @@
       updateThemeMeta();
       decorateIcons(root);
       decorateFinancePicker(root);
+      polishLinkedGoals(root);
+      polishDebtScenarios(root);
+      polishPlanForm(root);
       suppressRedundantGuidance(root);
       makeCardsAccessible(root);
       normalizePolina(root);
@@ -412,6 +518,16 @@
   }
 
   document.addEventListener('click', (event) => {
+    const savePlan = event.target.closest?.('[data-v869-action="save-plan"]');
+    if (savePlan) {
+      const error = validatePlanForm();
+      if (error) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return;
+      }
+    }
     const assistantDay = event.target.closest?.('button');
     if (assistantDay && /посмотреть день/i.test(cleanText(assistantDay.textContent))) {
       const dayButton = document.querySelector('[data-v82-action="calendar-view"][data-view="day"]');

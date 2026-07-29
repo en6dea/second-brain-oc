@@ -331,6 +331,243 @@ body textarea {
   background: var(--sb-panel-solid) !important;
 }
 
+/* V104 R6: linked goals inside the habit editor are cards, not icon tiles. */
+.v106-linked-goals-picker {
+  padding: 16px !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 20px !important;
+  background: color-mix(in srgb, var(--sb-panel-solid) 94%, var(--sb-violet) 6%) !important;
+}
+
+.v106-linked-goals-picker > header {
+  margin-bottom: 12px !important;
+}
+
+.v106-linked-goals-mark {
+  width: 46px !important;
+  height: 46px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 46px !important;
+  border: 1px solid rgba(120, 87, 237, .18) !important;
+  border-radius: 15px !important;
+  color: var(--sb-violet) !important;
+  background: linear-gradient(145deg, rgba(120,87,237,.12), rgba(57,127,243,.08)) !important;
+}
+
+.v106-linked-goals-mark .v104-icon {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)) !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+  margin-top: 0 !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list > label {
+  position: relative !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  cursor: pointer !important;
+}
+
+#modal .v82-icon-picker > .v865-habit-select-list > label > input {
+  position: absolute !important;
+  inset: 0 auto auto 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  cursor: pointer !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list > label > span {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 76px !important;
+  height: 100% !important;
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) 24px !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 12px !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 16px !important;
+  background: var(--sb-panel-solid) !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list > label > span > i {
+  width: 42px !important;
+  height: 42px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 13px !important;
+  color: var(--sb-violet) !important;
+  background: rgba(120, 87, 237, .09) !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list > label > span > span {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list b {
+  min-width: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list small {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list em {
+  width: 22px !important;
+  height: 22px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 7px !important;
+}
+
+.v82-icon-picker > .v865-habit-select-list input:checked + span {
+  border-color: rgba(120, 87, 237, .58) !important;
+  background: linear-gradient(145deg, rgba(120,87,237,.09), var(--sb-panel-solid)) !important;
+  box-shadow: 0 12px 28px rgba(78, 65, 151, .10) !important;
+}
+
+@media (max-width: 760px) {
+  .v82-icon-picker > .v865-habit-select-list {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* V104 R9: explain the existing debt payoff scenarios instead of showing bare dates. */
+.v884-scenarios.v106-debt-scenarios {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.v106-debt-scenarios-head {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: 48px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: center !important;
+  padding: 4px 2px 2px !important;
+}
+
+.v106-debt-scenarios-head > span,
+.v106-debt-scenario-icon {
+  width: 46px !important;
+  height: 46px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(48, 191, 137, .18) !important;
+  border-radius: 15px !important;
+  color: #1e9b71 !important;
+  background: linear-gradient(145deg, rgba(48,191,137,.13), rgba(57,127,243,.07)) !important;
+}
+
+.v106-debt-scenarios-head small,
+.v106-debt-scenario-copy small {
+  color: #27846a !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .11em !important;
+}
+
+.v106-debt-scenarios-head h2 {
+  margin: 3px 0 4px !important;
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+}
+
+.v106-debt-scenarios-head p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.v884-scenarios .v106-debt-scenario {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 46px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 16px !important;
+  border-radius: 20px !important;
+}
+
+.v106-debt-scenario-copy {
+  min-width: 0 !important;
+}
+
+.v106-debt-scenario-copy b {
+  margin-top: 5px !important;
+  font-size: 17px !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+}
+
+.v106-debt-scenario dl {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin: 2px 0 0 !important;
+}
+
+.v106-debt-scenario dl > div {
+  min-width: 0 !important;
+  padding: 10px 11px !important;
+  border: 1px solid var(--sb-line) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--sb-panel-solid) 92%, var(--sb-blue) 8%) !important;
+}
+
+.v106-debt-scenario dt {
+  color: var(--sb-text-soft) !important;
+  font-size: 9px !important;
+  line-height: 1.3 !important;
+}
+
+.v106-debt-scenario dd {
+  margin: 5px 0 0 !important;
+  color: var(--sb-text) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+}
+
+.v106-debt-scenario dl > div:first-child dd {
+  white-space: nowrap !important;
+}
+
+@media (max-width: 980px) {
+  .v884-scenarios.v106-debt-scenarios {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .v88-finance-icon-picker > div {
   grid-template-columns: repeat(8, minmax(48px, 1fr)) !important;
   gap: 7px !important;
@@ -881,6 +1118,50 @@ html[data-v104-theme="dark"] .modal-card {
   .v79-modal-actions button {
     flex-basis: 100% !important;
   }
+}
+
+/* The coach KPI cards are independent surfaces. The legacy row background
+   leaked through between and below them as a white strip. */
+.v82-coach-page > .v78-kpi-row {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+#modal .v106-plan-modal {
+  overflow-x: hidden !important;
+}
+
+#modal .v106-plan-modal .v79-form-grid,
+#modal .v106-plan-modal .v79-modal-actions,
+#modal .v106-plan-modal .v79-form-grid > *,
+#modal .v106-plan-modal input,
+#modal .v106-plan-modal select,
+#modal .v106-plan-modal textarea,
+#modal .v106-plan-modal button {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.v106-plan-form-error {
+  margin: 10px 0 0 !important;
+  padding: 11px 14px !important;
+  border: 1px solid color-mix(in srgb, #e45f72 38%, transparent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, #e45f72 10%, var(--sb-panel-solid)) !important;
+  color: #c63f58 !important;
+  font-size: 13px !important;
+  font-weight: 760 !important;
+}
+
+.v106-plan-form-error[hidden] {
+  display: none !important;
+}
+
+#modal .v106-plan-modal [aria-invalid="true"] {
+  border-color: #e45f72 !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #e45f72 16%, transparent) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
