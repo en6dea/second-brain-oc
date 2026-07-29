@@ -1,7 +1,7 @@
-/* Second Brain OS V104 — stability, unified guidance, line icons and responsive behavior. */
+/* Second Brain OS V104.1 — Quiet Luxury visual system, unified guidance and responsive behavior. */
 'use strict';
 (() => {
-  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104', label: 'V104 · UNIFIED LIFE OS'};
+  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104-quiet-luxury-20260729-r16', label: 'V104.1 · QUIET LUXURY OS'};
   const DB_NAME = 'SecondBrainOSDurableStorage';
   const DB_STORE = 'records';
   const DB_MAIN = 'main-state';
@@ -53,10 +53,43 @@
     shirt: '<path d="m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3a4 4 0 0 1-8 0Z"/>',
     phone: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4M11 18h2"/>',
     pet: '<circle cx="12" cy="14" r="5"/><circle cx="5" cy="8" r="2"/><circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="19" cy="8" r="2"/>',
-    check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>'
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+    chevron: '<path d="m9 18 6-6-6-6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v6h14v-6"/>',
+    download: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M5 20h14"/>',
+    table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 9v11M15 9v11"/>',
+    edit: '<path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="m13.5 7.5 3 3"/>',
+    pause: '<rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/>',
+    lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
+    spark: '<path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/>',
+    moodLow: '<path d="M6 16a5 5 0 0 1 1-9.9A7 7 0 0 1 20 9a4 4 0 0 1-1 7"/><path d="m8 19-1 2M13 19l-1 2M18 19l-1 2"/>',
+    moodSoft: '<path d="M6 17a5 5 0 0 1 1-9.9A7 7 0 0 1 20 10a4 4 0 0 1-4 7H6Z"/><path d="M9 13h.01M15 13h.01"/>',
+    moodCalm: '<circle cx="12" cy="12" r="9"/><path d="M8 11h.01M16 11h.01M9 16h6"/>',
+    moodGood: '<circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8.5 14a4.5 4.5 0 0 0 7 0"/>',
+    energy: '<path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/>'
   };
 
   const svg = (name) => `<svg class="v104-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">${ICONS[name] || ICONS.coach}</svg>`;
+  const queryIncludingSelf = (root, selector) => {
+    if (!root) return [];
+    const found = [...(root.querySelectorAll?.(selector) || [])];
+    if (root.matches?.(selector)) found.unshift(root);
+    return found;
+  };
+  const toneForIcon = (key) => ({
+    home: 'blue', calendar: 'blue', search: 'blue', check: 'blue',
+    game: 'amber', energy: 'amber', gift: 'amber', coffee: 'amber', film: 'amber',
+    target: 'coral', heart: 'pink', pet: 'pink',
+    inbox: 'violet', coach: 'violet', spark: 'violet', brain: 'violet',
+    finance: 'mint', cart: 'mint', food: 'mint', transport: 'mint',
+    house: 'mint', medical: 'mint', shield: 'mint',
+    leaf: 'violet', run: 'cyan', water: 'cyan',
+    note: 'cyan', book: 'cyan', phone: 'cyan',
+    archive: 'slate', settings: 'slate', key: 'slate', pause: 'slate', lock: 'slate',
+    moodLow: 'coral', moodSoft: 'amber', moodCalm: 'violet', moodGood: 'mint'
+  })[key] || 'violet';
 
   function semanticIcon(text) {
     const value = cleanText(text).toLocaleLowerCase('ru-RU');
@@ -94,6 +127,7 @@
     if (!host || host.dataset.v104Icon === key) return;
     host.innerHTML = svg(key);
     host.dataset.v104Icon = key;
+    host.dataset.v104Tone = toneForIcon(key);
     host.setAttribute('aria-hidden', 'true');
   }
 
@@ -103,18 +137,229 @@
       calendar: 'calendar', finance: 'finance', habits: 'leaf', information: 'note',
       archive: 'archive', coach: 'coach', system: 'settings'
     };
-    root.querySelectorAll?.('[data-v78-route]').forEach((node) => {
+    queryIncludingSelf(root, '[data-v78-route]').forEach((node) => {
       const key = routeIcons[node.dataset.v78Route];
       const host = node.querySelector(':scope > i,.v78-nav-icon,.v104-route-icon');
-      if (key && host) setIcon(host, key);
+      if (key && host) {
+        setIcon(host, key);
+        node.dataset.v104Tone = toneForIcon(key);
+      }
     });
-    root.querySelectorAll?.('.v78-info-folder>i,.v78-finance-folder>i,.v78-operation-folder button>i,.v78-folder-icon,.v78-folder-row>i,.v78-library-card>i').forEach((host) => {
-      setIcon(host, semanticIcon(host.parentElement?.textContent));
+    queryIncludingSelf(root, '.v78-info-folder>i,.v78-finance-folder>i,.v78-operation-folder button>i,.v78-folder-icon,.v78-folder-row>i,.v78-library-card>i').forEach((host) => {
+      const key = semanticIcon(host.parentElement?.textContent);
+      setIcon(host, key);
+      host.parentElement?.setAttribute('data-v104-tone', toneForIcon(key));
     });
-    /* Habit icons are controlled by the saved user choice in app-v91-stability.js.
-       Do not infer them from the habit name here: that used to overwrite edits. */
-    root.querySelectorAll?.('.v866-category-row>i,.v8612-live-icon,.v8612-category-row>i').forEach((host) => {
-      setIcon(host, semanticIcon(host.parentElement?.textContent));
+    /* Preserve saved SVG choices. Legacy emoji-only choices receive a visual
+       line-icon fallback without mutating the stored habit record. */
+    queryIncludingSelf(root, '.v82-habit-icon,.v78-habit-chip>i,.v78-next-week-item>i,.v85-next-week-item>i').forEach((host) => {
+      const card = host.closest('.v82-habit-card,.v78-habit-chip,button,article') || host.parentElement;
+      const key = semanticIcon(card?.textContent);
+      if (!host.querySelector('svg') || !host.dataset.v104Icon) setIcon(host, key);
+      card?.setAttribute('data-v104-tone', toneForIcon(key));
+    });
+    queryIncludingSelf(root, '.v866-category-row>i,.v8612-live-icon,.v8612-category-row>i').forEach((host) => {
+      const key = semanticIcon(host.parentElement?.textContent);
+      setIcon(host, key);
+      host.parentElement?.setAttribute('data-v104-tone', toneForIcon(key));
+    });
+    queryIncludingSelf(root, '.sbos-v93-context-assistant>i,.v78-assistant-strip>i,.v867-finance-assistant>i').forEach((host) => {
+      const card = host.parentElement;
+      const key = semanticIcon(card?.textContent);
+      setIcon(host, key);
+      card?.setAttribute('data-v104-tone', toneForIcon(key));
+    });
+  }
+
+  function decorateMoodPicker(root = document) {
+    const moodKeys = ['moodLow', 'moodSoft', 'moodCalm', 'moodGood', 'energy'];
+    queryIncludingSelf(root, '.v85-mood-picker').forEach((picker) => {
+      picker.classList.add('v107-mood-picker');
+      picker.querySelectorAll('label').forEach((label, index) => {
+        const host = label.querySelector('span');
+        const key = moodKeys[index] || 'moodCalm';
+        if (host) setIcon(host, key);
+        label.dataset.v104Tone = toneForIcon(key);
+        label.setAttribute('aria-label', ['Очень тяжело', 'Ниже обычного', 'Спокойно', 'Хорошо', 'Много энергии'][index] || 'Состояние');
+      });
+    });
+  }
+
+  function decorateButtonGlyphs(root = document) {
+    const leading = {
+      '＋': 'plus', '+': 'plus', '⇧': 'upload', '⇩': 'download',
+      '←': 'chevron', '→': 'chevron', '✦': 'spark', '◌': 'target',
+      '▦': 'table', '!': 'shield', '✎': 'edit'
+    };
+    queryIncludingSelf(root, 'button,a[role="button"]').forEach((control) => {
+      if (control.dataset.v107Glyph) return;
+      const textNodes = [...control.childNodes].filter((node) => node.nodeType === 3 && cleanText(node.textContent));
+      const first = textNodes[0];
+      const firstText = first?.textContent || '';
+      const leadingMatch = firstText.match(/^\s*(＋|\+|⇧|⇩|←|→|✦|◌|▦|!|✎)\s*/u);
+      if (leadingMatch) {
+        const glyph = leadingMatch[1];
+        const key = leading[glyph];
+        first.textContent = firstText.slice(leadingMatch[0].length);
+        const icon = document.createElement('i');
+        icon.className = 'v107-button-icon';
+        icon.innerHTML = svg(key);
+        icon.dataset.v104Tone = toneForIcon(key);
+        if (glyph === '←') icon.dataset.v107Direction = 'back';
+        control.prepend(icon);
+        control.dataset.v107Glyph = key;
+        if (!control.dataset.v104Tone) control.dataset.v104Tone = toneForIcon(key);
+      }
+      const last = textNodes[textNodes.length - 1];
+      const lastText = last?.textContent || '';
+      const trailingMatch = lastText.match(/\s*(→|›)\s*$/u);
+      if (trailingMatch && !control.querySelector(':scope > .v107-button-tail')) {
+        last.textContent = lastText.slice(0, -trailingMatch[0].length);
+        const tail = document.createElement('i');
+        tail.className = 'v107-button-tail';
+        tail.innerHTML = svg('chevron');
+        control.append(tail);
+      }
+      if (!cleanText(control.textContent) && !control.getAttribute('aria-label')) {
+        control.setAttribute('aria-label', control.title || ({plus: 'Добавить', upload: 'Импортировать', download: 'Экспортировать', edit: 'Изменить', chevron: 'Перейти'}[control.dataset.v107Glyph] || 'Действие'));
+      }
+    });
+  }
+
+  function replaceLegacyGlyphs(root = document) {
+    const map = new Map([
+      ['📥', 'inbox'], ['🎯', 'target'], ['💗', 'heart'], ['♥', 'heart'],
+      ['📚', 'book'], ['📖', 'book'], ['🎂', 'gift'], ['🎁', 'gift'],
+      ['🧘', 'leaf'], ['📱', 'phone'], ['✦', 'spark'], ['✧', 'spark'],
+      ['✓', 'check'], ['✔', 'check'], ['₽', 'finance'], ['⚡', 'energy'],
+      ['🔥', 'energy'], ['💧', 'water'], ['🏃', 'run'], ['🌙', 'moon'],
+      ['⏸', 'pause'], ['🎬', 'film'], ['🍜', 'food'], ['🔒', 'lock']
+    ]);
+    queryIncludingSelf(root, 'i,em,span,strong').forEach((host) => {
+      if (host.children.length || host.closest('textarea,input,[contenteditable="true"]')) return;
+      const key = map.get(cleanText(host.textContent));
+      if (!key) return;
+      const structural = host.closest('.v85-mood-picker,.v83-today-game,.v85-automation-strip,.v78-side-card,.sbos-v93-context-assistant,.v78-assistant-strip,.v867-finance-assistant,button,[class*="icon"],[class*="badge"],[class*="reward"],[class*="queue"],[class*="habit"]');
+      if (structural || (routeNow() === 'gamelife' && host.closest('#view'))) {
+        setIcon(host, key);
+        host.parentElement?.setAttribute('data-v104-tone', toneForIcon(key));
+      }
+    });
+  }
+
+  function markMetrics(root = document) {
+    const metricPattern = /^(?:[−–-]?\s*)?(?:\d[\d\s]*(?:[.,]\d+)?)(?:\s*(?:₽|%|XP|HP|дн\.?|мин\.?|ч\.?|раз(?:а)?|\/\d+))?$/i;
+    queryIncludingSelf(root, 'b,strong,em,span,small,dd').forEach((node) => {
+      if (node.children.length) return;
+      const value = cleanText(node.textContent);
+      if (value && metricPattern.test(value)) node.classList.add('v107-metric');
+    });
+  }
+
+  function polishModals(root = document) {
+    queryIncludingSelf(root, '.modal-card').forEach((card) => {
+      card.classList.add('v107-modal-shell');
+      card.setAttribute('role', 'dialog');
+      card.setAttribute('aria-modal', 'true');
+      const head = card.querySelector(':scope > .modal-head');
+      const body = card.querySelector(':scope > #modalBody');
+      head?.classList.add('v107-modal-head');
+      body?.classList.add('v107-modal-body');
+      const title = cleanText(head?.querySelector('h1,h2,h3')?.textContent || head?.textContent);
+      card.dataset.v104Tone = toneForIcon(semanticIcon(title));
+      const close = head?.querySelector('button');
+      if (close) {
+        close.type = 'button';
+        close.classList.add('v107-modal-close');
+        close.setAttribute('aria-label', 'Закрыть');
+      }
+      card.querySelectorAll('.v79-modal-actions').forEach((actions) => {
+        actions.classList.add('v107-modal-actions');
+        actions.querySelectorAll('button').forEach((button) => {
+          button.style.pointerEvents = 'auto';
+        });
+      });
+    });
+  }
+
+  function polishCalendar(root = document) {
+    queryIncludingSelf(root, '.v82-month-calendar').forEach((calendar) => {
+      calendar.classList.add('v107-month-calendar');
+      calendar.querySelectorAll(':scope > div > article').forEach((cell) => {
+        const events = [...cell.querySelectorAll('.v82-calendar-event')];
+        events.forEach((event) => event.classList.remove('v107-calendar-overflow'));
+        let more = cell.querySelector('.v107-more-events');
+        if (events.length > 2) {
+          events.slice(2).forEach((event) => event.classList.add('v107-calendar-overflow'));
+          if (!more) {
+            more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'v107-more-events';
+            more.dataset.v107CalendarMore = 'true';
+            cell.querySelector('section')?.append(more);
+          }
+          more.textContent = `+${events.length - 2} · открыть день`;
+        } else {
+          more?.remove();
+        }
+      });
+    });
+    queryIncludingSelf(root, '.v82-calendar-event').forEach((event) => {
+      const key = semanticIcon(event.textContent);
+      event.dataset.v104Tone = toneForIcon(key);
+      event.querySelectorAll('i').forEach((host) => {
+        if (!host.querySelector('svg')) setIcon(host, key);
+      });
+    });
+  }
+
+  function polishEqualGrids(root = document) {
+    queryIncludingSelf(root, '.v82-habit-grid,.v78-information-grid,.v78-folder-grid,.v79-record-grid,.v884-kpis,.v867-finance-overview,.v85-weekly-stats,.v72-calendar-grid,.v72-days').forEach((grid) => {
+      grid.classList.add('v107-equal-grid');
+    });
+  }
+
+  function extractMatchedText(text, pattern, fallback = '—') {
+    return cleanText(text).match(pattern)?.[1]?.trim() || fallback;
+  }
+
+  function renderTodaySummary() {
+    if (routeNow() !== 'today') return;
+    const view = document.getElementById('view');
+    if (!view) return;
+    let summary = view.querySelector(':scope > .v107-summary');
+    if (!summary) {
+      summary = document.createElement('section');
+      summary.className = 'v107-summary';
+      summary.setAttribute('aria-label', 'Ключевые показатели');
+      view.prepend(summary);
+    }
+    const financeText = document.querySelector('[aria-label="Открыть: Финансы"]')?.textContent || '';
+    const obligationsText = document.querySelector('[aria-label="Открыть: Обязательства"]')?.textContent || '';
+    const habitsText = document.querySelector('.v103-home-habits')?.textContent || '';
+    const gameText = document.querySelector('.v83-today-game')?.textContent || '';
+    const quest = gameText.match(/(\d+)\s*\/\s*(\d+)\s*квест/i);
+    const remaining = quest ? String(Math.max(0, Number(quest[2]) - Number(quest[1]))) : '—';
+    const cards = [
+      {route: 'finance', icon: 'finance', label: 'Баланс', value: extractMatchedText(financeText, /Баланс\s*([−–-]?\d[\d\s.,]*\s*₽)/i)},
+      {route: 'finance-obligations', icon: 'shield', label: 'Обязательства', value: extractMatchedText(obligationsText, /Сумма\s*([−–-]?\d[\d\s.,]*\s*₽)/i)},
+      {route: 'habits', icon: 'leaf', label: 'Привычки', value: extractMatchedText(habitsText, /(\d+\s*\/\s*\d+)\s+выполнено/i)},
+      {route: 'gamelife', icon: 'game', label: 'Шагов осталось', value: remaining}
+    ];
+    const signature = cards.map((card) => `${card.route}:${card.value}`).join('|');
+    if (summary.dataset.signature === signature) return;
+    summary.dataset.signature = signature;
+    summary.innerHTML = cards.map((card) => `<button type="button" data-v107-route="${card.route}" data-v104-tone="${toneForIcon(card.icon)}"><i>${svg(card.icon)}</i><span><small>${card.label}</small><strong class="v107-metric">${card.value}</strong></span><em>${svg('chevron')}</em></button>`).join('');
+  }
+
+  function suppressDuplicateActions(root = document) {
+    document.querySelector('.v78-top-tabs')?.classList.add('v107-duplicate-navigation');
+    if (routeNow() !== 'today') return;
+    document.querySelectorAll('.v83-strip-actions button').forEach((button) => {
+      if (/разобрать|открыть\s+gamelife/i.test(cleanText(button.textContent))) button.classList.add('v107-duplicate-action');
+    });
+    document.querySelectorAll('.v85-automation-strip button').forEach((button) => {
+      if (/^разобрать/i.test(cleanText(button.textContent))) button.classList.add('v107-duplicate-action');
     });
   }
 
@@ -183,6 +428,20 @@
       const form = card.querySelector('.v79-form-grid');
       form?.before(error);
     }
+    card.querySelectorAll('.v869-plan-choice button').forEach((button, index) => {
+      const key = index === 0 ? 'shield' : 'spark';
+      [...button.childNodes].filter((node) => node.nodeType === 3).forEach((node) => {
+        node.textContent = String(node.textContent || '').replace(/[🛡✨]/gu, '').trimStart();
+      });
+      let icon = button.querySelector(':scope > .v107-choice-icon');
+      if (!icon) {
+        icon = document.createElement('i');
+        icon.className = 'v107-choice-icon';
+        button.prepend(icon);
+      }
+      setIcon(icon, key);
+      button.dataset.v104Tone = toneForIcon(key);
+    });
   }
 
   function polishCsvPreview(root = document) {
@@ -509,16 +768,25 @@
       setRouteState();
       updateThemeMeta();
       decorateIcons(root);
+      decorateMoodPicker(root);
+      decorateButtonGlyphs(root);
+      replaceLegacyGlyphs(root);
       decorateFinancePicker(root);
       polishLinkedGoals(root);
       polishDebtScenarios(root);
       polishPlanForm(root);
       polishCsvPreview(root);
       polishReviewModals(root);
+      polishModals(root);
+      polishCalendar(root);
+      polishEqualGrids(root);
+      markMetrics(root);
       suppressRedundantGuidance(root);
+      suppressDuplicateActions(root);
       makeCardsAccessible(root);
       normalizePolina(root);
       preferDayCalendarOnMobile(root);
+      renderTodaySummary();
       root.querySelectorAll?.('[data-v98-diagnostics],[data-v97-diagnostics]').forEach((node) => node.remove());
       document.documentElement.dataset.v104Ready = 'true';
     } catch (error) {
@@ -528,16 +796,45 @@
     }
   }
 
-  function queueApply() {
+  const pendingRoots = new Set();
+
+  function queueApply(root = document) {
+    const candidate = root === document || root === document.documentElement
+      ? document
+      : (root?.nodeType === 1 ? root : root?.parentElement);
+    if (candidate) pendingRoots.add(candidate);
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
-      apply();
+      const roots = [...pendingRoots].filter((node) => node === document || node.isConnected);
+      pendingRoots.clear();
+      if (!roots.length) return;
+      if (roots.includes(document) || roots.length > 6) {
+        apply(document);
+        return;
+      }
+      roots.forEach((node) => apply(node));
     });
   }
 
   document.addEventListener('click', (event) => {
+    const routeJump = event.target.closest?.('[data-v107-route]');
+    if (routeJump) {
+      event.preventDefault();
+      const target = routeJump.dataset.v107Route;
+      const existing = document.querySelector(`[data-v78-route="${CSS.escape(target)}"]`);
+      if (existing) existing.click();
+      else location.hash = `#${target}`;
+      return;
+    }
+    const calendarMore = event.target.closest?.('[data-v107-calendar-more]');
+    if (calendarMore) {
+      event.preventDefault();
+      const dayButton = calendarMore.closest('article')?.querySelector(':scope > header button');
+      dayButton?.click();
+      return;
+    }
     const savePlan = event.target.closest?.('[data-v869-action="save-plan"]');
     if (savePlan) {
       const error = validatePlanForm();
@@ -557,21 +854,35 @@
         dayButton.click();
       }
     }
+    if (event.target.closest?.('[data-v88-action*="theme"],[data-theme],[aria-label*="тем"]')) {
+      setTimeout(() => queueApply(document), 0);
+    }
   }, true);
 
   const observer = new MutationObserver((records) => {
-    if (records.some((record) => record.addedNodes.length || record.attributeName === 'class')) queueApply();
+    let added = 0;
+    records.forEach((record) => {
+      const nodes = [...record.addedNodes].filter((node) => node.nodeType === 1);
+      added += nodes.length;
+      if (nodes.length) {
+        const target = record.target?.nodeType === 1
+          ? (record.target.closest?.('.modal-card') || record.target)
+          : document;
+        queueApply(target);
+      }
+    });
+    if (added > 16) queueApply(document);
   });
 
   function boot() {
     installDurableSave();
     apply();
-    observer.observe(document.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: ['class']});
-    window.addEventListener('hashchange', () => setTimeout(apply, 40));
-    window.addEventListener('pageshow', () => setTimeout(apply, 60));
+    observer.observe(document.documentElement, {subtree: true, childList: true});
+    window.addEventListener('hashchange', () => setTimeout(() => apply(document), 40));
+    window.addEventListener('pageshow', () => setTimeout(() => apply(document), 60));
     setTimeout(migrateStorage, 700);
-    setTimeout(apply, 120);
-    setTimeout(apply, 500);
+    setTimeout(() => apply(document), 120);
+    setTimeout(() => apply(document), 500);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once: true});
