@@ -1,15 +1,15 @@
-/* Second Brain OS V104.1.2 — IndexedDB-first storage, opaque themes and accessible touch targets. */
+/* Second Brain OS V104.1.3 — data-ranked coach priorities and complete branded icon pass. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '104.1.2',
+    version: '104.1.3',
     major: 104,
-    label: 'V104.1.2 · QUIET LUXURY OS',
-    id: 'second-brain-os-v104-quiet-luxury-20260729-r18',
+    label: 'V104.1.3 · QUIET LUXURY OS',
+    id: 'second-brain-os-v104-quiet-luxury-20260729-r19',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r18',
-    cacheName: 'second-brain-os-v104-quiet-luxury-r18',
-    builtAt: '2026-07-29T14:35:04+03:00',
+    cacheVersion: 'v104-r19',
+    cacheName: 'second-brain-os-v104-quiet-luxury-r19',
+    builtAt: '2026-07-29T14:49:55+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',
