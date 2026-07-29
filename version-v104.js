@@ -1,15 +1,15 @@
-/* Second Brain OS V104.1.1 — consistent active-debt totals, durable storage and responsive UX. */
+/* Second Brain OS V104.1.2 — IndexedDB-first storage, opaque themes and accessible touch targets. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '104.1.1',
+    version: '104.1.2',
     major: 104,
-    label: 'V104.1.1 · QUIET LUXURY OS',
-    id: 'second-brain-os-v104-quiet-luxury-20260729-r17',
+    label: 'V104.1.2 · QUIET LUXURY OS',
+    id: 'second-brain-os-v104-quiet-luxury-20260729-r18',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r17',
-    cacheName: 'second-brain-os-v104-quiet-luxury-r17',
-    builtAt: '2026-07-29T11:28:38+03:00',
+    cacheVersion: 'v104-r18',
+    cacheName: 'second-brain-os-v104-quiet-luxury-r18',
+    builtAt: '2026-07-29T14:35:04+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',
