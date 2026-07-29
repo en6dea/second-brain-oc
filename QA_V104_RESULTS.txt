@@ -1,19 +1,25 @@
-Second Brain OS V104 · GameLife Recovery
+SECOND BRAIN OS V104 — QA RESULTS
+Build: second-brain-os-v104-unified-life-os-20260729-r5
+Date: 2026-07-29
 
-Проверки:
-1. index.html подключает version-v104.js — PASS
-2. маршрут gamelife использует gameLifeSafePage() — PASS
-3. gameLifeSafePage нормализует массивы и числовые поля — PASS
-4. при ошибке рендера показывается безопасный экран вместо пустой страницы — PASS
-5. действие «Исправить структуру GameLife» сохраняет данные и повторно открывает вкладку — PASS
-6. sw.js импортирует version-v104.js — PASS
-7. Service Worker удаляет старые кэши second-brain-os-* и second-brain-space-* — PASS
-8. manifest start_url ведёт на ?v=104#today — PASS
-9. recover-v104.html не очищает localStorage или IndexedDB — PASS
-10. Все 17 локальных ресурсов index.html существуют — PASS
-11. 4 встроенных JavaScript-блока прошли node --check — PASS
-12. 8 активных внешних JavaScript-файлов прошли node --check — PASS
-13. Команды localStorage.clear / indexedDB.deleteDatabase отсутствуют — PASS
+PASS  JavaScript syntax: version, backup, bootstrap, V104 app, service worker
+PASS  JSON syntax: manifest.webmanifest, version.json
+PASS  Main routes: today, GameLife, goals, review queue, calendar, finance,
+      habits, information, archive, coach, settings, Polina
+PASS  No route renderer errors in tested routes
+PASS  GameLife missing helper crash fixed
+PASS  Direct first load of #gamelife before the main application boot
+PASS  Finance category picker: 32 distinct branded icons
+PASS  Finance weekly checklist: clicking the text toggles the checkbox
+PASS  Mobile 390 px: no horizontal overflow
+PASS  Mobile calendar: day mode active, month grid hidden
+PASS  Polina tiles: tested sample 72 px / 72 px, equal height
+PASS  Light and dark theme switching
+PASS  PWA manifest and active V104 resource references
+PASS  No data.json, CSV, user JSON exports or common secret patterns
 
-Ограничение:
-Полный живой E2E на опубликованном GitHub Pages нужно подтвердить после загрузки файлов, поскольку текущая публичная публикация использует устаревший Service Worker.
+Visual evidence:
+QA_V104_01_TODAY.png
+QA_V104_02_FINANCE.png
+QA_V104_03_HABITS_MOBILE.png
+QA_V104_04_TODAY_DARK.png
