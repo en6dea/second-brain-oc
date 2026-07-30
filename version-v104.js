@@ -1,15 +1,15 @@
-/* Second Brain OS V104.1.3 — data-ranked coach priorities and complete branded icon pass. */
+/* Second Brain OS V104.2.0 — grounded daily command centre and connected weekly review. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '104.1.3',
+    version: '104.2.0',
     major: 104,
-    label: 'V104.1.3 · QUIET LUXURY OS',
-    id: 'second-brain-os-v104-quiet-luxury-20260729-r19',
+    label: 'V104.2.0 · QUIET LUXURY OS',
+    id: 'second-brain-os-v104-quiet-luxury-20260730-r20',
     dataSchemaVersion: 1,
-    cacheVersion: 'v104-r19',
-    cacheName: 'second-brain-os-v104-quiet-luxury-r19',
-    builtAt: '2026-07-29T14:49:55+03:00',
+    cacheVersion: 'v104-r20',
+    cacheName: 'second-brain-os-v104-quiet-luxury-r20',
+    builtAt: '2026-07-30T07:42:51+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',

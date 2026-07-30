@@ -8,14 +8,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Second Brain OS">
   <meta name="application-name" content="Second Brain OS">
-  <meta name="second-brain-build" content="second-brain-os-v104-quiet-luxury-20260729-r19">
+  <meta name="second-brain-build" content="second-brain-os-v104-quiet-luxury-20260730-r20">
   <meta http-equiv="Cache-Control" content="no-cache,must-revalidate,max-age=0">
   <title>Second Brain OS</title>
-  <script src="version-v104.js?v=v104-r19"></script>
-  <script src="compat-v104.js?v=v104-r19"></script>
-  <link rel="manifest" href="manifest.webmanifest?v=v104-r19">
-  <link rel="icon" href="icon-192-v84.png?v=v104-r19">
-  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v104-r19">
+  <script src="version-v104.js?v=v104-r20"></script>
+  <script src="compat-v104.js?v=v104-r20"></script>
+  <link rel="manifest" href="manifest.webmanifest?v=v104-r20">
+  <link rel="icon" href="icon-192-v84.png?v=v104-r20">
+  <link rel="apple-touch-icon" href="icon-192-v84.png?v=v104-r20">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="styles-v93-assistant.css?v=v103-r1">
   <link rel="stylesheet" href="styles-v98-core.css?v=v103-r1">
   <link rel="stylesheet" href="styles-v103-product.css?v=v103-r1">
-  <link rel="stylesheet" href="styles-v104-full.css?v=v104-r19">
+  <link rel="stylesheet" href="styles-v104-full.css?v=v104-r20">
   <style>/* Second Brain OS V80 — readable premium design */
 :root{
   --v78-bg:#fbf9ff;
@@ -1411,7 +1411,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 .v885-recovery{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 10% 10%,rgba(124,86,232,.15),transparent 30%),radial-gradient(circle at 90% 18%,rgba(99,203,230,.12),transparent 28%),linear-gradient(145deg,#fbf9ff,#eef4ff);font-family:Onest,Inter,system-ui,sans-serif;color:#14162b}.v885-recovery-card{width:min(720px,100%);padding:36px;border:1px solid rgba(111,92,172,.16);border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 26px 80px rgba(33,38,78,.14);backdrop-filter:blur(18px)}.v885-recovery-mark{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:#171a2d;color:#fff;font-weight:800;letter-spacing:.08em}.v885-recovery-kicker{margin:22px 0 8px;color:#7357d8;font-size:12px;font-weight:800;letter-spacing:.12em}.v885-recovery h1{margin:0 0 14px;font-size:clamp(30px,5vw,46px);line-height:1.06}.v885-recovery p{font-size:16px;line-height:1.6;color:#59647c}.v885-recovery code{padding:3px 7px;border-radius:8px;background:#f0ecff;color:#5f44c6}.v885-recovery-note{padding:14px 16px;border-radius:16px;background:#f8f7ff;border:1px solid rgba(124,86,232,.12)}.v885-recovery-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.v885-recovery :is(a,button){min-height:50px;padding:0 18px;border-radius:16px;font:inherit;font-weight:750;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.v885-recovery .primary{border:0;background:linear-gradient(135deg,#7c56e8,#6848d7);color:#fff;box-shadow:0 12px 26px rgba(104,72,215,.24)}.v885-recovery button{background:#fff;color:#5f44c6;border:1px solid #dcd3f4}@media(max-width:560px){.v885-recovery{padding:14px}.v885-recovery-card{padding:24px;border-radius:24px}.v885-recovery-actions>*{width:100%}}
 </style>
 </head>
-<body class="v80-booting" data-sbos-build="second-brain-os-v104-quiet-luxury-20260729-r19">
+<body class="v80-booting" data-sbos-build="second-brain-os-v104-quiet-luxury-20260730-r20">
   <div id="app"></div>
   <div id="modal" class="modal"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle">Окно</h2><button data-v78-action="close-modal" aria-label="Закрыть">×</button></div><div id="modalBody"></div></div></div>
   <div id="toast" class="toast"></div>
@@ -1586,7 +1586,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     document.body.dataset.sbosStorage='indexeddb-saving';
     /* Keep the previous local mirror untouched until the durable transaction
        completes. This makes the migration recoverable even if the tab closes
-       during the first V104.1.3 save. */
+        during the first V104.2.0 save. */
     saveChain=saveChain.catch(()=>undefined).then(async()=>{
       await coreDbPut(DB_MAIN,{version:104,updatedAt,reason:'v104-indexeddb-primary',state:snapshot});
       try{
@@ -2505,7 +2505,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   function tasksForDate(date, includeDone=true){return array('tasks').filter(t=>String(t.date||'').slice(0,10)===date&&(includeDone||!taskStatusMeta(t.status).done)).sort((a,b)=>{const p=priorityMeta(a.priority).order-priorityMeta(b.priority).order;return p||String(a.time||'99:99').localeCompare(String(b.time||'99:99'));});}
   function taskIsArchived(task){return taskStatusMeta(task.status).done || (task.date&&String(task.date).slice(0,10)<todayKey());}
   function googleCalendarUrl(task){const title=clean(task.title)||'Событие Second Brain OS';const date=String(task.date||todayKey()).slice(0,10).replaceAll('-','');let dates='';if(task.time){const compact=String(task.time).replace(':','').padEnd(4,'0');const start=`${date}T${compact}00`;const startDate=new Date(`${String(task.date||todayKey()).slice(0,10)}T${task.time}:00`);const endDate=new Date(startDate.getTime()+60*60*1000);const end=`${endDate.getFullYear()}${String(endDate.getMonth()+1).padStart(2,'0')}${String(endDate.getDate()).padStart(2,'0')}T${String(endDate.getHours()).padStart(2,'0')}${String(endDate.getMinutes()).padStart(2,'0')}00`;dates=`${start}/${end}`;}else{const next=addDaysKey(task.date||todayKey(),1).replaceAll('-','');dates=`${date}/${next}`;}const params=new URLSearchParams({action:'TEMPLATE',text:title,dates,details:[task.note,task.area?`Сфера: ${task.area}`:'',`Приоритет: ${priorityMeta(task.priority).label}`].filter(Boolean).join('\n'),location:clean(task.location||'')});return `https://calendar.google.com/calendar/render?${params.toString()}`;}
-  function calendarTaskCard(task, compact=false, positioned=false){const p=priorityMeta(task.priority),st=taskStatusMeta(task.status);let position='';if(positioned&&task.time){const [h,m]=String(task.time).split(':').map(Number);const top=Math.max(0,((h||8)-8)*72+(m||0)/60*72);position=` style="--event-top:${top.toFixed(1)}px"`;}return `<article class="v82-calendar-event ${p.tone} ${st.done?'done':''} ${compact?'compact':''} ${positioned?'positioned':''}"${position}><button class="v82-event-open" data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}" type="button"><span class="v82-event-time">${safe(task.time||'Весь день')}</span><b>${safe(task.title||'Событие')}</b>${compact?'':`<small>${safe(task.area||st.label)}</small>`}</button><div class="v82-event-actions"><button title="Добавить в Google Календарь" data-v82-action="google-calendar" data-id="${safe(task.id)}" type="button">G</button><button title="Изменить" data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}" type="button">✎</button></div></article>`;}
+  function calendarTaskCard(task, compact=false, positioned=false){const p=priorityMeta(task.priority),st=taskStatusMeta(task.status),weekly=String(task.automationKey||'').startsWith('weekly-review:');let position='';if(positioned&&task.time){const [h,m]=String(task.time).split(':').map(Number);const top=Math.max(0,((h||8)-8)*72+(m||0)/60*72);position=` style="--event-top:${top.toFixed(1)}px"`;}const openAction=weekly?'data-v85-action="weekly-review" data-v120-action="weekly-review" aria-label="Провести недельный разбор"':`data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}"`;return `<article class="v82-calendar-event ${p.tone} ${st.done?'done':''} ${compact?'compact':''} ${positioned?'positioned':''}"${position}><button class="v82-event-open" ${openAction} type="button"><span class="v82-event-time">${safe(task.time||'Весь день')}</span><b>${safe(task.title||'Событие')}</b>${compact?'':`<small>${safe(weekly?'Открыть форму разбора':task.area||st.label)}</small>`}</button><div class="v82-event-actions"><button title="Добавить в Google Календарь" data-v82-action="google-calendar" data-id="${safe(task.id)}" type="button">G</button><button title="Изменить время и детали" data-v79-action="edit-record" data-type="task" data-id="${safe(task.id)}" type="button">✎</button></div></article>`;}
   function calendarNavigation(){const view=calendarView(),anchor=calendarAnchor();return `<div class="v82-calendar-toolbar"><div class="v82-calendar-nav"><button data-v82-action="calendar-shift" data-delta="-1" type="button">←</button><button data-v82-action="calendar-today" type="button">Сегодня</button><button data-v82-action="calendar-shift" data-delta="1" type="button">→</button><strong>${view==='month'?dateAtNoon(anchor).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}):formatDate(anchor)}</strong></div><div class="v82-calendar-views">${[['day','День'],['week','Неделя'],['month','Месяц'],['archive','Архив']].map(([key,label])=>`<button class="${view===key?'active':''}" data-v82-action="calendar-view" data-view="${key}" type="button">${label}</button>`).join('')}</div></div>`;}
   function calendarDayView(){const date=calendarAnchor(),items=tasksForDate(date);return `<section class="v82-day-calendar"><header><div><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'long'})}</small><h2>${formatDate(date)}</h2></div><button data-v82-action="quick-task-day" data-date="${date}" type="button">＋ Событие</button></header><div class="v82-day-timeline">${Array.from({length:15},(_,i)=>i+7).map(hour=>{const hourText=`${String(hour).padStart(2,'0')}:00`;const rows=items.filter(t=>String(t.time||'').startsWith(String(hour).padStart(2,'0')));return `<div class="v82-time-row"><time>${hourText}</time><section>${rows.map(t=>calendarTaskCard(t)).join('')||'<span></span>'}</section></div>`}).join('')}</div>${items.filter(t=>!t.time).length?`<div class="v82-all-day"><b>Весь день</b>${items.filter(t=>!t.time).map(t=>calendarTaskCard(t,true)).join('')}</div>`:''}</section>`;}
   function calendarWeekView(){const start=startOfWeekKey(calendarAnchor()),dates=Array.from({length:7},(_,i)=>addDaysKey(start,i));return `<section class="v82-google-week"><div class="v82-week-head"><span></span>${dates.map(date=>`<button class="${date===todayKey()?'today':''}" data-v82-action="calendar-anchor" data-date="${date}" type="button"><small>${dateAtNoon(date).toLocaleDateString('ru-RU',{weekday:'short'})}</small><b>${dateAtNoon(date).getDate()}</b></button>`).join('')}</div><div class="v82-week-body"><aside>${Array.from({length:14},(_,i)=>`${String(i+8).padStart(2,'0')}:00`).map(x=>`<span>${x}</span>`).join('')}</aside>${dates.map(date=>`<section class="v82-week-column"><button class="v82-column-add" data-v82-action="quick-task-day" data-date="${date}" type="button">＋</button>${tasksForDate(date).map(t=>calendarTaskCard(t,false,true)).join('')||'<div class="v82-week-empty">Свободно</div>'}</section>`).join('')}</div></section>`;}
@@ -2634,7 +2634,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
   function openEveningReview(){const old=eveningReviewToday()||{},m=dayMetrics();openModal('Завершение дня',`<div class="v85-evening-summary"><header><small>АВТОМАТИЧЕСКИЙ ИТОГ</small><h2>${m.habitDone}/${m.habitTotal} привычек · ${m.tasksDone}/${m.tasksTotal} задач</h2><p>Расходы: ${safe(moneyText(m.expense))} · быстрых записей: ${m.captures}</p></header><label class="v79-field"><span>Что сегодня сработало лучше всего?</span><textarea id="v85_evening_win" placeholder="Одна маленькая победа">${safe(old.win||'')}</textarea></label><label class="v79-field"><span>Что перенести или упростить завтра?</span><textarea id="v85_evening_next">${safe(old.next||'')}</textarea></label><label class="v79-field"><span>Энергия вечером, 1–5</span><input id="v85_evening_energy" type="number" min="1" max="5" value="${number(old.energy)||3}"></label></div><div class="v79-modal-actions"><button class="v78-primary" data-v85-action="save-evening-review">Завершить день</button><button data-v78-action="close-modal">Позже</button></div>`);}
   function saveEveningReview(originEl=null){const old=eveningReviewToday(),entry={id:old?.id||makeId(),date:todayKey(),metrics:dayMetrics(),win:clean(document.getElementById('v85_evening_win')?.value),next:clean(document.getElementById('v85_evening_next')?.value),energy:Math.min(5,Math.max(1,number(document.getElementById('v85_evening_energy')?.value)||3)),createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.gameLife.eveningReviews=state.gameLife.eveningReviews.filter(item=>String(item.date||'').slice(0,10)!==todayKey());state.gameLife.eveningReviews.unshift(entry);if(state.settings.v86.carryTasksToTomorrow){array('tasks').forEach(task=>{if(String(task.date||'').slice(0,10)===todayKey()&&!taskStatusMeta(task.status).done){task.date=addDaysKey(todayKey(),1);task.updatedAt=nowIso();}});}awardGame(`evening:${todayKey()}`,5,2,'awareness',{title:'День завершён'});syncAchievements();save();closeModal();renderPremium();toast('Итог дня сохранён');celebrate(originEl,'🌙');}
   function openWeeklyReview(){const old=currentWeeklyReview()||{},m=weekMetrics(),wishlist=state.habitWishlist||[],scheduled=state.settings.v86.scheduledHabit||{};openModal('Недельный разбор',`<div class="v85-weekly-review"><div class="v85-weekly-stats"><article><small>Привычки</small><b>${m.habitMarks}/${m.habitPossible}</b></article><article><small>Задачи</small><b>${m.tasksDone}/${m.tasksTotal}</b></article><article><small>Расходы</small><b>${safe(moneyText(m.expense))}</b></article><article><small>Лучший день</small><b>${m.bestDay?.score?formatShort(m.bestDay.date):'—'}</b></article></div><label class="v79-field"><span>Главная победа недели</span><textarea id="v85_week_win">${safe(old.win||'')}</textarea></label><label class="v79-field"><span>Что чаще всего мешало?</span><textarea id="v85_week_obstacle">${safe(old.obstacle||'')}</textarea></label><label class="v79-field"><span>Один фокус следующей недели</span><input id="v85_week_focus" value="${safe(old.focus||'')}" placeholder="Только один приоритет"></label><div class="v86-week-habit"><label class="v79-field"><span>Следующая привычка из вишлиста</span><select id="v86_week_habit"><option value="">Не добавлять новую привычку</option>${wishlist.map(item=>`<option value="${safe(item.id)}" ${String(old.nextHabitId||scheduled.wishlistId||'')===String(item.id)?'selected':''}>${safe(item.icon||'✦')} ${safe(item.title)}</option>`).join('')}</select></label><label style="display:flex;align-items:center;gap:10px"><input id="v86_activate_habit" type="checkbox" ${old.activateNextHabit||scheduled.wishlistId?'checked':''}><span>Автоматически активировать в следующий понедельник</span></label></div></div><div class="v79-modal-actions"><button class="v78-primary" data-v85-action="save-weekly-review">Сохранить разбор</button><button data-v78-action="close-modal">Позже</button></div>`);}
-  function saveWeeklyReview(originEl=null){const key=weekStartKey(),old=currentWeeklyReview(),nextHabitId=clean(document.getElementById('v86_week_habit')?.value),activateNextHabit=Boolean(document.getElementById('v86_activate_habit')?.checked),entry={id:old?.id||makeId(),week:key,date:todayKey(),metrics:weekMetrics(),win:clean(document.getElementById('v85_week_win')?.value),obstacle:clean(document.getElementById('v85_week_obstacle')?.value),focus:clean(document.getElementById('v85_week_focus')?.value),nextHabitId,activateNextHabit,createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.gameLife.weeklyReviews=state.gameLife.weeklyReviews.filter(item=>item.week!==key);state.gameLife.weeklyReviews.unshift(entry);if(nextHabitId&&activateNextHabit)state.settings.v86.scheduledHabit={wishlistId:nextHabitId,activateOn:addDaysKey(weekStartKey(),7),scheduledAt:nowIso(),activatedAt:''};else if(!activateNextHabit)state.settings.v86.scheduledHabit=null;awardGame(`weekly:${key}`,15,5,'awareness',{title:'Недельный разбор'});syncAchievements();save();closeModal();renderPremium();toast(nextHabitId&&activateNextHabit?'Разбор сохранён. Привычка запланирована на понедельник.':'Фокус следующей недели сохранён');celebrate(originEl,'✦');}
+  function saveWeeklyReview(originEl=null){const key=weekStartKey(),old=currentWeeklyReview(),nextHabitId=clean(document.getElementById('v86_week_habit')?.value),activateNextHabit=Boolean(document.getElementById('v86_activate_habit')?.checked),entry={id:old?.id||makeId(),week:key,date:todayKey(),metrics:weekMetrics(),win:clean(document.getElementById('v85_week_win')?.value),obstacle:clean(document.getElementById('v85_week_obstacle')?.value),focus:clean(document.getElementById('v85_week_focus')?.value),nextHabitId,activateNextHabit,createdAt:old?.createdAt||nowIso(),updatedAt:nowIso()};state.gameLife.weeklyReviews=state.gameLife.weeklyReviews.filter(item=>item.week!==key);state.gameLife.weeklyReviews.unshift(entry);const reviewTask=array('tasks').find(task=>task?.automationKey===`weekly-review:${key}`);if(reviewTask){reviewTask.status='done';reviewTask.completedAt=nowIso();reviewTask.updatedAt=reviewTask.completedAt;}if(nextHabitId&&activateNextHabit)state.settings.v86.scheduledHabit={wishlistId:nextHabitId,activateOn:addDaysKey(weekStartKey(),7),scheduledAt:nowIso(),activatedAt:''};else if(!activateNextHabit)state.settings.v86.scheduledHabit=null;awardGame(`weekly:${key}`,15,5,'awareness',{title:'Недельный разбор'});syncAchievements();save();closeModal();renderPremium();toast(nextHabitId&&activateNextHabit?'Разбор сохранён. Привычка запланирована на понедельник.':'Фокус следующей недели сохранён');celebrate(originEl,'✦');}
   function dailyAutomationStrip(){const checkin=dailyCheckInToday(),evening=eveningReviewToday(),weekly=currentWeeklyReview(),hour=new Date().getHours();return `<section class="v85-automation-strip"><button class="${checkin?'done':''}" data-v85-action="daily-checkin"><i>${checkin?'✓':'☀️'}</i><span><b>Check-in</b><small>${checkin?safe(checkin.focus||'Сохранён'):'30 секунд утром'}</small></span></button><button class="${evening?'done':''}" data-v85-action="evening-review"><i>${evening?'✓':'🌙'}</i><span><b>Итог дня</b><small>${evening?'День завершён':hour>=19?'Пора подвести итог':'Откроется вечером'}</small></span></button><button class="${weekly?'done':''}" data-v85-action="weekly-review"><i>${weekly?'✓':'📊'}</i><span><b>Разбор недели</b><small>${weekly?safe(weekly.focus||'Сохранён'):new Date().getDay()===0?'Доступен сегодня':'Можно заполнить заранее'}</small></span></button><button data-v78-route="review-queue"><i>◇</i><span><b>Разобрать</b><small>${reviewQueueCount()} ${plural(reviewQueueCount(),'элемент','элемента','элементов')}</small></span></button></section>`;}
   function dailyRoutineCards(){const checkin=dailyCheckInToday(),evening=eveningReviewToday(),weekly=currentWeeklyReview();return `${card('Утренний check-in',checkin?'Сохранён сегодня':'30 секунд',`<div class="v85-routine-card"><i>☀️</i><div><b>${safe(checkin?.focus||'Выберите одно главное действие')}</b><p>${checkin?`Настроение ${checkin.mood}/5`:'Состояние, фокус и что нельзя забыть.'}</p></div><button data-v85-action="daily-checkin">${checkin?'Изменить':'Заполнить'}</button></div>`,'v85-routine')}${card('Вечерний итог',evening?'День завершён':'Автосводка',`<div class="v85-routine-card"><i>🌙</i><div><b>${safe(evening?.win||'Приложение соберёт факты за день')}</b><p>${evening?'Итог сохранён':'Привычки, задачи, расходы и одна победа.'}</p></div><button data-v85-action="evening-review">${evening?'Открыть':'Подвести итог'}</button></div>`,'v85-routine')}${card('Недельный разбор',weekly?'Сохранён':'Автосводка недели',`<div class="v85-routine-card"><i>📊</i><div><b>${safe(weekly?.focus||'Один фокус на следующую неделю')}</b><p>${weekly?'Фокус определён':'Система сама соберёт статистику.'}</p></div><button data-v85-action="weekly-review">${weekly?'Открыть':'Разобрать'}</button></div>`,'v85-routine')}`;}
   function reviewQueueItems(){const dismissed=new Set(state.settings.v85.reviewQueueDismissed||[]),snoozed=state.settings.v86.queueSnoozed||{},items=[];array('operations').forEach(item=>{if(!clean(item.category)||['без категории','быстрая запись','не назначена','не определена'].includes(clean(item.category).toLowerCase()))items.push({id:`operation:${item.id}`,icon:'₽',title:item.note||`Операция ${moneyText(item.amount)}`,reason:'Нужно указать понятную категорию',route:'finance-operations',action:'quick-category',recordId:item.id});});array('inbox').forEach(item=>items.push({id:`inbox:${item.id}`,icon:'📥',title:item.title||'Входящая запись',reason:'Нужно решить: заметка, задача, идея или архив',route:'inbox',action:'edit-record',recordId:item.id,recordType:'inbox'}));array('tasks').forEach(item=>{if(!item.date&&!taskStatusMeta(item.status).done)items.push({id:`task:${item.id}`,icon:'✓',title:item.title||'Задача',reason:'Нет даты выполнения',route:'tasks',action:'edit-record',recordId:item.id,recordType:'task'});});array('goals').forEach(item=>{if(item.status==='active'&&!clean(item.nextAction))items.push({id:`goal:${item.id}`,icon:'🎯',title:item.title,reason:'У цели нет конкретного следующего шага',route:`goal-${encodeURIComponent(item.id)}`});});array('wishes').forEach(item=>{if(!clean(item.url)&&!clean(item.imageUrl))items.push({id:`wish:${item.id}`,icon:'💗',title:item.title||'Желание',reason:'Нет ссылки или изображения',route:'wishes',action:'edit-record',recordId:item.id,recordType:'wish'});});array('books').forEach(item=>{if(bookStatusMeta(item.status).key==='reading'&&!number(item.pagesTotal))items.push({id:`book:${item.id}`,icon:'📚',title:item.title||'Книга',reason:'Не указано количество страниц',route:'books',action:'edit-record',recordId:item.id,recordType:'book'});});upcomingBirthdays(14).forEach(row=>items.push({id:`birthday:${row.person.id}:${row.days}`,icon:'🎂',title:`${row.person.name}: ${row.days===0?'день рождения сегодня':row.days===1?'день рождения завтра':`день рождения через ${row.days} дн.`}`,reason:'Проверь подарок, вишлист и напоминание',route:'people'}));return items.filter(item=>!dismissed.has(item.id)&&(!snoozed[item.id]||String(snoozed[item.id])<todayKey()));}
@@ -4132,28 +4132,48 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
     state.settings=state.settings||{};
     state.settings.v106=state.settings.v106||{};
     state.settings.v106.weeklyReviewTasks=state.settings.v106.weeklyReviewTasks||{};
-    const week=weekStartKey(),marker=state.settings.v106.weeklyReviewTasks[week];
-    if(marker)return false;
+    const week=weekStartKey(),marker=state.settings.v106.weeklyReviewTasks[week],reviewed=Boolean(currentWeeklyReview());
+    if(marker){
+      const marked=array('tasks').find(task=>task?.id===marker);
+      if(marked){
+        if(reviewed&&!taskStatusMeta(marked.status).done){
+          marked.status='done';
+          marked.completedAt=marked.completedAt||nowIso();
+          marked.updatedAt=nowIso();
+          return true;
+        }
+        return false;
+      }
+      delete state.settings.v106.weeklyReviewTasks[week];
+    }
     const weekDates=new Set(Array.from({length:7},(_,index)=>addDaysKey(week,index)));
     const existing=array('tasks').find(task=>task?.automationKey===`weekly-review:${week}`||(clean(task?.title).toLowerCase()==='недельный разбор'&&weekDates.has(String(task?.date||'').slice(0,10))));
     if(existing){
       state.settings.v106.weeklyReviewTasks[week]=existing.id;
+      if(reviewed&&!taskStatusMeta(existing.status).done){
+        existing.status='done';
+        existing.completedAt=existing.completedAt||nowIso();
+        existing.updatedAt=nowIso();
+      }
       return true;
     }
-    const id=`weekly-review-${week}`;
+    const configuredDay=Math.max(0,Math.min(6,number(state.settings.v85?.weeklyReviewDay)));
+    const reviewOffset=configuredDay===0?6:configuredDay-1;
+    const id=`weekly-review-${week}`,createdAt=nowIso();
     state.tasks.unshift({
       id,
       title:'Недельный разбор',
-      date:addDaysKey(week,6),
+      date:addDaysKey(week,reviewOffset),
       time:'20:00',
       durationMinutes:20,
       area:'Личное планирование',
-      status:'planned',
+      status:reviewed?'done':'planned',
       priority:'medium',
       note:'Подвести итоги недели: главная победа, препятствие, фокус и следующая привычка.',
       automationKey:`weekly-review:${week}`,
-      createdAt:nowIso(),
-      updatedAt:nowIso()
+      completedAt:reviewed?createdAt:'',
+      createdAt,
+      updatedAt:createdAt
     });
     state.settings.v106.weeklyReviewTasks[week]=id;
     return true;
@@ -4795,9 +4815,9 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 </script>
   <script defer src="firebase-config.js?v=v103-r1"></script>
   <script defer src="cloud-sync.js?v=v103-r1"></script>
-  <script defer src="backup-v104.js?v=v104-r19"></script>
-  <script defer src="bootstrap-v104.js?v=v104-r19"></script>
-  <script defer src="pwa-v98.js?v=v104-r19"></script>
+  <script defer src="backup-v104.js?v=v104-r20"></script>
+  <script defer src="bootstrap-v104.js?v=v104-r20"></script>
+  <script defer src="pwa-v98.js?v=v104-r20"></script>
 
   <style id="sbos-v8851-hotfix-style">
     html.sbos-modal-open, body.sbos-modal-open { overflow:hidden!important; }
@@ -5006,7 +5026,7 @@ html.v88-dark body.v88-constellation .v78-information-grid{background:transparen
 
   <script src="app-v93-assistant.js?v=v103-r1" data-sbos-v93></script>
   <script src="app-v103-product.js?v=v103-r1" data-sbos-v103></script>
-  <script src="app-v104-full.js?v=v104-r19" data-sbos-v104></script>
+  <script src="app-v104-full.js?v=v104-r20" data-sbos-v104></script>
 
 </body>
 </html>

@@ -1,7 +1,7 @@
-/* Second Brain OS V104.1.1 — Quiet Luxury visual system, consistent debt totals and responsive behavior. */
+/* Second Brain OS V104.2.0 — Quiet Luxury command centre, grounded priorities and weekly review flow. */
 'use strict';
 (() => {
-  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104-quiet-luxury-20260729-r17', label: 'V104.1.1 · QUIET LUXURY OS'};
+  const BUILD = window.SecondBrainBuild || {id: 'second-brain-os-v104-quiet-luxury-20260730-r20', label: 'V104.2.0 · QUIET LUXURY OS'};
   const DB_NAME = 'SecondBrainOSDurableStorage';
   const DB_STORE = 'records';
   const DB_MAIN = 'main-state';
@@ -343,37 +343,171 @@
     });
   }
 
-  function extractMatchedText(text, pattern, fallback = '—') {
-    return cleanText(text).match(pattern)?.[1]?.trim() || fallback;
+  function localDateKey(date = new Date()) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }
+
+  function mondayKey(value = localDateKey()) {
+    const date = new Date(`${value}T12:00:00`);
+    const offset = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - offset);
+    return localDateKey(date);
+  }
+
+  function isTaskClosed(task = {}) {
+    return /^(done|completed|complete|closed|cancelled|canceled|archive|archived)$/i.test(String(task.status || ''));
+  }
+
+  function moneyText(value) {
+    return `${new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2}).format(finiteNumber(value))}\u00a0₽`;
+  }
+
+  function priorityIcon(step = {}) {
+    const route = String(step.route || '');
+    if (route === 'calendar') return 'calendar';
+    if (route === 'finance' || route.startsWith('finance-')) return 'finance';
+    if (route === 'habits' || route.startsWith('habit-')) return 'leaf';
+    if (route === 'people') return 'heart';
+    if (route === 'subconscious') return 'brain';
+    if (route === 'gamelife') return 'game';
+    if (route.startsWith('goal-')) return 'target';
+    return semanticIcon(`${step.title || ''} ${step.text || ''}`);
+  }
+
+  function commandCenterData() {
+    const source = stateNow();
+    const today = localDateKey();
+    const tasks = (Array.isArray(source.tasks) ? source.tasks : [])
+      .filter((task) => task && !isTaskClosed(task))
+      .slice()
+      .sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')) || String(a.time || '99:99').localeCompare(String(b.time || '99:99')));
+    const due = tasks.filter((task) => String(task.date || '').slice(0, 10) === today);
+    const overdue = tasks.filter((task) => {
+      const date = String(task.date || '').slice(0, 10);
+      return date && date < today;
+    });
+    const nextTask = overdue[0] || due[0] || tasks.find((task) => String(task.date || '').slice(0, 10) > today);
+    const habits = (Array.isArray(source.habits) ? source.habits : []).filter((habit) => habit && habit.active !== false);
+    const habitsDone = habits.filter((habit) => Boolean(habit.marks?.[today])).length;
+    const nextHabit = habits.find((habit) => !habit.marks?.[today]);
+    const week = mondayKey(today);
+    const weeklyReview = (Array.isArray(source.gameLife?.weeklyReviews) ? source.gameLife.weeklyReviews : []).find((item) => item?.week === week);
+    const weeklyTask = tasks.find((task) => task?.automationKey === `weekly-review:${week}`);
+    const weeklyDue = Boolean(weeklyTask && !weeklyReview && String(weeklyTask.date || '').slice(0, 10) <= today);
+    let priorities = [];
+    try {
+      priorities = window.V85Premium?.assistantSteps?.() || [];
+    } catch (error) {
+      console.warn('[R20 assistant priorities]', error);
+    }
+    const priority = priorities[0] || {
+      route: 'today',
+      title: 'Главное на сегодня закрыто',
+      text: 'Зафиксируйте результат и спокойно завершайте день.',
+      reason: 'Нет незавершённых приоритетных действий',
+      action: 'Остаться на главной'
+    };
+    let finance = null;
+    try {
+      finance = window.V884Finance?.calculate?.() || null;
+    } catch (error) {
+      console.warn('[R20 finance context]', error);
+    }
+    const financeMissing = !finance || finance.status === 'missing';
+    const financeValue = financeMissing ? 'Нужно настроить' : moneyText(finance.todayAvailable);
+    const financeDetail = financeMissing
+      ? `Не хватает: ${finance?.missing?.[0] || 'фактических данных'}`
+      : finance.status === 'stale'
+        ? 'Остатки устарели — сначала сверьте счета'
+        : 'Без кредитного лимита и зарезервированных денег';
+    const scheduleValue = overdue.length
+      ? `${overdue.length} ${overdue.length === 1 ? 'просрочена' : 'просрочено'}`
+      : due.length
+        ? `${due.length} ${due.length === 1 ? 'задача' : 'задачи'} сегодня`
+        : 'День свободен';
+    const nextTaskDate = nextTask && String(nextTask.date || '').slice(0, 10) > today
+      ? `${new Date(`${String(nextTask.date).slice(0, 10)}T12:00:00`).toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}).replace('.', '')} · `
+      : '';
+    const scheduleDetail = weeklyDue
+      ? 'Недельный разбор готов к заполнению'
+      : nextTask
+        ? `${nextTaskDate}${nextTask.time ? `${nextTask.time} · ` : ''}${nextTask.title || 'Событие'}`
+        : 'Новых обязательных действий нет';
+    return {
+      today,
+      priority,
+      priorities,
+      schedule: {value: scheduleValue, detail: scheduleDetail, weeklyDue},
+      finance: {value: financeValue, detail: financeDetail},
+      rhythm: {
+        value: `${habitsDone}/${habits.length}`,
+        detail: nextHabit ? `Следом: ${nextHabit.name || nextHabit.title || 'привычка'}` : (habits.length ? 'Ритм дня закрыт' : 'Добавьте первый устойчивый ритм')
+      }
+    };
   }
 
   function renderTodaySummary() {
     if (routeNow() !== 'today') return;
     const view = document.getElementById('view');
     if (!view) return;
-    let summary = view.querySelector(':scope > .v107-summary');
-    if (!summary) {
-      summary = document.createElement('section');
-      summary.className = 'v107-summary';
-      summary.setAttribute('aria-label', 'Ключевые показатели');
-      view.prepend(summary);
+    view.querySelector(':scope > .v107-summary')?.remove();
+    let center = view.querySelector(':scope > .v120-command-center');
+    if (!center) {
+      center = document.createElement('section');
+      center.className = 'v120-command-center';
+      center.setAttribute('aria-label', 'Центр дня');
+      view.prepend(center);
     }
-    const financeText = document.querySelector('[aria-label="Открыть: Финансы"]')?.textContent || '';
-    const obligationsText = document.querySelector('[aria-label="Открыть: Обязательства"]')?.textContent || '';
-    const habitsText = document.querySelector('.v103-home-habits')?.textContent || '';
-    const gameText = document.querySelector('.v83-today-game')?.textContent || '';
-    const quest = gameText.match(/(\d+)\s*\/\s*(\d+)\s*квест/i);
-    const remaining = quest ? String(Math.max(0, Number(quest[2]) - Number(quest[1]))) : '—';
-    const cards = [
-      {route: 'finance', icon: 'finance', label: 'Баланс', value: extractMatchedText(financeText, /Баланс\s*([−–-]?\d[\d\s.,]*\s*₽)/i)},
-      {route: 'finance-obligations', icon: 'shield', label: 'Обязательства', value: extractMatchedText(obligationsText, /Сумма\s*([−–-]?\d[\d\s.,]*\s*₽)/i)},
-      {route: 'habits', icon: 'leaf', label: 'Привычки', value: extractMatchedText(habitsText, /(\d+\s*\/\s*\d+)\s+выполнено/i)},
-      {route: 'gamelife', icon: 'game', label: 'Шагов осталось', value: remaining}
-    ];
-    const signature = cards.map((card) => `${card.route}:${card.value}`).join('|');
-    if (summary.dataset.signature === signature) return;
-    summary.dataset.signature = signature;
-    summary.innerHTML = cards.map((card) => `<button type="button" data-v107-route="${card.route}" data-v104-tone="${toneForIcon(card.icon)}"><i>${svg(card.icon)}</i><span><small>${card.label}</small><strong class="v107-metric">${card.value}</strong></span><em>${svg('chevron')}</em></button>`).join('');
+    const data = commandCenterData();
+    const step = data.priority;
+    const icon = priorityIcon(step);
+    const priorityIsWeeklyReview = /недельн\w*\s+разбор/i.test(`${step.title || ''} ${step.text || ''}`);
+    const priorityAction = priorityIsWeeklyReview
+      ? 'data-v120-action="weekly-review"'
+      : `data-v107-route="${escapeHtml(step.route || 'today')}"`;
+    const dateLabel = new Date(`${data.today}T12:00:00`).toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long'});
+    const signature = JSON.stringify([
+      step.title, step.text, step.reason, step.route, data.priorities.length,
+      data.schedule.value, data.schedule.detail, data.schedule.weeklyDue,
+      data.finance.value, data.finance.detail, data.rhythm.value, data.rhythm.detail
+    ]);
+    if (center.dataset.signature === signature) return;
+    center.dataset.signature = signature;
+    center.innerHTML = `
+      <header class="v120-command-head">
+        <div><small>ЦЕНТР ДНЯ</small><h1>Сначала — одно важное</h1></div>
+        <time datetime="${data.today}">${escapeHtml(dateLabel)}</time>
+      </header>
+      <div class="v120-command-grid">
+        <article class="v120-command-priority" data-v104-tone="${toneForIcon(icon)}">
+          <span class="v120-command-icon">${svg(icon)}</span>
+          <div class="v120-command-copy">
+            <small>ГЛАВНЫЙ ШАГ · 1 ИЗ ${Math.max(1, data.priorities.length)}</small>
+            <h2>${escapeHtml(step.title)}</h2>
+            <p>${escapeHtml(step.text)}</p>
+            <span><b>Почему сейчас:</b> ${escapeHtml(step.reason || 'Это следующий понятный шаг')}</span>
+          </div>
+          <button type="button" ${priorityAction}>${escapeHtml(priorityIsWeeklyReview ? 'Провести разбор' : (step.action || 'Открыть'))} ${svg('chevron')}</button>
+        </article>
+        <div class="v120-command-contexts">
+          <button type="button" ${data.schedule.weeklyDue ? 'data-v120-action="weekly-review"' : 'data-v107-route="calendar"'} data-v104-tone="${toneForIcon('calendar')}">
+            <i>${svg('calendar')}</i><span><small>РАСПИСАНИЕ</small><strong>${escapeHtml(data.schedule.value)}</strong><em>${escapeHtml(data.schedule.detail)}</em></span>${svg('chevron')}
+          </button>
+          <button type="button" data-v107-route="finance" data-v104-tone="${toneForIcon('finance')}">
+            <i>${svg('finance')}</i><span><small>ДЕНЬГИ СЕГОДНЯ</small><strong>${escapeHtml(data.finance.value)}</strong><em>${escapeHtml(data.finance.detail)}</em></span>${svg('chevron')}
+          </button>
+          <button type="button" data-v107-route="habits" data-v104-tone="${toneForIcon('leaf')}">
+            <i>${svg('leaf')}</i><span><small>РИТМ</small><strong>${escapeHtml(data.rhythm.value)}</strong><em>${escapeHtml(data.rhythm.detail)}</em></span>${svg('chevron')}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function openWeeklyReviewTask() {
+    const open = window.V85Premium?.openWeeklyReview;
+    if (typeof open === 'function') open();
+    else location.hash = '#gamelife';
   }
 
   function suppressDuplicateActions(root = document) {
@@ -843,6 +977,27 @@
   }
 
   document.addEventListener('click', (event) => {
+    const weeklyAction = event.target.closest?.('[data-v120-action="weekly-review"]');
+    if (weeklyAction) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      openWeeklyReviewTask();
+      return;
+    }
+    const coachOpen = event.target.closest?.('[data-v82-action="coach-open-current"]');
+    if (coachOpen) {
+      const steps = window.V85Premium?.assistantSteps?.() || [];
+      const index = Math.max(0, Math.min(Number(stateNow().settings?.v82?.coachStep || 0), Math.max(0, steps.length - 1)));
+      const current = steps[index] || {};
+      if (/недельн\w*\s+разбор/i.test(`${current.title || ''} ${current.text || ''}`)) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        openWeeklyReviewTask();
+        return;
+      }
+    }
     const routeJump = event.target.closest?.('[data-v107-route]');
     if (routeJump) {
       event.preventDefault();
