@@ -76,6 +76,18 @@
   const documentRef = uid => window.firebase.firestore().collection('users').doc(uid).collection('state').doc('main');
   const localState = () => window.SecondBrainApp?.getState?.() || window.state || null;
   const localUpdatedAt = value => value?.updatedAt || value?.settings?.updatedAt || '';
+  const cloneState = value => { try { return structuredClone(value); } catch (_) { return JSON.parse(JSON.stringify(value)); } };
+  const cloudPayload = value => {
+    const copy = cloneState(value || {});
+    copy.settings = copy.settings && typeof copy.settings === 'object' ? copy.settings : {};
+    delete copy.settings.v107CloudOmissions;
+    const privacy = copy.settings.v107 || {};
+    if (privacy.excludePolinaCloud) {
+      copy.polinaDays = [];
+      copy.settings.v107CloudOmissions = ['polinaDays'];
+    }
+    return copy;
+  };
 
   async function init() {
     if (initPromise) return initPromise;
@@ -168,8 +180,9 @@
     const auth = await requireReady();
     const user = auth?.currentUser;
     if (!user) return toast('Сначала войдите в аккаунт'), false;
-    const data = explicitState || localState();
-    if (!data || typeof data !== 'object') return toast('Локальные данные не найдены'), false;
+    const sourceData = explicitState || localState();
+    if (!sourceData || typeof sourceData !== 'object') return toast('Локальные данные не найдены'), false;
+    const data = cloudPayload(sourceData);
     try {
       setStatus({ loading: true, status: 'Отправка данных…', error: '' });
       const syncedAt = new Date().toISOString();
@@ -213,7 +226,12 @@
       }
       await window.SecondBrainBackup?.create?.();
       if (typeof window.SecondBrainApp?.setStateFromCloud !== 'function') throw new Error('Приложение не поддерживает безопасное применение облачной копии');
-      window.SecondBrainApp.setStateFromCloud(remote.state);
+      const incoming = cloneState(remote.state);
+      if (Array.isArray(incoming?.settings?.v107CloudOmissions) && incoming.settings.v107CloudOmissions.includes('polinaDays')) {
+        incoming.polinaDays = cloneState(localState()?.polinaDays || []);
+      }
+      if (incoming?.settings && typeof incoming.settings === 'object') delete incoming.settings.v107CloudOmissions;
+      window.SecondBrainApp.setStateFromCloud(incoming);
       const syncedAt = new Date().toISOString();
       localStorage.setItem(LAST_SYNC_KEY, syncedAt);
       setStatus({ loading: false, lastSync: syncedAt, status: 'Облачная копия загружена', error: '' });

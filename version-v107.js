@@ -1,0 +1,46 @@
+/* Second Brain OS V107 — connected information, learning and life planner. */
+'use strict';
+((root) => {
+  const build = Object.freeze({
+    version: '107.0.0',
+    major: 107,
+    label: 'V107 · CONNECTED INFORMATION',
+    id: 'second-brain-os-v107-connected-information-20260731-r1',
+    dataSchemaVersion: 2,
+    cacheVersion: 'v107-r1',
+    cacheName: 'second-brain-os-v107-connected-information-r1',
+    builtAt: '2026-07-31T10:18:00+03:00',
+    criticalFiles: [
+      './index.html',
+      './offline.html',
+      './manifest.webmanifest',
+      './version-v107.js',
+      './compat-v104.js',
+      './bootstrap-v104.js',
+      './backup-v104.js',
+      './styles-v104-full.css',
+      './app-v104-full.js',
+      './styles-v107-information-network.css',
+      './app-v107-information-network.js'
+    ]
+  });
+  root.SecondBrainBuild = build;
+  root.SECOND_BRAIN_BUILD = build;
+  root.__secondBrainRuntimeErrors = root.__secondBrainRuntimeErrors || [];
+  root.addEventListener?.('error', (event) => root.__secondBrainRuntimeErrors.push({type:'error',message:String(event?.message||event?.error?.message||'Unknown runtime error'),source:String(event?.filename||''),line:Number(event?.lineno||0),column:Number(event?.colno||0)}));
+  root.addEventListener?.('unhandledrejection', (event) => root.__secondBrainRuntimeErrors.push({type:'unhandledrejection',message:String(event?.reason?.message||event?.reason||'Unhandled promise rejection')}));
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.sbosVersion = build.version;
+  const apply = () => {
+    document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content', build.id);
+    if (document.body) document.body.dataset.sbosBuild = build.id;
+    document.querySelectorAll('.v78-build,[data-sbos-build-label]').forEach(node => { node.textContent=build.label; node.title=build.id; });
+  };
+  const start = () => {
+    apply();
+    const observer = new MutationObserver(records => { if(records.some(record=>record.addedNodes.length)) requestAnimationFrame(apply); });
+    observer.observe(document.documentElement,{subtree:true,childList:true});
+    root.addEventListener('second-brain-booted',apply);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})(typeof self !== 'undefined' ? self : globalThis);
