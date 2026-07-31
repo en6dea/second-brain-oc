@@ -1,6 +1,6 @@
-/* Second Brain OS V107 — connected information service worker. */
+/* Second Brain OS V108 — information actions service worker. */
 'use strict';
-importScripts('./version-v107.js');
+importScripts('./version-v108.js');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,14 +9,14 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v107.js',
+  './version-v108.js',
   './compat-v104.js',
   './bootstrap-v104.js',
   './backup-v104.js',
   './styles-v104-full.css',
   './app-v104-full.js',
-  './styles-v107-information-network.css',
-  './app-v107-information-network.js'
+  './styles-v108-information-actions.css',
+  './app-v108-information-actions.js'
 ];
 const OPTIONAL = [
   './firebase-config.js','./cloud-sync.js','./pwa-v98.js',
