@@ -1,6 +1,6 @@
-/* Second Brain OS V111 — week together service worker. */
+/* Second Brain OS V111.1 — planner templates service worker. */
 'use strict';
-importScripts('./version-v111.js?v=v111-r5');
+importScripts('./version-v111.js?v=v111-r6');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;

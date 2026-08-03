@@ -1,15 +1,15 @@
-/* Second Brain OS V111 — week together. */
+/* Second Brain OS V111.1 — planner templates. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '111.0.0',
+    version: '111.1.0',
     major: 111,
-    label: 'V111 · WEEK TOGETHER',
-    id: 'second-brain-os-v111-week-together-20260803-r5',
+    label: 'V111.1 · PLANNER TEMPLATES',
+    id: 'second-brain-os-v1111-planner-templates-20260803-r6',
     dataSchemaVersion: 3,
-    cacheVersion: 'v111-r5',
-    cacheName: 'second-brain-os-v111-week-together-r5',
-    builtAt: '2026-08-03T20:45:00+03:00',
+    cacheVersion: 'v111-r6',
+    cacheName: 'second-brain-os-v111-planner-templates-r6',
+    builtAt: '2026-08-03T22:10:00+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',

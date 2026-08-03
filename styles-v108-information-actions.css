@@ -252,3 +252,31 @@ html:is(.v88-dark,[data-v104-theme="dark"]) .v108-clear-form :is(input,select,te
   .v108-inline-fields{grid-template-columns:90px minmax(0,1fr)!important}
 }
 @media(prefers-reduced-motion:reduce){.v108-clear-form *{scroll-behavior:auto!important;transition:none!important}}
+
+/* V112 planner template library */
+.v108-template-panel>header{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important}
+.v108-template-panel>header>button{min-height:44px;padding:0 14px;border:1px solid var(--v107-line);border-radius:13px;background:#fff;color:var(--v107-violet);white-space:nowrap}
+#modal .modal-card:has(.v112-template-library),#modal .modal-card:has(.v112-template-editor){width:min(1020px,calc(100vw - 30px))!important;max-width:1020px!important}
+.v112-template-library{display:grid;gap:20px;padding-bottom:16px}
+.v112-template-library>header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:17px 18px;border:1px solid rgba(82,117,222,.14);border-radius:20px;background:linear-gradient(135deg,#f1f6ff,#fbf9ff 58%,#f0fbf8)}
+.v112-template-library>header b{display:block;font-size:16px}.v112-template-library>header p{margin:5px 0 0}
+.v112-template-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:10px}
+.v112-template-toolbar label{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;padding:0 11px;border:1px solid var(--v107-line);border-radius:14px;background:#fff}
+.v112-template-toolbar :is(input,select){min-height:48px;border:1px solid var(--v107-line);border-radius:14px;background:#fff;padding:0 12px;color:var(--v107-text)}
+.v112-template-toolbar label input{border:0;padding:0;outline:0}
+.v112-template-library section{display:grid;gap:10px}.v112-template-library section>h3{margin:0;font-size:13px;color:var(--v107-muted)}
+.v112-template-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.v112-template-card{display:grid;grid-template-rows:1fr auto;min-width:0;border:1px solid var(--v107-line);border-radius:18px;background:linear-gradient(145deg,#fff,#fbfaff);overflow:hidden;box-shadow:0 12px 30px rgba(49,61,101,.07)}
+.v112-template-card>button{display:grid;grid-template-columns:46px minmax(0,1fr) 18px;gap:11px;align-items:start;min-height:132px;padding:15px;border:0;background:transparent;text-align:left;color:var(--v107-text)}
+.v112-template-card>button span{min-width:0}.v112-template-card>button small,.v112-template-card>button b{display:block}.v112-template-card>button b{margin-top:4px}.v112-template-card>button p{margin:6px 0 0;line-height:1.45}.v112-template-card>button u{text-decoration:none;color:var(--v107-violet)}
+.v112-template-card>footer{display:flex;gap:6px;padding:9px 11px;border-top:1px solid var(--v107-line);background:rgba(248,248,252,.72)}
+.v112-template-card>footer button{min-height:38px;padding:0 10px;border:0;border-radius:10px;background:#fff;color:var(--v107-violet)}
+.v112-template-card>footer button:last-child:not(:only-child){color:#c94f63}
+.v112-block-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 14px;padding:14px;border:1px solid var(--v107-line);border-radius:18px}
+.v112-block-picker legend{padding:0 7px;font-weight:700;color:var(--v107-muted)}
+.v112-block-picker label{display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 10px;border:1px solid var(--v107-line);border-radius:12px;background:#fff;cursor:pointer}
+.v112-block-picker input{width:18px!important;height:18px!important;flex:0 0 18px}
+.v112-block-picker label:has(input:checked){border-color:rgba(75,140,248,.5);background:rgba(75,140,248,.07);color:#315fb8}
+@media(max-width:900px){.v112-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v112-block-picker{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.v108-template-panel>header,.v112-template-library>header{align-items:stretch!important;flex-direction:column!important}.v112-template-toolbar,.v112-template-grid{grid-template-columns:1fr}.v112-block-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.v112-template-card>button{min-height:112px}}
+@media(max-width:390px){.v112-block-picker{grid-template-columns:1fr}}
