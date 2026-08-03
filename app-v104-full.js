@@ -110,6 +110,7 @@
     const value = cleanText(text).toLocaleLowerCase('ru-RU');
     if (/главн/.test(value)) return 'home';
     if (/gamelife|игр|xp|hp/.test(value)) return 'game';
+    if (/планер|план без/.test(value)) return 'calendar';
     if (/цел|фокус/.test(value)) return 'target';
     if (/разоб|входящ/.test(value)) return 'inbox';
     if (/календар|дата|платеж/.test(value)) return 'calendar';
