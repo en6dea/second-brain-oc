@@ -1,15 +1,15 @@
-/* Second Brain OS V108.2 — clear planner and stabilized interaction layer. */
+/* Second Brain OS V108.3 — clear-fill flows and premium unified interface. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '108.2.0',
+    version: '108.3.0',
     major: 108,
-    label: 'V108.2 · CLEAR PLANNER',
-    id: 'second-brain-os-v108-clear-planner-20260803-r6',
+    label: 'V108.3 · CLEAR FILL',
+    id: 'second-brain-os-v108-clear-fill-20260803-r7',
     dataSchemaVersion: 2,
-    cacheVersion: 'v108-r6',
-    cacheName: 'second-brain-os-v108-clear-planner-r6',
-    builtAt: '2026-08-03T12:00:00+03:00',
+    cacheVersion: 'v108-r7',
+    cacheName: 'second-brain-os-v108-clear-fill-r7',
+    builtAt: '2026-08-03T18:30:00+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',

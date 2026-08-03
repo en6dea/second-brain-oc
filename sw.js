@@ -1,4 +1,4 @@
-/* Second Brain OS V108.2 — clear planner service worker. */
+/* Second Brain OS V108.3 — clear-fill service worker. */
 'use strict';
 importScripts('./version-v108.js');
 const BUILD = self.SecondBrainBuild;
