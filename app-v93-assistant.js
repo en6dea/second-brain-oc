@@ -589,7 +589,7 @@
     const uncategorized = (s.operations || []).filter(needsOperationCategory);
     const staleGoal = (s.goals || []).find(item => item && item.status === 'active' && (!item.nextAction || (item.lastActivityAt && Date.now() - new Date(item.lastActivityAt).getTime() > 3 * DAY)));
     const routeData = (icon, title, text, target, label) => ({ icon, title, text, route: target, label });
-    const informationOwned = ['information','people','notes','ideas','personal','learning','planner'].includes(route) || /^(person-|note-|idea-|memory-|learning-item-|plan-)/.test(route);
+    const informationOwned = ['information','people','notes','ideas','personal','learning','planner','couple-week'].includes(route) || /^(person-|note-|idea-|memory-|learning-item-|plan-)/.test(route);
     if (informationOwned) return null;
 
     if (route === 'finance-operations') {

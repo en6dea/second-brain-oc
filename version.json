@@ -1,8 +1,8 @@
 {
-  "version": "110.0.0",
-  "label": "V110 · INFORMATION CENTER",
-  "buildId": "second-brain-os-v110-information-center-20260803-r3",
-  "cacheVersion": "v110-r3",
-  "dataSchemaVersion": 2,
-  "builtAt": "2026-08-03T15:30:00+03:00"
+  "version": "111.0.0",
+  "label": "V111 · WEEK TOGETHER",
+  "buildId": "second-brain-os-v111-week-together-20260803-r5",
+  "cacheVersion": "v111-r5",
+  "dataSchemaVersion": 3,
+  "builtAt": "2026-08-03T20:45:00+03:00"
 }
