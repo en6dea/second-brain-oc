@@ -1,8 +1,8 @@
 {
-  "version": "104.2.0",
-  "label": "V104.2.0 · QUIET LUXURY OS",
-  "buildId": "second-brain-os-v104-quiet-luxury-20260730-r20",
-  "cacheVersion": "v104-r20",
-  "dataSchemaVersion": 1,
-  "builtAt": "2026-07-30T07:42:51+03:00"
+  "version": "108.1.0",
+  "label": "V108.1 · UNIVERSAL PLANNER",
+  "buildId": "second-brain-os-v108-universal-planner-20260803-r5",
+  "cacheVersion": "v108-r5",
+  "dataSchemaVersion": 2,
+  "builtAt": "2026-08-03T12:00:00+03:00"
 }

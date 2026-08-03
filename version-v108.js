@@ -1,15 +1,15 @@
-/* Second Brain OS V108 — planner purchases, Polina quick entry and branded icons. */
+/* Second Brain OS V108.1 — universal planner and structured information hub. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '108.0.0',
+    version: '108.1.0',
     major: 108,
-    label: 'V108 · INFORMATION ACTIONS',
-    id: 'second-brain-os-v108-information-actions-20260731-r1',
+    label: 'V108.1 · UNIVERSAL PLANNER',
+    id: 'second-brain-os-v108-universal-planner-20260803-r5',
     dataSchemaVersion: 2,
-    cacheVersion: 'v108-r1',
-    cacheName: 'second-brain-os-v108-information-actions-r1',
-    builtAt: '2026-07-31T11:18:00+03:00',
+    cacheVersion: 'v108-r5',
+    cacheName: 'second-brain-os-v108-universal-planner-r5',
+    builtAt: '2026-08-03T12:00:00+03:00',
     criticalFiles: [
       './index.html',
       './offline.html',

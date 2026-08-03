@@ -4,7 +4,7 @@
   "description": "Персональная операционная система для финансов, целей, привычек, календаря, знаний и действий.",
   "lang": "ru-RU",
   "id": "./?source=pwa",
-  "start_url": "./?v=108#today",
+  "start_url": "./?v=108.1#today",
   "scope": "./",
   "display": "standalone",
   "display_override": [

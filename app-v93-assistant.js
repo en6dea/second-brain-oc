@@ -589,6 +589,8 @@
     const uncategorized = (s.operations || []).filter(needsOperationCategory);
     const staleGoal = (s.goals || []).find(item => item && item.status === 'active' && (!item.nextAction || (item.lastActivityAt && Date.now() - new Date(item.lastActivityAt).getTime() > 3 * DAY)));
     const routeData = (icon, title, text, target, label) => ({ icon, title, text, route: target, label });
+    const informationOwned = ['information','people','notes','ideas','personal','learning','planner'].includes(route) || /^(person-|note-|idea-|memory-|learning-item-|plan-)/.test(route);
+    if (informationOwned) return null;
 
     if (route === 'finance-operations') {
       if (uncategorized.length) return routeData('◇', `${uncategorized.length} операций требуют категории`, 'После назначения категории операция уйдёт из очереди разбора и попадёт в правильную аналитику.', 'review-queue', 'Разобрать одну');
@@ -621,18 +623,11 @@
       return { icon: '▦', title: 'Календарь показывает реальную загрузку', text: 'Проверьте свободные окна и не ставьте больше задач, чем помещается во времени.', action: 'calendar-day', label: 'Посмотреть день' };
     }
     if (route === 'coach') return routeData('✦', 'Подсказчик ведёт по одному шагу', 'Нажмите на баланс, обязательства, привычки или оставшиеся шаги, чтобы увидеть источник показателя.', 'coach', 'Открыть первый шаг');
-    if (route === 'information') {
-      const inboxCount = (s.inbox || []).length;
-      return routeData('i', inboxCount ? `${inboxCount} записей ожидают разбора` : 'Информация собрана по смысловым папкам', inboxCount ? 'Превратите одну входящую запись в задачу, заметку, идею или финансовое действие.' : 'Откройте папку, в которой давно не было обновлений, и проверьте актуальность контекста.', inboxCount ? 'inbox' : 'notes', inboxCount ? 'Разобрать одну' : 'Открыть заметки');
-    }
     if (route === 'archive') return routeData('▣', 'Архив защищает от случайной потери', 'Проверьте последнюю резервную копию и восстановите запись только после просмотра её содержимого.', 'system', 'Проверить backup');
     if (route === 'system') return routeData('⚙', 'Проверьте качество базы', 'Обратите внимание на долги без дат, цели без следующего шага и записи без категории.', 'system', 'Открыть диагностику');
-    if (route === 'people') return routeData('👥', 'Отношения требуют следующего контакта', 'Проверьте, у кого давно не было общения, есть обещание или приближается важная дата.', 'people', 'Открыть людей');
     if (route === 'polina') return routeData('♡', 'Сохраняйте только подтверждённые наблюдения', 'Прогнозные дни должны отличаться от фактических, а комментарии — оставаться деликатными и приватными.', 'polina', 'Открыть календарь');
     if (route === 'passwords') return routeData('🔒', 'Доступы должны оставаться защищёнными', 'Не показывайте пароль без явного действия и проверьте, что резервная копия данных актуальна.', 'passwords', 'Проверить хранилище');
     if (route === 'books') return routeData('📚', 'Следующая сессия чтения должна быть конкретной', 'Выберите одну книгу и запланируйте количество минут или страниц на ближайшую сессию.', 'books', 'Открыть библиотеку');
-    if (route === 'notes') return { icon: '📝', title: 'Заметка полезна, когда связана с решением', text: 'Закрепите важную запись или свяжите её с целью, задачей или человеком.', action: 'page-primary', label: 'Добавить заметку' };
-    if (route === 'ideas') return { icon: '💡', title: 'У идеи должен быть первый проверяемый шаг', text: 'Выберите одну идею и сформулируйте действие, которое можно выполнить за 15 минут.', action: 'page-primary', label: 'Добавить идею' };
     if (route === 'wishes') return routeData('♡', 'Желания можно связать с финансовым планом', 'Укажите цену, приоритет и сколько уже накоплено, чтобы желание стало достижимым.', 'wishes', 'Открыть желания');
     if (route === 'documents') return routeData('📄', 'Документы требуют сроков и напоминаний', 'Проверьте, есть ли у важных файлов дата окончания, тег и понятное название.', 'documents', 'Открыть документы');
     if (route === 'films') return routeData('🎬', 'Список просмотра лучше держать коротким', 'Выберите один фильм на ближайший просмотр вместо накопления большого списка.', 'films', 'Открыть фильмы');

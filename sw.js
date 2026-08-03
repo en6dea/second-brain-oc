@@ -1,4 +1,4 @@
-/* Second Brain OS V108 — information actions service worker. */
+/* Second Brain OS V108.1 — universal planner service worker. */
 'use strict';
 importScripts('./version-v108.js');
 const BUILD = self.SecondBrainBuild;
