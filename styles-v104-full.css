@@ -1449,6 +1449,26 @@ html[data-v104-theme="dark"] .modal-card {
   width: 100% !important;
 }
 
+.v104-page-eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.v104-page-eyebrow-icon {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  color: currentColor !important;
+}
+
+.v104-page-eyebrow-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+  stroke-width: 1.85 !important;
+}
+
 /* Weekly review and deliberate inbox processing. */
 #modal .v106-weekly-review-modal {
   width: min(820px, calc(100vw - 24px)) !important;

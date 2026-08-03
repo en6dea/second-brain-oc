@@ -769,6 +769,8 @@
       s.settings.v82 = Object.assign({}, s.settings.v82 || {}, { calendarView: 'day', calendarAnchor: today() });
       saveOnly();
       closeModal();
+      const dayButton = document.querySelector('[data-v82-action="calendar-view"][data-view="day"]');
+      if (dayButton && !dayButton.classList.contains('active')) return dayButton.click();
       return navigate('calendar');
     }
     if (action === 'page-primary') {

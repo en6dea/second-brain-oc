@@ -53,6 +53,18 @@
     shirt: '<path d="m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3a4 4 0 0 1-8 0Z"/>',
     phone: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4M11 18h2"/>',
     pet: '<circle cx="12" cy="14" r="5"/><circle cx="5" cy="8" r="2"/><circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="19" cy="8" r="2"/>',
+    taxi: '<path d="M5 17h14l-1-7a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3l-1 7Z"/><path d="M9 7V5h6v2M7 12h10"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>',
+    utilities: '<path d="M9 18h6M10 21h4"/><path d="M8.5 15.5A6 6 0 1 1 15.5 15.5L14 17h-4l-1.5-1.5Z"/>',
+    receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+    wrench: '<path d="M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5L15 12l-3-3 2.5-2.5Z"/>',
+    coins: '<ellipse cx="9" cy="8" rx="5" ry="3"/><path d="M4 8v4c0 1.7 2.2 3 5 3 1.1 0 2.1-.2 3-.6"/><path d="M12 12c.8-.6 2-1 3.5-1 2.5 0 4.5 1.2 4.5 2.8v3.4c0 1.6-2 2.8-4.5 2.8S11 18.8 11 17.2v-3.4"/>',
+    refund: '<path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 6 6"/>',
+    cashback: '<circle cx="10" cy="12" r="6"/><path d="M8 10h4a2 2 0 0 1 0 4H8M10 8v8"/><path d="m19 4 .7 2.3L22 7l-2.3.7L19 10l-.7-2.3L16 7l2.3-.7L19 4Z"/>',
+    transfer: '<path d="M4 8h14M15 5l3 3-3 3M20 16H6M9 13l-3 3 3 3"/>',
+    briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V4h8v3M3 12h18M10 12v2h4v-2"/>',
+    trend: '<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><path d="M16 7h3v3"/>',
+    tag: '<path d="M4 4h8l8 8-8 8-8-8V4Z"/><circle cx="9" cy="9" r="1.5"/>',
+    movement: '<path d="m12 3 8 9-8 9-8-9 8-9Z"/><path d="M8 12h8M13 9l3 3-3 3"/>',
     check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     chevron: '<path d="m9 18 6-6-6-6"/>',
@@ -84,8 +96,10 @@
     game: 'amber', energy: 'amber', gift: 'amber', coffee: 'amber', film: 'amber',
     target: 'coral', heart: 'pink', pet: 'pink',
     inbox: 'violet', coach: 'violet', spark: 'violet', brain: 'violet',
-    finance: 'mint', cart: 'mint', food: 'mint', transport: 'mint',
-    house: 'mint', medical: 'mint', shield: 'mint',
+    finance: 'mint', cart: 'mint', food: 'mint', transport: 'mint', taxi: 'mint',
+    house: 'mint', medical: 'mint', shield: 'mint', utilities: 'amber', receipt: 'violet',
+    wrench: 'slate', coins: 'mint', refund: 'cyan', cashback: 'violet', transfer: 'blue',
+    briefcase: 'blue', trend: 'mint', tag: 'coral', movement: 'slate',
     leaf: 'violet', run: 'cyan', water: 'cyan',
     note: 'cyan', book: 'cyan', phone: 'cyan',
     archive: 'slate', settings: 'slate', key: 'slate', pause: 'slate', lock: 'slate',
@@ -99,6 +113,12 @@
     if (/цел|фокус/.test(value)) return 'target';
     if (/разоб|входящ/.test(value)) return 'inbox';
     if (/календар|дата|платеж/.test(value)) return 'calendar';
+    if (/зарплат/.test(value)) return 'briefcase';
+    if (/инвест/.test(value)) return 'trend';
+    if (/налог/.test(value)) return 'receipt';
+    if (/возврат/.test(value)) return 'refund';
+    if (/кэшбэк/.test(value)) return 'cashback';
+    if (/между счет|перевод/.test(value)) return 'transfer';
     if (/финанс|деньг|баланс|операц|доход|расход/.test(value)) return 'finance';
     if (/привыч|спокой|медитац/.test(value)) return 'leaf';
     if (/информац|замет|документ/.test(value)) return 'note';
@@ -114,9 +134,15 @@
     if (/еда|кафе|питан/.test(value)) return 'food';
     if (/транспорт|такси|авто/.test(value)) return 'transport';
     if (/жиль|дом|аренд/.test(value)) return 'house';
+    if (/коммун/.test(value)) return 'utilities';
+    if (/связ|подпис/.test(value)) return 'phone';
     if (/здоров|медиц|аптек/.test(value)) return 'medical';
+    if (/одежд/.test(value)) return 'shirt';
     if (/подар/.test(value)) return 'gift';
     if (/путеше|поезд|самол/.test(value)) return 'plane';
+    if (/животн|питом/.test(value)) return 'pet';
+    if (/ремонт/.test(value)) return 'wrench';
+    if (/подработ/.test(value)) return 'energy';
     if (/защит|долг|обязат/.test(value)) return 'shield';
     if (/фильм|кино/.test(value)) return 'film';
     if (/парол/.test(value)) return 'key';
@@ -658,10 +684,43 @@
     const picker = root.querySelector?.('.v88-finance-icon-picker');
     if (!picker || picker.dataset.v104Ready === 'true') return;
     picker.dataset.v104Ready = 'true';
-    const keys = ['cart','food','transport','house','medical','book','gift','plane','shield','film','heart','finance','calendar','note','leaf','target','water','run','moon','key','home','game','inbox','archive','coach','settings','brain','check','coffee','shirt','phone','pet'];
-    picker.querySelectorAll('[data-v88-finance-icon]').forEach((button, index) => {
-      button.innerHTML = svg(keys[index % keys.length]);
-      button.dataset.v104Symbol = keys[index % keys.length];
+    const iconByLabel = [
+      [/продукт/, 'cart'], [/кафе/, 'coffee'], [/такси/, 'taxi'], [/транспорт/, 'transport'],
+      [/жиль|дом/, 'house'], [/коммун/, 'utilities'], [/связ|подпис/, 'phone'], [/здоров|лекар/, 'medical'],
+      [/одежд/, 'shirt'], [/подар/, 'gift'], [/развлеч/, 'film'], [/путешеств/, 'plane'],
+      [/обуч/, 'book'], [/кредит|долг/, 'shield'], [/налог/, 'receipt'], [/животн/, 'pet'],
+      [/ремонт/, 'wrench'], [/подработ/, 'energy'], [/возврат/, 'refund'], [/кэшбэк/, 'cashback'],
+      [/зарплат/, 'briefcase'], [/инвест/, 'trend'], [/продаж/, 'tag'], [/между счет|перевод/, 'transfer'],
+      [/доход/, 'coins'], [/прочее движ/, 'movement'], [/другое/, 'spark']
+    ];
+    picker.querySelectorAll('[data-v88-finance-icon]').forEach((button) => {
+      const label = cleanText(button.title || button.getAttribute('aria-label')).toLocaleLowerCase('ru-RU');
+      const key = iconByLabel.find(([pattern]) => pattern.test(label))?.[1] || 'finance';
+      button.innerHTML = svg(key);
+      button.dataset.v104Symbol = key;
+      button.dataset.v104Tone = toneForIcon(key);
+    });
+  }
+
+  function decoratePageEyebrows(root = document) {
+    const prefixes = [
+      ['📚', 'book'], ['📄', 'note'], ['🎬', 'film'], ['💗', 'heart'], ['✈️', 'plane'],
+      ['✈', 'plane'], ['🌿', 'leaf'], ['📥', 'inbox'], ['📝', 'note'], ['💡', 'spark']
+    ];
+    queryIncludingSelf(root, '.v78-page-head > div > span').forEach((label) => {
+      if (label.dataset.v104Eyebrow === 'true') return;
+      const text = cleanText(label.textContent);
+      const matched = prefixes.find(([prefix]) => text.startsWith(prefix));
+      if (!matched) return;
+      const [prefix, key] = matched;
+      label.textContent = cleanText(text.slice(prefix.length));
+      label.classList.add('v104-page-eyebrow');
+      label.dataset.v104Eyebrow = 'true';
+      label.dataset.v104Tone = toneForIcon(key);
+      const icon = document.createElement('i');
+      icon.className = 'v104-page-eyebrow-icon';
+      setIcon(icon, key);
+      label.prepend(icon);
     });
   }
 
@@ -897,11 +956,15 @@
     const root = document.documentElement;
     const incorrect = !root.classList.contains(`v88-${resolved}`) ||
       !root.classList.contains(`v87-${resolved}`) ||
+      !root.classList.contains(`v80-${resolved}`) ||
+      !root.classList.contains(`v70-theme-${resolved}`) ||
       root.classList.contains(`v88-${dark ? 'light' : 'dark'}`) ||
-      root.classList.contains(`v87-${dark ? 'light' : 'dark'}`);
+      root.classList.contains(`v87-${dark ? 'light' : 'dark'}`) ||
+      root.classList.contains(`v80-${dark ? 'light' : 'dark'}`) ||
+      root.classList.contains(`v70-theme-${dark ? 'light' : 'dark'}`);
     if (incorrect) {
-      root.classList.remove('v87-light', 'v87-dark', 'v88-light', 'v88-dark');
-      root.classList.add(`v87-${resolved}`, `v88-${resolved}`);
+      root.classList.remove('v70-theme-light', 'v70-theme-dark', 'v80-light', 'v80-dark', 'v87-light', 'v87-dark', 'v88-light', 'v88-dark');
+      root.classList.add(`v70-theme-${resolved}`, `v80-${resolved}`, `v87-${resolved}`, `v88-${resolved}`);
       document.body?.classList.add('v87-constellation', 'v88-constellation');
       if (document.body && preferences?.themeMode) document.body.dataset.themeMode = preferences.themeMode;
     }
@@ -929,6 +992,7 @@
       decorateMoodPicker(root);
       decorateButtonGlyphs(root);
       replaceLegacyGlyphs(root);
+      decoratePageEyebrows(root);
       decorateFinancePicker(root);
       polishLinkedGoals(root);
       polishDebtScenarios(root);
@@ -1033,7 +1097,7 @@
         dayButton.click();
       }
     }
-    if (event.target.closest?.('[data-v88-action*="theme"],[data-theme],[aria-label*="тем"]')) {
+    if (event.target.closest?.('[data-v88-action*="theme"],[data-v88-theme],[data-theme],[aria-label*="тем"]')) {
       setTimeout(() => queueApply(document), 0);
     }
   }, true);
