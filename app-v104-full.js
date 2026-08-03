@@ -108,7 +108,7 @@
 
   function semanticIcon(text) {
     const value = cleanText(text).toLocaleLowerCase('ru-RU');
-    if (/главн|сегодня/.test(value)) return 'home';
+    if (/главн/.test(value)) return 'home';
     if (/gamelife|игр|xp|hp/.test(value)) return 'game';
     if (/цел|фокус/.test(value)) return 'target';
     if (/разоб|входящ/.test(value)) return 'inbox';
@@ -949,9 +949,7 @@
 
   function restoreTheme() {
     const preferences = window.SecondBrainVisual?.getSettings?.();
-    const resolved = preferences?.resolvedTheme || (
-      document.body?.dataset?.themeMode === 'dark' ? 'dark' : 'light'
-    );
+    const resolved = 'light';
     const dark = resolved === 'dark';
     const root = document.documentElement;
     const incorrect = !root.classList.contains(`v88-${resolved}`) ||

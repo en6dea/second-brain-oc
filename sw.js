@@ -1,6 +1,6 @@
-/* Second Brain OS V108.3 — clear-fill service worker. */
+/* Second Brain OS V109 — light luxury service worker. */
 'use strict';
-importScripts('./version-v108.js');
+importScripts('./version-v109.js');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,13 +9,14 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v108.js',
+  './version-v109.js',
   './compat-v104.js',
   './bootstrap-v104.js',
   './backup-v104.js',
   './styles-v104-full.css',
   './app-v104-full.js',
   './styles-v108-information-actions.css',
+  './styles-v109-light-premium.css',
   './app-v108-information-actions.js'
 ];
 const OPTIONAL = [
