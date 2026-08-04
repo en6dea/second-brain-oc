@@ -1,0 +1,12 @@
+DEPLOY_V112_GITHUB_RU.md
+QA_V112_RESULTS.txt
+README_V112_PAIR_RANDOM_MONTH_RU.md
+app-v112-couple-random.js
+couple-challenges-v112.js
+index.html
+manifest.webmanifest
+recover-v112.html
+sbos-build.txt
+styles-v112-couple-random.css
+sw.js
+version-v112.js

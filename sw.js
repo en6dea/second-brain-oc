@@ -1,6 +1,6 @@
-/* Second Brain OS V111.1 — planner templates service worker. */
+/* Second Brain OS V112 — Pair Random Month service worker. */
 'use strict';
-importScripts('./version-v111.js?v=v111-r6');
+importScripts('./version-v112.js?v=v112-r1');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,7 +9,7 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v111.js',
+  './version-v112.js',
   './compat-v104.js',
   './bootstrap-v104.js',
   './backup-v104.js',
@@ -19,7 +19,10 @@ const CRITICAL = [
   './styles-v109-light-premium.css',
   './styles-v110-information-center.css',
   './styles-v111-couple-week.css',
-  './app-v108-information-actions.js'
+  './app-v108-information-actions.js',
+  './styles-v112-couple-random.css',
+  './couple-challenges-v112.js',
+  './app-v112-couple-random.js'
 ];
 const OPTIONAL = [
   './firebase-config.js','./cloud-sync.js','./pwa-v98.js',

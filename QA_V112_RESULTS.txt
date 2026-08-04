@@ -1,0 +1,48 @@
+SECOND BRAIN OS V112 · PAIR RANDOM MONTH
+QA DATE: 2026-08-04
+
+STATIC CHECKS
+[PASS] version-v112.js — node --check
+[PASS] couple-challenges-v112.js — node --check
+[PASS] app-v112-couple-random.js — node --check
+[PASS] sw.js — node --check
+[PASS] manifest.webmanifest — valid JSON
+[PASS] index.html includes all V112 assets
+[PASS] 1,000 unique challenge IDs found
+[PASS] 40 built-in categories loaded
+[PASS] no localStorage.clear in the new module
+[PASS] no IndexedDB deleteDatabase in the new module
+[PASS] main storage key is unchanged
+
+PLAYWRIGHT COMPONENT RUNTIME
+[PASS] V112 page rendered
+[PASS] wheel rendered
+[PASS] database reports 1,000 challenges
+[PASS] 40 categories migrated into state.coupleRandom
+[PASS] draw animation completed
+[PASS] pending result persisted
+[PASS] challenge accepted
+[PASS] 14 generated monthly steps rendered
+[PASS] no console or page errors
+
+PLAYWRIGHT END-TO-END COMPONENT FLOWS
+[PASS] custom category created
+[PASS] custom challenge created in the custom category
+[PASS] challenge drawn and accepted
+[PASS] expense saved
+[PASS] weekly reflection saved
+[PASS] month completed
+[PASS] result saved to history
+[PASS] event archive contains all actions
+[PASS] memory entry created in Personal Memory
+[PASS] mobile viewport 390×844 rendered without page errors
+
+LIMITATION
+The environment blocks direct navigation to file:// and local application URLs with ERR_BLOCKED_BY_ADMINISTRATOR. Therefore the complete historical application shell could not be opened as a real local URL. The V112 module was rendered and exercised in Chromium through page.set_content with mocked existing application state, including desktop and mobile screenshots and the full primary workflow.
+
+FINAL LIVE CHECK AFTER GITHUB PAGES PUBLICATION
+- open /recover-v112.html
+- open ?v=112-r1#couple-random
+- verify the Information card and side navigation
+- run one test draw
+- reload and confirm the selected result remains
