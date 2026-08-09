@@ -177,16 +177,29 @@
 
   function financeSummary() {
     const s = state();
-    const own = ownAccounts().reduce((sum, account) => sum + num(account.actualBalance), 0);
-    const reservations = (s.financeReservations || []).filter(item => item && item.active !== false && item.status !== 'completed').reduce((sum, item) => sum + num(item.amount), 0);
     const debts = activeDebts();
+    const calculated = window.SecondBrainFinanceV112?.calculate?.() || window.V884Finance?.calculate?.();
+    if (calculated) {
+      return {
+        own: num(calculated.own),
+        reservations: num(calculated.reserved),
+        due: num(calculated.obligationGross ?? calculated.obligationTotal),
+        uncovered: num(calculated.obligationTotal),
+        covered: num(calculated.linkedCoverage),
+        reserve: num(calculated.reserve),
+        safe: num(calculated.free),
+        nearest: calculated.obligations?.[0]?.date || '',
+        debts,
+        status: calculated.status
+      };
+    }
+    const accounts = ownAccounts().filter(account => account.actualBalance !== null && account.actualBalance !== undefined && Number.isFinite(Number(account.actualBalance)));
+    const own = accounts.reduce((sum, account) => sum + num(account.actualBalance), 0);
+    const reservations = (s.financeReservations || []).filter(item => item && item.active !== false && item.status !== 'completed').reduce((sum, item) => sum + num(item.amount), 0);
     const due = debts.reduce((sum, item) => sum + num(item.minimumPayment || item.minPayment), 0);
     const reserve = num(s.settings?.v884?.minimumReserve);
-    const nearest = debts
-      .map(item => item.nextPaymentDate || item.due || '')
-      .filter(value => /^\d{4}-\d{2}-\d{2}$/.test(value))
-      .sort()[0] || '';
-    return { own, reservations, due, reserve, safe: own - reservations - due - reserve, nearest, debts };
+    const nearest = debts.map(item => item.nextPaymentDate || item.due || '').filter(value => /^\d{4}-\d{2}-\d{2}$/.test(value)).sort()[0] || '';
+    return { own, reservations, due, uncovered: due, covered: 0, reserve, safe: own - reservations - due - reserve, nearest, debts, status: accounts.length ? 'ok' : 'missing' };
   }
 
   function openModal(title, content, className = '') {
@@ -247,7 +260,14 @@
     } else if (wizardStep === 3) {
       body = `<section class="sbos-v93-wizard-section"><header><span>Шаг 3</span><h3>Следующий гарантированный доход</h3><p>Дата нужна, чтобы ограничить горизонт расчёта и не считать будущие деньги доступными раньше времени.</p></header><div class="sbos-v93-income-grid"><label><span>Гарантированный доход</span><input id="v93_income_amount" type="number" min="0" value="${income.guaranteed ?? ''}" placeholder="Сумма"></label><label><span>Дата следующего поступления</span><input id="v93_income_date" type="date" value="${esc(income.nextGuaranteedDate || '')}"></label><label><span>Минимальный резерв</span><input id="v93_min_reserve" type="number" min="0" value="${num(state().settings?.v884?.minimumReserve) || ''}" placeholder="Например, 10 000"></label></div><div class="sbos-v93-help"><b>Минимальный резерв</b><span>Деньги, которые не участвуют в свободных тратах даже после оплаты ближайших обязательств.</span></div><div id="v93_wizard_error" class="sbos-v93-inline-error" hidden></div></section>`;
     } else {
-      body = `<section class="sbos-v93-wizard-result"><span class="sbos-v93-result-icon">✓</span><h3>Финансовая картина сформирована</h3><p>Расчёт основан на фактических счетах, введённых платежах и ближайшем доходе.</p><div class="sbos-v93-result-grid"><article><small>Собственные деньги</small><b>${money(summary.own)}</b><span>без кредитных лимитов</span></article><article><small>Обязательные платежи</small><b>${money(summary.due)}</b><span>${summary.debts.length} активных долгов</span></article><article><small>Зарезервировано</small><b>${money(summary.reservations + summary.reserve)}</b><span>резервы и минимальная подушка</span></article><article class="primary"><small>Предварительно безопасно</small><b>${money(summary.safe)}</b><span>${summary.nearest ? `ближайший платёж ${new Date(`${summary.nearest}T12:00:00`).toLocaleDateString('ru-RU')}` : 'нет платежей с датой'}</span></article></div><div class="sbos-v93-next-action"><b>${summary.safe < 0 ? 'Следующее действие: сократить кассовый разрыв' : 'Следующее действие: зарезервировать ближайшие платежи'}</b><span>${summary.safe < 0 ? `Не хватает ${money(Math.abs(summary.safe))}. Откройте долги и определите, какой платёж можно согласовать.` : `Отложите ${money(summary.due)} под обязательства, чтобы свободная сумма оставалась честной.`}</span></div></section>`;
+      const resultAction = summary.safe < 0
+        ? {title: 'Следующее действие: сократить кассовый разрыв', text: `Не хватает ${money(Math.abs(summary.safe))}. Откройте долги и определите, какой платёж можно согласовать.`}
+        : summary.uncovered > 0
+          ? {title: 'Следующее действие: покрыть ближайшие платежи', text: `Осталось зарезервировать ${money(summary.uncovered)}. Свяжите резерв с конкретным платежом — тогда он будет учтён только один раз.`}
+          : summary.due > 0
+            ? {title: 'Следующее действие: проверить оплату в назначенную дату', text: `Платежи на ${money(summary.due)} уже покрыты связанными резервами. После оплаты проведите план в операции.`}
+            : {title: 'Следующее действие: фиксировать фактические операции', text: 'На горизонте расчёта обязательных платежей нет. Вносите реальные расходы и сверяйте остатки, чтобы безопасная сумма оставалась актуальной.'};
+      body = `<section class="sbos-v93-wizard-result"><span class="sbos-v93-result-icon">✓</span><h3>Финансовая картина сформирована</h3><p>Расчёт основан на фактических счетах, введённых платежах и ближайшем доходе.</p><div class="sbos-v93-result-grid"><article><small>Собственные деньги</small><b>${money(summary.own)}</b><span>без кредитных лимитов</span></article><article><small>Обязательные платежи</small><b>${money(summary.due)}</b><span>${summary.debts.length} активных долгов</span></article><article><small>Зарезервировано</small><b>${money(summary.reservations + summary.reserve)}</b><span>резервы и минимальная подушка</span></article><article class="primary"><small>Предварительно безопасно</small><b>${money(summary.safe)}</b><span>${summary.nearest ? `ближайший платёж ${new Date(`${summary.nearest}T12:00:00`).toLocaleDateString('ru-RU')}` : 'нет платежей с датой'}</span></article></div><div class="sbos-v93-next-action"><b>${resultAction.title}</b><span>${resultAction.text}</span></div></section>`;
     }
 
     const prev = wizardStep > 1 ? '<button type="button" class="secondary" data-v93-action="wizard-prev">← Назад</button>' : '';

@@ -1,6 +1,6 @@
-/* Second Brain OS V113 — Pair Month Experience service worker. */
+/* Second Brain OS V112 — connected finance service worker. */
 'use strict';
-importScripts('./version-v113.js?v=v113-r1');
+importScripts('./version-v112.js?v=v112-r8');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,9 +9,7 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version.json',
-  './sbos-build.txt',
-  './version-v113.js',
+  './version-v112.js',
   './compat-v104.js',
   './bootstrap-v104.js',
   './backup-v104.js',
@@ -21,11 +19,9 @@ const CRITICAL = [
   './styles-v109-light-premium.css',
   './styles-v110-information-center.css',
   './styles-v111-couple-week.css',
+  './styles-v112-finance-center.css',
   './app-v108-information-actions.js',
-  './styles-v112-couple-random.css',
-  './styles-v113-month-experience.css',
-  './couple-challenges-v112.js',
-  './app-v113-month-experience.js'
+  './app-v112-finance-center.js'
 ];
 const OPTIONAL = [
   './firebase-config.js','./cloud-sync.js','./pwa-v98.js',
