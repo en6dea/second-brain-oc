@@ -2491,8 +2491,8 @@
   afterRender=function(){
     setBuild();
     document.body.classList.remove('v80-booting','v79-booting','v78-booting','v70-booting','v67-theme-dark');
-    const visualMode=(()=>{try{return localStorage.getItem('secondBrainOS.visualThemeMode')||localStorage.getItem('secondBrainOS.visualTheme')||'system';}catch(error){return 'system';}})();
-    const dark=visualMode==='dark'||(visualMode==='system'&&window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+    /* Lumen: тема зафиксирована тёмной. Раньше она бралась из настройки ОС и перебивала version.js, из-за чего элементы браузера рисовались светлыми поверх тёмного интерфейса. */
+    const dark=true;
     document.documentElement.classList.toggle('v88-dark',dark);document.documentElement.classList.toggle('v88-light',!dark);document.documentElement.style.colorScheme=dark?'dark':'light';
     v883RestorePageScroll();
     maybePromptRoutines();

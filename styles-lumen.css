@@ -1,0 +1,587 @@
+/* ============================================================================
+   SECOND BRAIN OS · LUMEN
+   Единая визуальная система. Загружается ПОСЛЕ styles.css и полностью
+   переопределяет визуальный слой, не трогая геометрию легаси-компонентов.
+
+   Откат: удалить <link rel="stylesheet" href="styles-lumen.css"> из index.html.
+   Подробности — в ROLLBACK.md.
+
+   Структура файла:
+     1. Токены (единственный источник правды)
+     2. Мост к легаси-переменным (179 старых имён → токены)
+     3. База и типографика
+     4. Оболочка: фон, сайдбар, топбар, навигация
+     5. Поверхности и карточки
+     6. Управление: кнопки, поля
+     7. Данные: метрики, списки, прогресс, иконки
+     8. Модальные окна и уведомления
+   ========================================================================== */
+
+/* ============================ 1. ТОКЕНЫ ================================= */
+:root{
+  /* холст */
+  --lm-bg:#08090D;
+  --lm-bg-2:#0B0C12;
+  --lm-ink:#F0F1F6;
+  --lm-ink-dim:#C8CBD8;
+  --lm-muted:#787E92;
+  --lm-faint:#5A6072;
+
+  /* линии */
+  --lm-line:rgba(240,241,246,.10);
+  --lm-line-soft:rgba(240,241,246,.06);
+  --lm-line-strong:rgba(240,241,246,.17);
+  --lm-track:rgba(240,241,246,.07);
+
+  /* поверхности */
+  --lm-surface:rgba(255,255,255,.038);
+  --lm-surface-2:rgba(255,255,255,.058);
+  --lm-surface-solid:#12131A;
+  --lm-glass:blur(20px) saturate(140%);
+
+  /* акцент */
+  --lm-accent:#8B7BFF;
+  --lm-accent-2:#C58BFF;
+  --lm-accent-deep:#6C5CFF;
+  --lm-accent-soft:rgba(139,123,255,.14);
+  --lm-accent-line:rgba(139,123,255,.34);
+  --lm-grad:linear-gradient(135deg,var(--lm-accent-deep),var(--lm-accent-2));
+
+  /* семантика */
+  --lm-danger:#FF7089;
+  --lm-danger-soft:rgba(255,112,137,.13);
+  --lm-good:#3FD9A4;
+  --lm-good-soft:rgba(63,217,164,.13);
+  --lm-warn:#FFC65C;
+  --lm-warn-soft:rgba(255,198,92,.13);
+  --lm-info:#5AC8F5;
+
+  /* форма */
+  --lm-r-sm:10px;
+  --lm-r:16px;
+  --lm-r-lg:22px;
+  --lm-r-xl:26px;
+
+  /* тень и свет */
+  --lm-shadow:0 8px 30px rgba(0,0,0,.42);
+  --lm-shadow-lg:0 22px 60px rgba(0,0,0,.55);
+  --lm-glow:0 0 14px rgba(139,123,255,.45);
+
+  /* типографика */
+  --lm-font:Onest,"Segoe UI",system-ui,-apple-system,sans-serif;
+  --lm-track-label:.16em;
+}
+
+/* ===================== 2. МОСТ К ЛЕГАСИ-ПЕРЕМЕННЫМ ======================
+   Старые версии объявляли 179 переменных в 11 конкурирующих блоках :root
+   (18 разных «синих», 17 «фиолетовых»). Здесь все они сводятся к токенам
+   выше — за счёт этого перекрашивается даже то, что ниже не переописано.
+   Селектор перечислен явно, чтобы перебить тематические блоки вида
+   html:is(.v87-dark,.v88-dark), имеющие ту же специфичность.        */
+html,
+html.v80-light, html.v80-dark,
+html.v87-light, html.v87-dark,
+html.v88-light, html.v88-dark,
+html.v70-theme-light, html.v70-theme-dark{
+  /* фоны */
+  --sb-bg:var(--lm-bg); --sb-bg-soft:var(--lm-bg-2);
+  --sbos-bg:var(--lm-bg);
+  --v78-bg:var(--lm-bg); --v78-bg-warm:var(--lm-bg-2);
+  --v87-bg:var(--lm-bg); --v87-bg-deep:var(--lm-bg-2);
+  --v88-bg:var(--lm-bg); --v88-bg-deep:var(--lm-bg-2);
+  --v108-paper:var(--lm-bg); --v108-paper-soft:var(--lm-bg-2);
+  --v109-canvas:var(--lm-bg); --v109-canvas-soft:var(--lm-bg-2);
+
+  /* поверхности */
+  --sb-panel:var(--lm-surface); --sb-panel-solid:var(--lm-surface-solid);
+  --sb-panel-subtle:var(--lm-surface); --sb-control:var(--lm-surface-2);
+  --sb-surface-glass:var(--lm-surface); --sb-surface-raised:var(--lm-surface-2);
+  --sb-surface-tint:var(--lm-accent-soft);
+  --v78-panel:var(--lm-surface); --v78-panel-solid:var(--lm-surface-solid);
+  --v87-panel:var(--lm-surface); --v87-panel-soft:var(--lm-surface); --v87-panel-solid:var(--lm-surface-solid);
+  --v88-panel:var(--lm-surface); --v88-panel-soft:var(--lm-surface); --v88-panel-solid:var(--lm-surface-solid);
+  --v103-surface:var(--lm-surface);
+  --v109-surface:var(--lm-surface); --v109-surface-soft:var(--lm-surface); --v109-surface-tint:var(--lm-accent-soft);
+  --v82-card:var(--lm-surface);
+
+  /* текст */
+  --sb-text:var(--lm-ink); --sb-text-soft:var(--lm-ink-dim); --sb-text-faint:var(--lm-muted);
+  --sbos-text:var(--lm-ink);
+  --v78-ink:var(--lm-ink); --v78-muted:var(--lm-muted);
+  --v80-text:var(--lm-ink); --v80-muted:var(--lm-muted);
+  --v82-text:var(--lm-ink); --v82-muted:var(--lm-muted);
+  --v832-ink:var(--lm-ink); --v832-muted:var(--lm-muted);
+  --v87-text:var(--lm-ink); --v87-muted:var(--lm-muted);
+  --v88-text:var(--lm-ink); --v88-muted:var(--lm-muted);
+  --v93-ink:var(--lm-ink); --v93-muted:var(--lm-muted);
+  --v103-ink:var(--lm-ink); --v103-muted:var(--lm-muted);
+  --v107-ink:var(--lm-ink); --v107-muted:var(--lm-muted);
+  --v108-ink:var(--lm-ink); --v108-muted:var(--lm-muted);
+  --v109-ink:var(--lm-ink); --v109-muted:var(--lm-muted); --v109-faint:var(--lm-faint);
+  --v110-text:var(--lm-ink); --v110-muted:var(--lm-muted); --v110-soft:var(--lm-ink-dim);
+  --v111-ink:var(--lm-ink); --v111-muted:var(--lm-muted);
+  --v112-ink:var(--lm-ink); --v112-muted:var(--lm-muted); --v112-soft:var(--lm-ink-dim);
+
+  /* линии */
+  --sb-line:var(--lm-line); --sb-line-strong:var(--lm-line-strong); --sb-hairline:var(--lm-line-soft);
+  --sb-page-dots:var(--lm-line-strong);
+  --v78-line:var(--lm-line);
+  --v82-line:var(--lm-line);
+  --v87-line:var(--lm-line); --v87-line-strong:var(--lm-line-strong);
+  --v88-line:var(--lm-line); --v88-line-strong:var(--lm-line-strong);
+  --v93-line:var(--lm-line);
+  --v103-line:var(--lm-line);
+  --v107-line:var(--lm-line);
+  --v108-line:var(--lm-line);
+  --v109-line:var(--lm-line); --v109-line-strong:var(--lm-line-strong);
+  --v110-line:var(--lm-line);
+  --v111-line:var(--lm-line);
+  --v112-line:var(--lm-line);
+
+  /* акцент — все «синие» и «фиолетовые» сводятся к одному */
+  --sb-blue:var(--lm-accent); --sb-violet:var(--lm-accent); --sb-slate:var(--lm-muted);
+  --sb90-blue:var(--lm-accent);
+  --sbos-blue:var(--lm-accent);
+  --v78-blue:var(--lm-accent); --v78-violet:var(--lm-accent); --v78-violet-2:var(--lm-accent-2);
+  --v87-blue:var(--lm-accent); --v87-blue-2:var(--lm-accent-2); --v87-violet:var(--lm-accent);
+  --v88-blue:var(--lm-accent); --v88-blue-2:var(--lm-accent-2); --v88-violet:var(--lm-accent);
+  --v93-blue:var(--lm-accent); --v93-violet:var(--lm-accent);
+  --v103-blue:var(--lm-accent); --v103-violet:var(--lm-accent);
+  --v107-violet:var(--lm-accent); --v107-tone:var(--lm-accent);
+  --v109-blue:var(--lm-accent); --v109-violet:var(--lm-accent); --v109-slate:var(--lm-muted);
+  --v111-blue:var(--lm-accent); --v111-violet:var(--lm-accent);
+  --v112-blue:var(--lm-accent); --v112-violet:var(--lm-accent);
+
+  /* семантические цвета */
+  --sb-danger:var(--lm-danger); --sb-coral:var(--lm-danger); --sb-pink:var(--lm-accent-2);
+  --sb-mint:var(--lm-good); --sb-cyan:var(--lm-info); --sb-amber:var(--lm-warn);
+  --sb90-green:var(--lm-good);
+  --v78-coral:var(--lm-danger); --v78-mint:var(--lm-good); --v78-cyan:var(--lm-info);
+  --v78-gold:var(--lm-warn); --v78-peach:var(--lm-warn);
+  --v87-coral:var(--lm-danger); --v87-green:var(--lm-good); --v87-cyan:var(--lm-info); --v87-amber:var(--lm-warn);
+  --v88-coral:var(--lm-danger); --v88-green:var(--lm-good); --v88-cyan:var(--lm-info); --v88-amber:var(--lm-warn);
+  --v93-coral:var(--lm-danger); --v93-green:var(--lm-good);
+  --v103-coral:var(--lm-danger); --v103-green:var(--lm-good); --v103-cyan:var(--lm-info);
+  --v103-amber:var(--lm-warn); --v103-pink:var(--lm-accent-2);
+  --v109-coral:var(--lm-danger); --v109-mint:var(--lm-good); --v109-cyan:var(--lm-info);
+  --v109-amber:var(--lm-warn); --v109-pink:var(--lm-accent-2);
+  --v111-mint:var(--lm-good); --v111-pink:var(--lm-accent-2);
+  --v112-mint:var(--lm-good);
+
+  /* радиусы */
+  --sb-radius-md:var(--lm-r); --sb-radius-lg:var(--lm-r-lg); --sb-radius-xl:var(--lm-r-xl);
+  --sbos-radius-sm:var(--lm-r-sm);
+  --v78-radius:var(--lm-r); --v87-radius:var(--lm-r); --v93-radius:var(--lm-r);
+  --v109-radius-card:var(--lm-r-lg); --v109-radius-control:var(--lm-r-sm);
+
+  /* тени */
+  --sb-shadow:var(--lm-shadow); --sb-shadow-soft:var(--lm-shadow); --sb-live-shadow:var(--lm-shadow-lg);
+  --sbos-shadow:var(--lm-shadow); --sbos-focus-ring:var(--lm-accent-line);
+  --v78-shadow:var(--lm-shadow); --v78-shadow-hover:var(--lm-shadow-lg);
+  --v82-shadow:var(--lm-shadow);
+  --v87-shadow:var(--lm-shadow); --v87-shadow-hover:var(--lm-shadow-lg);
+  --v88-shadow:var(--lm-shadow);
+  --v103-shadow:var(--lm-shadow); --v107-shadow:var(--lm-shadow); --v108-form-shadow:var(--lm-shadow);
+  --v109-shadow-card:var(--lm-shadow); --v109-shadow-raised:var(--lm-shadow-lg);
+}
+
+/* ========================= 3. БАЗА И ТИПОГРАФИКА ======================== */
+/* Тему выставляют сразу несколько обработчиков из разных версий — инлайном при
+   каждой перерисовке, плюс в легаси есть html.v88-light{color-scheme:light!important}.
+   Двойной :root поднимает специфичность выше их (0,1,1); !important перебивает
+   инлайн. Иначе элементы браузера — кнопки без классов, поля, полосы прокрутки —
+   возвращаются к светлому виду поверх тёмного интерфейса. */
+html:root:root{color-scheme:dark!important;}
+html,body{background:var(--lm-bg);color:var(--lm-ink);}
+body{
+  font-family:var(--lm-font);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--lm-accent-soft);color:var(--lm-ink);}
+
+/* Атмосферный свет — подпись направления Lumen.
+   Фиксирован к окну, лежит под всем содержимым. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(52% 48% at 84% -6%, rgba(124,107,255,.20), transparent 64%),
+    radial-gradient(44% 42% at 6% 4%, rgba(197,139,255,.11), transparent 66%),
+    radial-gradient(70% 50% at 50% 108%, rgba(63,217,164,.06), transparent 68%);
+}
+body > *{position:relative;z-index:1;}
+
+h1,h2,h3,h4{color:var(--lm-ink);letter-spacing:-.022em;text-wrap:balance;}
+h1{font-weight:700;}
+h2,h3{font-weight:650;}
+p,span,li,td,th,label,small,b,strong,em,div{color:inherit;}
+small{color:var(--lm-muted);}
+
+/* Служебные надписи: капитель с разрядкой */
+.v78-page-head > div > span,
+.v884-kpis article small,
+.v107-metric small{
+  text-transform:uppercase;
+  letter-spacing:var(--lm-track-label);
+  font-size:10px;
+  font-weight:650;
+  color:var(--lm-muted);
+}
+
+/* Цифры всегда табличные — суммы в колонках выравниваются разряд в разряд */
+.v884-kpis article b, .v107-metric b, .v884-debt-list article strong,
+.v83-xp-line, .v78-donut, input[type="number"]{
+  font-variant-numeric:tabular-nums;
+}
+
+a{color:var(--lm-accent);text-decoration-color:var(--lm-accent-line);}
+:focus-visible{outline:2px solid var(--lm-accent);outline-offset:2px;border-radius:4px;}
+
+/* ============================ 4. ОБОЛОЧКА ============================== */
+.v78-app,.v78-main,.v78-content{background:transparent;}
+
+.v78-sidebar{
+  background:rgba(10,11,16,.72);
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+  border-right:1px solid var(--lm-line);
+  box-shadow:none;
+}
+.v78-topbar{
+  background:rgba(8,9,13,.66);
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+  border-bottom:1px solid var(--lm-line);
+  box-shadow:none;
+}
+
+/* Навигация: активный пункт держит акцент, остальные приглушены */
+.v78-side-link,.v78-top-tab{
+  color:var(--lm-muted);
+  border-radius:var(--lm-r-sm);
+  border:1px solid transparent;
+  background:transparent;
+  transition:color .16s ease,background .16s ease,border-color .16s ease;
+}
+.v78-side-link:hover,.v78-top-tab:hover{
+  color:var(--lm-ink);
+  background:var(--lm-surface);
+}
+.v78-side-link.active,.v78-top-tab.active{
+  color:var(--lm-ink);
+  background:var(--lm-accent-soft);
+  border-color:var(--lm-accent-line);
+}
+.v78-side-link.active > i,.v78-top-tab.active > i{color:var(--lm-accent);}
+
+.v78-mobile-nav{
+  background:rgba(9,10,15,.86);
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+  border-top:1px solid var(--lm-line);
+}
+.v78-mobile-nav a{color:var(--lm-muted);}
+.v78-mobile-nav a.active{color:var(--lm-accent);}
+
+/* Логотип и аватары — единственные места с градиентом */
+.v78-brand-orb,.v78-brand-orb-sm,.v78-avatar,.v78-avatar-sm,.v78-avatar-md,
+.v78-avatar-fallback,.v103-home-avatar,.v88-assistant-orb{
+  background:var(--lm-grad);
+  color:#0B0A14;
+  border:0;
+  box-shadow:0 8px 24px rgba(124,107,255,.34);
+}
+
+/* ==================== 5. ПОВЕРХНОСТИ И КАРТОЧКИ ======================== */
+.v78-card,.v78-folder-card,.v78-folder-panel,.v78-category-card,.v78-assistant-card,
+.v78-interview-card,.v78-obligations-card,.v78-operations-folder,.v78-next-week,
+.v78-week-wishlist,.v78-all-habits,.v78-motivation,.v78-archive-row,
+.sbos-v93-surface,.sbos-v93-folder-card,.sbos-v93-operation-tile,
+.v80-interview-card,.v83-today-game,.v83-player-mini,.v83-mini-money,
+.v884-panel,.v884-safe-card,.v884-finance-nav,.v884-mini-finance,
+.v103-home-finance,.v103-home-habits,.v103-home-folders,.v103-home-obligations,
+.v103-home-operations,.v103-home-analysis,.v103-home-interview,.v103-home-ai,
+.v103-home-next-week,.v103-profile-strip,
+.v107-panel,.v107-folder,.v107-record-card,.v107-strip,
+.v120-command-center,.v88-live-hero,.v88-live-map,.v85-automation-strip{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-radius:var(--lm-r-lg);
+  box-shadow:none;
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+}
+
+/* Наведение — только подсветка границы, без прыжков */
+.v78-folder-card:hover,.sbos-v93-folder-card:hover,.v107-folder:hover,
+.v78-category-card:hover,.sbos-v93-operation-tile:hover{
+  border-color:var(--lm-accent-line);
+  background:var(--lm-surface-2);
+}
+
+/* Командный центр — главный блок дня, единственный с акцентной рамкой */
+.v120-command-center{
+  border-color:var(--lm-accent-line);
+  background:linear-gradient(160deg,rgba(139,123,255,.10),rgba(255,255,255,.03));
+}
+.v120-command-priority{color:var(--lm-accent);}
+
+/* Цветовые семейства папок сводятся к одной палитре: цвет — это смысл,
+   а не украшение. Остаётся акцент, опасность, успех, предупреждение. */
+.folder-violet,.folder-blue{--folder-tone:var(--lm-accent);}
+.folder-coral{--folder-tone:var(--lm-danger);}
+.folder-green{--folder-tone:var(--lm-good);}
+.v78-folder-icon,.v107-button-icon{color:var(--folder-tone,var(--lm-accent));}
+
+.v78-empty,.v78-empty-big{
+  color:var(--lm-muted);
+  background:var(--lm-surface);
+  border:1px dashed var(--lm-line-strong);
+  border-radius:var(--lm-r);
+}
+
+/* ======================= 6. КНОПКИ И ПОЛЯ ============================== */
+button,.v78-link-button{font-family:var(--lm-font);}
+
+/* Базовый вид кнопки. Без него кнопки без собственных классов получали
+   системный светлый фон браузера и сливались с текстом. */
+.v78-app button:not([class]),
+.v78-content button:not([class]),
+#modal button:not([class]){
+  background:var(--lm-surface-2);
+  color:var(--lm-ink);
+  border:1px solid var(--lm-line-strong);
+  border-radius:var(--lm-r-sm);
+  padding:8px 14px;
+  min-height:38px;
+  font-weight:600;
+  cursor:pointer;
+  transition:border-color .16s ease,background .16s ease;
+}
+.v78-app button:not([class]):hover,
+.v78-content button:not([class]):hover,
+#modal button:not([class]):hover{
+  border-color:var(--lm-accent-line);
+  background:var(--lm-accent-soft);
+}
+
+.v78-primary,button.v78-primary{
+  background:var(--lm-grad);
+  color:#0B0A14;
+  border:0;
+  border-radius:var(--lm-r-sm);
+  font-weight:700;
+  box-shadow:0 8px 22px rgba(124,107,255,.30);
+  transition:transform .14s ease,box-shadow .16s ease,filter .16s ease;
+}
+.v78-primary:hover{filter:brightness(1.07);box-shadow:0 10px 28px rgba(124,107,255,.42);}
+.v78-primary:active{transform:translateY(1px);}
+
+.v78-secondary,button.v78-secondary{
+  background:var(--lm-surface-2);
+  color:var(--lm-ink);
+  border:1px solid var(--lm-line-strong);
+  border-radius:var(--lm-r-sm);
+  font-weight:600;
+  transition:border-color .16s ease,background .16s ease;
+}
+.v78-secondary:hover{border-color:var(--lm-accent-line);background:var(--lm-accent-soft);}
+
+.v78-link-button{background:transparent;border:0;color:var(--lm-accent);font-weight:600;}
+.v78-link-button:hover{color:var(--lm-accent-2);}
+
+/* Кнопка захвата — плавающая, единственный «тяжёлый» элемент */
+.v86-capture-fab,.sbos-v93-capture-fab,.sbos-v93-plus-button{
+  background:var(--lm-grad);
+  color:#0B0A14;
+  border:0;
+  box-shadow:0 12px 32px rgba(124,107,255,.46);
+}
+
+input,select,textarea{
+  background:var(--lm-surface);
+  color:var(--lm-ink);
+  border:1px solid var(--lm-line-strong);
+  border-radius:var(--lm-r-sm);
+  font-family:var(--lm-font);
+  transition:border-color .16s ease,box-shadow .16s ease;
+}
+input::placeholder,textarea::placeholder{color:var(--lm-faint);}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--lm-accent);
+  box-shadow:0 0 0 3px var(--lm-accent-soft);
+  outline:none;
+}
+select option{background:var(--lm-surface-solid);color:var(--lm-ink);}
+.v79-field > span{color:var(--lm-muted);font-size:12px;font-weight:600;}
+.v81-help-box{
+  background:var(--lm-accent-soft);
+  border:1px solid var(--lm-accent-line);
+  border-radius:var(--lm-r);
+  color:var(--lm-ink-dim);
+}
+
+/* ======================= 7. ДАННЫЕ И ПОКАЗАТЕЛИ ======================== */
+/* Метрики: крупное тонкое число — визуальный центр экрана */
+.v884-kpis article,.v107-metric,.v78-folder-stats > *{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-radius:var(--lm-r);
+}
+.v884-kpis article b,.v107-metric b{
+  color:var(--lm-ink);
+  font-weight:300;
+  letter-spacing:-.035em;
+  font-size:1.55rem;
+}
+.v884-kpis article b.negative,.negative{color:var(--lm-danger);}
+.positive{color:var(--lm-good);}
+
+/* Списки обязательств: слева — тонкая полоса состояния */
+.v884-debt-list article,.v884-account-list article,.v884-reserve-list article,
+.v884-flow-list article,.v884-deferred-list article,.v85-queue-list article{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-left:2px solid var(--lm-line-strong);
+  border-radius:var(--lm-r);
+  box-shadow:none;
+}
+.v884-debt-list article.danger,.v85-queue-list article.danger{
+  border-left-color:var(--lm-danger);
+  background:linear-gradient(90deg,var(--lm-danger-soft),transparent 22%);
+}
+.v884-debt-list article strong{color:var(--lm-danger);font-weight:600;letter-spacing:-.02em;}
+.v884-debt-rank{
+  background:var(--lm-accent-soft);
+  color:var(--lm-accent);
+  border:1px solid var(--lm-accent-line);
+  border-radius:999px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Сценарии досрочного погашения */
+.v884-scenarios article{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-radius:var(--lm-r);
+}
+.v884-scenarios article b{color:var(--lm-good);font-weight:400;letter-spacing:-.03em;}
+
+/* Привычки */
+.v78-habit-chip{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-radius:var(--lm-r);
+  transition:border-color .16s ease,background .16s ease;
+}
+.v78-habit-chip:hover{border-color:var(--lm-accent-line);}
+.v78-habit-chip.done,.v78-habit-chip[aria-checked="true"]{
+  background:var(--lm-good-soft);
+  border-color:rgba(63,217,164,.34);
+}
+
+/* Полосы прогресса и XP — светятся, это часть графики Lumen */
+progress,.v83-xp-line{accent-color:var(--lm-accent);}
+.v78-donut{filter:drop-shadow(0 0 10px rgba(139,123,255,.35));}
+
+/* Иконки: единый акцентный штрих вместо семи разных заливок */
+.v883-icon-host,.v88-icon-host,.sbos-v90-icon-host{
+  background:var(--lm-accent-soft);
+  border:1px solid var(--lm-accent-line);
+  border-radius:var(--lm-r-sm);
+  box-shadow:none;
+}
+.v883-icon-host svg,.v88-icon-host svg,.v107-button-icon svg{
+  stroke:var(--lm-accent);
+  fill:none;
+  stroke-width:1.5;
+}
+/* Легаси-правило делало обводку белой — перебиваем адресно */
+.v883-icon-host svg{stroke:var(--lm-accent)!important;}
+
+/* Недельная сетка */
+.v78-week-strip > *{
+  background:var(--lm-surface);
+  border:1px solid var(--lm-line);
+  border-radius:var(--lm-r-sm);
+  color:var(--lm-muted);
+}
+.v78-week-strip > .today,.v78-week-strip > .active{
+  border-color:var(--lm-accent);
+  color:var(--lm-ink);
+  background:var(--lm-accent-soft);
+}
+
+/* Декоративная графика прошлых версий — приглушаем, чтобы не спорила
+   с новой системой (полностью не убираем: на ней держится вёрстка) */
+.v78-liquid-art,.v80-mind-art,.v78-robot,.v87-constellation,.v88-constellation{
+  opacity:.42;filter:saturate(.35) hue-rotate(-12deg);
+}
+
+/* Точечные исправления мест, где легаси-правила выигрывали по специфичности */
+
+/* GameLife: аватар и бейдж уровня. Легаси красит их янтарём и задаёт
+   color:inherit!important через body.v88-constellation :is(...) — селектор
+   ниже специфичнее, поэтому возвращает фирменный градиент и тёмный текст. */
+body.v87-constellation .v83-avatar-core > span,
+body.v88-constellation .v83-avatar-core > span,
+body.v87-constellation .v83-avatar-core .v78-avatar,
+body.v88-constellation .v83-avatar-core .v78-avatar,
+body.v87-constellation .v83-avatar-core .v78-avatar-fallback,
+body.v88-constellation .v83-avatar-core .v78-avatar-fallback{
+  background:var(--lm-grad)!important;
+  color:#0B0A14!important;
+}
+
+/* Панель поиска в списках V107 оставалась белой */
+.v107-list-toolbar label,
+.v107-list-toolbar input{
+  background:var(--lm-surface)!important;
+  border:1px solid var(--lm-line)!important;
+  color:var(--lm-ink)!important;
+}
+.v107-list-toolbar input::placeholder{color:var(--lm-faint)!important;}
+
+/* Пустые состояния V107 */
+.v107-empty{
+  background:var(--lm-surface)!important;
+  border:1px dashed var(--lm-line-strong)!important;
+  border-radius:var(--lm-r);
+  color:var(--lm-ink-dim)!important;
+}
+.v107-empty p,.v107-empty small{color:var(--lm-muted)!important;}
+
+/* ==================== 8. МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ ================== */
+#modal.modal{background:rgba(4,5,9,.66)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important;}
+#modal .modal-card,.v107-modal-shell{
+  background:rgba(18,19,26,.94)!important;
+  border:1px solid var(--lm-line-strong);
+  border-radius:var(--lm-r-xl)!important;
+  box-shadow:var(--lm-shadow-lg)!important;
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+}
+#modal .modal-head,.v107-modal-head{border-bottom:1px solid var(--lm-line);}
+#modal .modal-head h2{color:var(--lm-ink);}
+#modal .modal-head button,.v107-modal-close{
+  background:var(--lm-surface-2);
+  color:var(--lm-muted);
+  border:1px solid var(--lm-line);
+  border-radius:999px;
+}
+#modal .modal-head button:hover,.v107-modal-close:hover{color:var(--lm-ink);border-color:var(--lm-accent-line);}
+
+.toast{
+  background:rgba(18,19,26,.96);
+  color:var(--lm-ink);
+  border:1px solid var(--lm-accent-line);
+  border-radius:var(--lm-r);
+  box-shadow:var(--lm-shadow-lg);
+  backdrop-filter:var(--lm-glass);-webkit-backdrop-filter:var(--lm-glass);
+}
+
+/* Полосы прокрутки в тон системе */
+*{scrollbar-color:var(--lm-line-strong) transparent;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--lm-line-strong);border-radius:99px;border:3px solid transparent;background-clip:content-box;}
+::-webkit-scrollbar-thumb:hover{background:var(--lm-accent-line);background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}
