@@ -1,6 +1,6 @@
-/* Second Brain OS V112 — connected finance service worker. */
+/* Second Brain OS V113 — consolidated service worker. */
 'use strict';
-importScripts('./version-v112.js?v=v112-r8');
+importScripts('./version.js?v=v113-r1');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -9,24 +9,12 @@ const CRITICAL = [
   INDEX_KEY,
   './offline.html',
   './manifest.webmanifest',
-  './version-v112.js',
-  './compat-v104.js',
-  './bootstrap-v104.js',
-  './backup-v104.js',
-  './styles-v104-full.css',
-  './app-v104-full.js',
-  './styles-v108-information-actions.css',
-  './styles-v109-light-premium.css',
-  './styles-v110-information-center.css',
-  './styles-v111-couple-week.css',
-  './styles-v112-finance-center.css',
-  './app-v108-information-actions.js',
-  './app-v112-finance-center.js'
+  './version.js',
+  './styles.css',
+  './app.js'
 ];
 const OPTIONAL = [
-  './firebase-config.js','./cloud-sync.js','./pwa-v98.js',
-  './styles-v884-finance.css','./styles-v91-stability.css','./styles-v93-assistant.css','./styles-v98-core.css','./styles-v103-product.css',
-  './app-v91-stability.js','./app-v93-assistant.js','./app-v103-product.js',
+  './firebase-config.js','./app-cloud.js',
   './icon-192-v84.png','./icon-512-v84.png','./maskable-512-v84.png'
 ];
 async function fetchRequired(url){const response=await fetch(url,{cache:'reload'});if(!response.ok)throw new Error(`Critical asset ${url}: HTTP ${response.status}`);return response;}

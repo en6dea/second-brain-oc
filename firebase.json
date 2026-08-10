@@ -7,10 +7,7 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "archive-development/**",
-      "QA_*/**",
-      "*.patch"
+      "**/node_modules/**"
     ],
     "headers": [
       {
