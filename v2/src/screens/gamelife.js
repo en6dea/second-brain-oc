@@ -5,10 +5,10 @@
    Смысл раздела в другом: он показывает не «сколько сделано», а держится ли
    ритм — поэтому наверху серия дней, а не очки. */
 
-import { getState, num } from '../store.js?v=2.2.0';
-import { esc, todayKey, dateShort, plural, weekEndingToday, parseKey, toKey } from '../format.js?v=2.2.0';
-import { activeHabits, isHabitDone, habitsToday, weekCompletion } from '../calc.js?v=2.2.0';
-import { pageHead, card, label, ring, metricStrip, empty, button } from '../ui.js?v=2.2.0';
+import { getState, num } from '../store.js?v=2.3.0';
+import { esc, todayKey, dateShort, plural, weekEndingToday, parseKey, toKey } from '../format.js?v=2.3.0';
+import { activeHabits, isHabitDone, habitsToday, weekCompletion } from '../calc.js?v=2.3.0';
+import { pageHead, card, label, ring, metricStrip, empty, button } from '../ui.js?v=2.3.0';
 
 const game = (state) => (state.gameLife && typeof state.gameLife === 'object') ? state.gameLife : {};
 
@@ -122,7 +122,7 @@ export function renderArchive() {
   const head = pageHead({
     eyebrow: 'Убранное с глаз',
     title: 'Архив',
-    subtitle: 'Записи не удаляются, а откладываются — их всегда можно вернуть'
+    subtitle: 'Записи не удаляются, а откладываются — нажатие возвращает запись туда, откуда она пришла'
   });
 
   if (!rows.length) {
@@ -130,11 +130,15 @@ export function renderArchive() {
   }
 
   const list = `<div class="info-list">${rows.slice(0, 80).map((row) => `
-    <button class="info-row" type="button" data-act="archive-restore" data-id="${esc(row.id || '')}">
-      <span class="i-main">${esc(row.title || row.name || 'Запись')}</span>
-      ${row.type ? `<span class="i-sub">${esc(row.type)}</span>` : ''}
-      ${row.archivedAt ? `<span class="i-date">${esc(dateShort(String(row.archivedAt).slice(0, 10)))}</span>` : ''}
-    </button>`).join('')}</div>`;
+    <div class="info-item">
+      <button class="info-row" type="button" data-act="archive-restore" data-id="${esc(row.id || '')}">
+        <span class="i-main">${esc(row.title || row.name || 'Запись')}</span>
+        ${row.type ? `<span class="i-sub">${esc(row.type)}</span>` : ''}
+        ${row.archivedAt ? `<span class="i-date">${esc(dateShort(String(row.archivedAt).slice(0, 10)))}</span>` : ''}
+      </button>
+      <button class="row-btn" type="button" data-act="archive-restore" data-id="${esc(row.id || '')}"
+        title="Вернуть" aria-label="Вернуть из архива">↺</button>
+    </div>`).join('')}</div>`;
 
   const metrics = metricStrip([
     { label: 'В архиве', value: String(rows.length) },

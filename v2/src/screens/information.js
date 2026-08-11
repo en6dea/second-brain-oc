@@ -5,9 +5,9 @@
    это сохранённое на будущее, — поэтому здесь они собраны в один экран с
    переключением, а коллекции в хранилище остаются прежними. */
 
-import { getState } from '../store.js?v=2.2.0';
-import { esc, dateShort, plural } from '../format.js?v=2.2.0';
-import { pageHead, card, label, button, empty, metricStrip } from '../ui.js?v=2.2.0';
+import { getState } from '../store.js?v=2.3.0';
+import { esc, dateShort, plural } from '../format.js?v=2.3.0';
+import { pageHead, card, label, button, empty, metricStrip } from '../ui.js?v=2.3.0';
 
 /* Коллекция → как её называть и что показывать в строке. */
 export const SECTIONS = [
@@ -53,12 +53,17 @@ export function render(params = {}) {
         const main = pick(row, current.main, 'name', 'text') || 'Без названия';
         const sub = pick(row, current.sub, 'note', 'text', 'author');
         const date = row.createdAt ? dateShort(row.createdAt.slice(0, 10)) : '';
-        return `<button class="info-row" type="button" data-act="info-edit"
-            data-id="${esc(row.id)}" data-section="${current.key}">
-          <span class="i-main">${esc(main)}</span>
-          ${sub && sub !== main ? `<span class="i-sub">${esc(sub)}</span>` : ''}
-          ${date ? `<span class="i-date">${esc(date)}</span>` : ''}
-        </button>`;
+        return `<div class="info-item">
+          <button class="info-row" type="button" data-act="info-edit"
+              data-id="${esc(row.id)}" data-section="${current.key}">
+            <span class="i-main">${esc(main)}</span>
+            ${sub && sub !== main ? `<span class="i-sub">${esc(sub)}</span>` : ''}
+            ${date ? `<span class="i-date">${esc(date)}</span>` : ''}
+          </button>
+          <button class="row-btn" type="button" data-act="archive-move"
+            data-id="${esc(row.id)}" data-section="${current.key}"
+            title="В архив" aria-label="Убрать в архив">↓</button>
+        </div>`;
       }).join('')}</div>`
     : empty(
         `В разделе «${current.title}» пока пусто.`,

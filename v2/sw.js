@@ -12,24 +12,24 @@ const CACHE = `second-brain-v2-${VERSION}`;
 
 const SHELL = [
   './index.html',
-  './styles.css?v=2.2.0',
-  './manifest.webmanifest?v=2.2.0',
-  './src/app.js?v=2.2.0',
-  './src/store.js?v=2.2.0',
-  './src/format.js?v=2.2.0',
-  './src/calc.js?v=2.2.0',
-  './src/ui.js?v=2.2.0',
-  './src/modal.js?v=2.2.0',
-  './src/actions.js?v=2.2.0',
-  './src/screens/today.js?v=2.2.0',
-  './src/screens/finance.js?v=2.2.0',
-  './src/screens/debts.js?v=2.2.0',
-  './src/screens/habits.js?v=2.2.0',
-  './src/screens/goals.js?v=2.2.0',
-  './src/screens/information.js?v=2.2.0',
-  './src/screens/calendar.js?v=2.2.0',
-  './src/screens/gamelife.js?v=2.2.0',
-  './src/screens/system.js?v=2.2.0'
+  './styles.css?v=2.3.0',
+  './manifest.webmanifest?v=2.3.0',
+  './src/app.js?v=2.3.0',
+  './src/store.js?v=2.3.0',
+  './src/format.js?v=2.3.0',
+  './src/calc.js?v=2.3.0',
+  './src/ui.js?v=2.3.0',
+  './src/modal.js?v=2.3.0',
+  './src/actions.js?v=2.3.0',
+  './src/screens/today.js?v=2.3.0',
+  './src/screens/finance.js?v=2.3.0',
+  './src/screens/debts.js?v=2.3.0',
+  './src/screens/habits.js?v=2.3.0',
+  './src/screens/goals.js?v=2.3.0',
+  './src/screens/information.js?v=2.3.0',
+  './src/screens/calendar.js?v=2.3.0',
+  './src/screens/gamelife.js?v=2.3.0',
+  './src/screens/system.js?v=2.3.0'
 ];
 
 self.addEventListener('install', (event) => {

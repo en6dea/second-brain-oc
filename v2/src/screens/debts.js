@@ -4,12 +4,25 @@
    показано тело долга, а сценарии доплаты считаются амортизацией, а не
    делением остатка на платёж. */
 
-import { getState, num } from '../store.js?v=2.2.0';
-import { money, dateShort, plural, esc, monthTitle } from '../format.js?v=2.2.0';
-import { debtSummary, debtOrder, payoff, debtBalance, debtMinimum, debtDue, isOverdue } from '../calc.js?v=2.2.0';
-import { pageHead, metricStrip, card, label, listRow, areaChart, axis, button, empty } from '../ui.js?v=2.2.0';
+import { getState, num } from '../store.js?v=2.3.0';
+import { money, dateShort, plural, esc, monthTitle } from '../format.js?v=2.3.0';
+import { debtSummary, debtOrder, payoff, debtBalance, debtMinimum, debtDue, isOverdue } from '../calc.js?v=2.3.0';
+import { pageHead, metricStrip, card, label, listRow, areaChart, axis, button, empty } from '../ui.js?v=2.3.0';
 
 const SCENARIOS = [10_000, 30_000, 50_000];
+
+/* Подписи оси: «сейчас» и три равноотстоящие точки до закрытия. Пустые
+   ячейки, которые были здесь раньше, ничего не сообщали. */
+function monthTicks(count, horizon) {
+  const now = new Date();
+  const label = (offset) => {
+    const date = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12);
+    return `${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][date.getMonth()]} ${String(date.getFullYear()).slice(2)}`;
+  };
+  const last = Math.max(1, count - 1);
+  return ['Сейчас', label(Math.round(last / 3)), label(Math.round((last * 2) / 3)),
+    horizon ? dateShort(horizon) : label(last)];
+}
 
 const TYPE_LABELS = {
   microloan: 'займ', bank_credit: 'кредит', credit_card: 'кредитная карта',
@@ -76,7 +89,7 @@ export function render() {
       ${horizon ? `<i class="d"></i><span class="g">выход ${dateShort(horizon)}</span>` : ''}
     </div>
     ${points.length > 1 ? areaChart(points, { id: 'debt' }) : ''}
-    ${points.length > 1 ? axis(['Сейчас', '', '', horizon ? dateShort(horizon) : 'Прогноз']) : ''}
+    ${points.length > 1 ? axis(monthTicks(points.length, horizon)) : ''}
   `);
 
   const scenarios = card(`

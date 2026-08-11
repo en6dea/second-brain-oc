@@ -5,10 +5,10 @@
    как были (title, nextAction, due/date, status, stages, habitIds), чтобы
    старое приложение продолжало их понимать. */
 
-import { getState } from '../store.js?v=2.2.0';
-import { esc, dateShort, daysFromToday, plural, percent, todayKey } from '../format.js?v=2.2.0';
-import { activeHabits, isHabitDone, habitStreak } from '../calc.js?v=2.2.0';
-import { pageHead, card, label, ring, button, empty, metricStrip, listRow } from '../ui.js?v=2.2.0';
+import { getState } from '../store.js?v=2.3.0';
+import { esc, dateShort, daysFromToday, plural, percent, todayKey } from '../format.js?v=2.3.0';
+import { activeHabits, isHabitDone, habitStreak } from '../calc.js?v=2.3.0';
+import { pageHead, card, label, ring, button, empty, metricStrip, listRow } from '../ui.js?v=2.3.0';
 
 export const activeGoals = (state) => (state.goals || [])
   .filter((g) => g && g.status !== 'done' && g.status !== 'archived');

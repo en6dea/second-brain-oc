@@ -372,3 +372,7 @@ body.modal-open{overflow:hidden}
 .kv span{color:var(--muted);font-size:12.5px;flex:1;min-width:0}
 .kv b{font-size:13.5px;font-variant-numeric:tabular-nums;text-align:right;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+
+.info-item{display:flex;gap:8px;align-items:stretch}
+.info-item .info-row{flex:1;min-width:0}
+.info-item .row-btn{align-self:stretch;height:auto}

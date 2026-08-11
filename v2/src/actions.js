@@ -7,9 +7,9 @@
 import {
   getState, update, uid, nowIso, num,
   exportState, importState, createBackup, restoreBackup
-} from './store.js?v=2.2.0';
-import { openModal } from './modal.js?v=2.2.0';
-import { todayKey } from './format.js?v=2.2.0';
+} from './store.js?v=2.3.0';
+import { openModal } from './modal.js?v=2.3.0';
+import { todayKey } from './format.js?v=2.3.0';
 
 const find = (name, id) => (getState()[name] || []).find((x) => x && x.id === id) || null;
 
@@ -517,4 +517,77 @@ export async function restoreFrom(key) {
   } catch (error) {
     alert(`Не удалось восстановить: ${error && error.message || error}`);
   }
+}
+
+/* -------------------------------- Архив --------------------------------- */
+
+/* Куда возвращать запись — помним в самой записи. Без этого архив
+   превращается в свалку, из которой ничего нельзя достать обратно. */
+
+const ARCHIVABLE = {
+  notes: 'Заметка', ideas: 'Идея', wishes: 'Желание', books: 'Книга',
+  films: 'Фильм', documents: 'Документ', people: 'Человек', tasks: 'Задача'
+};
+
+/** Переносит запись в архив, запоминая, откуда она пришла. */
+export function archiveRecord(collection, id) {
+  if (!ARCHIVABLE[collection]) return;
+  update((state) => {
+    const list = state[collection] || [];
+    const index = list.findIndex((row) => row && row.id === id);
+    if (index === -1) return;
+    const [row] = list.splice(index, 1);
+    if (!Array.isArray(state.archive)) state.archive = [];
+    state.archive.unshift(Object.assign({}, row, {
+      archivedAt: nowIso(),
+      archivedFrom: collection,
+      type: ARCHIVABLE[collection]
+    }));
+  }, 'archive-move');
+}
+
+/** Возвращает запись туда, откуда она была убрана. */
+export function restoreFromArchive(id) {
+  update((state) => {
+    const list = state.archive || [];
+    const index = list.findIndex((row) => row && row.id === id);
+    if (index === -1) return;
+    const [row] = list.splice(index, 1);
+    const target = ARCHIVABLE[row.archivedFrom] ? row.archivedFrom : 'notes';
+    if (!Array.isArray(state[target])) state[target] = [];
+    const restored = Object.assign({}, row);
+    delete restored.archivedAt;
+    delete restored.archivedFrom;
+    delete restored.type;
+    restored.updatedAt = nowIso();
+    state[target].unshift(restored);
+  }, 'archive-restore');
+}
+
+/* ------------------------------- Профиль -------------------------------- */
+
+export function editProfile() {
+  const settings = getState().settings || {};
+  const name = typeof settings.name === 'string'
+    ? settings.name
+    : (settings.profile && settings.profile.name) || '';
+  openModal({
+    title: 'Профиль',
+    subtitle: 'Имя и подпись показываются в приветствии на экране «Сегодня»',
+    fields: [
+      { id: 'name', label: 'Как к вам обращаться', value: name, span: true,
+        placeholder: 'Алексей' },
+      { id: 'subtitle', label: 'Подпись под приветствием', value: settings.subtitle || '', span: true,
+        placeholder: 'Фокус на рост', hint: 'Короткая фраза, задающая тон дню' }
+    ],
+    onSubmit: (values) => update((state) => {
+      state.settings = state.settings || {};
+      state.settings.name = values.name;
+      state.settings.subtitle = values.subtitle;
+      /* Прежняя версия читает имя ещё и из profile — держим согласованным. */
+      if (state.settings.profile && typeof state.settings.profile === 'object') {
+        state.settings.profile.name = values.name;
+      }
+    }, 'profile-save')
+  });
 }

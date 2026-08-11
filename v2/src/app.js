@@ -4,22 +4,23 @@
    экранов немного, а зависимость от сборщика сделала бы правки сложнее,
    чем сама задача. Отрисовка — целиком экран, через строку HTML. */
 
-import { load, subscribe, getState } from './store.js?v=2.2.0';
-import { render as renderToday } from './screens/today.js?v=2.2.0';
-import { render as renderFinance } from './screens/finance.js?v=2.2.0';
-import { render as renderDebts } from './screens/debts.js?v=2.2.0';
-import { render as renderHabits, toggleMark } from './screens/habits.js?v=2.2.0';
-import { render as renderGoals } from './screens/goals.js?v=2.2.0';
-import { render as renderInformation, renderPeople } from './screens/information.js?v=2.2.0';
-import { render as renderCalendar } from './screens/calendar.js?v=2.2.0';
-import { render as renderGameLife, renderArchive } from './screens/gamelife.js?v=2.2.0';
-import { render as renderSystem, loadBackups, invalidateBackups } from './screens/system.js?v=2.2.0';
+import { load, subscribe, getState } from './store.js?v=2.3.0';
+import { render as renderToday } from './screens/today.js?v=2.3.0';
+import { render as renderFinance } from './screens/finance.js?v=2.3.0';
+import { render as renderDebts } from './screens/debts.js?v=2.3.0';
+import { render as renderHabits, toggleMark } from './screens/habits.js?v=2.3.0';
+import { render as renderGoals } from './screens/goals.js?v=2.3.0';
+import { render as renderInformation, renderPeople } from './screens/information.js?v=2.3.0';
+import { render as renderCalendar } from './screens/calendar.js?v=2.3.0';
+import { render as renderGameLife, renderArchive } from './screens/gamelife.js?v=2.3.0';
+import { render as renderSystem, loadBackups, invalidateBackups } from './screens/system.js?v=2.3.0';
 import {
   editDebt, payDebt, debtStrategy, editAccount, reconcile,
   editOperation, editHabit, editTask,
   editGoal, toggleStage, editInfo, editPerson,
-  exportJson, importJson, backupNow, restoreFrom
-} from './actions.js?v=2.2.0';
+  exportJson, importJson, backupNow, restoreFrom,
+  archiveRecord, restoreFromArchive, editProfile
+} from './actions.js?v=2.3.0';
 
 const SCREENS = {
   today: { title: 'Сегодня', render: renderToday },
@@ -128,7 +129,10 @@ const ACTIONS = {
   'import-merge': () => importJson('merge'),
   'import-replace': () => importJson('replace'),
   'backup-now': () => backupNow().then(() => { invalidateBackups(); loadBackups(draw); }),
-  'backup-restore': (el) => restoreFrom(el.dataset.id)
+  'backup-restore': (el) => restoreFrom(el.dataset.id),
+  'archive-move': (el) => archiveRecord(el.dataset.section, el.dataset.id),
+  'archive-restore': (el) => restoreFromArchive(el.dataset.id),
+  'edit-profile': () => editProfile()
 };
 
 /* Разделы, экраны которых ещё не перенесены. */
@@ -177,7 +181,7 @@ load()
    браузер откажет, и в консоли появится ошибка, которая ничего не значит. */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=2.2.0', { scope: './' })
+    navigator.serviceWorker.register('./sw.js?v=2.3.0', { scope: './' })
       .catch((error) => console.info('[app] офлайн-режим недоступен:', error && error.message));
   });
 }
