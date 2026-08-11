@@ -7,7 +7,7 @@
     label: 'V117 · ЛЕНТА ЖИЗНИ',
     id: 'second-brain-os-v116-life-20260811-r1',
     dataSchemaVersion: 3,
-    cacheVersion: 'v117-r1',
+    cacheVersion: 'v117-r2',
     cacheName: 'second-brain-os-v116-life-r1',
     builtAt: '2026-08-11T12:00:00+03:00',
     criticalFiles: [

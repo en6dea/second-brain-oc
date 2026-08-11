@@ -71,21 +71,43 @@
   font-size: 10.5px; color: var(--v78-muted); font-variant-numeric: tabular-nums;
 }
 
-/* столбики категорий */
-.sbos-bars { display: flex; gap: 8px; align-items: flex-end; height: 122px; margin-top: 14px; }
-.sbos-bars .bar { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
-.sbos-bars .fill {
-  border-radius: 8px 8px 4px 4px;
-  background: linear-gradient(180deg, var(--v78-violet), color-mix(in srgb, var(--v78-violet) 42%, transparent));
-  min-height: 4px;
-}
-.sbos-bars .fill.over {
-  background: linear-gradient(180deg, var(--v78-coral), color-mix(in srgb, var(--v78-coral) 42%, transparent));
-}
-.sbos-bars-labels { display: flex; gap: 8px; margin-top: 9px; }
-.sbos-bars-labels span {
-  flex: 1; min-width: 0; text-align: center; font-size: 10.5px; color: var(--v78-muted);
+/* Категории — горизонтальными полосами: название, полоса, сумма в одной
+   строке. При одной категории столбик растягивался во всю ширину и выглядел
+   как красное полотно; полоса читается одинаково и для одной, и для восьми. */
+.sbos-hbars { display: grid; gap: 10px; margin-top: 16px; }
+.sbos-hbar { display: grid; grid-template-columns: minmax(84px, 128px) 1fr auto; gap: 14px; align-items: center; }
+.sbos-hbar .name {
+  font-size: 13px; color: var(--v78-ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sbos-hbar .track {
+  position: relative; height: 10px; border-radius: 99px; min-width: 40px;
+  background: color-mix(in srgb, var(--v78-muted) 16%, transparent);
+}
+.sbos-hbar .track i {
+  display: block; height: 100%; border-radius: 99px; min-width: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--v78-violet) 72%, transparent), var(--v78-violet));
+}
+.sbos-hbar .track i.over {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--v78-coral) 72%, transparent), var(--v78-coral));
+}
+/* Засечка лимита: видно не только «сколько», но и «докуда можно». */
+.sbos-hbar .track .limit {
+  position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px;
+  background: var(--v78-ink); opacity: .32;
+}
+.sbos-hbar .val {
+  font-size: 13px; color: var(--v78-ink); font-variant-numeric: tabular-nums;
+  white-space: nowrap; text-align: right;
+}
+.sbos-hbar .val.over { color: var(--v78-coral); }
+.sbos-hbar .val small { display: block; font-size: 10.5px; color: var(--v78-muted); margin-top: 2px; }
+
+@media (max-width: 560px) {
+  .sbos-hbar { grid-template-columns: 1fr auto; grid-template-areas: "name val" "track track"; }
+  .sbos-hbar .name { grid-area: name; }
+  .sbos-hbar .val { grid-area: val; }
+  .sbos-hbar .track { grid-area: track; }
 }
 
 /* спарклайн в строке */
@@ -107,7 +129,7 @@
   to   { opacity: 1; transform: none; }
 }
 @keyframes sbos-draw { to { stroke-dashoffset: 0; } }
-@keyframes sbos-grow { from { transform: scaleY(.02); } to { transform: none; } }
+@keyframes sbos-grow-x { from { transform: scaleX(.02); } to { transform: none; } }
 
 .v78-page { animation: sbos-rise .32s cubic-bezier(.22,.8,.24,1) both; }
 
@@ -126,13 +148,7 @@
   stroke-dashoffset: var(--len, 1200);
   animation: sbos-draw .9s cubic-bezier(.3,.9,.3,1) .12s forwards;
 }
-.sbos-bars .fill { transform-origin: bottom; animation: sbos-grow .5s cubic-bezier(.22,.9,.26,1) both; }
-.sbos-bars .bar:nth-child(1) .fill { animation-delay: .04s; }
-.sbos-bars .bar:nth-child(2) .fill { animation-delay: .08s; }
-.sbos-bars .bar:nth-child(3) .fill { animation-delay: .12s; }
-.sbos-bars .bar:nth-child(4) .fill { animation-delay: .16s; }
-.sbos-bars .bar:nth-child(5) .fill { animation-delay: .20s; }
-.sbos-bars .bar:nth-child(n+6) .fill { animation-delay: .24s; }
+.sbos-hbar .track i { transform-origin: left; animation: sbos-grow-x .55s cubic-bezier(.22,.9,.26,1) both; }
 
 /* Отклик на касание: карточка чуть поднимается, кнопка чуть проседает.
    Это единственная обратная связь, которая не требует чтения. */
@@ -151,13 +167,13 @@ button:active { transform: translateY(1px) scale(.99); }
 /* Движение — приятная деталь, а не условие работы. Если система просит
    покоя, оставляем только мгновенные состояния. */
 @media (prefers-reduced-motion: reduce) {
-  .v78-page, .v78-page > *, .sbos-bars .fill { animation: none !important; }
+  .v78-page, .v78-page > *, .sbos-hbar .track i { animation: none !important; }
   .sbos-chart .line.draw { stroke-dasharray: none; stroke-dashoffset: 0; animation: none !important; }
   .v78-card, .v884-panel, .sbos-chart-card, button { transition: none !important; }
   .v78-card:hover, .v884-panel:hover, .sbos-chart-card:hover { transform: none; }
 }
 body.v88-motion-off .v78-page, body.v88-motion-off .v78-page > *,
-body.v88-motion-off .sbos-bars .fill { animation: none !important; }
+body.v88-motion-off .sbos-hbar .track i { animation: none !important; }
 body.v88-motion-off .sbos-chart .line.draw { stroke-dasharray: none; stroke-dashoffset: 0; animation: none !important; }
 body.v88-motion-calm .v78-page > * { animation-duration: .2s; animation-delay: 0s !important; }
 

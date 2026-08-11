@@ -1,6 +1,6 @@
 /* Second Brain OS V114 — Lumen service worker. */
 'use strict';
-importScripts('./version.js?v=v117-r1');
+importScripts('./version.js?v=v117-r2');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;

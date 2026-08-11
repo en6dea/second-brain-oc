@@ -35,60 +35,110 @@
 
   /* ------------------------------- отрисовка ------------------------------ */
 
-  /** Кривая с заливкой. Значения — массив чисел, подписи — массив строк. */
+  /**
+   * Сглаженная кривая. Точки соединяются монотонными кубическими кривыми:
+   * ломаная из отрезков выдаёт «зубцы» там, где их в данных нет, и мешает
+   * увидеть тенденцию. Монотонность важна — обычные сплайны выбрасывают
+   * линию за пределы значений, рисуя провалы и пики, которых не было.
+   */
+  function smoothPath(coords) {
+    if (coords.length < 3) return coords.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    let d = `M${coords[0][0].toFixed(1)},${coords[0][1].toFixed(1)}`;
+    for (let i = 0; i < coords.length - 1; i += 1) {
+      const [x0, y0] = coords[Math.max(0, i - 1)];
+      const [x1, y1] = coords[i];
+      const [x2, y2] = coords[i + 1];
+      const [x3, y3] = coords[Math.min(coords.length - 1, i + 2)];
+      /* Коэффициент 6 сглаживает мягко: выше — «резиновая» линия. */
+      const c1x = x1 + (x2 - x0) / 6;
+      const c1y = y1 + (y2 - y0) / 6;
+      const c2x = x2 - (x3 - x1) / 6;
+      const c2y = y2 - (y3 - y1) / 6;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  /** Кривая с заливкой. values — числа, labels — подписи оси. */
   function lineChart(values, labels, options = {}) {
     const points = values.filter((v) => Number.isFinite(v));
     if (points.length < 2) return '<div class="sbos-chart-empty">Пока мало данных для графика</div>';
 
     const width = 420;
-    const height = options.height || 132;
-    const max = Math.max(...points);
-    const min = Math.min(...points, 0);
-    const span = (max - min) || 1;
-    const stepX = (width - 8) / (points.length - 1);
-    const toY = (v) => height - 8 - ((v - min) / span) * (height - 26);
+    const height = options.height || 150;
+    const padTop = 14;
+    const padBottom = 12;
+    const padRight = 12;   /* точка конца не должна упираться в край */
+    const padLeft = 4;
 
-    const coords = points.map((v, i) => [4 + i * stepX, toY(v)]);
-    const line = coords.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-    const area = `${line} L${coords[coords.length - 1][0].toFixed(1)},${height} L4,${height} Z`;
+    /* Шкала по фактическому размаху, а не от нуля: если остаток колеблется
+       между 180 и 200 тысячами, привязка к нулю сплющит линию в прямую. */
+    const max = Math.max(...points);
+    const min = Math.min(...points);
+    const range = max - min;
+    const pad = range > 0 ? range * 0.14 : Math.max(1, Math.abs(max) * 0.1);
+    const top = max + pad;
+    const bottom = Math.min(min - pad, min >= 0 ? Math.max(0, min - pad) : min - pad);
+    const span = (top - bottom) || 1;
+
+    const stepX = (width - padLeft - padRight) / (points.length - 1);
+    const toY = (v) => padTop + (1 - (v - bottom) / span) * (height - padTop - padBottom);
+    const coords = points.map((v, i) => [padLeft + i * stepX, toY(v)]);
+
+    const line = smoothPath(coords);
+    const area = `${line} L${coords[coords.length - 1][0].toFixed(1)},${height} L${padLeft},${height} Z`;
     const [lastX, lastY] = coords[coords.length - 1];
 
-    /* Длина линии нужна анимации прочерчивания: без неё штрих не рассчитать. */
     let length = 0;
     for (let i = 1; i < coords.length; i += 1) {
       length += Math.hypot(coords[i][0] - coords[i - 1][0], coords[i][1] - coords[i - 1][1]);
     }
-    const id = `sbosgrad${Math.random().toString(36).slice(2, 8)}`;
+    const id = `g${Math.random().toString(36).slice(2, 8)}`;
+    const zeroY = bottom <= 0 && top >= 0 ? toY(0) : null;
 
     return `<svg class="sbos-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img"
         aria-label="${esc(options.aria || 'График')}">
       <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--v78-violet)" stop-opacity=".26"/>
+        <stop offset="0%" stop-color="var(--v78-violet)" stop-opacity=".22"/>
         <stop offset="100%" stop-color="var(--v78-violet)" stop-opacity="0"/>
       </linearGradient></defs>
-      <line class="grid" x1="0" y1="${(height * 0.3).toFixed(0)}" x2="${width}" y2="${(height * 0.3).toFixed(0)}"/>
-      <line class="grid" x1="0" y1="${(height * 0.66).toFixed(0)}" x2="${width}" y2="${(height * 0.66).toFixed(0)}"/>
+      ${zeroY !== null ? `<line class="grid zero" x1="0" y1="${zeroY.toFixed(1)}" x2="${width}" y2="${zeroY.toFixed(1)}"/>` : ''}
       <path fill="url(#${id})" d="${area}"/>
       <path class="line draw" style="--len:${Math.ceil(length)}" d="${line}"/>
-      <circle class="dot-halo" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="9"/>
-      <circle class="dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3.6"/>
+      <circle class="dot-halo" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="10"/>
+      <circle class="dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3.8"/>
     </svg>
     ${labels && labels.length ? `<div class="sbos-chart-axis">${labels.map((l) => `<span>${esc(l)}</span>`).join('')}</div>` : ''}`;
   }
 
-  /** Столбики. items: [{label, value, limit}] — превышение лимита краснеет. */
+  /**
+   * Категории показываем горизонтальными полосами, а не столбиками.
+   * Столбики требуют много колонок, чтобы выглядеть осмысленно: при одной
+   * категории столбик растягивается во всю ширину и превращается в полотно.
+   * Полоса же одинаково честно читается и для одной строки, и для восьми,
+   * и рядом помещается название с суммой — их не приходится угадывать.
+   */
   function barChart(items) {
     const rows = items.filter((r) => r && Number.isFinite(r.value));
     if (!rows.length) return '<div class="sbos-chart-empty">Расходов в этом месяце ещё нет</div>';
-    const max = Math.max(...rows.map((r) => Math.max(r.value, r.limit || 0)), 1);
-    return `<div class="sbos-bars">${rows.map((r) => {
+    /* Масштаб по наибольшему из трат и лимитов: иначе полоса за лимитом
+       упрётся в край и перестанет показывать, насколько именно вышли. */
+    const scale = Math.max(...rows.map((r) => Math.max(r.value, filled(r.limit) ? r.limit : 0)), 1);
+
+    return `<div class="sbos-hbars">${rows.map((r) => {
       const over = filled(r.limit) && r.value > r.limit;
-      const share = Math.max(3, Math.round((r.value / max) * 100));
-      return `<div class="bar" title="${esc(r.label)}: ${esc(money(r.value))}${r.limit ? ` из ${esc(money(r.limit))}` : ''}">
-        <span class="fill ${over ? 'over' : ''}" style="height:${share}%"></span>
+      const width = Math.max(2, Math.round((r.value / scale) * 100));
+      const limitAt = filled(r.limit) ? Math.round((r.limit / scale) * 100) : null;
+      return `<div class="sbos-hbar">
+        <span class="name" title="${esc(r.label)}">${esc(r.label)}</span>
+        <span class="track">
+          <i class="${over ? 'over' : ''}" style="width:${width}%"></i>
+          ${limitAt !== null && limitAt < 100 ? `<em class="limit" style="left:${limitAt}%" title="лимит ${esc(money(r.limit))}"></em>` : ''}
+        </span>
+        <span class="val ${over ? 'over' : ''}">${esc(money(r.value))}${
+          filled(r.limit) ? `<small>из ${esc(money(r.limit))}</small>` : ''}</span>
       </div>`;
-    }).join('')}</div>
-    <div class="sbos-bars-labels">${rows.map((r) => `<span>${esc(r.label)}</span>`).join('')}</div>`;
+    }).join('')}</div>`;
   }
 
   const card = (title, value, note, body, negative = false) => `
@@ -224,8 +274,21 @@
         const last = series.values[series.values.length - 1];
         const first = series.values[0];
         const diff = last - first;
-        html += card('Остаток по счетам · 90 дней', money(last),
-          `${diff >= 0 ? 'Прибавилось' : 'Убыло'} ${money(Math.abs(diff))} за три месяца. Линия восстановлена по операциям.`,
+        const unconfirmed = (s.financeAccounts || [])
+          .filter((a) => a && a.active !== false && !filled(a.actualBalance)).length;
+
+        /* Ноль в заголовке ничего не сообщает и тревожит. Если подтверждённая
+           сумма нулевая, честнее сказать, что остатки не заполнены, и позвать
+           их сверить — цифра появится сама. */
+        const zero = Math.round(last) === 0;
+        html += card(
+          'Остаток по счетам · 90 дней',
+          zero ? (unconfirmed ? 'не подтверждён' : '0 ₽') : money(last),
+          zero
+            ? (unconfirmed
+              ? `Не заполнен остаток по ${unconfirmed} ${unconfirmed === 1 ? 'счёту' : 'счетам'} — сверьте их, и линия покажет настоящие деньги. Ниже видно только движение: за три месяца ${diff >= 0 ? 'прибавилось' : 'ушло'} ${money(Math.abs(diff))}.`
+              : 'Подтверждённый остаток нулевой. Ниже — движение денег за три месяца.')
+            : `${diff >= 0 ? 'Прибавилось' : 'Убыло'} ${money(Math.abs(diff))} за три месяца. Линия восстановлена по операциям.`,
           lineChart(series.values, series.labels, { aria: 'Динамика остатка по счетам' }));
       }
       if (cats) {
