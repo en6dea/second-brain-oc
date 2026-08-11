@@ -6026,13 +6026,10 @@ body.v88-constellation {
 body::before,
 body::after {
   opacity: .28 !important;
-}
+}/* Правило скрывало переключатель тем целиком — оно осталось от
+   периода, когда тема была принудительно светлой. Управление темой
+   вернули, поэтому скрытие убрано. */
 
-.v88-theme-toggle,
-.v88-control-panel,
-[data-v88-theme] {
-  display: none !important;
-}
 
 body :is(h1,h2,h3,h4,b,strong) {
   font-weight: 700 !important;

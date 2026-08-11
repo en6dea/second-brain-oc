@@ -5,10 +5,10 @@
     version: '115.0.0',
     major: 115,
     label: 'V115 · SWITCHABLE THEME',
-    id: 'second-brain-os-v115-theme-20260811-r6',
+    id: 'second-brain-os-v115-theme-20260811-r7',
     dataSchemaVersion: 3,
-    cacheVersion: 'v115-r6',
-    cacheName: 'second-brain-os-v115-theme-r6',
+    cacheVersion: 'v115-r7',
+    cacheName: 'second-brain-os-v115-theme-r7',
     builtAt: '2026-08-11T12:00:00+03:00',
     criticalFiles: [
       './index.html',
