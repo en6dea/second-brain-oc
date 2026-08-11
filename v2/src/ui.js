@@ -1,7 +1,7 @@
 /* Общие элементы интерфейса. Возвращают строки HTML.
    Всё пользовательское проходит через esc() из format.js. */
 
-import { esc, money } from './format.js?v=2.3.0';
+import { esc, money } from './format.js?v=2.4.0';
 
 /** Полоса метрик на волосяных линиях — без карточек и теней. */
 export function metricStrip(items) {

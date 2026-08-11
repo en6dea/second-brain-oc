@@ -3,13 +3,13 @@
    «почему сейчас», а не десяток равнозначных карточек. Всё остальное ниже
    и тише. Главный шаг выбирается по фактам, а не случайно. */
 
-import { getState, num, numberOrNull } from '../store.js?v=2.3.0';
-import { greeting, dateWithWeekday, todayKey, money, esc, plural, dateShort } from '../format.js?v=2.3.0';
+import { getState, num, numberOrNull } from '../store.js?v=2.4.0';
+import { greeting, dateWithWeekday, todayKey, money, esc, plural, dateShort } from '../format.js?v=2.4.0';
 import {
   totalBalance, accountsUnfilled, monthTotals, habitsToday, activeHabits,
   isHabitDone, tasksForDay, overdueTasks, debtSummary, debtDue
-} from '../calc.js?v=2.3.0';
-import { pageHead, card, label, ring, button, metricStrip, empty } from '../ui.js?v=2.3.0';
+} from '../calc.js?v=2.4.0';
+import { pageHead, card, label, ring, button, metricStrip, empty } from '../ui.js?v=2.4.0';
 
 /**
  * Главный шаг дня. Порядок проверок — это приоритет: просроченное важнее

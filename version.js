@@ -1,14 +1,14 @@
-/* Second Brain OS V115 — светлая тема по умолчанию, тёмная по выбору. */
+/* Second Brain OS V116 — графики, табличные цифры, движение интерфейса. */
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '115.0.0',
-    major: 115,
-    label: 'V115 · SWITCHABLE THEME',
-    id: 'second-brain-os-v115-theme-20260811-r7',
+    version: '116.0.0',
+    major: 116,
+    label: 'V116 · ГРАФИКИ И ДВИЖЕНИЕ',
+    id: 'second-brain-os-v116-charts-20260811-r5',
     dataSchemaVersion: 3,
-    cacheVersion: 'v115-r7',
-    cacheName: 'second-brain-os-v115-theme-r7',
+    cacheVersion: 'v116-r5',
+    cacheName: 'second-brain-os-v116-charts-r5',
     builtAt: '2026-08-11T12:00:00+03:00',
     criticalFiles: [
       './index.html',
@@ -16,7 +16,9 @@
       './manifest.webmanifest',
       './version.js',
       './styles.css',
-      './app.js'
+      './styles-motion.css',
+      './app.js',
+      './app-charts.js'
     ]
   });
   root.SecondBrainBuild = build;

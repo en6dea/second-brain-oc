@@ -5,10 +5,10 @@
    Смысл раздела в другом: он показывает не «сколько сделано», а держится ли
    ритм — поэтому наверху серия дней, а не очки. */
 
-import { getState, num } from '../store.js?v=2.3.0';
-import { esc, todayKey, dateShort, plural, weekEndingToday, parseKey, toKey } from '../format.js?v=2.3.0';
-import { activeHabits, isHabitDone, habitsToday, weekCompletion } from '../calc.js?v=2.3.0';
-import { pageHead, card, label, ring, metricStrip, empty, button } from '../ui.js?v=2.3.0';
+import { getState, num } from '../store.js?v=2.4.0';
+import { esc, todayKey, dateShort, plural, weekEndingToday, parseKey, toKey } from '../format.js?v=2.4.0';
+import { activeHabits, isHabitDone, habitsToday, weekCompletion } from '../calc.js?v=2.4.0';
+import { pageHead, card, label, ring, metricStrip, empty, button } from '../ui.js?v=2.4.0';
 
 const game = (state) => (state.gameLife && typeof state.gameLife === 'object') ? state.gameLife : {};
 

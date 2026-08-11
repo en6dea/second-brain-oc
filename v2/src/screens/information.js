@@ -5,9 +5,9 @@
    это сохранённое на будущее, — поэтому здесь они собраны в один экран с
    переключением, а коллекции в хранилище остаются прежними. */
 
-import { getState } from '../store.js?v=2.3.0';
-import { esc, dateShort, plural } from '../format.js?v=2.3.0';
-import { pageHead, card, label, button, empty, metricStrip } from '../ui.js?v=2.3.0';
+import { getState } from '../store.js?v=2.4.0';
+import { esc, dateShort, plural } from '../format.js?v=2.4.0';
+import { pageHead, card, label, button, empty, metricStrip } from '../ui.js?v=2.4.0';
 
 /* Коллекция → как её называть и что показывать в строке. */
 export const SECTIONS = [

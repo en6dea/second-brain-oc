@@ -1,6 +1,6 @@
 /* Second Brain OS V114 — Lumen service worker. */
 'use strict';
-importScripts('./version.js?v=v115-r7');
+importScripts('./version.js?v=v116-r5');
 const BUILD = self.SecondBrainBuild;
 const CACHE_PREFIX = 'second-brain-os-';
 const CACHE_NAME = BUILD.cacheName;
@@ -11,8 +11,10 @@ const CRITICAL = [
   './manifest.webmanifest',
   './version.js',
   './styles.css',
+  './styles-motion.css',
   
-  './app.js'
+  './app.js',
+  './app-charts.js'
 ];
 const OPTIONAL = [
   './styles-dark-base.css','./styles-lumen.css',

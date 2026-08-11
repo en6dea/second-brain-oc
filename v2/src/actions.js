@@ -7,9 +7,9 @@
 import {
   getState, update, uid, nowIso, num,
   exportState, importState, createBackup, restoreBackup
-} from './store.js?v=2.3.0';
-import { openModal } from './modal.js?v=2.3.0';
-import { todayKey } from './format.js?v=2.3.0';
+} from './store.js?v=2.4.0';
+import { openModal } from './modal.js?v=2.4.0';
+import { todayKey } from './format.js?v=2.4.0';
 
 const find = (name, id) => (getState()[name] || []).find((x) => x && x.id === id) || null;
 

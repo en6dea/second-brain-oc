@@ -152,7 +152,7 @@
   function coreOpenDb(){
     return new Promise((resolve,reject)=>{
       if(!('indexedDB' in window)) return reject(new Error('IndexedDB unavailable'));
-      const req=indexedDB.open(DB_NAME,1);
+      const req=indexedDB.open(DB_NAME);
       req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(DB_STORE)) req.result.createObjectStore(DB_STORE); };
       req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
     });
@@ -3792,7 +3792,7 @@
   const clone=value=>{try{return structuredClone(value)}catch(_){try{return JSON.parse(JSON.stringify(value))}catch(_){return null}}};
   const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.spark}"></path></svg>`;
   const state=()=>window.state||window.SecondBrainApp?.getState?.()||{};
-  function dbPut(key,value){return new Promise(resolve=>{try{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(DB_STORE))r.result.createObjectStore(DB_STORE)};r.onerror=()=>resolve(false);r.onsuccess=()=>{const db=r.result,tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();resolve(false)}}}catch(_){resolve(false)}})}
+  function dbPut(key,value){return new Promise(resolve=>{try{const r=indexedDB.open(DB_NAME);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(DB_STORE))r.result.createObjectStore(DB_STORE)};r.onerror=()=>resolve(false);r.onsuccess=()=>{const db=r.result,tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();resolve(false)}}}catch(_){resolve(false)}})}
   async function backup(){try{if(localStorage.getItem(BACKUP_KEY))return;const at=new Date().toISOString(),raw=localStorage.getItem(STORE_KEY);if(raw&&!localStorage.getItem('secondBrainOS.v91.rawLocalBackup'))localStorage.setItem('secondBrainOS.v91.rawLocalBackup',raw);const snapshot=clone(state());if(snapshot)await dbPut(`backup:v91-before-focused-hotfix:${at}`,{version:91,createdAt:at,reason:'automatic-before-v91-focused-hotfix',state:snapshot});localStorage.setItem(BACKUP_KEY,at)}catch(error){console.warn('[V91 backup]',error)}}
   function persist(message=''){const current=state();if(typeof window.save==='function'){safe(window.save);safe(window.renderPremium||window.V85Premium?.render)}else{try{localStorage.setItem(STORE_KEY,JSON.stringify(current))}catch(_){ }safe(window.SecondBrainApp?.render);safe(window.V85Premium?.render)}if(message)safe(window.SecondBrainApp?.toast,message)}
   function setIcon(host,name,tone='blue'){if(!host)return;const key=`${name}:${tone}`;if(host.dataset.sbosV90Icon===key&&host.querySelector('svg'))return;host.dataset.sbosV90Icon=key;host.dataset.v883Icon=name;host.dataset.sbosV90Tone=tone;host.classList.add('sbos-v90-icon-host','v883-icon-host');host.innerHTML=svg(name)}
@@ -3924,7 +3924,7 @@
   function dbPut(key, value) {
     return new Promise(resolve => {
       try {
-        const request = indexedDB.open(DB_NAME, 1);
+        const request = indexedDB.open(DB_NAME);
         request.onupgradeneeded = () => {
           if (!request.result.objectStoreNames.contains(DB_STORE)) request.result.createObjectStore(DB_STORE);
         };
@@ -5810,7 +5810,7 @@
   }
 
   const openDb = () => new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(DB_STORE)) request.result.createObjectStore(DB_STORE);
     };

@@ -4,9 +4,9 @@
    всё сломается». Поэтому здесь без украшений: состояние хранилища, список
    копий, выгрузка в файл и загрузка из файла. */
 
-import { getState, dataCounts, listBackups, createBackup, restoreBackup, exportState } from '../store.js?v=2.3.0';
-import { esc, dateShort, plural } from '../format.js?v=2.3.0';
-import { pageHead, card, label, button, metricStrip, empty } from '../ui.js?v=2.3.0';
+import { getState, dataCounts, listBackups, createBackup, restoreBackup, exportState } from '../store.js?v=2.4.0';
+import { esc, dateShort, plural } from '../format.js?v=2.4.0';
+import { pageHead, card, label, button, metricStrip, empty } from '../ui.js?v=2.4.0';
 
 /* Копии подгружаются асинхронно, поэтому храним их между отрисовками. */
 let cachedBackups = null;

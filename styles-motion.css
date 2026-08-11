@@ -1,0 +1,175 @@
+/* ============================================================================
+   Second Brain OS — слой графики, чисел и движения.
+
+   Подключается при обеих темах и опирается на существующие токены, поэтому
+   его не нужно дублировать в styles.css и styles-dark-base.css.
+
+   Здесь три вещи:
+   1. Табличные цифры в суммах — разряды выстраиваются столбиком.
+   2. Единое правило иконок: контур 1.6, скруглённые концы.
+   3. Графики и движение интерфейса.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ ЧИСЛА --
+   Суммы, счётчики и показатели набираются табличными цифрами: в колонке
+   денег разряды встают друг под друга, и числа сравниваются взглядом.
+   Обычному тексту это не нужно, поэтому правило адресное. */
+.v884-kpis b, .v884-scenarios b, .v884-safe-card h2, .v884-debt-list strong,
+.v867-analytics-kpis b, .v103-category-dashboard b, .v78-metric b, .v107-metric b,
+.v869-habit-overview b, .v83-stat b, .v85-queue-list b, .v8612-category-row b,
+.sb-num, .sbos-chart-value, .v78-money, .v884-breakdown b {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ----------------------------------------------------------------- ИКОНКИ --
+   Один набор, одна толщина. Заливки не используем: контур читается
+   одинаково на светлом и тёмном, а заливка на тёмном превращается в пятно. */
+.v78-side-link svg, .v78-top-tab svg, .v78-mobile-nav svg, .v78-top-actions svg,
+.v88-icon, .v883-icon-host svg, .sbos-icon {
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.v78-side-link svg, .v78-top-tab svg, .v78-mobile-nav svg { width: 20px; height: 20px; }
+.v78-top-actions svg { width: 21px; height: 21px; }
+
+/* --------------------------------------------------------------- ГРАФИКИ --
+   Один акцент, мягкая заливка, подчёркнутый конец линии. Красный только
+   там, где превышение — не «плохо вообще», а «вышли за лимит». */
+.sbos-chart-card {
+  border: 1px solid var(--v78-line);
+  border-radius: var(--v78-radius, 20px);
+  background: var(--v78-panel);
+  box-shadow: var(--v78-shadow);
+  padding: 20px 22px;
+  margin-bottom: 14px;
+}
+.sbos-chart-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
+}
+.sbos-chart-title {
+  font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--v78-muted); font-weight: 700;
+}
+.sbos-chart-value {
+  font-size: 26px; font-weight: 300; letter-spacing: -.035em; color: var(--v78-ink);
+  line-height: 1.1;
+}
+.sbos-chart-value.negative { color: var(--v78-coral); }
+.sbos-chart-note { font-size: 12.5px; color: var(--v78-muted); margin: 4px 0 0; }
+
+.sbos-chart { display: block; width: 100%; height: 132px; overflow: visible; margin-top: 14px; }
+.sbos-chart .grid { stroke: var(--v78-line); stroke-width: 1; }
+.sbos-chart .line { fill: none; stroke: var(--v78-violet); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sbos-chart .dot-halo { fill: var(--v78-violet); opacity: .18; }
+.sbos-chart .dot { fill: var(--v78-violet); }
+.sbos-chart-axis {
+  display: flex; justify-content: space-between; margin-top: 10px;
+  font-size: 10.5px; color: var(--v78-muted); font-variant-numeric: tabular-nums;
+}
+
+/* столбики категорий */
+.sbos-bars { display: flex; gap: 8px; align-items: flex-end; height: 122px; margin-top: 14px; }
+.sbos-bars .bar { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.sbos-bars .fill {
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, var(--v78-violet), color-mix(in srgb, var(--v78-violet) 42%, transparent));
+  min-height: 4px;
+}
+.sbos-bars .fill.over {
+  background: linear-gradient(180deg, var(--v78-coral), color-mix(in srgb, var(--v78-coral) 42%, transparent));
+}
+.sbos-bars-labels { display: flex; gap: 8px; margin-top: 9px; }
+.sbos-bars-labels span {
+  flex: 1; min-width: 0; text-align: center; font-size: 10.5px; color: var(--v78-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* спарклайн в строке */
+.sbos-spark { width: 76px; height: 24px; flex: none; }
+.sbos-spark path { fill: none; stroke: var(--v78-violet); stroke-width: 1.8; stroke-linecap: round; }
+
+.sbos-chart-empty {
+  font-size: 13px; color: var(--v78-muted); padding: 26px 0 10px; text-align: center;
+}
+
+/* -------------------------------------------------------------- ДВИЖЕНИЕ --
+   Движение здесь служит пониманию, а не украшению: экран въезжает снизу,
+   показывая направление перехода; линия графика прочерчивается, показывая
+   ход времени; число досчитывается, показывая, что оно живое.
+   Всё короткое — иначе интерфейс начинает казаться медленным. */
+
+@keyframes sbos-rise {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sbos-draw { to { stroke-dashoffset: 0; } }
+@keyframes sbos-grow { from { transform: scaleY(.02); } to { transform: none; } }
+
+.v78-page { animation: sbos-rise .32s cubic-bezier(.22,.8,.24,1) both; }
+
+/* Ступенчатое появление: разделы приходят один за другим, а не разом.
+   Задержки маленькие — на глаз это читается как «страница собирается». */
+.v78-page > * { animation: sbos-rise .34s cubic-bezier(.22,.8,.24,1) both; }
+.v78-page > *:nth-child(1) { animation-delay: .01s; }
+.v78-page > *:nth-child(2) { animation-delay: .04s; }
+.v78-page > *:nth-child(3) { animation-delay: .07s; }
+.v78-page > *:nth-child(4) { animation-delay: .10s; }
+.v78-page > *:nth-child(5) { animation-delay: .13s; }
+.v78-page > *:nth-child(n+6) { animation-delay: .16s; }
+
+.sbos-chart .line.draw {
+  stroke-dasharray: var(--len, 1200);
+  stroke-dashoffset: var(--len, 1200);
+  animation: sbos-draw .9s cubic-bezier(.3,.9,.3,1) .12s forwards;
+}
+.sbos-bars .fill { transform-origin: bottom; animation: sbos-grow .5s cubic-bezier(.22,.9,.26,1) both; }
+.sbos-bars .bar:nth-child(1) .fill { animation-delay: .04s; }
+.sbos-bars .bar:nth-child(2) .fill { animation-delay: .08s; }
+.sbos-bars .bar:nth-child(3) .fill { animation-delay: .12s; }
+.sbos-bars .bar:nth-child(4) .fill { animation-delay: .16s; }
+.sbos-bars .bar:nth-child(5) .fill { animation-delay: .20s; }
+.sbos-bars .bar:nth-child(n+6) .fill { animation-delay: .24s; }
+
+/* Отклик на касание: карточка чуть поднимается, кнопка чуть проседает.
+   Это единственная обратная связь, которая не требует чтения. */
+.v78-card, .v884-panel, .v884-safe-card, .v884-kpis article, .sbos-chart-card {
+  transition: transform .22s cubic-bezier(.22,.8,.24,1), box-shadow .22s ease, border-color .22s ease;
+}
+@media (hover: hover) {
+  .v78-card:hover, .v884-panel:hover, .sbos-chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--v78-shadow-hover, 0 24px 70px rgba(91,68,145,.16));
+  }
+}
+button, .v78-side-link, .v78-top-tab { transition: transform .14s ease, background .18s ease, color .18s ease, border-color .18s ease; }
+button:active { transform: translateY(1px) scale(.99); }
+
+/* Движение — приятная деталь, а не условие работы. Если система просит
+   покоя, оставляем только мгновенные состояния. */
+@media (prefers-reduced-motion: reduce) {
+  .v78-page, .v78-page > *, .sbos-bars .fill { animation: none !important; }
+  .sbos-chart .line.draw { stroke-dasharray: none; stroke-dashoffset: 0; animation: none !important; }
+  .v78-card, .v884-panel, .sbos-chart-card, button { transition: none !important; }
+  .v78-card:hover, .v884-panel:hover, .sbos-chart-card:hover { transform: none; }
+}
+body.v88-motion-off .v78-page, body.v88-motion-off .v78-page > *,
+body.v88-motion-off .sbos-bars .fill { animation: none !important; }
+body.v88-motion-off .sbos-chart .line.draw { stroke-dasharray: none; stroke-dashoffset: 0; animation: none !important; }
+body.v88-motion-calm .v78-page > * { animation-duration: .2s; animation-delay: 0s !important; }
+
+/* В тёмной теме есть широкие правила, красящие секции прозрачным. Карточка
+   графика — тоже <section>, и попадала под них. Поднимаем вес селектора,
+   чтобы поверхность оставалась поверхностью. */
+html:is(.v70-theme-dark,.v80-dark,.v87-dark,.v88-dark)
+  body:is(.v87-constellation,.v88-constellation)
+  .v78-page > section.sbos-chart-card {
+  /* Вес селектора равен правилам тёмной таблицы, которые красят секции
+     прозрачным; запасное значение нужно на случай, если тёмные токены ещё
+     не загрузились — объявление с одним var() иначе отбрасывается целиком. */
+  background: var(--lm-surface-solid, #12131A) !important;
+  border-color: var(--lm-line, rgba(240,241,246,.12)) !important;
+}

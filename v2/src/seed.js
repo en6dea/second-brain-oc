@@ -5,8 +5,8 @@
    с настоящими записями запускать не нужно. Перед записью store.js делает
    резервную копию, так что откат возможен. */
 
-import { getState, save, uid, nowIso } from './store.js?v=2.3.0';
-import { todayKey, toKey, parseKey, monthKey } from './format.js?v=2.3.0';
+import { getState, save, uid, nowIso } from './store.js?v=2.4.0';
+import { todayKey, toKey, parseKey, monthKey } from './format.js?v=2.4.0';
 
 export function seed() {
   const state = getState();
