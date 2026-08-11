@@ -173,3 +173,67 @@ html:is(.v70-theme-dark,.v80-dark,.v87-dark,.v88-dark)
   background: var(--lm-surface-solid, #12131A) !important;
   border-color: var(--lm-line, rgba(240,241,246,.12)) !important;
 }
+
+/* ============================== ЛЕНТА ЖИЗНИ ==============================
+   Один поток событий вместо разделов. Цвет здесь кодирует область жизни —
+   деньги, время, ритм, смысл, — чтобы поток читался, не будучи прочитанным. */
+.sbos-life-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.sbos-life-filters button {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--v78-line); background: var(--v78-panel);
+  color: var(--v78-muted); font: 600 13px "Onest", "Segoe UI", sans-serif;
+}
+.sbos-life-filters button:hover { color: var(--v78-ink); border-color: var(--v78-violet); }
+.sbos-life-filters button.active { color: var(--v78-ink); border-color: var(--v78-violet);
+  background: color-mix(in srgb, var(--v78-violet) 12%, transparent); }
+.sbos-life-filters i { font-style: normal; font-size: 11px; color: var(--v78-muted);
+  font-variant-numeric: tabular-nums; }
+.sbos-life-filters button.active i { color: var(--v78-violet); }
+
+.sbos-life-day { margin-bottom: 26px; }
+.sbos-life-day > header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--v78-line);
+}
+.sbos-life-day > header h2 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
+.sbos-life-day > header span { font-size: 11.5px; color: var(--v78-muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.sbos-life-items { display: grid; gap: 8px; }
+.sbos-life-item {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px;
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 12px 16px; border-radius: 14px;
+  border: 1px solid var(--v78-line); background: var(--v78-panel);
+  font-family: "Onest", "Segoe UI", sans-serif;
+}
+.sbos-life-item:hover { border-color: var(--v78-violet); }
+.sbos-life-item .ico {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex: none;
+  background: color-mix(in srgb, var(--tone, var(--v78-violet)) 13%, transparent);
+}
+.sbos-life-item .ico svg { width: 18px; height: 18px; stroke: var(--tone, var(--v78-violet)); }
+.sbos-life-item .txt { min-width: 0; }
+.sbos-life-item .txt b { display: block; font-size: 14px; color: var(--v78-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbos-life-item .txt small { display: block; font-size: 11.5px; color: var(--v78-muted); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbos-life-item .amt { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
+.sbos-life-item .amt.out { color: var(--v78-coral); }
+.sbos-life-item .amt.in { color: var(--v78-mint); }
+.sbos-life-item .amt.done { color: var(--v78-mint); font-size: 15px; }
+
+/* Область жизни задаёт оттенок значка — деньги, время, ритм различимы боковым зрением. */
+.sbos-life-item[data-tone="money"]     { --tone: var(--v78-mint); }
+.sbos-life-item[data-tone="time"]      { --tone: var(--v78-blue); }
+.sbos-life-item[data-tone="rhythm"]    { --tone: var(--v78-violet); }
+.sbos-life-item[data-tone="meaning"]   { --tone: var(--v78-gold); }
+.sbos-life-item[data-tone="knowledge"] { --tone: var(--v78-cyan); }
+.sbos-life-item[data-tone="people"]    { --tone: var(--v78-peach); }
+.sbos-life-item[data-tone="self"]      { --tone: var(--v78-violet-2); }
+
+@media (max-width: 620px) {
+  .sbos-life-item { grid-template-columns: auto 1fr; }
+  .sbos-life-item .amt { grid-column: 2; justify-self: start; margin-top: 4px; }
+}

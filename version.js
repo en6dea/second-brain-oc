@@ -2,13 +2,13 @@
 'use strict';
 ((root) => {
   const build = Object.freeze({
-    version: '116.0.0',
-    major: 116,
-    label: 'V116 · ГРАФИКИ И ДВИЖЕНИЕ',
-    id: 'second-brain-os-v116-charts-20260811-r5',
+    version: '117.0.0',
+    major: 117,
+    label: 'V117 · ЛЕНТА ЖИЗНИ',
+    id: 'second-brain-os-v116-life-20260811-r1',
     dataSchemaVersion: 3,
-    cacheVersion: 'v116-r5',
-    cacheName: 'second-brain-os-v116-charts-r5',
+    cacheVersion: 'v117-r1',
+    cacheName: 'second-brain-os-v116-life-r1',
     builtAt: '2026-08-11T12:00:00+03:00',
     criticalFiles: [
       './index.html',
@@ -18,7 +18,8 @@
       './styles.css',
       './styles-motion.css',
       './app.js',
-      './app-charts.js'
+      './app-charts.js',
+      './app-life.js'
     ]
   });
   root.SecondBrainBuild = build;

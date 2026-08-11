@@ -2813,6 +2813,20 @@
     CUSTOM_ROUTES.add('finance-accounts');CUSTOM_ROUTES.add('finance-calendar');CUSTOM_ROUTES.add('finance-weekly');
     customPage=function(route){const normalized=LEGACY_ALIASES[route]||route;if(normalized==='finance-accounts')return v884AccountsPage();if(normalized==='finance-calendar')return v884CalendarPage();if(normalized==='finance-weekly')return v884WeeklyPage();return v884BaseCustomPage(route);};
 
+    /* Точка расширения для внешних слоёв. Маршруты объявляются тем же
+       способом, что и внутри приложения: новый обработчик получает функцию
+       предыдущего слоя и решает, отвечать самому или передать дальше.
+       Нужна потому, что customPage живёт в замыкании и снаружи недоступна. */
+    window.SecondBrainRouter = {
+      extendPage(handler) {
+        const base = customPage;
+        customPage = (route) => handler(LEGACY_ALIASES[route] || route, base);
+      },
+      registerRoute(name) { CUSTOM_ROUTES.add(name); },
+      navigate: (route) => navigate(route),
+      current: () => routeNow()
+    };
+
     const v884BaseSetBuild=setBuild;
     setBuild=function(){v884BaseSetBuild();document.body.dataset.sbosBuild=V884_BUILD;document.querySelector('meta[name="second-brain-build"]')?.setAttribute('content',V884_BUILD);const badge=document.querySelector('.v78-build');if(badge)badge.textContent=V884_LABEL;try{localStorage.setItem('secondBrainOS.currentBuild',V884_BUILD);}catch(_){}};
 
