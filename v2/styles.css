@@ -231,3 +231,53 @@ body::before{
 }
 
 .big.small.dim{color:var(--muted);font-size:22px}
+
+/* ------------------------------ модальные окна ------------------------- */
+body.modal-open{overflow:hidden}
+.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;
+  background:rgba(4,5,9,.66);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.modal-card{width:min(680px,100%);max-height:min(88vh,900px);display:flex;flex-direction:column;
+  background:rgba(18,19,26,.96);border:1px solid var(--line-strong);border-radius:var(--r-lg);
+  box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass)}
+.modal-head{display:flex;align-items:flex-start;gap:16px;padding:22px 24px 16px;border-bottom:1px solid var(--line)}
+.modal-head h2{margin:0;font-size:19px;letter-spacing:-.025em}
+.modal-head p{margin:6px 0 0;color:var(--muted);font-size:12.5px;max-width:60ch}
+.modal-x{margin-left:auto;width:32px;height:32px;border-radius:999px;flex:none;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:18px;line-height:1}
+.modal-x:hover{color:var(--ink);border-color:var(--accent-line)}
+.modal-body{padding:20px 24px;overflow:auto}
+.modal-foot{display:flex;gap:10px;align-items:center;padding:16px 24px 20px;border-top:1px solid var(--line)}
+.modal-foot .spacer{flex:1}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field.span-2{grid-column:1/-1}
+.field>span{font-size:12px;color:var(--muted);font-weight:600}
+.field>span i{font-style:normal;color:var(--faint);font-weight:400;font-size:11px}
+.field small{color:var(--faint);font-size:11.5px}
+.field input,.field select,.field textarea{
+  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);
+  border-radius:var(--r-sm);padding:10px 12px;font:14px var(--font);min-height:40px;width:100%}
+.field textarea{resize:vertical;min-height:76px}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);outline:none}
+.field select option{background:var(--solid);color:var(--ink)}
+.field.check{flex-direction:row;align-items:center;gap:10px}
+.field.check input{width:auto;min-height:auto}
+
+.form-error{margin-bottom:16px;padding:11px 14px;border-radius:var(--r-sm);font-size:13px;
+  background:var(--danger-soft);border:1px solid rgba(255,112,137,.3);color:var(--danger)}
+.btn.ghost{background:transparent;border:1px solid var(--line-strong);color:var(--muted);box-shadow:none}
+.btn.ghost.danger:hover{color:var(--danger);border-color:rgba(255,112,137,.4);background:var(--danger-soft)}
+
+.row-acts{display:flex;gap:6px;flex:none}
+.row-btn{width:32px;height:32px;border-radius:9px;cursor:pointer;flex:none;
+  background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:13px;
+  display:grid;place-items:center;transition:color .15s,border-color .15s,background .15s}
+.row-btn:hover{color:var(--ink);border-color:var(--accent-line);background:var(--accent-soft)}
+@media(max-width:760px){
+  .row{flex-wrap:wrap}
+  .row .pr{width:100%;order:3}
+  .row-acts{order:2}
+}

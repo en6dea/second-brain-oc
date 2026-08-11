@@ -148,7 +148,11 @@ export function render() {
       progressLabel: `погашено ${Math.round(repaid * 100)}%`,
       amount: money(balance),
       tone: 'neg',
-      danger: isOverdue(debt)
+      danger: isOverdue(debt),
+      actions: [
+        { action: 'debt-pay', id: debt.id, icon: '₽', title: 'Внести платёж' },
+        { action: 'debt-edit', id: debt.id, icon: '✎', title: 'Изменить' }
+      ]
     });
   }).join('');
 

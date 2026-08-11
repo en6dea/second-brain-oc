@@ -9,6 +9,10 @@ import { render as renderToday } from './screens/today.js';
 import { render as renderFinance } from './screens/finance.js';
 import { render as renderDebts } from './screens/debts.js';
 import { render as renderHabits, toggleMark } from './screens/habits.js';
+import {
+  editDebt, payDebt, debtStrategy, editAccount, reconcile,
+  editOperation, editHabit, editTask
+} from './actions.js';
 
 const SCREENS = {
   today: { title: 'Сегодня', render: renderToday },
@@ -73,16 +77,24 @@ const ACTIONS = {
   'goto-debts': () => { location.hash = '#debts'; },
   'goto-habits': () => { location.hash = '#habits'; },
   'goto-tasks': () => { location.hash = '#today'; },
-  'habit-toggle': (el) => toggleMark(el.dataset.id, el.dataset.day)
+  'habit-toggle': (el) => toggleMark(el.dataset.id, el.dataset.day),
+
+  'debt-new': () => editDebt(),
+  'debt-edit': (el) => editDebt(el.dataset.id),
+  'debt-pay': (el) => payDebt(el.dataset.id),
+  'debt-strategy': () => debtStrategy(),
+  'account-new': () => editAccount(),
+  'account-edit': (el) => editAccount(el.dataset.id),
+  'reconcile': () => reconcile(),
+  'operation-new': () => editOperation(),
+  'habit-new': () => editHabit(),
+  'habit-edit': (el) => editHabit(el.dataset.id),
+  'task-new': () => editTask(),
+  'task-edit': (el) => editTask(el.dataset.id)
 };
 
-/* Действия, для которых экран создания ещё не перенесён: честно отправляем
-   в прежнюю версию, а не показываем неработающую кнопку. */
-const LEGACY_ACTIONS = {
-  'debt-new': 'debts', 'debt-strategy': 'debts',
-  'operation-new': 'finance', 'account-new': 'finance', 'reconcile': 'finance',
-  'habit-new': 'habits'
-};
+/* Разделы, экраны которых ещё не перенесены. */
+const LEGACY_ACTIONS = {};
 
 document.addEventListener('click', (event) => {
   const el = event.target.closest('[data-act]');

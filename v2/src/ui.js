@@ -66,8 +66,8 @@ export function areaChart(points, { id = 'c', height = 128 } = {}) {
 export const axis = (labels) =>
   `<div class="axis">${labels.map((l) => `<span>${esc(l)}</span>`).join('')}</div>`;
 
-/** Строка списка: название, описание, прогресс, сумма. */
-export function listRow({ rank, title, subtitle, progress, progressLabel, amount, tone = '', danger = false }) {
+/** Строка списка: название, описание, прогресс, сумма и кнопки действий. */
+export function listRow({ rank, title, subtitle, progress, progressLabel, amount, tone = '', danger = false, actions = [] }) {
   return `<div class="row ${danger ? 'dgr' : ''}">
     ${rank ? `<span class="rank">${esc(rank)}</span>` : ''}
     <div class="n"><b>${esc(title)}</b><span>${esc(subtitle || '')}</span></div>
@@ -77,6 +77,9 @@ export function listRow({ rank, title, subtitle, progress, progressLabel, amount
         ${progressLabel ? `<small>${esc(progressLabel)}</small>` : ''}
       </div>` : ''}
     ${amount !== undefined ? `<div class="amt ${tone}">${amount}</div>` : ''}
+    ${actions.length ? `<div class="row-acts">${actions.map((a) => `
+      <button class="row-btn" type="button" data-act="${esc(a.action)}" data-id="${esc(a.id)}"
+        title="${esc(a.title)}" aria-label="${esc(a.title)}">${esc(a.icon)}</button>`).join('')}</div>` : ''}
   </div>`;
 }
 

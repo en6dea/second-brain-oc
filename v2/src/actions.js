@@ -1,0 +1,314 @@
+/* Действия: создание и правка записей.
+
+   Формы описываются полями, значения читает modal.js. Числовые поля
+   возвращают null, если оставлены пустыми, — это сохраняет разницу между
+   «не заполнено» и «ноль». */
+
+import { getState, update, uid, nowIso, num } from './store.js';
+import { openModal } from './modal.js';
+import { todayKey } from './format.js';
+
+const find = (name, id) => (getState()[name] || []).find((x) => x && x.id === id) || null;
+
+function upsert(name, id, patch) {
+  update((state) => {
+    if (!Array.isArray(state[name])) state[name] = [];
+    const existing = state[name].find((x) => x && x.id === id);
+    if (existing) Object.assign(existing, patch, { updatedAt: nowIso() });
+    else state[name].unshift(Object.assign({ id: uid(), createdAt: nowIso() }, patch, { updatedAt: nowIso() }));
+  }, `${name}-save`);
+}
+
+/* -------------------------------- Долги --------------------------------- */
+
+const DEBT_TYPES = [
+  ['microloan', 'Займ / микрозайм'], ['bank_credit', 'Банковский кредит'],
+  ['credit_card', 'Кредитная карта'], ['installment', 'Рассрочка'],
+  ['person', 'Долг человеку'], ['other', 'Другое обязательство']
+];
+const DEBT_STATUS = [
+  ['active', 'Активен'], ['soon', 'Платёж скоро'], ['overdue', 'Просрочен'],
+  ['restructured', 'Реструктурирован'], ['frozen', 'Заморожен'], ['closed', 'Закрыт']
+];
+
+export function editDebt(id = '') {
+  const debt = find('debts', id) || {};
+  openModal({
+    title: id ? 'Обязательство' : 'Новое обязательство',
+    subtitle: 'Тело, проценты и штрафы указываются отдельно — тогда прогноз погашения считается честно',
+    fields: [
+      { id: 'creditor', label: 'Кредитор или название', value: debt.creditor || debt.person || '', required: true, span: true },
+      { id: 'type', label: 'Тип', type: 'select', value: debt.type || 'microloan',
+        options: DEBT_TYPES.map(([value, label]) => ({ value, label })) },
+      { id: 'status', label: 'Состояние', type: 'select', value: debt.status || 'active',
+        options: DEBT_STATUS.map(([value, label]) => ({ value, label })) },
+      { id: 'initialAmount', label: 'Первоначальная сумма', type: 'number', min: 0, value: debt.initialAmount },
+      { id: 'currentBalance', label: 'Текущий остаток', type: 'number', min: 0, value: debt.currentBalance,
+        hint: 'Оставьте пустым, если неизвестен' },
+      { id: 'principalBalance', label: 'Тело долга', type: 'number', min: 0, value: debt.principalBalance },
+      { id: 'accruedInterest', label: 'Начисленные проценты', type: 'number', min: 0, value: debt.accruedInterest },
+      { id: 'penalties', label: 'Штрафы и пени', type: 'number', min: 0, value: debt.penalties },
+      { id: 'interestRate', label: 'Ставка, % годовых', type: 'number', min: 0, value: debt.interestRate },
+      { id: 'minimumPayment', label: 'Минимальный платёж', type: 'number', min: 0, value: debt.minimumPayment },
+      { id: 'nextPaymentDate', label: 'Ближайший платёж', type: 'date', value: debt.nextPaymentDate || '' },
+      { id: 'daysOverdue', label: 'Дней просрочки', type: 'number', min: 0, value: debt.daysOverdue },
+      { id: 'note', label: 'Комментарий', type: 'textarea', value: debt.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'Закрыть долг',
+      confirm: 'Закрыть долг? Запись останется, история платежей сохранится.',
+      run: () => update((state) => {
+        const row = (state.debts || []).find((x) => x.id === id);
+        if (row) { row.status = 'closed'; row.currentBalance = 0; row.closedAt = nowIso(); }
+      }, 'debt-close')
+    } : null,
+    onSubmit: (values) => {
+      if (values.interestRate !== null && values.interestRate < 0) return 'Ставка не может быть отрицательной';
+      upsert('debts', id, Object.assign({ direction: 'out' }, values));
+    }
+  });
+}
+
+/** Платёж по долгу: сумма делится на тело, проценты и штрафы. */
+export function payDebt(id) {
+  const debt = find('debts', id);
+  if (!debt) return;
+  openModal({
+    title: `Платёж · ${debt.creditor || debt.person || 'долг'}`,
+    subtitle: 'Основной долг уменьшит только часть «тело» — остальное уходит банку',
+    fields: [
+      { id: 'date', label: 'Дата', type: 'date', value: todayKey(), required: true },
+      { id: 'amount', label: 'Общая сумма платежа', type: 'number', min: 0, value: debt.minimumPayment, required: true },
+      { id: 'principal', label: 'Из них тело долга', type: 'number', min: 0 },
+      { id: 'interest', label: 'Проценты', type: 'number', min: 0 },
+      { id: 'penalties', label: 'Штрафы', type: 'number', min: 0 },
+      { id: 'note', label: 'Комментарий', type: 'textarea', span: true }
+    ],
+    submitText: 'Внести платёж',
+    onSubmit: (values) => {
+      const total = num(values.amount);
+      if (total <= 0) return 'Укажите сумму платежа';
+      const parts = num(values.principal) + num(values.interest) + num(values.penalties);
+      if (parts > 0 && Math.abs(parts - total) > 0.5) {
+        return `Части (${parts} ₽) не сходятся с общей суммой (${total} ₽)`;
+      }
+      /* Если разбивка не указана — весь платёж считаем телом долга, но
+         честно помечаем это, чтобы позже было видно происхождение цифры. */
+      const principal = parts > 0 ? num(values.principal) : total;
+
+      update((state) => {
+        const row = (state.debts || []).find((x) => x.id === id);
+        if (!row) return;
+        const balance = num(row.currentBalance) || num(row.principalBalance) + num(row.accruedInterest) + num(row.penalties);
+        row.currentBalance = Math.max(0, balance - total);
+        row.principalBalance = Math.max(0, num(row.principalBalance) - principal);
+        if (num(values.interest)) row.accruedInterest = Math.max(0, num(row.accruedInterest) - num(values.interest));
+        if (num(values.penalties)) row.penalties = Math.max(0, num(row.penalties) - num(values.penalties));
+        if (row.currentBalance === 0) row.status = 'closed';
+
+        if (!Array.isArray(state.debtPayments)) state.debtPayments = [];
+        state.debtPayments.unshift({
+          id: uid(), debtId: id, date: values.date, amount: total,
+          principal, interest: num(values.interest), penalties: num(values.penalties),
+          split: parts > 0 ? 'explicit' : 'assumed-principal',
+          note: values.note || '', createdAt: nowIso()
+        });
+      }, 'debt-payment');
+    }
+  });
+}
+
+export function debtStrategy() {
+  const settings = (getState().settings && getState().settings.v884) || {};
+  openModal({
+    title: 'Стратегия погашения',
+    fields: [
+      { id: 'debtStrategy', label: 'Порядок', type: 'select', span: true, value: settings.debtStrategy || 'urgent',
+        options: [
+          { value: 'urgent', label: 'Сначала срочные и просроченные' },
+          { value: 'rate', label: 'Сначала дорогие по ставке' },
+          { value: 'small', label: 'Сначала самые маленькие' }
+        ] },
+      { id: 'extraDebtPayment', label: 'Доплата сверх минимума, в месяц', type: 'number', min: 0, span: true,
+        value: settings.extraDebtPayment ?? 10000, hint: 'Используется в прогнозе и сценариях' }
+    ],
+    onSubmit: (values) => update((state) => {
+      state.settings = state.settings || {};
+      state.settings.v884 = Object.assign({}, state.settings.v884, {
+        debtStrategy: values.debtStrategy,
+        extraDebtPayment: values.extraDebtPayment ?? 0
+      });
+    }, 'debt-strategy')
+  });
+}
+
+/* -------------------------------- Счета --------------------------------- */
+
+const ACCOUNT_TYPES = [
+  ['account', 'Счёт'], ['card', 'Карта'], ['cash', 'Наличные'],
+  ['savings', 'Накопительный'], ['credit_card', 'Кредитная карта'], ['other', 'Другое']
+];
+
+export function editAccount(id = '') {
+  const account = find('financeAccounts', id) || {};
+  openModal({
+    title: id ? 'Счёт' : 'Новый счёт',
+    fields: [
+      { id: 'name', label: 'Название', value: account.name || '', required: true, span: true },
+      { id: 'type', label: 'Тип', type: 'select', value: account.type || 'account',
+        options: ACCOUNT_TYPES.map(([value, label]) => ({ value, label })) },
+      { id: 'actualBalance', label: 'Фактический остаток', type: 'number', value: account.actualBalance,
+        hint: 'Пустое поле означает «неизвестен», а не ноль' }
+    ],
+    onSubmit: (values) => upsert('financeAccounts', id, {
+      name: values.name,
+      type: values.type,
+      currency: account.currency || 'RUB',
+      actualBalance: values.actualBalance,      /* null сохраняем как null */
+      calculatedBalance: values.actualBalance,
+      active: true
+    })
+  });
+}
+
+/** Сверка остатков: одно окно на все счета. */
+export function reconcile() {
+  const accounts = (getState().financeAccounts || []).filter((a) => a && a.active !== false);
+  if (!accounts.length) return editAccount();
+  openModal({
+    title: 'Сверка остатков',
+    subtitle: 'Укажите фактические суммы. Пустое поле оставит остаток неподтверждённым.',
+    fields: accounts.map((a) => ({
+      id: `acc_${a.id}`, label: a.name || 'Счёт', type: 'number', value: a.actualBalance
+    })),
+    submitText: 'Подтвердить',
+    onSubmit: (values) => update((state) => {
+      (state.financeAccounts || []).forEach((a) => {
+        if (!(`acc_${a.id}` in values)) return;
+        a.actualBalance = values[`acc_${a.id}`];
+        a.calculatedBalance = a.actualBalance;
+        a.reconciledAt = nowIso();
+        a.updatedAt = nowIso();
+      });
+    }, 'reconcile')
+  });
+}
+
+/* ------------------------------- Операции ------------------------------- */
+
+export function editOperation(id = '') {
+  const state = getState();
+  const operation = find('operations', id) || {};
+  const accounts = (state.financeAccounts || []).filter((a) => a && a.active !== false);
+  const categories = (state.financeCategories || []).filter((c) => c && c.archived !== true);
+
+  openModal({
+    title: id ? 'Операция' : 'Новая операция',
+    fields: [
+      { id: 'type', label: 'Тип', type: 'select', value: operation.type || 'expense',
+        options: [
+          { value: 'expense', label: 'Расход' },
+          { value: 'income', label: 'Доход' },
+          { value: 'transfer', label: 'Перевод' }
+        ] },
+      { id: 'date', label: 'Дата', type: 'date', value: operation.date || todayKey(), required: true },
+      { id: 'amount', label: 'Сумма', type: 'number', min: 0, value: operation.amount, required: true },
+      { id: 'category', label: 'Категория', type: 'select', value: operation.category || (categories[0] && categories[0].name) || '',
+        options: categories.length
+          ? categories.map((c) => ({ value: c.name, label: c.name }))
+          : [{ value: '', label: 'Категорий пока нет' }] },
+      { id: 'accountId', label: 'Счёт', type: 'select', value: operation.accountId || (accounts[0] && accounts[0].id) || '',
+        options: accounts.length
+          ? accounts.map((a) => ({ value: a.id, label: a.name || 'Счёт' }))
+          : [{ value: '', label: 'Счетов пока нет' }] },
+      { id: 'note', label: 'Комментарий', type: 'textarea', value: operation.note || '', span: true }
+    ],
+    onSubmit: (values) => {
+      if (!num(values.amount)) return 'Укажите сумму больше нуля';
+      const account = accounts.find((a) => a.id === values.accountId);
+      upsert('operations', id, {
+        type: values.type, date: values.date, amount: num(values.amount),
+        category: values.category, accountId: values.accountId,
+        account: account ? account.name : '', note: values.note
+      });
+      /* Остаток счёта двигаем только если он был подтверждён: иначе
+         неизвестное значение превратилось бы в вычисленное. */
+      if (account && account.actualBalance !== null && account.actualBalance !== undefined) {
+        update((s) => {
+          const row = (s.financeAccounts || []).find((a) => a.id === values.accountId);
+          if (!row) return;
+          const delta = values.type === 'income' ? num(values.amount) : -num(values.amount);
+          if (values.type !== 'transfer') {
+            row.actualBalance = num(row.actualBalance) + delta;
+            row.calculatedBalance = row.actualBalance;
+          }
+        }, 'operation-balance');
+      }
+    }
+  });
+}
+
+/* ------------------------------- Привычки ------------------------------- */
+
+export function editHabit(id = '') {
+  const habit = find('habits', id) || {};
+  openModal({
+    title: id ? 'Привычка' : 'Новая привычка',
+    fields: [
+      { id: 'name', label: 'Название', value: habit.name || '', required: true, span: true },
+      { id: 'frequency', label: 'Частота', type: 'select', value: habit.frequency || 'daily',
+        options: [
+          { value: 'daily', label: 'Каждый день' },
+          { value: 'weekdays', label: 'По будням' },
+          { value: 'weekly', label: 'Несколько раз в неделю' }
+        ] },
+      { id: 'target', label: 'Цель (например, минут)', type: 'number', min: 0, value: habit.target },
+      { id: 'note', label: 'Зачем она мне', type: 'textarea', value: habit.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'В архив',
+      confirm: 'Убрать привычку из активных? Отметки сохранятся.',
+      run: () => update((state) => {
+        const row = (state.habits || []).find((x) => x.id === id);
+        if (row) row.active = false;
+      }, 'habit-archive')
+    } : null,
+    onSubmit: (values) => upsert('habits', id, {
+      name: values.name, frequency: values.frequency,
+      target: values.target, note: values.note,
+      active: true, marks: habit.marks || {}   /* отметки не трогаем */
+    })
+  });
+}
+
+/* -------------------------------- Задачи -------------------------------- */
+
+export function editTask(id = '') {
+  const task = find('tasks', id) || {};
+  openModal({
+    title: id ? 'Задача' : 'Новая задача',
+    fields: [
+      { id: 'title', label: 'Что сделать', value: task.title || '', required: true, span: true },
+      { id: 'date', label: 'Дата', type: 'date', value: task.date || todayKey() },
+      { id: 'time', label: 'Время', type: 'time', value: task.time || '' },
+      { id: 'priority', label: 'Приоритет', type: 'select', value: task.priority || 'B',
+        options: [
+          { value: 'A', label: 'A — важно и срочно' },
+          { value: 'B', label: 'B — важно' },
+          { value: 'C', label: 'C — можно отложить' }
+        ] },
+      { id: 'note', label: 'Заметка', type: 'textarea', value: task.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'Выполнено',
+      run: () => update((state) => {
+        const row = (state.tasks || []).find((x) => x.id === id);
+        if (row) { row.status = 'done'; row.completedAt = nowIso(); }
+      }, 'task-done')
+    } : null,
+    onSubmit: (values) => upsert('tasks', id, {
+      title: values.title, date: values.date, time: values.time,
+      priority: values.priority, note: values.note, status: task.status || 'open'
+    })
+  });
+}
