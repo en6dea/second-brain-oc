@@ -585,3 +585,208 @@ body.v88-constellation .v83-avatar-core .v78-avatar-fallback{
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;}
 }
+
+/* Автоматическая перекраска сделала кнопкам GameLife одинаковыми и фон, и
+   текст — надписи «Заполнить», «Выполнить», «Своя награда» исчезали. В
+   исходном правиле фон был светлой поверхностью, а акцентным — только текст;
+   возвращаем это соотношение. Вес селектора равен исходному, а файл
+   подключается позже, поэтому перекрытие срабатывает. */
+html:is(.v70-theme-dark,.v80-dark,.v87-dark,.v88-dark)
+  body:is(.v87-constellation,.v88-constellation)
+  .v83-game-page button:not(.v78-primary):not([data-v83-action="quick-capture"]) {
+  background: var(--lm-surface-solid) !important;
+  color: var(--lm-accent) !important;
+  border-color: var(--lm-line) !important;
+}
+
+/* ---------------------------------------------------------------
+   Тёмные значения прежних палитр.
+
+   Сгенерировано make-dark-tokens.py из светлых значений: перекраска
+   Lumen затронула только --lm-*, а --v78-*, --v87-*, --v88-* и прочие
+   остались светлыми — отсюда тёмный текст на тёмном фоне.
+
+   Правки вносите в скрипт и пересоберите, иначе они потеряются.
+   -------------------------------------------------------------- */
+html:is(.v70-theme-dark,.v80-dark,.v87-dark,.v88-dark) {
+  --sb-amber: #DDAE6B;
+  --sb-bg: #101114;
+  --sb-bg-soft: #0E0F11;
+  --sb-blue: #879EF2;
+  --sb-coral: #E9909B;
+  --sb-cyan: #5AB9DA;
+  --sb-danger: #E9909F;
+  --sb-hairline: rgba(240,241,246,.14);
+  --sb-line: rgba(240,241,246,.14);
+  --sb-line-strong: rgba(240,241,246,.22);
+  --sb-live-shadow: 0 24px 70px rgba(0,0,0,.55);
+  --sb-mint: #5BD7B1;
+  --sb-page-dots: rgba(240,241,246,.11);
+  --sb-panel: #0D0D0F;
+  --sb-panel-solid: #0D0D0F;
+  --sb-panel-subtle: #0F0F12;
+  --sb-pink: #E396B9;
+  --sb-shadow: 0 18px 50px rgba(0,0,0,.55);
+  --sb-shadow-soft: 0 8px 24px rgba(0,0,0,.55);
+  --sb-slate: #788495;
+  --sb-surface-glass: rgba(18,19,26,.9);
+  --sb-surface-raised: #0D0D0F;
+  --sb-surface-tint: #0F0F12;
+  --sb-text: #F0F0F2;
+  --sb-text-faint: #768093;
+  --sb-text-soft: #798395;
+  --sb-violet: #A290EA;
+  --sb90-amber: #E7BC71;
+  --sb90-blue: #79A9F1;
+  --sb90-coral: #E89192;
+  --sb90-cyan: #4EDAE4;
+  --sb90-green: #5BD7A9;
+  --sb90-ink: #F0F0F2;
+  --sb90-pink: #E991B9;
+  --sb90-violet: #A78FEA;
+  --sbos-bg: #101114;
+  --sbos-bg-2: #0F1012;
+  --sbos-blue: #84AEEE;
+  --sbos-coral: #ED8C9B;
+  --sbos-cyan: #65C9DA;
+  --sbos-focus-ring: rgba(240,241,246,.24);
+  --sbos-green: #62D0AC;
+  --sbos-line: rgba(240,241,246,.14);
+  --sbos-muted: #767D93;
+  --sbos-pink: #EC8DA9;
+  --sbos-primary: #9C8FE0;
+  --sbos-shadow: 0 16px 44px rgba(0,0,0,.55);
+  --sbos-shadow-hover: 0 22px 56px rgba(0,0,0,.55);
+  --sbos-surface: rgba(18,19,26,.94);
+  --sbos-surface-solid: #0D0D0F;
+  --sbos-text: #F0F0F2;
+  --v103-amber: #F1C175;
+  --v103-blue: #79A9F1;
+  --v103-coral: #F38E86;
+  --v103-cyan: #68C9DC;
+  --v103-green: #61D2A7;
+  --v103-ink: #F0F0F2;
+  --v103-line: rgba(240,241,246,.13);
+  --v103-muted: #767D93;
+  --v103-pink: #EE8BBE;
+  --v103-shadow: 0 16px 42px rgba(0,0,0,.55);
+  --v103-surface: rgba(18,19,26,.88);
+  --v103-violet: #A28FEA;
+  --v107-amber: #DCB176;
+  --v107-blue: #8FA9EB;
+  --v107-card: rgba(18,19,26,.92);
+  --v107-coral: #E1989C;
+  --v107-ink: #F0F0F2;
+  --v107-line: rgba(240,241,246,.14);
+  --v107-mint: #6BC7AB;
+  --v107-muted: #798395;
+  --v107-shadow: 0 18px 44px rgba(0,0,0,.55);
+  --v107-violet: #A290EA;
+  --v108-focus: #86A6F3;
+  --v108-form-shadow: 0 18px 48px rgba(0,0,0,.55);
+  --v108-ink: #F0F0F2;
+  --v108-line: rgba(240,241,246,.14);
+  --v108-muted: #798395;
+  --v108-paper: #0D0D0F;
+  --v108-paper-soft: #0F0F12;
+  --v108-violet: #A48FEA;
+  --v109-amber: #DDAE6B;
+  --v109-blue: #879EF2;
+  --v109-canvas: #101114;
+  --v109-canvas-soft: #0E0F11;
+  --v109-coral: #E9909B;
+  --v109-cyan: #5AB9DA;
+  --v109-faint: #768093;
+  --v109-ink: #F0F0F2;
+  --v109-line: rgba(240,241,246,.14);
+  --v109-line-strong: rgba(240,241,246,.22);
+  --v109-mint: #5BD7B1;
+  --v109-muted: #798395;
+  --v109-pink: #E396B9;
+  --v109-shadow-card: 0 12px 34px rgba(0,0,0,.55);
+  --v109-shadow-raised: 0 20px 56px rgba(0,0,0,.55);
+  --v109-slate: #788495;
+  --v109-surface: #0D0D0F;
+  --v109-surface-soft: #0F0F12;
+  --v109-surface-tint: #101114;
+  --v109-violet: #A290EA;
+  --v112-blue: #72A5F1;
+  --v112-ink: #F0F0F2;
+  --v112-line: rgba(240,241,246,.13);
+  --v112-mint: #5AD8B1;
+  --v112-muted: #768193;
+  --v112-soft: #0F1013;
+  --v112-violet: #A38FEA;
+  --v78-bg: #101114;
+  --v78-bg-warm: #0F1012;
+  --v78-blue: #87A4F2;
+  --v78-coral: #EE8C9C;
+  --v78-cyan: #92D6E8;
+  --v78-gold: #F3CE86;
+  --v78-ink: #F0F0F2;
+  --v78-line: rgba(240,241,246,.14);
+  --v78-mint: #84D2BE;
+  --v78-muted: #798395;
+  --v78-panel: #0D0D0F;
+  --v78-panel-solid: #0D0D0F;
+  --v78-peach: #F3A586;
+  --v78-shadow: 0 18px 50px rgba(0,0,0,.55);
+  --v78-shadow-hover: 0 24px 70px rgba(0,0,0,.55);
+  --v78-violet: #A290EA;
+  --v78-violet-2: #A286F3;
+  --v80-muted: #7D8299;
+  --v80-soft: #0F1012;
+  --v80-text: #F0F0F2;
+  --v82-card: #0D0D0F;
+  --v82-line: rgba(240,241,246,.14);
+  --v82-muted: #798395;
+  --v82-shadow: 0 18px 50px rgba(0,0,0,.55);
+  --v82-text: #F0F0F2;
+  --v832-glow: 0 18px 40px rgba(0,0,0,.55);
+  --v832-ink: #F0F0F2;
+  --v832-line: rgba(240,241,246,.14);
+  --v832-muted: #8B88A1;
+  --v832-soft: #7B7693;
+  --v87-amber: #E3BA76;
+  --v87-bg: #101113;
+  --v87-bg-deep: #121317;
+  --v87-blue: #6B9AE8;
+  --v87-blue-2: #86B0F3;
+  --v87-coral: #EC8E93;
+  --v87-cyan: #7BD0DB;
+  --v87-green: #62D0A2;
+  --v87-line: rgba(240,241,246,.11);
+  --v87-line-strong: rgba(240,241,246,.24);
+  --v87-muted: #768393;
+  --v87-panel: rgba(18,19,26,.84);
+  --v87-panel-soft: rgba(18,19,26,.82);
+  --v87-panel-solid: #0D0D0F;
+  --v87-text: #F0F0F2;
+  --v87-violet: #A899E1;
+  --v88-amber: #E3BD7F;
+  --v88-bg: #101113;
+  --v88-bg-deep: #121316;
+  --v88-blue: #6FA0EB;
+  --v88-blue-2: #86B5F3;
+  --v88-coral: #EC8E93;
+  --v88-cyan: #81D3DD;
+  --v88-green: #68CEA3;
+  --v88-line: rgba(240,241,246,.12);
+  --v88-line-strong: rgba(240,241,246,.28);
+  --v88-muted: #798796;
+  --v88-panel: rgba(18,19,26,.88);
+  --v88-panel-soft: rgba(18,19,26,.9);
+  --v88-panel-solid: #0D0D0F;
+  --v88-shadow: 0 22px 64px rgba(0,0,0,.55);
+  --v88-text: #F0F0F2;
+  --v88-violet: #A99AE0;
+  --v883-icon-shadow: 0 10px 24px rgba(0,0,0,.55);
+  --v93-blue: #84A8F3;
+  --v93-coral: #EA90A1;
+  --v93-green: #5ED4AA;
+  --v93-ink: #F0F0F2;
+  --v93-line: rgba(240,241,246,.14);
+  --v93-muted: #798195;
+  --v93-violet: #A58FEA;
+}
+/* токенов переведено: 179 из 179 */

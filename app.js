@@ -3011,7 +3011,9 @@
   const MOTION_KEY = 'secondBrainOS.visualMotion';
   const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
   const reducedMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let themeMode = 'light';
+  /* Выбор пользователя, а не жёсткое значение. По умолчанию — светлая:
+     это оформление проекта. */
+  let themeMode = readPreference(THEME_KEY) || readPreference(LEGACY_THEME_KEY) || 'light';
   let motionMode = readPreference(MOTION_KEY) || 'full';
   let scheduledFrame = 0;
   let applyCount = 0;
@@ -3177,13 +3179,48 @@
     return true;
   }
 
-  function resolvedTheme() { return 'light'; }
+  /* Светлая тема — оформление проекта по умолчанию. Тёмная доступна выбором,
+     системная следует настройке устройства. */
+  function resolvedTheme() {
+    if (themeMode === 'dark') return 'dark';
+    if (themeMode === 'system') return themeMedia.matches ? 'dark' : 'light';
+    return 'light';
+  }
   function resolvedMotion() { return reducedMedia.matches ? 'off' : motionMode; }
 
   function setTheme(mode, persist = true) {
-    themeMode = 'light';
-    if (persist) savePreference(THEME_KEY, 'light');
+    if (!['light','dark','system'].includes(mode)) mode = 'light';
+    themeMode = mode;
+    if (persist) savePreference(THEME_KEY, mode);
     applyPreferences();
+  }
+
+  /* Тёмная палитра — не слой поверх светлой, а её замена. styles-dark-base.css
+     это тот же styles.css с переведёнными цветами, и накладывать их друг на
+     друга нельзя: часть правил светлой темы объявлена через !important и
+     оставляет тёмный текст на тёмном фоне. Поэтому таблицы взаимно
+     исключающие. Тёмная подгружается только при выборе — 600 КБ не нужны
+     тем, кто ей не пользуется. */
+  const DARK_SHEETS = [
+    ['sbos-dark-base', 'styles-dark-base.css'],
+    ['sbos-dark-lumen', 'styles-lumen.css']
+  ];
+  function applyThemeStylesheets(theme) {
+    const build = window.SecondBrainBuild?.cacheVersion || 'v1';
+    const dark = theme === 'dark';
+    DARK_SHEETS.forEach(([id, href]) => {
+      let link = document.getElementById(id);
+      if (dark && !link) {
+        link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = `${href}?v=${build}`;
+        document.head.appendChild(link);
+      }
+      if (link) link.disabled = !dark;
+    });
+    const light = document.getElementById('sbos-light-base');
+    if (light) light.disabled = dark;
   }
 
   function setMotion(mode, persist = true) {
@@ -3197,8 +3234,13 @@
     const theme = resolvedTheme();
     const motion = resolvedMotion();
     const root = document.documentElement;
-    root.classList.remove('v87-light','v87-dark','v88-light','v88-dark');
-    root.classList.add(`v87-${theme}`,`v88-${theme}`);
+    applyThemeStylesheets(theme);
+    /* Классы прежних версий тоже переключаем: часть правил в styles.css
+       написана под них, и без этого светлая тема останется наполовину. */
+    root.classList.remove('v70-theme-light','v70-theme-dark','v80-light','v80-dark','v87-light','v87-dark','v88-light','v88-dark');
+    root.classList.add(`v70-theme-${theme}`,`v80-${theme}`,`v87-${theme}`,`v88-${theme}`);
+    root.dataset.v104Theme = theme;
+    root.style.colorScheme = theme;
     if (document.body) {
       document.body.classList.add('v87-constellation','v88-constellation');
       document.body.classList.toggle('v88-motion-calm',motion === 'calm');
@@ -3207,7 +3249,7 @@
       document.body.dataset.themeMode = themeMode;
       document.body.dataset.motionMode = motionMode;
     }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme === 'dark' ? '#07111d' : '#f5f7fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme === 'dark' ? '#08090D' : '#f5f7fb');
     updateControlState();
   }
 
@@ -3229,9 +3271,6 @@
   }
 
   function ensureControls() {
-    document.querySelector('.v88-theme-toggle')?.remove();
-    document.querySelector('.v88-control-panel')?.remove();
-    return;
     const actions = document.querySelector('.v78-top-actions');
     if (!actions) return;
     let toggle = actions.querySelector('.v88-theme-toggle');
@@ -3463,9 +3502,22 @@
     setBuildBadge();
   }
 
+  /* Кадр анимации не наступает, пока вкладка скрыта или не отрисовывается.
+     Раньше флаг оставался взведённым, и защита от повторного входа навсегда
+     блокировала обновления интерфейса — вкладка «застывала» после возврата.
+     Поэтому рядом с кадром идёт таймер: срабатывает тот, кто первым. */
+  let scheduledTimer = 0;
   function schedule() {
-    if (scheduledFrame) return;
-    scheduledFrame = requestAnimationFrame(() => { scheduledFrame = 0; apply(); });
+    if (scheduledFrame || scheduledTimer) return;
+    const run = () => {
+      if (scheduledFrame) cancelAnimationFrame(scheduledFrame);
+      if (scheduledTimer) clearTimeout(scheduledTimer);
+      scheduledFrame = 0;
+      scheduledTimer = 0;
+      apply();
+    };
+    scheduledFrame = requestAnimationFrame(run);
+    scheduledTimer = setTimeout(run, 120);
   }
 
   function routeChanged() {
