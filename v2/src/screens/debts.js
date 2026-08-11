@@ -4,10 +4,10 @@
    показано тело долга, а сценарии доплаты считаются амортизацией, а не
    делением остатка на платёж. */
 
-import { getState, num } from '../store.js';
-import { money, dateShort, plural, esc, monthTitle } from '../format.js';
-import { debtSummary, debtOrder, payoff, debtBalance, debtMinimum, debtDue, isOverdue } from '../calc.js';
-import { pageHead, metricStrip, card, label, listRow, areaChart, axis, button, empty } from '../ui.js';
+import { getState, num } from '../store.js?v=2.1.1';
+import { money, dateShort, plural, esc, monthTitle } from '../format.js?v=2.1.1';
+import { debtSummary, debtOrder, payoff, debtBalance, debtMinimum, debtDue, isOverdue } from '../calc.js?v=2.1.1';
+import { pageHead, metricStrip, card, label, listRow, areaChart, axis, button, empty } from '../ui.js?v=2.1.1';
 
 const SCENARIOS = [10_000, 30_000, 50_000];
 

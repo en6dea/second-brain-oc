@@ -4,9 +4,9 @@
    возвращают null, если оставлены пустыми, — это сохраняет разницу между
    «не заполнено» и «ноль». */
 
-import { getState, update, uid, nowIso, num } from './store.js';
-import { openModal } from './modal.js';
-import { todayKey } from './format.js';
+import { getState, update, uid, nowIso, num } from './store.js?v=2.1.1';
+import { openModal } from './modal.js?v=2.1.1';
+import { todayKey } from './format.js?v=2.1.1';
 
 const find = (name, id) => (getState()[name] || []).find((x) => x && x.id === id) || null;
 
@@ -283,13 +283,13 @@ export function editHabit(id = '') {
 
 /* -------------------------------- Задачи -------------------------------- */
 
-export function editTask(id = '') {
+export function editTask(id = '', presetDate = '') {
   const task = find('tasks', id) || {};
   openModal({
     title: id ? 'Задача' : 'Новая задача',
     fields: [
       { id: 'title', label: 'Что сделать', value: task.title || '', required: true, span: true },
-      { id: 'date', label: 'Дата', type: 'date', value: task.date || todayKey() },
+      { id: 'date', label: 'Дата', type: 'date', value: task.date || presetDate || todayKey() },
       { id: 'time', label: 'Время', type: 'time', value: task.time || '' },
       { id: 'priority', label: 'Приоритет', type: 'select', value: task.priority || 'B',
         options: [
@@ -310,5 +310,136 @@ export function editTask(id = '') {
       title: values.title, date: values.date, time: values.time,
       priority: values.priority, note: values.note, status: task.status || 'open'
     })
+  });
+}
+
+/* --------------------------------- Цели --------------------------------- */
+
+export function editGoal(id = '') {
+  const goal = find('goals', id) || {};
+  const habits = (getState().habits || []).filter((h) => h && h.active !== false);
+  const stagesText = Array.isArray(goal.stages)
+    ? goal.stages.map((s) => (s && s.done ? '+ ' : '') + (s.title || '')).join('\n')
+    : '';
+
+  openModal({
+    title: id ? 'Цель' : 'Новая цель',
+    subtitle: 'Следующий шаг обязателен: без него цель остаётся намерением',
+    fields: [
+      { id: 'title', label: 'Цель', value: goal.title || '', required: true, span: true },
+      { id: 'nextAction', label: 'Следующий шаг', value: goal.nextAction || '', required: true, span: true,
+        hint: 'Одно конкретное действие, которое можно сделать на этой неделе' },
+      { id: 'due', label: 'Срок', type: 'date', value: goal.due || goal.date || '' },
+      { id: 'status', label: 'Состояние', type: 'select', value: goal.status || 'active',
+        options: [
+          { value: 'active', label: 'В работе' },
+          { value: 'paused', label: 'На паузе' },
+          { value: 'done', label: 'Достигнута' }
+        ] },
+      { id: 'stages', label: 'Этапы, по одному в строке', type: 'textarea', value: stagesText, span: true,
+        hint: 'Строку, начинающуюся со знака +, считаю выполненной' },
+      { id: 'habitIds', label: 'Привычки, ведущие к цели', type: 'select', span: true,
+        value: (goal.habitIds || [])[0] || '',
+        options: [{ value: '', label: 'Без привычки' }]
+          .concat(habits.map((h) => ({ value: h.id, label: h.name || 'Привычка' }))) },
+      { id: 'note', label: 'Зачем это мне', type: 'textarea', value: goal.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'В архив',
+      confirm: 'Убрать цель из активных? Запись сохранится.',
+      run: () => update((state) => {
+        const row = (state.goals || []).find((x) => x.id === id);
+        if (row) row.status = 'archived';
+      }, 'goal-archive')
+    } : null,
+    onSubmit: (values) => {
+      /* Этапы разбираем построчно, сохраняя прежний формат {id,title,done,order} */
+      const previous = Array.isArray(goal.stages) ? goal.stages : [];
+      const stages = String(values.stages || '')
+        .split('\n').map((line) => line.trim()).filter(Boolean)
+        .map((line, index) => {
+          const done = line.startsWith('+');
+          const title = done ? line.slice(1).trim() : line;
+          const old = previous.find((s) => s && s.title === title);
+          return { id: (old && old.id) || uid(), title, done: done || Boolean(old && old.done), order: index };
+        });
+      upsert('goals', id, {
+        title: values.title, nextAction: values.nextAction,
+        due: values.due, date: values.due,
+        status: values.status, stages,
+        habitIds: values.habitIds ? [values.habitIds] : [],
+        note: values.note
+      });
+    }
+  });
+}
+
+/** Переключает этап цели. */
+export function toggleStage(goalId, index) {
+  update((state) => {
+    const goal = (state.goals || []).find((g) => g && g.id === goalId);
+    const stage = goal && Array.isArray(goal.stages) ? goal.stages[Number(index)] : null;
+    if (stage) { stage.done = !stage.done; goal.updatedAt = nowIso(); }
+  }, 'goal-stage');
+}
+
+/* ----------------------------- Информация ------------------------------- */
+
+const SECTION_TITLES = {
+  notes: 'Заметка', ideas: 'Идея', wishes: 'Желание',
+  books: 'Книга', films: 'Фильм', documents: 'Документ'
+};
+
+export function editInfo(section, id = '') {
+  const collection = SECTION_TITLES[section] ? section : 'notes';
+  const row = find(collection, id) || {};
+  openModal({
+    title: id ? SECTION_TITLES[collection] : `Новая запись · ${SECTION_TITLES[collection]}`,
+    fields: [
+      { id: 'title', label: 'Название', value: row.title || row.name || '', required: true, span: true },
+      ...(collection === 'books' ? [{ id: 'author', label: 'Автор', value: row.author || '' }] : []),
+      ...(collection === 'wishes' ? [{ id: 'price', label: 'Примерная цена', type: 'number', min: 0, value: row.price }] : []),
+      { id: 'text', label: 'Текст или заметка', type: 'textarea', value: row.text || row.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'Удалить',
+      confirm: 'Удалить запись? Отменить будет нельзя.',
+      run: () => update((state) => {
+        state[collection] = (state[collection] || []).filter((x) => x.id !== id);
+      }, 'info-delete')
+    } : null,
+    onSubmit: (values) => upsert(collection, id, {
+      title: values.title,
+      author: values.author,
+      price: values.price,
+      text: values.text,
+      note: values.text
+    })
+  });
+}
+
+/* -------------------------------- Люди ---------------------------------- */
+
+export function editPerson(id = '') {
+  const person = find('people', id) || {};
+  openModal({
+    title: id ? 'Человек' : 'Новый человек',
+    fields: [
+      { id: 'name', label: 'Имя', value: person.name || '', required: true, span: true },
+      { id: 'relation', label: 'Кто это', value: person.relation || person.role || '',
+        placeholder: 'друг, коллега, родственник' },
+      { id: 'birthday', label: 'День рождения', type: 'date', value: person.birthday || person.birthDate || '' },
+      { id: 'phone', label: 'Телефон или контакт', value: person.phone || person.contact || '' },
+      { id: 'promise', label: 'Что я обещал', value: person.promise || '' },
+      { id: 'note', label: 'Заметка', type: 'textarea', value: person.note || '', span: true }
+    ],
+    danger: id ? {
+      text: 'Удалить',
+      confirm: 'Удалить запись о человеке?',
+      run: () => update((state) => {
+        state.people = (state.people || []).filter((x) => x.id !== id);
+      }, 'person-delete')
+    } : null,
+    onSubmit: (values) => upsert('people', id, values)
   });
 }

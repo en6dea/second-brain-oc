@@ -2,10 +2,10 @@
    Отметки хранятся словарём дата→значение (см. DATA-MODEL.md). История не
    переписывается: отметка ставится на конкретную дату, а не «сдвигается». */
 
-import { getState, update, nowIso } from '../store.js';
-import { esc, weekdayShort, parseKey, todayKey, weekEndingToday, percent, plural } from '../format.js';
-import { activeHabits, isHabitDone, habitStreak, weekCompletion, habitsToday } from '../calc.js';
-import { pageHead, card, label, ring, button, empty, metricStrip } from '../ui.js';
+import { getState, update, nowIso } from '../store.js?v=2.1.1';
+import { esc, weekdayShort, parseKey, todayKey, weekEndingToday, percent, plural } from '../format.js?v=2.1.1';
+import { activeHabits, isHabitDone, habitStreak, weekCompletion, habitsToday } from '../calc.js?v=2.1.1';
+import { pageHead, card, label, ring, button, empty, metricStrip } from '../ui.js?v=2.1.1';
 
 /** Переключает отметку привычки за дату. Формат значения сохраняем простым. */
 export function toggleMark(habitId, dateKey) {

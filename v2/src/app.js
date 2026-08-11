@@ -4,37 +4,51 @@
    экранов немного, а зависимость от сборщика сделала бы правки сложнее,
    чем сама задача. Отрисовка — целиком экран, через строку HTML. */
 
-import { load, subscribe, getState } from './store.js';
-import { render as renderToday } from './screens/today.js';
-import { render as renderFinance } from './screens/finance.js';
-import { render as renderDebts } from './screens/debts.js';
-import { render as renderHabits, toggleMark } from './screens/habits.js';
+import { load, subscribe, getState } from './store.js?v=2.1.1';
+import { render as renderToday } from './screens/today.js?v=2.1.1';
+import { render as renderFinance } from './screens/finance.js?v=2.1.1';
+import { render as renderDebts } from './screens/debts.js?v=2.1.1';
+import { render as renderHabits, toggleMark } from './screens/habits.js?v=2.1.1';
+import { render as renderGoals } from './screens/goals.js?v=2.1.1';
+import { render as renderInformation, renderPeople } from './screens/information.js?v=2.1.1';
+import { render as renderCalendar } from './screens/calendar.js?v=2.1.1';
 import {
   editDebt, payDebt, debtStrategy, editAccount, reconcile,
-  editOperation, editHabit, editTask
-} from './actions.js';
+  editOperation, editHabit, editTask,
+  editGoal, toggleStage, editInfo, editPerson
+} from './actions.js?v=2.1.1';
 
 const SCREENS = {
   today: { title: 'Сегодня', render: renderToday },
   finance: { title: 'Финансы', render: renderFinance },
   debts: { title: 'Долги', render: renderDebts },
-  habits: { title: 'Привычки', render: renderHabits }
+  habits: { title: 'Привычки', render: renderHabits },
+  goals: { title: 'Цели', render: renderGoals },
+  information: { title: 'Информация', render: renderInformation },
+  people: { title: 'Люди', render: renderPeople },
+  calendar: { title: 'Календарь', render: renderCalendar }
 };
 
 /* Экраны, которые ещё не перенесены: ведём в старое приложение, а не в
    тупик. Пользователю важно, чтобы раздел работал, а не чтобы он был новым. */
 const LEGACY = {
-  calendar: 'Календарь', goals: 'Цели', information: 'Информация',
-  people: 'Люди', gamelife: 'GameLife', archive: 'Архив'
+  gamelife: 'GameLife', archive: 'Архив'
 };
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 
-const currentRoute = () => {
-  const hash = (location.hash || '#today').replace('#', '').split('?')[0];
-  return SCREENS[hash] ? hash : (LEGACY[hash] ? hash : 'today');
-};
+/* Маршрут вида #information?section=books — имя экрана плюс параметры. */
+function parseHash() {
+  const raw = (location.hash || '#today').replace(/^#/, '');
+  const [name, query = ''] = raw.split('?');
+  const params = {};
+  new URLSearchParams(query).forEach((value, key) => { params[key] = value; });
+  const route = SCREENS[name] || LEGACY[name] ? name : 'today';
+  return { route, params };
+}
+
+const currentRoute = () => parseHash().route;
 
 function renderLegacyNotice(route) {
   return `<div class="top">
@@ -50,7 +64,7 @@ function renderLegacyNotice(route) {
 }
 
 function draw() {
-  const route = currentRoute();
+  const { route, params } = parseHash();
   document.body.dataset.route = route;
 
   nav.querySelectorAll('a[data-route]').forEach((link) => {
@@ -58,7 +72,7 @@ function draw() {
   });
 
   try {
-    view.innerHTML = SCREENS[route] ? SCREENS[route].render() : renderLegacyNotice(route);
+    view.innerHTML = SCREENS[route] ? SCREENS[route].render(params) : renderLegacyNotice(route);
   } catch (error) {
     console.error('[app] ошибка отрисовки', error);
     view.innerHTML = `<div class="empty">
@@ -90,7 +104,17 @@ const ACTIONS = {
   'habit-new': () => editHabit(),
   'habit-edit': (el) => editHabit(el.dataset.id),
   'task-new': () => editTask(),
-  'task-edit': (el) => editTask(el.dataset.id)
+  'task-edit': (el) => editTask(el.dataset.id),
+  'task-new-on': (el) => editTask('', el.dataset.day),
+
+  'goal-new': () => editGoal(),
+  'goal-edit': (el) => editGoal(el.dataset.id),
+  'goal-stage': (el) => toggleStage(el.dataset.id, el.dataset.stage),
+
+  'info-new': (el) => editInfo(el.dataset.section || 'notes'),
+  'info-edit': (el) => editInfo(el.dataset.section || 'notes', el.dataset.id),
+  'person-new': () => editPerson(),
+  'person-edit': (el) => editPerson(el.dataset.id)
 };
 
 /* Разделы, экраны которых ещё не перенесены. */

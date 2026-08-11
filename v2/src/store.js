@@ -38,14 +38,37 @@ const listeners = new Set();
 
 /* ------------------------------ IndexedDB ------------------------------ */
 
-function openDb() {
+function openRaw(version) {
   return new Promise((resolve, reject) => {
-    /* Версию не указываем: базу создала первая версия приложения, и
-       навязывать свою — значит спровоцировать upgrade у неё. */
-    const request = indexedDB.open(DB_NAME);
+    const request = version ? indexedDB.open(DB_NAME, version) : indexedDB.open(DB_NAME);
+    /* Хранилище создаётся без keyPath — ровно так же, как в первой версии.
+       Разойдись мы здесь, версии перестали бы читать записи друг друга. */
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error || new Error('IndexedDB недоступна'));
   });
+}
+
+/**
+ * Версию намеренно не навязываем: базу мог создать старый код, и повышение
+ * версии спровоцировало бы у него upgrade. Но на чистом устройстве базы нет
+ * вовсе, и открытие без версии создаёт её пустой, без хранилища — тогда
+ * поднимаем версию один раз, только чтобы создать хранилище.
+ */
+async function openDb() {
+  let db = await openRaw();
+  if (db.objectStoreNames.contains(DB_STORE)) return db;
+  const nextVersion = db.version + 1;
+  db.close();
+  db = await openRaw(nextVersion);
+  if (!db.objectStoreNames.contains(DB_STORE)) {
+    db.close();
+    throw new Error('Не удалось создать хранилище записей');
+  }
+  return db;
 }
 
 function dbGet(db, key) {
