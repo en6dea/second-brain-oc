@@ -6,8 +6,8 @@
    долг только частью «тело». Поэтому срок погашения нельзя считать делением
    остатка на платёж. */
 
-import { num, numberOrNull } from './store.js?v=2.1.1';
-import { monthKey, todayKey, parseKey, toKey } from './format.js?v=2.1.1';
+import { num, numberOrNull } from './store.js?v=2.2.0';
+import { monthKey, todayKey, parseKey, toKey } from './format.js?v=2.2.0';
 
 /* ------------------------------- Долги ---------------------------------- */
 

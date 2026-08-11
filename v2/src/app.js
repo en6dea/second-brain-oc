@@ -4,19 +4,22 @@
    экранов немного, а зависимость от сборщика сделала бы правки сложнее,
    чем сама задача. Отрисовка — целиком экран, через строку HTML. */
 
-import { load, subscribe, getState } from './store.js?v=2.1.1';
-import { render as renderToday } from './screens/today.js?v=2.1.1';
-import { render as renderFinance } from './screens/finance.js?v=2.1.1';
-import { render as renderDebts } from './screens/debts.js?v=2.1.1';
-import { render as renderHabits, toggleMark } from './screens/habits.js?v=2.1.1';
-import { render as renderGoals } from './screens/goals.js?v=2.1.1';
-import { render as renderInformation, renderPeople } from './screens/information.js?v=2.1.1';
-import { render as renderCalendar } from './screens/calendar.js?v=2.1.1';
+import { load, subscribe, getState } from './store.js?v=2.2.0';
+import { render as renderToday } from './screens/today.js?v=2.2.0';
+import { render as renderFinance } from './screens/finance.js?v=2.2.0';
+import { render as renderDebts } from './screens/debts.js?v=2.2.0';
+import { render as renderHabits, toggleMark } from './screens/habits.js?v=2.2.0';
+import { render as renderGoals } from './screens/goals.js?v=2.2.0';
+import { render as renderInformation, renderPeople } from './screens/information.js?v=2.2.0';
+import { render as renderCalendar } from './screens/calendar.js?v=2.2.0';
+import { render as renderGameLife, renderArchive } from './screens/gamelife.js?v=2.2.0';
+import { render as renderSystem, loadBackups, invalidateBackups } from './screens/system.js?v=2.2.0';
 import {
   editDebt, payDebt, debtStrategy, editAccount, reconcile,
   editOperation, editHabit, editTask,
-  editGoal, toggleStage, editInfo, editPerson
-} from './actions.js?v=2.1.1';
+  editGoal, toggleStage, editInfo, editPerson,
+  exportJson, importJson, backupNow, restoreFrom
+} from './actions.js?v=2.2.0';
 
 const SCREENS = {
   today: { title: 'Сегодня', render: renderToday },
@@ -26,14 +29,15 @@ const SCREENS = {
   goals: { title: 'Цели', render: renderGoals },
   information: { title: 'Информация', render: renderInformation },
   people: { title: 'Люди', render: renderPeople },
-  calendar: { title: 'Календарь', render: renderCalendar }
+  calendar: { title: 'Календарь', render: renderCalendar },
+  gamelife: { title: 'GameLife', render: renderGameLife },
+  archive: { title: 'Архив', render: renderArchive },
+  system: { title: 'Хранилище', render: renderSystem }
 };
 
 /* Экраны, которые ещё не перенесены: ведём в старое приложение, а не в
    тупик. Пользователю важно, чтобы раздел работал, а не чтобы он был новым. */
-const LEGACY = {
-  gamelife: 'GameLife', archive: 'Архив'
-};
+const LEGACY = {};
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
@@ -82,6 +86,10 @@ function draw() {
     </div>`;
   }
   view.scrollTop = 0;
+
+  /* Список копий читается из базы асинхронно: рисуем экран сразу,
+     а когда список придёт — перерисовываем. */
+  if (route === 'system') loadBackups(draw);
 }
 
 /* ------------------------------- Действия ------------------------------- */
@@ -114,7 +122,13 @@ const ACTIONS = {
   'info-new': (el) => editInfo(el.dataset.section || 'notes'),
   'info-edit': (el) => editInfo(el.dataset.section || 'notes', el.dataset.id),
   'person-new': () => editPerson(),
-  'person-edit': (el) => editPerson(el.dataset.id)
+  'person-edit': (el) => editPerson(el.dataset.id),
+
+  'export-json': () => exportJson(),
+  'import-merge': () => importJson('merge'),
+  'import-replace': () => importJson('replace'),
+  'backup-now': () => backupNow().then(() => { invalidateBackups(); loadBackups(draw); }),
+  'backup-restore': (el) => restoreFrom(el.dataset.id)
 };
 
 /* Разделы, экраны которых ещё не перенесены. */
@@ -156,3 +170,14 @@ load()
       <div class="acts"><a class="btn" href="../index.html">Открыть прежнюю версию</a></div>
     </div>`;
   });
+
+/* --------------------------------- PWA ---------------------------------- */
+
+/* Регистрируем офлайн-оболочку только на защищённом соединении: на http
+   браузер откажет, и в консоли появится ошибка, которая ничего не значит. */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=2.2.0', { scope: './' })
+      .catch((error) => console.info('[app] офлайн-режим недоступен:', error && error.message));
+  });
+}

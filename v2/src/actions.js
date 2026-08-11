@@ -4,9 +4,12 @@
    возвращают null, если оставлены пустыми, — это сохраняет разницу между
    «не заполнено» и «ноль». */
 
-import { getState, update, uid, nowIso, num } from './store.js?v=2.1.1';
-import { openModal } from './modal.js?v=2.1.1';
-import { todayKey } from './format.js?v=2.1.1';
+import {
+  getState, update, uid, nowIso, num,
+  exportState, importState, createBackup, restoreBackup
+} from './store.js?v=2.2.0';
+import { openModal } from './modal.js?v=2.2.0';
+import { todayKey } from './format.js?v=2.2.0';
 
 const find = (name, id) => (getState()[name] || []).find((x) => x && x.id === id) || null;
 
@@ -442,4 +445,76 @@ export function editPerson(id = '') {
     } : null,
     onSubmit: (values) => upsert('people', id, values)
   });
+}
+
+/* --------------------- Служебные действия с данными --------------------- */
+
+/** Выгрузка состояния в файл. Имя с датой, чтобы копии не путались. */
+export function exportJson() {
+  const data = exportState();
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `second-brain-${stamp}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+}
+
+/** Загрузка из файла. mode: 'merge' добавляет, 'replace' заменяет всё. */
+export function importJson(mode = 'merge') {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json,.json';
+  input.onchange = async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      /* Файл прежней версии мог быть обёрнут: {state: {...}} */
+      const payload = parsed && parsed.state && typeof parsed.state === 'object' ? parsed.state : parsed;
+
+      if (mode === 'replace') {
+        const counts = Object.keys(payload).filter((k) => Array.isArray(payload[k])).length;
+        const ok = window.confirm(
+          `Заменить все данные содержимым файла?\n\nКоллекций в файле: ${counts}.\n` +
+          'Текущее состояние будет сохранено отдельной копией, но активными станут данные из файла.'
+        );
+        if (!ok) return;
+      }
+
+      const result = await importState(payload, mode);
+      if (mode === 'replace') {
+        alert('Данные заменены. Копия прежнего состояния сохранена.');
+      } else {
+        const added = Object.entries(result || {});
+        alert(added.length
+          ? `Добавлено:\n${added.map(([k, n]) => `${k}: ${n}`).join('\n')}`
+          : 'Новых записей в файле не нашлось — всё это уже есть.');
+      }
+    } catch (error) {
+      alert(`Не удалось прочитать файл: ${error && error.message || error}`);
+    }
+  };
+  input.click();
+}
+
+export async function backupNow() {
+  try {
+    const result = await createBackup('manual');
+    alert(`Копия создана: ${result.createdAt.slice(0, 16).replace('T', ' ')}`);
+    return result;
+  } catch (error) {
+    alert(`Не удалось создать копию: ${error && error.message || error}`);
+  }
+}
+
+export async function restoreFrom(key) {
+  if (!window.confirm('Восстановить данные из этой копии?\n\nТекущее состояние будет сохранено отдельной копией.')) return;
+  try {
+    await restoreBackup(key);
+    alert('Данные восстановлены.');
+  } catch (error) {
+    alert(`Не удалось восстановить: ${error && error.message || error}`);
+  }
 }

@@ -3,10 +3,10 @@
    показывается словами «не заполнено», а не нулём, и не участвует в сумме.
    Молчаливый ноль создаёт ложное ощущение, что денег известно сколько. */
 
-import { getState, num, numberOrNull } from '../store.js?v=2.1.1';
-import { money, monthKey, monthTitle, todayKey, esc, plural, percent } from '../format.js?v=2.1.1';
-import { totalBalance, accountsWithBalance, accountsUnfilled, monthTotals, categorySpend } from '../calc.js?v=2.1.1';
-import { pageHead, metricStrip, card, label, button, empty } from '../ui.js?v=2.1.1';
+import { getState, num, numberOrNull } from '../store.js?v=2.2.0';
+import { money, monthKey, monthTitle, todayKey, esc, plural, percent } from '../format.js?v=2.2.0';
+import { totalBalance, accountsWithBalance, accountsUnfilled, monthTotals, categorySpend } from '../calc.js?v=2.2.0';
+import { pageHead, metricStrip, card, label, button, empty } from '../ui.js?v=2.2.0';
 
 const ACCOUNT_TYPES = {
   card: 'карта', account: 'счёт', cash: 'наличные',

@@ -4,10 +4,10 @@
    самые дорогие по последствиям события месяца, а раньше их приходилось
    искать в другом разделе. */
 
-import { getState, num } from '../store.js?v=2.1.1';
-import { esc, toKey, parseKey, todayKey, monthTitle, monthKey, money, plural } from '../format.js?v=2.1.1';
-import { openTasks, activeDebts, debtDue, debtMinimum } from '../calc.js?v=2.1.1';
-import { pageHead, card, label, button, metricStrip } from '../ui.js?v=2.1.1';
+import { getState, num } from '../store.js?v=2.2.0';
+import { esc, toKey, parseKey, todayKey, monthTitle, monthKey, money, plural } from '../format.js?v=2.2.0';
+import { openTasks, activeDebts, debtDue, debtMinimum } from '../calc.js?v=2.2.0';
+import { pageHead, card, label, button, metricStrip } from '../ui.js?v=2.2.0';
 
 const WEEK = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 

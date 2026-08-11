@@ -250,3 +250,103 @@ export function num(value) {
   const parsed = numberOrNull(value);
   return parsed === null ? 0 : parsed;
 }
+
+/* ------------------------- Копии, экспорт, импорт ----------------------- */
+
+/** Список резервных копий в хранилище, свежие сверху. */
+export async function listBackups() {
+  const db = await openDb();
+  try {
+    const keys = await new Promise((resolve, reject) => {
+      const request = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).getAllKeys();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    return keys
+      .filter((key) => String(key).startsWith('backup:') || String(key).startsWith('daily:'))
+      .map((key) => {
+        const iso = String(key).split(':').slice(-3).join(':');
+        return { key: String(key), createdAt: /\d{4}-\d{2}-\d{2}T/.test(iso) ? iso : '' };
+      })
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  } finally {
+    db.close();
+  }
+}
+
+/** Копия по требованию — например, перед рискованным действием. */
+export async function createBackup(reason = 'manual') {
+  const db = await openDb();
+  try {
+    const createdAt = new Date().toISOString();
+    const key = `backup:${reason}:${createdAt}`;
+    const counts = {};
+    COLLECTIONS.forEach((name) => { counts[name] = (state[name] || []).length; });
+    await dbPut(db, key, {
+      key, version: 2, buildId: BUILD_ID, createdAt, reason, counts,
+      state: structuredClone(state)
+    });
+    return { key, createdAt, counts };
+  } finally {
+    db.close();
+  }
+}
+
+/** Восстановление из копии. Перед заменой делает копию текущего состояния. */
+export async function restoreBackup(key) {
+  const db = await openDb();
+  let record;
+  try {
+    record = await dbGet(db, key);
+  } finally {
+    db.close();
+  }
+  if (!record || !record.state) throw new Error('Копия не найдена или повреждена');
+  await createBackup('before-restore');
+  state = ensureShape(structuredClone(record.state));
+  notify();
+  await save('restore-backup');
+  return true;
+}
+
+/** Полное состояние одним объектом — для файла. */
+export const exportState = () => structuredClone(state);
+
+/**
+ * Импорт из файла. mode: 'replace' заменяет состояние целиком,
+ * 'merge' добавляет только записи с новыми id — существующие не трогает.
+ */
+export async function importState(incoming, mode = 'merge') {
+  if (!incoming || typeof incoming !== 'object') throw new Error('Файл не похож на копию данных');
+  await createBackup('before-import');
+
+  if (mode === 'replace') {
+    state = ensureShape(structuredClone(incoming));
+  } else {
+    const added = {};
+    COLLECTIONS.forEach((name) => {
+      const source = Array.isArray(incoming[name]) ? incoming[name] : [];
+      if (!source.length) return;
+      const existing = new Set((state[name] || []).map((row) => row && row.id));
+      const fresh = source.filter((row) => row && row.id && !existing.has(row.id));
+      if (fresh.length) {
+        state[name] = (state[name] || []).concat(fresh);
+        added[name] = fresh.length;
+      }
+    });
+    /* Настройки при слиянии не перезаписываем: они описывают это устройство. */
+    notify();
+    await save('import-merge');
+    return added;
+  }
+  notify();
+  await save('import-replace');
+  return { replaced: true };
+}
+
+/** Сколько записей в каждой коллекции — для служебного экрана. */
+export function dataCounts() {
+  const out = {};
+  COLLECTIONS.forEach((name) => { out[name] = (state[name] || []).length; });
+  return out;
+}

@@ -7,8 +7,8 @@
    Главное правило чтения чисел: пустое поле возвращает null, а не 0.
    «Не заполнено» и «ноль рублей» — разные факты (см. DATA-MODEL.md). */
 
-import { esc } from './format.js?v=2.1.1';
-import { numberOrNull } from './store.js?v=2.1.1';
+import { esc } from './format.js?v=2.2.0';
+import { numberOrNull } from './store.js?v=2.2.0';
 
 let active = null;
 
