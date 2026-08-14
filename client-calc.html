@@ -52,31 +52,38 @@ button,a.btn{width:100%;border:0;border-radius:13px;padding:14px;margin-top:11px
 <section id="editor" class="card editor">
   <div class="bureau">Патентное бюро «Железно»</div>
   <h1>Калькулятор регистрации ТЗ</h1>
-  <div class="sub">Введи бренд, госпошлины и текст заключения патентного поверенного. Клиент получит короткую безопасно выглядящую ссылку без GitHub и без en6dea.</div>
+  <div class="sub">Введи бренд, госпошлины и текст заключения патентного поверенного. Дата создания ставится автоматически.</div>
   <div class="badge">Все тарифы уже со скидкой 10%</div>
   <div class="grid">
     <div><label>Название бренда</label><input id="brandInput" placeholder="Например, WG" autocomplete="off"></div>
     <div><label>Госпошлины, ₽</label><input id="dutyInput" inputmode="numeric" placeholder="Например, 35 000" autocomplete="off"></div>
-    <div class="full"><label>Отчёт / заключение патентного поверенного</label><textarea id="reportInput" placeholder="Вставь сюда текст отчёта: вывод, риски, рекомендации и т. д."></textarea></div>
+    <div class="full"><label>Отчёт / заключение патентного поверенного</label><textarea id="reportInput" maxlength="2500" placeholder="Вставь сюда текст отчёта: вывод, риски, рекомендации и т. д."></textarea></div>
   </div>
   <button class="primary" id="makeBtn">Создать короткую ссылку клиенту</button>
-  <div id="status" class="status">Ссылка будет вида: spoo.me/zhelezno-brand-2026-xxxx</div>
+  <div id="status" class="status">Короткий адрес будет вида: spoo.me/zWG26A7K2</div>
   <a id="clientLink" class="resultlink" target="_blank" rel="noopener"></a>
   <button id="copyBtn" class="ghost copybtn">Скопировать ссылку</button>
 </section>
 <main id="client"></main>
 </div>
+
 <script>
 const PRICES=[26990,30980,32970], $=id=>document.getElementById(id), qs=new URLSearchParams(location.search);
 const isEdit=qs.get('edit')==='1';
 const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
-const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear()};
 function translit(s){
  const m={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'c','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
- return String(s||'').toLowerCase().split('').map(c=>m[c]??c).join('').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,24)||'client';
+ return String(s||'').toLowerCase().split('').map(c=>m[c]??c).join('').replace(/[^a-z0-9]/g,'').slice(0,7)||'client';
 }
-function rand(n=4){const a='abcdefghjkmnpqrstuvwxyz23456789',x=new Uint8Array(n);crypto.getRandomValues(x);return [...x].map(v=>a[v%a.length]).join('')}
+function rand(n=4){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',x=new Uint8Array(n);crypto.getRandomValues(x);return [...x].map(v=>a[v%a.length]).join('')}
+function makeAlias(brand){
+  const yy=String(new Date().getFullYear()).slice(-2);
+  let alias=('z'+translit(brand)+yy+rand(4)).replace(/[^a-z0-9]/gi,'');
+  if(alias.length<3) alias='zhe'+rand(4);
+  return alias.slice(0,16);
+}
 function renderClient(){
   if(isEdit && !qs.get('brand') && !qs.get('duty')){$('editor').classList.add('show');$('client').innerHTML='';return}
   const brand=(qs.get('brand')||'').trim(), duty=Math.max(0,parseInt((qs.get('duty')||'').replace(/\D/g,''))||0), created=(qs.get('date')||today()).trim(), report=(qs.get('report')||'').trim();
@@ -86,14 +93,28 @@ function renderClient(){
   const tariff=(name,base,desc,reco=false)=>`<section class="card tariff ${reco?'reco':''}"><div class="tariff-main">${reco?'<div class="tag">Рекомендуемый</div>':''}<div class="tariff-title">${name}</div><div class="desc">${desc}</div><div class="discount">Цена тарифа уже с учётом скидки 10%</div></div><div class="pricebox"><div class="price-label">Тариф</div><div class="price">${fmt(base)}</div><div class="with-duty">С госпошлинами</div><div class="totalprice">${fmt(base+duty)}</div></div></section>`;
   $('client').innerHTML=`<section class="card"><div class="bureau">Патентное бюро «Железно»</div><h1>${title}</h1><div class="sub">Индивидуальный расчёт стоимости регистрации товарного знака</div><div class="badge">Все тарифы указаны с учётом скидки 10%</div><div class="date">Дата создания расчёта: <b>${esc(created)}</b></div></section>${reportBlock}${tariff('Базовый',26990,'Полное сопровождение регистрации до получения свидетельства.')}${tariff('Расширенный ★',30980,'Базовый пакет + 1 дополнительная услуга на выбор в течение 3 лет.',true)}${tariff('Железно 10 лет',32970,'Базовый пакет + 3 услуги сопровождения на 10 лет.')}<section class="card"><div class="duty-row"><span>Госпошлины Роспатента</span><b>${fmt(duty)}</b></div></section><div class="footer">Патентное бюро «Железно» · Расчёт создан ${esc(created)}</div>`;
 }
-async function shorten(longUrl,brand){
-  const alias='zhelezno-'+translit(brand)+'-'+new Date().getFullYear()+'-'+rand(4);
-  const r=await fetch('https://spoo.me/api/v1/shorten',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({long_url:longUrl,alias})});
+async function spooRequest(longUrl,alias){
+  const body=new URLSearchParams();
+  body.append('url',longUrl);
+  if(alias) body.append('alias',alias);
+  const r=await fetch('https://spoo.me/',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
+    body:body.toString()
+  });
   const j=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(j.message||j.error||('HTTP '+r.status));
-  const u=j.short_url||j.shorturl||j.shortened_url||j.url;
-  if(!u||!/^https?:\/\/spoo\.me\//i.test(u))throw new Error('Сервис не вернул короткую ссылку');
-  return u;
+  if(!r.ok) throw new Error(j.message||j.error||j.error_message||('HTTP '+r.status));
+  if(!j.short_url) throw new Error('Сервис не вернул короткую ссылку');
+  return j.short_url;
+}
+async function shorten(longUrl,brand){
+  for(let i=0;i<3;i++){
+    try{return await spooRequest(longUrl,makeAlias(brand))}catch(e){
+      const m=String(e.message||e);
+      if(!/alias|taken|exist|value error/i.test(m)) throw e;
+    }
+  }
+  return await spooRequest(longUrl,'');
 }
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();const ok=document.execCommand('copy');ta.remove();return ok}}
 document.addEventListener('click',async e=>{
@@ -101,17 +122,26 @@ document.addEventListener('click',async e=>{
     const brand=$('brandInput').value.trim(), duty=($('dutyInput').value||'').replace(/\D/g,''), report=$('reportInput').value.trim();
     if(!duty){$('dutyInput').focus();return}
     const u=new URL(location.origin+location.pathname);
-    if(brand)u.searchParams.set('brand',brand);u.searchParams.set('duty',duty);u.searchParams.set('date',today());if(report)u.searchParams.set('report',report);
-    e.target.disabled=true;e.target.textContent='Создаю короткую ссылку…';$('status').className='status';$('status').textContent='Формирую расчёт и короткую ссылку…';
+    if(brand)u.searchParams.set('brand',brand);
+    u.searchParams.set('duty',duty);
+    u.searchParams.set('date',today());
+    if(report)u.searchParams.set('report',report);
+    e.target.disabled=true;e.target.textContent='Создаю короткую ссылку…';
+    $('status').className='status';$('status').textContent='Формирую расчёт…';
     try{
       const short=await shorten(u.toString(),brand);
       $('clientLink').href=short;$('clientLink').textContent=short;$('clientLink').classList.add('show');$('copyBtn').classList.add('show');
-      $('status').className='status ok';$('status').textContent='Готово ✓ В ссылке нет GitHub и en6dea.';
+      $('status').className='status ok';$('status').textContent='Готово ✓ Короткая ссылка создана.';
     }catch(err){
-      $('status').className='status err';$('status').textContent='Не удалось создать короткую ссылку: '+err.message+'. Нажми ещё раз через несколько секунд.';
-    }finally{e.target.disabled=false;e.target.textContent='Создать короткую ссылку клиенту'}
+      $('status').className='status err';$('status').textContent='Не удалось создать короткую ссылку: '+err.message;
+    }finally{
+      e.target.disabled=false;e.target.textContent='Создать короткую ссылку клиенту';
+    }
   }
-  if(e.target.id==='copyBtn'){const ok=await copyText($('clientLink').href);e.target.textContent=ok?'Ссылка скопирована ✓':'Не удалось скопировать'}
+  if(e.target.id==='copyBtn'){
+    const ok=await copyText($('clientLink').href);
+    e.target.textContent=ok?'Ссылка скопирована ✓':'Не удалось скопировать';
+  }
 });
 renderClient();
 </script>
