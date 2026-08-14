@@ -60,7 +60,7 @@ button,a.btn{width:100%;border:0;border-radius:13px;padding:14px;margin-top:11px
     <div class="full"><label>Отчёт / заключение патентного поверенного</label><textarea id="reportInput" maxlength="2500" placeholder="Вставь сюда текст отчёта: вывод, риски, рекомендации и т. д."></textarea></div>
   </div>
   <button class="primary" id="makeBtn">Создать короткую ссылку клиенту</button>
-  <div id="status" class="status">Короткий адрес будет вида: spoo.me/zWG26A7K2</div>
+  <div id="status" class="status">Короткий адрес будет вида: v.gd/WG26A7K2</div>
   <a id="clientLink" class="resultlink" target="_blank" rel="noopener"></a>
   <button id="copyBtn" class="ghost copybtn">Скопировать ссылку</button>
 </section>
@@ -81,7 +81,7 @@ function rand(n=4){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',x=new Uint8Array(n
 function makeAlias(brand){
   const yy=String(new Date().getFullYear()).slice(-2);
   let alias=('z'+translit(brand)+yy+rand(4)).replace(/[^a-z0-9]/gi,'');
-  if(alias.length<3) alias='zhe'+rand(4);
+  if(alias.length<5) alias='zhe'+rand(4);
   return alias.slice(0,16);
 }
 function renderClient(){
@@ -93,28 +93,36 @@ function renderClient(){
   const tariff=(name,base,desc,reco=false)=>`<section class="card tariff ${reco?'reco':''}"><div class="tariff-main">${reco?'<div class="tag">Рекомендуемый</div>':''}<div class="tariff-title">${name}</div><div class="desc">${desc}</div><div class="discount">Цена тарифа уже с учётом скидки 10%</div></div><div class="pricebox"><div class="price-label">Тариф</div><div class="price">${fmt(base)}</div><div class="with-duty">С госпошлинами</div><div class="totalprice">${fmt(base+duty)}</div></div></section>`;
   $('client').innerHTML=`<section class="card"><div class="bureau">Патентное бюро «Железно»</div><h1>${title}</h1><div class="sub">Индивидуальный расчёт стоимости регистрации товарного знака</div><div class="badge">Все тарифы указаны с учётом скидки 10%</div><div class="date">Дата создания расчёта: <b>${esc(created)}</b></div></section>${reportBlock}${tariff('Базовый',26990,'Полное сопровождение регистрации до получения свидетельства.')}${tariff('Расширенный ★',30980,'Базовый пакет + 1 дополнительная услуга на выбор в течение 3 лет.',true)}${tariff('Железно 10 лет',32970,'Базовый пакет + 3 услуги сопровождения на 10 лет.')}<section class="card"><div class="duty-row"><span>Госпошлины Роспатента</span><b>${fmt(duty)}</b></div></section><div class="footer">Патентное бюро «Железно» · Расчёт создан ${esc(created)}</div>`;
 }
-async function spooRequest(longUrl,alias){
-  const body=new URLSearchParams();
-  body.append('url',longUrl);
-  if(alias) body.append('alias',alias);
-  const r=await fetch('https://spoo.me/',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
-    body:body.toString()
+function jsonpShorten(service,longUrl,shorturl){
+  return new Promise((resolve,reject)=>{
+    const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+    const script=document.createElement('script');
+    const timer=setTimeout(()=>finish(new Error(service+' timeout')),9000);
+    function finish(err,val){clearTimeout(timer);try{delete window[cb]}catch(e){};script.remove();err?reject(err):resolve(val)}
+    window[cb]=data=>{
+      if(data&&data.shorturl) return finish(null,data.shorturl);
+      finish(new Error((data&&data.errormessage)||service+' error'));
+    };
+    script.onerror=()=>finish(new Error(service+' network'));
+    const qp=new URLSearchParams({format:'json',callback:cb,url:longUrl});
+    if(shorturl) qp.set('shorturl',shorturl);
+    script.src='https://'+service+'/create.php?'+qp.toString();
+    document.body.appendChild(script);
   });
-  const j=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.message||j.error||j.error_message||('HTTP '+r.status));
-  if(!j.short_url) throw new Error('Сервис не вернул короткую ссылку');
-  return j.short_url;
 }
 async function shorten(longUrl,brand){
-  for(let i=0;i<3;i++){
-    try{return await spooRequest(longUrl,makeAlias(brand))}catch(e){
-      const m=String(e.message||e);
-      if(!/alias|taken|exist|value error/i.test(m)) throw e;
+  const services=['v.gd','is.gd'];
+  for(const service of services){
+    for(let i=0;i<3;i++){
+      try{return await jsonpShorten(service,longUrl,makeAlias(brand))}
+      catch(e){
+        const m=String(e.message||e);
+        if(!/short|taken|already|problem|invalid|exist|error code 2/i.test(m)) break;
+      }
     }
+    try{return await jsonpShorten(service,longUrl,'')}catch(e){}
   }
-  return await spooRequest(longUrl,'');
+  throw new Error('Сервисы коротких ссылок временно недоступны');
 }
 async function copyText(text){try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();const ok=document.execCommand('copy');ta.remove();return ok}}
 document.addEventListener('click',async e=>{
