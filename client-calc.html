@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#0d2345">
+<title>Патентное бюро «Железно» — расчёт регистрации ТЗ</title>
+<style>
+:root{--navy:#0d2345;--gold:#c58a1d;--bg:#f4f6fa;--text:#10213d;--muted:#69758a;--line:#e2c47f;--white:#fff;--green:#1f7a4d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:16px 14px 36px}
+.card{background:var(--white);border-radius:20px;padding:18px;margin-bottom:12px;box-shadow:0 8px 28px rgba(13,35,69,.07)}
+.bureau{font-size:11px;text-transform:uppercase;letter-spacing:.45px;font-weight:900;color:var(--gold);margin-bottom:7px}
+h1{margin:0 0 7px;font-size:23px;line-height:1.15;color:var(--navy)}
+.sub{font-size:13px;line-height:1.45;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:#fff7e6;border:1px solid #f1d79d;color:#825b0f;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;margin-top:12px}
+.date{margin-top:10px;font-size:12px;color:var(--muted)}
+.editor{display:none}.editor.show{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.full{grid-column:1/-1}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+input{width:100%;border:1px solid #d8deea;border-radius:12px;padding:13px;font-size:16px;color:var(--text);outline:none;background:#fff}
+input:focus{border-color:var(--gold)}
+button,a.btn{width:100%;border:0;border-radius:13px;padding:14px;margin-top:11px;font-size:14px;font-weight:850;cursor:pointer;text-decoration:none;text-align:center;display:block}
+.primary{background:var(--navy);color:#fff}.ghost{background:#edf2f8;color:var(--navy)}
+.resultlink{display:none;word-break:break-all;background:#f5f7fb;border:1px solid #e5e9f0;border-radius:12px;padding:12px;margin-top:10px;color:var(--navy);font-weight:750;text-decoration:none}
+.resultlink.show{display:block}
+.copybtn{display:none}.copybtn.show{display:block}
+.tariff{border:1px solid var(--line)}
+.tariff.reco{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tariff-title{font-weight:850;font-size:15px}
+.tag{font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:900;color:var(--gold);margin-bottom:7px}
+.price{font-size:28px;font-weight:950;line-height:1;margin:8px 0 9px}
+.discount{font-size:11px;color:var(--green);font-weight:800;margin-bottom:8px}
+.reco .discount{color:#f6cd7a}
+.desc{font-size:13px;line-height:1.45;color:var(--muted)}
+.reco .desc{color:#dce5f5}
+.total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-top:1px solid #e8ebf0;margin-top:12px;padding-top:11px;font-size:13px}
+.reco .total{border-color:#53637f}
+.total b{font-size:17px}
+.report-card{border:1px dashed #cfd6e3}
+.report-title{font-size:15px;font-weight:850;margin-bottom:6px}
+.report-note{font-size:12px;color:var(--muted);line-height:1.45}
+.footer{font-size:11px;color:var(--muted);line-height:1.45;text-align:center;padding:4px 12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.full{grid-column:auto}h1{font-size:21px}.price{font-size:26px}.card{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="editor" class="card editor">
+    <div class="bureau">Патентное бюро «Железно»</div>
+    <h1>Калькулятор регистрации ТЗ</h1>
+    <div class="sub">Введи данные клиента. Дата создания ставится автоматически, а отчёт патентного поверенного можно добавить ссылкой на PDF/Google Drive.</div>
+    <div class="badge">−10% уже учтено во всех тарифах</div>
+    <div class="grid">
+      <div><label>Название бренда</label><input id="brandInput" placeholder="Например, WG" autocomplete="off"></div>
+      <div><label>Госпошлины, ₽</label><input id="dutyInput" inputmode="numeric" placeholder="Например, 35000" autocomplete="off"></div>
+      <div class="full"><label>Отчёт патентного поверенного — ссылка (необязательно)</label><input id="reportInput" type="url" placeholder="https://.../report.pdf" autocomplete="off"></div>
+    </div>
+    <button class="primary" id="makeBtn">Сформировать ссылку клиенту</button>
+    <a id="clientLink" class="resultlink" target="_blank" rel="noopener"></a>
+    <button id="copyBtn" class="ghost copybtn">Скопировать ссылку</button>
+  </section>
+  <main id="client"></main>
+</div>
+<script>
+const PRICES=[26990,30980,32970];
+const $=id=>document.getElementById(id);
+const qs=new URLSearchParams(location.search);
+const isEdit=qs.get('edit')==='1';
+const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>{const d=new Date();return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();};
+const normalizeUrl=u=>{try{const x=new URL(u);return ['http:','https:'].includes(x.protocol)?x.toString():'';}catch(e){return ''}};
+function renderClient(){
+  if(isEdit && !qs.get('brand') && !qs.get('duty')){$('editor').classList.add('show');$('client').innerHTML='';return;}
+  const brand=(qs.get('brand')||'').trim();
+  const duty=Math.max(0,parseInt((qs.get('duty')||'').replace(/\D/g,''))||0);
+  const created=(qs.get('date')||today()).trim();
+  const report=normalizeUrl(qs.get('report')||'');
+  const title=brand?'Расчёт регистрации «'+esc(brand)+'»':'Расчёт регистрации товарного знака';
+  document.title='Патентное бюро «Железно» — '+(brand?'расчёт '+brand:'расчёт регистрации ТЗ');
+  const reportBlock=report?`<section class="card report-card"><div class="bureau">Документы проверки</div><div class="report-title">Отчёт по проверке от патентного поверенного</div><div class="report-note">К расчёту приложен отчёт специалиста по результатам предварительной проверки товарного знака.</div><a class="btn primary" href="${esc(report)}" target="_blank" rel="noopener noreferrer">Открыть отчёт</a></section>`:'';
+  $('client').innerHTML=`
+    <section class="card"><div class="bureau">Патентное бюро «Железно»</div><h1>${title}</h1><div class="sub">Индивидуальный расчёт стоимости регистрации товарного знака</div><div class="badge">Все тарифы указаны с учётом скидки 10%</div><div class="date">Дата создания расчёта: <b>${esc(created)}</b></div></section>
+    <section class="card tariff"><div class="tariff-title">Базовый</div><div class="price">26 990 ₽</div><div class="discount">Цена уже со скидкой 10%</div><div class="desc">Полное сопровождение до получения свидетельства.</div><div class="total"><span>Итого с госпошлинами</span><b>${fmt(PRICES[0]+duty)}</b></div></section>
+    <section class="card tariff reco"><div class="tag">Рекомендуемый</div><div class="tariff-title">Расширенный ★</div><div class="price">30 980 ₽</div><div class="discount">Цена уже со скидкой 10%</div><div class="desc">Базовый пакет + 1 дополнительная услуга на выбор в течение 3 лет.</div><div class="total"><span>Итого с госпошлинами</span><b>${fmt(PRICES[1]+duty)}</b></div></section>
+    <section class="card tariff"><div class="tariff-title">Железно 10 лет</div><div class="price">32 970 ₽</div><div class="discount">Цена уже со скидкой 10%</div><div class="desc">Базовый пакет + 3 услуги сопровождения на 10 лет.</div><div class="total"><span>Итого с госпошлинами</span><b>${fmt(PRICES[2]+duty)}</b></div></section>
+    <section class="card"><div class="total" style="border:0;margin:0;padding:0"><span>Госпошлины Роспатента</span><b>${fmt(duty)}</b></div></section>
+    ${reportBlock}
+    <div class="footer">Патентное бюро «Железно» · Расчёт создан ${esc(created)}</div>`;
+}
+async function copyText(text){try{await navigator.clipboard.writeText(text);return true}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();const ok=document.execCommand('copy');ta.remove();return ok}}
+document.addEventListener('click',async e=>{
+  if(e.target.id==='makeBtn'){
+    const brand=$('brandInput').value.trim();
+    const duty=($('dutyInput').value||'').replace(/\D/g,'');
+    const report=normalizeUrl($('reportInput').value.trim());
+    if(!duty){$('dutyInput').focus();return}
+    const u=new URL(location.origin+location.pathname);
+    if(brand)u.searchParams.set('brand',brand);
+    u.searchParams.set('duty',duty);
+    u.searchParams.set('date',today());
+    if(report)u.searchParams.set('report',report);
+    $('clientLink').href=u.toString();
+    $('clientLink').textContent='Расчёт для '+(brand||'клиента')+' — '+new Date().getFullYear();
+    $('clientLink').classList.add('show');
+    $('copyBtn').classList.add('show');
+  }
+  if(e.target.id==='copyBtn'){
+    const ok=await copyText($('clientLink').href);
+    e.target.textContent=ok?'Ссылка скопирована ✓':'Не удалось скопировать';
+  }
+});
+renderClient();
+</script>
+</body>
+</html>
